@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Process Log — FEC Data Viz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0d0f12;
+      --surface: #141720;
+      --surface2:#1c2030;
+      --border:  #252a38;
+      --text:    #e8eaf0;
+      --muted:   #5a6070;
+      --subtle:  #8890a0;
+      --green:   #3dbf7a;
+      --amber:   #e8a020;
+      --accent:  #4a90d9;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 2rem 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 0 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .sidebar-logo span {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-logo span em { font-style: normal; color: var(--muted); }
+
+    .nav-section { padding: 0 1rem; margin-bottom: 0.25rem; }
+
+    .nav-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .nav-item {
+      display: block;
+      padding: 0.5rem 0.75rem;
+      color: var(--subtle);
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: var(--surface2); color: var(--text); }
+
+    .nav-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+
+    /* ── Main ── */
+    .main {
+      max-width: 820px;
+      padding: 3rem;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      border-top: 3px solid var(--text);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 0 1.25rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .page-eyebrow {
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+    }
+
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 0.75rem;
+    }
+
+    .page-desc {
+      font-size: 0.75rem;
+      color: var(--subtle);
+      max-width: 540px;
+      line-height: 1.7;
+    }
+
+    /* ── Timeline ── */
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+    }
+
+    /* Vertical rule */
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+
+    /* ── Entry ── */
+    .entry {
+      position: relative;
+      margin-bottom: 3.5rem;
+      opacity: 0;
+      transform: translateY(14px);
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    .entry:nth-child(1) { animation-delay: 0.05s; }
+    .entry:nth-child(2) { animation-delay: 0.15s; }
+    .entry:nth-child(3) { animation-delay: 0.25s; }
+    .entry:nth-child(4) { animation-delay: 0.35s; }
+    .entry:nth-child(5) { animation-delay: 0.45s; }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Timeline dot */
+    .entry::before {
+      content: '';
+      position: absolute;
+      left: -2.375rem;
+      top: 6px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      border: 1.5px solid var(--muted);
+    }
+
+    .entry.today::before {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 8px rgba(74,144,217,0.4);
+    }
+
+    .entry.offline::before {
+      background: var(--surface2);
+      border-color: var(--border);
+    }
+
+    /* Date label */
+    .entry-date {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .entry.today .entry-date { color: var(--accent); }
+
+    /* Title */
+    .entry-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 0.6rem;
+    }
+
+    /* Summary */
+    .entry-summary {
+      font-size: 0.75rem;
+      color: var(--subtle);
+      line-height: 1.7;
+      margin-bottom: 1rem;
+      max-width: 560px;
+    }
+
+    /* Offline entry (Sat/Sun) */
+    .entry.offline .entry-title { color: var(--muted); }
+    .entry.offline .entry-summary { color: var(--muted); }
+
+    /* Changelog */
+    .changelog {
+      margin-bottom: 1rem;
+    }
+
+    .changelog-item {
+      display: flex;
+      gap: 0.6rem;
+      padding: 0.3rem 0;
+      font-size: 0.7rem;
+      color: var(--subtle);
+      border-bottom: 1px solid rgba(37,42,56,0.6);
+      line-height: 1.5;
+    }
+
+    .changelog-item:last-child { border-bottom: none; }
+
+    .changelog-bullet {
+      color: var(--muted);
+      flex-shrink: 0;
+      margin-top: 0.05rem;
+    }
+
+    /* Insight */
+    .insight {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+      border-radius: 0 3px 3px 0;
+    }
+
+    .insight-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+    }
+
+    .insight-text {
+      font-size: 0.72rem;
+      color: var(--subtle);
+      line-height: 1.7;
+    }
+
+    /* Stack tags */
+    .stack {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .stack-tag {
+      font-size: 0.58rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.15rem 0.5rem;
+      background: var(--surface);
+    }
+
+    /* Visual placeholder */
+    .visual-slot {
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      aspect-ratio: 16 / 7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      color: var(--muted);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      background: var(--surface);
+    }
+
+    .visual-slot svg {
+      opacity: 0.3;
+    }
+
+    /* Offline note */
+    .offline-note {
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.7;
+    }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <span>ledger<em>.fec</em></span>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Pages</div>
+      <a class="nav-item" href="index.html"><span class="nav-dot" style="background:var(--muted)"></span>Dashboard</a>
+      <a class="nav-item" href="candidate.html"><span class="nav-dot" style="background:var(--muted)"></span>Candidates</a>
+      <a class="nav-item"><span class="nav-dot" style="background:var(--muted)"></span>Committees</a>
+      <a class="nav-item"><span class="nav-dot" style="background:var(--muted)"></span>Races</a>
+    </div>
+    <div class="nav-section" style="margin-top:1.5rem">
+      <div class="nav-label">About</div>
+      <a class="nav-item active"><span class="nav-dot" style="background:var(--accent)"></span>Process Log</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+
+    <header class="page-header">
+      <div class="page-eyebrow">Behind the build</div>
+      <h1 class="page-title">Process Log</h1>
+      <p class="page-desc">A running record of how this project came to be — decisions made, pivots taken, and things learned along the way. Written for a future case study.</p>
+    </header>
+
+    <div class="timeline">
+
+      <!-- Feb 27 -->
+      <div class="entry">
+        <div class="entry-date">Fri, Feb 27, 2026</div>
+        <div class="entry-title">Ideation, environment setup, and first proof of concept</div>
+        <div class="entry-summary">Started from scratch: explored data source options, chose FRED as a low-friction first target, and shipped a working proof of concept to a live URL by end of day — navigating CORS issues, API keys, Git, and Netlify for the first time.</div>
+
+        <div class="changelog">
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Explored data source options: economic data, sentiment analysis, housing market, NYT API, and correlations between unrelated datasets</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Selected FRED (Federal Reserve Economic Data) API as proof-of-concept data source; secured free API key</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Built first HTML proof of concept visualizing 30-year fixed mortgage rate with Chart.js</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Debugged CORS errors across multiple approaches (JSONP, local proxy); resolved by running local CORS proxy alongside dev server</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Installed Node.js, learned terminal basics, ran first local dev server</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Set up GitHub repository, learned Git authentication via personal access token</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Deployed to Netlify with a Netlify Function to proxy the FRED API server-side (resolving CORS permanently)</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Added Amplitude analytics; confirmed live event tracking</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Explored Figma Make prompting best practices in a separate session</div>
+        </div>
+
+        <div class="stack">
+          <span class="stack-tag">FRED API</span>
+          <span class="stack-tag">Chart.js</span>
+          <span class="stack-tag">Netlify</span>
+          <span class="stack-tag">Netlify Functions</span>
+          <span class="stack-tag">Git / GitHub</span>
+          <span class="stack-tag">Amplitude</span>
+          <span class="stack-tag">Node.js</span>
+        </div>
+
+        <div class="insight">
+          <div class="insight-label">Pivot</div>
+          <div class="insight-text">FRED data was never the real destination — it was a proving ground. By end of day, the conversation had turned toward FEC campaign finance data as the more purposeful and differentiated direction, leveraging direct domain expertise from a campaign manager.</div>
+        </div>
+
+        <div class="visual-slot">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          <span>Screenshot — FRED POC live at sloanestradley.netlify.app</span>
+        </div>
+      </div>
+
+      <!-- Feb 28 / Mar 1 — offline -->
+      <div class="entry offline">
+        <div class="entry-date">Sat, Feb 28 – Sun, Mar 1, 2026</div>
+        <div class="entry-title">Domain research and offline discovery</div>
+        <div class="entry-summary">Stepped away from the screen to go deep on campaign finance with Tim — the campaign manager behind this project's domain expertise.</div>
+        <p class="offline-note">No code written. Time spent learning the landscape of campaign finance: how money flows between candidates, committees, PACs, and joint fundraising vehicles; reviewing sample FEC data; drawing diagrams; and taking notes that would directly inform the project brief drafted on Monday. This groundwork proved essential — the brief that emerged is more specific and more credible because of it.</p>
+
+        <div class="insight">
+          <div class="insight-label">Noteworthy</div>
+          <div class="insight-text">The distinction between a candidate and their committee ecosystem — principal campaign committees, leadership PACs, JFAs, hybrid PACs — turned out to be more nuanced than expected, and a genuine blindspot in existing tools. This became one of the project's strongest differentiators.</div>
+        </div>
+      </div>
+
+      <!-- Mar 2 -->
+      <div class="entry">
+        <div class="entry-date">Mon, Mar 2, 2026</div>
+        <div class="entry-title">FEC pivot confirmed, project brief drafted, first candidate POC</div>
+        <div class="entry-summary">Committed fully to FEC campaign finance data as the project foundation. Drafted a living project brief covering audience, differentiators, MVP requirements, and go-live considerations — then built a first candidate profile POC with real FEC data.</div>
+
+        <div class="changelog">
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Confirmed FEC API feasibility; secured API key; validated data structure and aggregate endpoints</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Drafted project brief: audience (primary: campaign staffers), core question ("where is money flowing in this race?"), differentiators, MVP requirements, backlog</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Defined data lifecycle states: pre-filing, active cycle, post-cycle, amended</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Identified early signal data (48/24-hour reports) as highest-priority post-MVP feature</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Identified AI-generated narrative insights as a post-MVP differentiator</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Built first FEC candidate profile POC: profile header, financial stats, overview bar chart, burn rate doughnut, committees tab</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Pivoted candidate from Adam Schiff to Marie Gluesenkamp Perez (WA-03) for domain relevance</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Iterated on avatar initials (MGP format), cycle switcher, health indicator, chart animation behavior, overspend handling, and tab anchor links</div>
+        </div>
+
+        <div class="stack">
+          <span class="stack-tag">FEC API</span>
+          <span class="stack-tag">Chart.js</span>
+          <span class="stack-tag">HTML / CSS / JS</span>
+        </div>
+
+        <div class="insight">
+          <div class="insight-label">Key framing</div>
+          <div class="insight-text">Reframing the summary chart around a single question — "Is this campaign financially healthy or stressed?" rather than "how much did they raise?" — changed everything about what the visualization needs to do. It shifts the tool from passive data display to active decision support.</div>
+        </div>
+
+        <div class="visual-slot">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          <span>Screenshot — Candidate profile POC (MGP, WA-03)</span>
+        </div>
+      </div>
+
+      <!-- Mar 3 — today -->
+      <div class="entry today">
+        <div class="entry-date">Tue, Mar 3, 2026 — Today</div>
+        <div class="entry-title">In progress</div>
+        <div class="entry-summary">Session ongoing. This entry will be updated at end of day.</div>
+
+        <div class="changelog">
+          <div class="changelog-item"><span class="changelog-bullet">–</span>Launched this process log</div>
+          <div class="changelog-item"><span class="changelog-bullet">–</span><em style="color:var(--muted)">More to come…</em></div>
+        </div>
+
+        <div class="stack">
+          <span class="stack-tag">In progress</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

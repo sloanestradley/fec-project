@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Candidate Profile — FEC Data</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f12; --surface: #141720; --surface2: #1c2030;
+      --border: #252a38; --text: #e8eaf0; --muted: #5a6070; --subtle: #8890a0;
+      --dem: #4a90d9; --rep: #d94a4a; --ind: #9b8ed4;
+      --green: #3dbf7a; --amber: #e8a020; --red: #d94a4a;
+      --sidebar-w: 220px; --header-h: 52px;
+    }
+    body { background:var(--bg); color:var(--text); font-family:'IBM Plex Mono',monospace;
+      font-size:13px; line-height:1.6; min-height:100vh; overflow-x:hidden; }
+
+    /* Layout */
+    .layout { display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; }
+
+    /* Sidebar */
+    .sidebar { background:var(--surface); border-right:1px solid var(--border);
+      padding:2rem 0; position:sticky; top:0; height:100vh; overflow-y:auto;
+      display:flex; flex-direction:column; }
+    .sidebar-logo { padding:0 1.5rem 2rem; border-bottom:1px solid var(--border); margin-bottom:1.5rem; }
+    .sidebar-logo a { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800;
+      letter-spacing:-0.02em; text-decoration:none; color:var(--text); }
+    .sidebar-logo a em { font-style:normal; color:var(--muted); }
+    .nav-section { padding:0 1rem; margin-bottom:0.25rem; }
+    .nav-label { font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase;
+      color:var(--muted); padding:0 0.5rem; margin-bottom:0.5rem; }
+    .nav-item { display:flex; align-items:center; padding:0.5rem 0.75rem;
+      color:var(--subtle); text-decoration:none; border-radius:4px; font-size:0.75rem;
+      transition:all 0.15s; gap:0.5rem; }
+    .nav-item:hover { background:var(--surface2); color:var(--text); }
+    .nav-item.active { background:var(--surface2); color:var(--text); }
+    .nav-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+    /* Mobile header */
+    .mobile-header { display:none; position:fixed; top:0; left:0; right:0;
+      height:var(--header-h); background:var(--surface); border-bottom:1px solid var(--border);
+      z-index:100; align-items:center; padding:0 1.25rem; gap:1rem; transition:transform 0.3s ease; }
+    .mobile-header.hidden { transform:translateY(-100%); }
+    .mobile-logo { font-family:'Syne',sans-serif; font-size:1rem; font-weight:800;
+      letter-spacing:-0.02em; color:var(--text); text-decoration:none; flex:1; }
+    .mobile-logo em { font-style:normal; color:var(--muted); }
+    .hamburger { background:none; border:none; cursor:pointer; padding:0.25rem;
+      display:flex; flex-direction:column; gap:4px; color:var(--subtle); }
+    .hamburger span { display:block; width:20px; height:1.5px; background:currentColor;
+      transition:all 0.2s; transform-origin:center; }
+    .hamburger.open span:nth-child(1) { transform:translateY(5.5px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity:0; }
+    .hamburger.open span:nth-child(3) { transform:translateY(-5.5px) rotate(-45deg); }
+
+    /* Mobile nav */
+    .mobile-nav { display:none; position:fixed; top:var(--header-h); left:0; right:0; bottom:0;
+      background:var(--surface); z-index:99; padding:1.5rem 1.25rem; overflow-y:auto;
+      transform:translateX(-100%); transition:transform 0.25s ease; }
+    .mobile-nav.open { transform:translateX(0); }
+    .mobile-nav .nav-item { font-size:1rem; padding:0.85rem 0.75rem;
+      border-bottom:1px solid var(--border); border-radius:0; }
+    .mobile-nav .nav-item:last-child { border-bottom:none; }
+
+    /* Main */
+    .main { overflow-x:hidden; min-width:0; }
+
+    /* Profile header */
+    .profile-header { padding:2.5rem 3rem 2rem; border-bottom:1px solid var(--border);
+      opacity:0; transform:translateY(10px); transition:opacity 0.4s ease,transform 0.4s ease; }
+    .profile-header.visible { opacity:1; transform:translateY(0); }
+    .breadcrumb { font-size:0.62rem; color:var(--muted); letter-spacing:0.1em;
+      text-transform:uppercase; margin-bottom:1.25rem; }
+    .breadcrumb span { color:var(--subtle); }
+    .candidate-row { display:flex; align-items:flex-start; gap:1.5rem; margin-bottom:1.25rem; }
+    .avatar { width:60px; height:60px; border-radius:4px; background:var(--surface2);
+      border:1px solid var(--border); display:flex; align-items:center; justify-content:center;
+      font-family:'Syne',sans-serif; font-size:0.9rem; font-weight:800;
+      color:var(--subtle); letter-spacing:0.05em; flex-shrink:0; }
+    .candidate-name { font-family:'Syne',sans-serif; font-size:clamp(1.4rem,3vw,2.2rem);
+      font-weight:800; line-height:1.05; letter-spacing:-0.03em; margin-bottom:0.6rem; }
+    .meta-row { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+    .tag { display:inline-flex; align-items:center; padding:0.18rem 0.55rem;
+      border-radius:3px; font-size:0.62rem; letter-spacing:0.07em; text-transform:uppercase;
+      font-weight:500; border:1px solid; white-space:nowrap; }
+    .tag-dem { color:var(--dem); border-color:rgba(74,144,217,0.3); background:rgba(74,144,217,0.08); }
+    .tag-rep { color:var(--rep); border-color:rgba(217,74,74,0.3); background:rgba(217,74,74,0.08); }
+    .tag-ind { color:var(--ind); border-color:rgba(155,142,212,0.3); background:rgba(155,142,212,0.08); }
+    .tag-neutral { color:var(--subtle); border-color:var(--border); background:var(--surface2); }
+    .cycle-switcher { display:flex; align-items:center; gap:0.35rem; margin-top:1rem; flex-wrap:wrap; }
+    .cycle-label { font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase;
+      color:var(--muted); margin-right:0.25rem; }
+    .cycle-btn { padding:0.2rem 0.6rem; border-radius:3px; font-size:0.65rem;
+      font-family:'IBM Plex Mono',monospace; cursor:pointer; border:1px solid var(--border);
+      background:transparent; color:var(--subtle); transition:all 0.15s; }
+    .cycle-btn:hover { border-color:var(--subtle); color:var(--text); }
+    .cycle-btn.active { border-color:var(--text); color:var(--text); background:var(--surface2); }
+
+    /* Tabs */
+    .tabs-bar { padding:0 3rem; border-bottom:1px solid var(--border);
+      display:flex; overflow-x:auto; scrollbar-width:none; }
+    .tabs-bar::-webkit-scrollbar { display:none; }
+    .tab { padding:0.9rem 1.25rem; font-size:0.68rem; letter-spacing:0.1em;
+      text-transform:uppercase; color:var(--muted); cursor:pointer;
+      border-bottom:2px solid transparent; margin-bottom:-1px;
+      transition:all 0.15s; text-decoration:none; white-space:nowrap; flex-shrink:0; }
+    .tab:hover { color:var(--subtle); }
+    .tab.active { color:var(--text); border-bottom-color:var(--text); }
+
+    /* Content */
+    .content { padding:2.5rem 3rem; opacity:0; transition:opacity 0.3s ease; min-width:0; }
+    .content.visible { opacity:1; }
+
+    /* Banner */
+    .banner { border:1px solid var(--border); background:var(--surface);
+      padding:1rem 1.25rem; margin-bottom:1.5rem;
+      display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+    .health-signal { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .health-signal.green { background:var(--green); box-shadow:0 0 7px rgba(61,191,122,0.5); }
+    .health-signal.amber { background:var(--amber); box-shadow:0 0 7px rgba(232,160,32,0.5); }
+    .health-signal.red { background:var(--red); box-shadow:0 0 7px rgba(217,74,74,0.5); }
+    .health-signal.grey { background:var(--muted); }
+    .banner-label { font-size:0.63rem; letter-spacing:0.1em; text-transform:uppercase;
+      color:var(--subtle); flex-shrink:0; }
+    .banner-desc { font-size:0.7rem; color:var(--muted); flex:1; min-width:160px; }
+    .banner-note { font-size:0.58rem; color:var(--muted); font-style:italic; }
+
+    /* Stats */
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
+      gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:1.5rem; }
+    .stat-card { background:var(--surface); padding:1.2rem 1.4rem; }
+    .stat-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:0.35rem; }
+    .stat-value { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:700;
+      line-height:1; letter-spacing:-0.02em; margin-bottom:0.25rem; }
+    .stat-sub { font-size:0.6rem; color:var(--muted); }
+    .stat-sub.pos { color:var(--green); }
+    .stat-sub.neg { color:var(--red); }
+    .stat-sub.warn { color:var(--amber); }
+
+    /* Chart */
+    .chart-card { background:var(--surface); border:1px solid var(--border);
+      padding:1.75rem; margin-bottom:1.5rem; min-width:0; overflow:hidden; }
+    .chart-header { display:flex; justify-content:space-between; align-items:flex-start;
+      margin-bottom:1.25rem; gap:1rem; flex-wrap:wrap; }
+    .chart-title { font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--subtle); }
+    .chart-legend { display:flex; gap:1rem; flex-wrap:wrap; }
+    .legend-item { display:flex; align-items:center; gap:0.4rem; font-size:0.58rem; color:var(--muted); }
+    .legend-swatch { width:18px; height:2px; flex-shrink:0; }
+    .legend-dashed { background:repeating-linear-gradient(
+      to right,rgba(90,96,112,0.7) 0,rgba(90,96,112,0.7) 3px,transparent 3px,transparent 7px); }
+    .legend-amber-dashed { background:repeating-linear-gradient(
+      to right,rgba(232,160,32,0.8) 0,rgba(232,160,32,0.8) 2px,transparent 2px,transparent 5px); }
+    .overspend-note { font-size:0.62rem; color:var(--amber); margin-top:0.75rem;
+      padding:0.5rem 0.75rem; border:1px solid rgba(232,160,32,0.2);
+      border-radius:3px; background:rgba(232,160,32,0.05); }
+
+    /* Committees */
+    .section-title { font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:1rem; padding-bottom:0.75rem;
+      border-bottom:1px solid var(--border); }
+    .committee-row { display:grid; grid-template-columns:1fr auto auto;
+      align-items:center; gap:1rem; padding:0.85rem 0; border-bottom:1px solid var(--border); }
+    .committee-row:last-child { border-bottom:none; }
+    .committee-name { font-size:0.78rem; }
+    .committee-type { font-size:0.6rem; color:var(--muted); text-align:right; }
+    .committee-id { font-size:0.6rem; color:var(--muted); }
+
+    .data-note { font-size:0.6rem; color:var(--muted); margin-top:1.25rem;
+      padding-top:1rem; border-top:1px solid var(--border); line-height:1.8; }
+    .placeholder { font-size:0.75rem; color:var(--muted); padding:2rem;
+      border:1px dashed var(--border); text-align:center; border-radius:4px; }
+
+    .state-msg { display:flex; align-items:center; gap:1rem;
+      padding:4rem 3rem; color:var(--muted); font-size:0.75rem; }
+    .state-msg.error { color:var(--red); }
+    .loader { width:16px; height:16px; border:1.5px solid var(--border);
+      border-top-color:var(--subtle); border-radius:50%;
+      animation:spin 0.7s linear infinite; flex-shrink:0; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Responsive */
+    @media (max-width:860px) {
+      .layout { grid-template-columns:1fr; }
+      .sidebar { display:none; }
+      .mobile-header { display:flex; }
+      .mobile-nav { display:block; }
+      .main { padding-top:var(--header-h); }
+      .profile-header { padding:1.5rem 1.25rem 1.25rem; }
+      .tabs-bar { padding:0 1.25rem; }
+      .content { padding:1.5rem 1.25rem; }
+      .state-msg { padding:2rem 1.25rem; }
+      .stats-grid { grid-template-columns:repeat(2,1fr); }
+      .committee-row { grid-template-columns:1fr; gap:0.2rem; }
+      .committee-type,.committee-id { text-align:left; }
+    }
+    @media (max-width:480px) { .stat-value { font-size:1.2rem; } }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Desktop sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo"><a href="index.html">ledger<em>.fec</em></a></div>
+    <div class="nav-section">
+      <div class="nav-label">Pages</div>
+      <a class="nav-item active" href="candidate.html"><span class="nav-dot" style="background:var(--subtle)"></span>Candidates</a>
+      <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Committees</a>
+      <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Races</a>
+      <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Search</a>
+    </div>
+    <div class="nav-section" style="margin-top:1.5rem">
+      <div class="nav-label">About</div>
+      <a class="nav-item" href="process-log.html"><span class="nav-dot" style="background:var(--muted)"></span>Process Log</a>
+    </div>
+  </nav>
+
+  <!-- Mobile header -->
+  <header class="mobile-header" id="mobile-header">
+    <a class="mobile-logo" href="index.html">ledger<em>.fec</em></a>
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- Mobile nav -->
+  <nav class="mobile-nav" id="mobile-nav">
+    <a class="nav-item active" href="candidate.html"><span class="nav-dot" style="background:var(--subtle)"></span>Candidates</a>
+    <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Committees</a>
+    <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Races</a>
+    <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Search</a>
+    <a class="nav-item" href="process-log.html"><span class="nav-dot" style="background:var(--muted)"></span>Process Log</a>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="state-msg" id="state-msg">
+      <div class="loader"></div><span>Fetching candidate data from FEC…</span>
+    </div>
+
+    <div class="profile-header" id="profile-header" style="display:none">
+      <div class="breadcrumb" id="breadcrumb">Candidates</div>
+      <div class="candidate-row">
+        <div class="avatar" id="avatar">—</div>
+        <div style="min-width:0">
+          <div class="candidate-name" id="candidate-name">—</div>
+          <div class="meta-row" id="meta-row"></div>
+          <div class="cycle-switcher" id="cycle-switcher">
+            <span class="cycle-label">Cycle</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs-bar" id="tabs-bar" style="display:none">
+      <a class="tab active" href="#summary"    onclick="showTab('summary',event)">Summary</a>
+      <a class="tab"        href="#raised"     onclick="showTab('raised',event)">Raised</a>
+      <a class="tab"        href="#spent"      onclick="showTab('spent',event)">Spent</a>
+      <a class="tab"        href="#committees" onclick="showTab('committees',event)">Committees</a>
+    </div>
+
+    <div class="content" id="content" style="display:none">
+
+      <!-- Summary tab -->
+      <div id="tab-summary">
+        <div class="banner" id="banner">
+          <div class="health-signal" id="health-signal"></div>
+          <div class="banner-label"  id="banner-label">—</div>
+          <div class="banner-desc"   id="banner-desc">—</div>
+          <div class="banner-note"   id="banner-note"></div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Raised</div>
+            <div class="stat-value" id="stat-raised">—</div>
+            <div class="stat-sub">Cycle total</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Spent</div>
+            <div class="stat-value" id="stat-spent">—</div>
+            <div class="stat-sub">Cycle total</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cash on Hand</div>
+            <div class="stat-value" id="stat-coh">—</div>
+            <div class="stat-sub" id="stat-coh-sub">End of last report</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Raised-to-Spent Ratio</div>
+            <div class="stat-value" id="stat-ratio">—</div>
+            <div class="stat-sub"   id="stat-ratio-sub">Raised ÷ Spent</div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title" id="chart-title">Raised · Spent · Cash on Hand over cycle</div>
+            <div class="chart-legend">
+              <div class="legend-item"><div class="legend-swatch" style="background:rgba(74,144,217,0.9)"></div>Raised</div>
+              <div class="legend-item"><div class="legend-swatch" style="background:rgba(217,74,74,0.85)"></div>Spent</div>
+              <div class="legend-item"><div class="legend-swatch" style="background:rgba(61,191,122,0.85)"></div>Cash on Hand</div>
+              <div class="legend-item"><div class="legend-swatch legend-dashed"></div>Filing deadline</div>
+              <div class="legend-item legend-election" style="display:none"><div class="legend-swatch legend-amber-dashed"></div>Election day</div>
+            </div>
+          </div>
+          <div style="position:relative;width:100%;min-width:0;">
+            <canvas id="chart-timeline"></canvas>
+          </div>
+          <div id="overspend-note" style="display:none" class="overspend-note">
+            ⚠ Disbursements exceed receipts this cycle — campaign is spending beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.
+          </div>
+        </div>
+
+        <div class="data-note" id="data-note"></div>
+      </div>
+
+      <!-- Raised tab -->
+      <div id="tab-raised" style="display:none">
+        <div class="placeholder">Raised breakdown — contributor types, geography, top donors · Coming next iteration</div>
+      </div>
+
+      <!-- Spent tab -->
+      <div id="tab-spent" style="display:none">
+        <div class="placeholder">Spending breakdown — categories and timeline · Coming next iteration</div>
+      </div>
+
+      <!-- Committees tab -->
+      <div id="tab-committees" style="display:none">
+        <div class="section-title">Associated Committees</div>
+        <div id="committees-list"></div>
+        <div class="data-note">Committee associations sourced from FEC candidate filings.</div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// ── Config ─────────────────────────────────────────
+var CANDIDATE_ID = 'H2WA03217';
+var CAND_STATE   = 'WA';
+var CAND_DIST    = '03';
+var ALL_CYCLES   = [2022, 2024, 2026];
+var activeCycle  = 2024;
+var BASE         = 'https://api.open.fec.gov/v1';
+var API_KEY      = 'Y7CL6AyMB9NPbwuuMWHduJ6LVu6OWsv49TDZcXZT';
+var chartInstance = null;
+
+// ── Scroll-aware header ─────────────────────────────
+(function() {
+  var hdr = document.getElementById('mobile-header');
+  var lastY = 0, ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var y = window.scrollY;
+        hdr.classList.toggle('hidden', y > lastY && y > 80);
+        lastY = y; ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+
+// ── Hamburger ───────────────────────────────────────
+(function() {
+  var btn = document.getElementById('hamburger');
+  var nav = document.getElementById('mobile-nav');
+  btn.addEventListener('click', function() {
+    var open = nav.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  });
+  nav.querySelectorAll('.nav-item').forEach(function(el) {
+    el.addEventListener('click', function() {
+      nav.classList.remove('open');
+      btn.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    });
+  });
+})();
+
+// ── Utilities ───────────────────────────────────────
+function fmt(n) {
+  if (n == null || isNaN(n)) return '—';
+  var abs = Math.abs(n);
+  if (abs >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+  return '$' + Math.round(n).toLocaleString();
+}
+function fmtFull(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '$' + Math.round(n).toLocaleString();
+}
+// Strip timestamps — "2024-07-15T00:00:00" → "Jul 15, 2024"
+function fmtDate(s) {
+  if (!s) return '';
+  var d = s.split('T')[0].split('-');
+  if (d.length < 3) return s.split('T')[0];
+  var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return M[parseInt(d[1])-1] + ' ' + parseInt(d[2]) + ', ' + d[0];
+}
+// "2024-07-15" → Date object (noon UTC to avoid timezone day-off)
+function toDate(s) {
+  if (!s) return null;
+  var clean = s.split('T')[0];
+  var p = clean.split('-');
+  return new Date(Date.UTC(+p[0], +p[1]-1, +p[2], 12, 0, 0));
+}
+function isCycleActive(cycle) {
+  return new Date() <= new Date(cycle + '-12-31T23:59:59Z');
+}
+function partyClass(p) {
+  if (!p) return 'tag-neutral';
+  var u = p.toUpperCase();
+  if (u === 'DEM') return 'tag-dem';
+  if (u === 'REP') return 'tag-rep';
+  return 'tag-ind';
+}
+function partyLabel(p) {
+  if (!p) return 'Unknown';
+  var u = p.toUpperCase();
+  if (u === 'DEM') return 'Democrat';
+  if (u === 'REP') return 'Republican';
+  return p;
+}
+function getInitials(name) {
+  if (!name) return '?';
+  var parts = name.split(',');
+  var last  = (parts[0]||'').trim();
+  var first = (parts[1]||'').trim();
+  var fi    = first ? first[0] : '';
+  var li    = last.split(/[\s-]+/).filter(Boolean).map(function(w){return w[0];}).join('');
+  return (fi + li).toUpperCase().slice(0,3);
+}
+function committeeTypeLabel(t) {
+  var map = { P:'Principal Campaign Committee', J:'Joint Fundraising Committee',
+    D:'Leadership PAC', O:'Super PAC', Q:'PAC — Qualified', N:'PAC — Non-Qualified',
+    V:'Hybrid PAC', H:'House Candidate Committee', S:'Senate Candidate Committee',
+    Y:'Party Committee', I:'Independent Expenditure (Non-Contribution)', U:'Single Candidate IE' };
+  return map[t] || ('Type: ' + t);
+}
+
+// ── Tab routing ─────────────────────────────────────
+function showTab(name, e) {
+  if (e) e.preventDefault();
+  ['summary','raised','spent','committees'].forEach(function(t) {
+    document.getElementById('tab-'+t).style.display = t===name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('href')==='#'+name);
+  });
+  history.replaceState(null, '', '#'+activeCycle+'#'+name);
+}
+
+// ── API fetch ───────────────────────────────────────
+async function apiFetch(path, params) {
+  var p = Object.assign({ api_key: API_KEY }, params||{});
+  var qs = Object.keys(p).map(function(k){ return k+'='+encodeURIComponent(p[k]); }).join('&');
+  var res = await fetch(BASE+path+'?'+qs);
+  if (!res.ok) throw new Error('FEC '+res.status+' — '+path);
+  return res.json();
+}
+
+// ── Health assessment ───────────────────────────────
+function assessHealth(raised, spent, coh, debt) {
+  var ratio    = spent > 0 ? raised/spent : null;
+  var dToCoh   = coh > 0 && debt > 0 ? debt/coh : 0;
+  if (!raised && !spent) return { s:'grey',  label:'No Data', desc:'No filings found for this cycle.' };
+  if (spent > raised || dToCoh > 1) return {
+    s:'red', label:'Financially Stressed',
+    desc: spent > raised
+      ? 'Disbursements exceed receipts — spending beyond what was raised this cycle.'
+      : 'Debt exceeds cash on hand — significant outstanding obligations.' };
+  if ((ratio !== null && ratio < 1.25) || dToCoh > 0.5) return {
+    s:'amber', label:'Watch',
+    desc:'Raised-to-spent ratio of '+(ratio?ratio.toFixed(2)+'x':'—')+'. Limited financial cushion.' };
+  return { s:'green', label:'Financially Healthy',
+    desc:'Raised-to-spent ratio of '+(ratio?ratio.toFixed(2)+'x':'—')+' with positive cash on hand.' };
+}
+
+// ── Render chart ────────────────────────────────────
+// Uses time scale (requires chartjs-adapter-date-fns).
+// Full x-axis = entire FEC two-year cycle, even if data is partial.
+// Only points at actual filing dates — stepped: 'before' for Raised/Spent (cumulative),
+// linear for COH.
+// Overlays: grey dashed = filing deadlines, amber dashed = election dates, subtle = today.
+function renderChart(reports, deadlines, electionDates, cycle) {
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  // Cycle span: Jan 1 of prior odd year → Dec 31 of cycle year
+  var cycleStart = new Date(Date.UTC(cycle-1, 0, 1, 12));
+  var cycleEnd   = new Date(Date.UTC(cycle,   11, 31, 12));
+  var today      = new Date();
+  var active     = isCycleActive(cycle);
+
+  // Build cumulative data points at each report's coverage_end_date
+  var sorted = (reports||[])
+    .filter(function(r){ return r.coverage_end_date; })
+    .sort(function(a,b){ return toDate(a.coverage_end_date)-toDate(b.coverage_end_date); });
+
+  // Strategy: use _ytd fields directly (already cumulative within each calendar year).
+  // FEC cycles span two calendar years, so YTD resets on Jan 1 of the cycle year.
+  // We carry the final YTD from year 1 as a base and add year-2 YTD on top.
+  var ptRaised = [], ptSpent = [], ptCoh = [];
+
+  // Split reports by calendar year
+  var year1 = sorted.filter(function(r) {
+    return parseInt((r.coverage_end_date||'').slice(0,4)) === cycle - 1;
+  });
+  var year2 = sorted.filter(function(r) {
+    return parseInt((r.coverage_end_date||'').slice(0,4)) === cycle;
+  });
+
+  // Base offset = final YTD totals from year 1 (last report of that year)
+  var lastY1 = year1[year1.length - 1] || null;
+  var baseRaised = lastY1 ? (parseFloat(lastY1.total_receipts_ytd)      || 0) : 0;
+  var baseSpent  = lastY1 ? (parseFloat(lastY1.total_disbursements_ytd) || 0) : 0;
+
+  // Plot all year-1 reports using their YTD directly
+  year1.forEach(function(r) {
+    var d = toDate(r.coverage_end_date);
+    ptRaised.push({ x: d, y: parseFloat(r.total_receipts_ytd)      || 0 });
+    ptSpent.push({  x: d, y: parseFloat(r.total_disbursements_ytd) || 0 });
+    ptCoh.push({    x: d, y: r.cash_on_hand_end_period != null ? parseFloat(r.cash_on_hand_end_period) : null });
+  });
+
+  // Plot year-2 reports: YTD + year-1 base
+  year2.forEach(function(r) {
+    var d = toDate(r.coverage_end_date);
+    ptRaised.push({ x: d, y: baseRaised + (parseFloat(r.total_receipts_ytd)      || 0) });
+    ptSpent.push({  x: d, y: baseSpent  + (parseFloat(r.total_disbursements_ytd) || 0) });
+    ptCoh.push({    x: d, y: r.cash_on_hand_end_period != null ? parseFloat(r.cash_on_hand_end_period) : null });
+  });
+
+  var cumRaised = ptRaised.length ? ptRaised[ptRaised.length-1].y : 0;
+  var cumSpent  = ptSpent.length  ? ptSpent[ptSpent.length-1].y   : 0;
+
+  var overspend = cumSpent > cumRaised && cumRaised > 0;
+  document.getElementById('overspend-note').style.display = overspend ? 'block' : 'none';
+
+  // Show/hide election legend item
+  var elLegend = document.querySelector('.legend-election');
+  if (elLegend) elLegend.style.display = electionDates.length ? 'flex' : 'none';
+
+  // Custom plugin: draws vertical overlays after chart is rendered
+  var overlayPlugin = {
+    id: 'cycleOverlays',
+    afterDraw: function(chart) {
+      var ctx    = chart.ctx;
+      var xScale = chart.scales.x;
+      var top    = chart.chartArea.top;
+      var bot    = chart.chartArea.bottom;
+
+      function vLine(dateObj, dash, color, width, label) {
+        if (!dateObj) return;
+        var t = dateObj.getTime();
+        if (t < cycleStart.getTime() || t > cycleEnd.getTime()) return;
+        var x = xScale.getPixelForValue(t);
+        if (isNaN(x)) return;
+        ctx.save();
+        ctx.setLineDash(dash);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bot);
+        ctx.stroke();
+        if (label) {
+          ctx.font = '8px "IBM Plex Mono",monospace';
+          ctx.fillStyle = color;
+          ctx.textAlign = 'center';
+          ctx.fillText(label, x, top - 4);
+        }
+        ctx.restore();
+      }
+
+      // Filing deadlines — grey dashed
+      (deadlines||[]).forEach(function(dl) {
+        vLine(toDate(dl.due_date), [4,4], 'rgba(90,96,112,0.4)', 1, null);
+      });
+
+      // Election dates — amber dotted, labeled by type
+      (electionDates||[]).forEach(function(ed) {
+        var dateStr = ed.election_date;
+        if (!dateStr) return;
+        vLine(toDate(dateStr), [2,4], 'rgba(232,160,32,0.75)', 1.5, null);
+      });
+
+      // Today — very subtle, only during active cycle
+      if (active && today >= cycleStart && today <= cycleEnd) {
+        vLine(today, [], 'rgba(136,144,160,0.18)', 1, 'today');
+      }
+    }
+  };
+
+  var ctx = document.getElementById('chart-timeline').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: 'Raised',
+          data: ptRaised,
+          borderColor: 'rgba(74,144,217,0.9)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: 'rgba(74,144,217,1)',
+          pointBorderColor: '#0d0f12',
+          pointBorderWidth: 2,
+          stepped: 'before',     // ← stepped line: horizontal then vertical
+          tension: 0
+        },
+        {
+          label: 'Spent',
+          data: ptSpent,
+          borderColor: overspend ? 'rgba(217,74,74,1)' : 'rgba(217,74,74,0.85)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: 'rgba(217,74,74,1)',
+          pointBorderColor: '#0d0f12',
+          pointBorderWidth: 2,
+          stepped: 'before',     // ← stepped
+          tension: 0
+        },
+        {
+          label: 'Cash on Hand',
+          data: ptCoh,
+          borderColor: 'rgba(61,191,122,0.85)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: 'rgba(61,191,122,1)',
+          pointBorderColor: '#0d0f12',
+          pointBorderWidth: 2,
+          stepped: false,        // ← COH is a snapshot, not cumulative — connect linearly
+          tension: 0,
+          spanGaps: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2.2,
+      animation: { duration: 600, easing: 'easeOutQuart' },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2030',
+          titleColor: '#8890a0',
+          bodyColor: '#e8eaf0',
+          borderColor: '#252a38',
+          borderWidth: 1,
+          titleFont: { family: 'IBM Plex Mono', size: 10 },
+          bodyFont:  { family: 'IBM Plex Mono', size: 11 },
+          padding: 12,
+          callbacks: {
+            title: function(items) {
+              if (!items[0]) return '';
+              return fmtDate(new Date(items[0].parsed.x).toISOString());
+            },
+            label: function(item) {
+              if (item.parsed.y == null) return null;
+              return ' ' + item.dataset.label + ': ' + fmtFull(item.parsed.y);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          min: cycleStart,
+          max: cycleEnd,
+          time: {
+            unit: 'quarter',
+            displayFormats: { quarter: "QQQ ''yy" }
+          },
+          grid: { display: false },
+          border: { color: '#252a38' },
+          ticks: {
+            color: '#5a6070',
+            font: { family: 'IBM Plex Mono', size: 9 },
+            maxRotation: 0,
+            maxTicksLimit: 8
+          }
+        },
+        y: {
+          min: 0,
+          grid: { color: 'rgba(37,42,56,0.6)', drawTicks: false },
+          border: { color: 'transparent' },
+          ticks: {
+            color: '#5a6070',
+            font: { family: 'IBM Plex Mono', size: 9 },
+            callback: function(v) { return fmt(v); }
+          }
+        }
+      }
+    },
+    plugins: [overlayPlugin]
+  });
+}
+
+// ── Load one cycle ──────────────────────────────────
+async function loadCycle(cycle) {
+  activeCycle = cycle;
+
+  // Update cycle button states
+  document.querySelectorAll('.cycle-btn').forEach(function(b) {
+    b.classList.toggle('active', +b.dataset.cycle === cycle);
+  });
+
+  // Reset stats to em-dash while loading
+  ['stat-raised','stat-spent','stat-coh','stat-ratio'].forEach(function(id) {
+    document.getElementById(id).textContent = '—';
+  });
+  document.getElementById('stat-ratio').style.color = '';
+
+  try {
+    // ── Step 1: get totals + committees in parallel ──
+    var [totalsJson, committeesJson] = await Promise.all([
+      apiFetch('/candidate/'+CANDIDATE_ID+'/totals/', { cycle: cycle }),
+      apiFetch('/candidate/'+CANDIDATE_ID+'/committees/', { cycle: cycle })
+    ]);
+
+    var totals     = (totalsJson.results||[])[0] || null;
+    var committees = committeesJson.results || [];
+    var principal  = committees.find(function(c){ return c.designation==='P'; }) || committees[0];
+
+    // ── Step 2: fetch reports, deadlines, elections independently ──
+    // Each is wrapped in its own try/catch so one failure doesn't kill the page.
+
+    var reports = [];
+    if (principal) {
+      try {
+        var rJson = await apiFetch('/committee/'+principal.committee_id+'/reports/', {
+          cycle: cycle,
+          per_page: 20,
+          sort: 'coverage_end_date'
+          // No report_type filter — fetch all and let the chart use what's there
+        });
+        reports = rJson.results || [];
+      } catch(e) { console.warn('Reports fetch failed:', e.message); }
+    }
+
+    var deadlines = [];
+    try {
+      var dlJson = await apiFetch('/reporting-dates/', {
+        due_date_gte: (cycle-1)+'-01-01',
+        due_date_lte: cycle+'-12-31',
+        per_page: 50
+      });
+      // Filter to Form 3 deadlines only — these apply to House and Senate candidate committees.
+      // The /reporting-dates/ endpoint returns deadlines for all form types (F3, F3P, F3X, etc.)
+      // without a form_type filter param, so we filter client-side.
+      deadlines = (dlJson.results || []).filter(function(d) {
+        return d.report_form === 'Form 3' || d.form_type === 'F3';
+      });
+    } catch(e) { console.warn('Deadlines fetch failed:', e.message); }
+
+    var electionDates = [];
+    try {
+      // /election-dates/ returns actual primary + general election dates per state/office/year.
+      // election_date is the actual date field. election_type_full distinguishes primary vs general.
+      var elJson = await apiFetch('/election-dates/', {
+        election_state: CAND_STATE,
+        office_sought: 'H',
+        election_year: cycle,
+        per_page: 10
+      });
+      electionDates = elJson.results || [];
+      console.log('ELECTION-DATES sample:', JSON.stringify(electionDates[0], null, 2));
+    } catch(e) { console.warn('Election-dates fetch failed:', e.message); }
+
+    // ── Step 3: populate stats ──
+    var raised = 0, spent = 0, coh = 0, debt = 0;
+    if (totals) {
+      raised = totals.receipts      || 0;
+      spent  = totals.disbursements || 0;
+      coh    = totals.last_cash_on_hand_end_period || 0;
+      debt   = (totals.loans_received||0) + (totals.debts_owed_by_committee||0);
+
+      document.getElementById('stat-raised').textContent = fmt(raised);
+      document.getElementById('stat-spent').textContent  = fmt(spent);
+      document.getElementById('stat-coh').textContent    = fmt(coh);
+
+      var covDate = totals.coverage_end_date ? totals.coverage_end_date.split('T')[0] : null;
+      if (covDate) document.getElementById('stat-coh-sub').textContent = 'As of '+fmtDate(covDate);
+
+      var ratio = spent > 0 ? raised/spent : null;
+      var ratioEl  = document.getElementById('stat-ratio');
+      var ratioSub = document.getElementById('stat-ratio-sub');
+      if (ratio !== null) {
+        ratioEl.textContent = ratio.toFixed(2)+'x';
+        if (ratio < 1)    { ratioEl.style.color='var(--red)';   ratioSub.className='stat-sub neg';  ratioSub.textContent='Overspend'; }
+        else if (ratio < 1.25) { ratioEl.style.color='var(--amber)'; ratioSub.className='stat-sub warn'; ratioSub.textContent='Low cushion'; }
+        else              { ratioEl.style.color='var(--green)';  ratioSub.className='stat-sub pos';  ratioSub.textContent='Healthy range'; }
+      }
+
+      document.getElementById('data-note').innerHTML =
+        'Source: FEC — Candidate ID '+CANDIDATE_ID+'. '+
+        'Cycle '+cycle+' ('+( cycle-1)+'–'+cycle+').' +
+        (covDate ? ' Coverage through '+fmtDate(covDate)+'.' : '')+
+        ' Raised-to-spent = total receipts ÷ total disbursements. Data updated nightly by FEC.';
+    } else {
+      document.getElementById('data-note').innerHTML = 'No financial filings found for the '+cycle+' cycle.';
+    }
+
+    // ── Step 4: banner — active vs. closed cycle ──
+    var sig   = document.getElementById('health-signal');
+    var lbl   = document.getElementById('banner-label');
+    var desc  = document.getElementById('banner-desc');
+    var note  = document.getElementById('banner-note');
+
+    if (isCycleActive(cycle)) {
+      var h = assessHealth(raised, spent, coh, debt);
+      sig.className  = 'health-signal '+h.s;
+      lbl.textContent = h.label;
+      desc.textContent = h.desc;
+      note.textContent = 'Best-guess assessment · Thresholds to be validated with domain expert';
+    } else {
+      sig.className  = 'health-signal grey';
+      lbl.textContent = 'Cycle Complete';
+      var summary = cycle+' cycle concluded.';
+      if (debt > 0) summary += ' Ended with '+fmt(debt)+' in outstanding debt.';
+      else summary += ' No outstanding debt reported.';
+      var covDate2 = totals && totals.coverage_end_date ? totals.coverage_end_date.split('T')[0] : null;
+      if (covDate2) summary += ' Final coverage: '+fmtDate(covDate2)+'.';
+      desc.textContent = summary;
+      note.textContent = 'Closed cycle — real-time health indicator not applicable.';
+    }
+
+    // ── Step 5: chart ──
+    renderChart(reports, deadlines, electionDates, cycle);
+
+    // ── Step 6: committees tab ──
+    var listEl = document.getElementById('committees-list');
+    listEl.innerHTML = committees.length
+      ? committees.map(function(c) {
+          return '<div class="committee-row">'+
+            '<div class="committee-name">'+(c.name||'—')+'</div>'+
+            '<div class="committee-type">'+committeeTypeLabel(c.committee_type)+'</div>'+
+            '<div class="committee-id">'+(c.committee_id||'')+'</div>'+
+          '</div>';
+        }).join('')
+      : '<div style="color:var(--muted);font-size:.72rem;padding:1rem 0">No committee data for this cycle.</div>';
+
+    // ── Step 7: update URL hash ──
+    var activeTabEl = document.querySelector('.tab.active');
+    var tabName = activeTabEl ? activeTabEl.getAttribute('href').replace('#','') : 'summary';
+    history.replaceState(null, '', '#'+cycle+'#'+tabName);
+
+  } catch(err) {
+    document.getElementById('data-note').innerHTML = '⚠ Error loading cycle data: '+err.message;
+    console.error('loadCycle error:', err);
+  }
+}
+
+// ── Init ────────────────────────────────────────────
+async function init() {
+  try {
+    var candJson = await apiFetch('/candidate/'+CANDIDATE_ID+'/');
+    var cand = (candJson.results||[])[0];
+    if (!cand) throw new Error('Candidate not found');
+
+    // Avatar initials
+    document.getElementById('avatar').textContent = getInitials(cand.name);
+
+    // Display name: "PEREZ, MARIE GLUESENKAMP" → "Marie Gluesenkamp Perez"
+    var parts = cand.name.split(',');
+    var displayName = (parts.length > 1
+      ? parts.slice(1).join(' ').trim()+' '+parts[0].trim()
+      : cand.name).toLowerCase().replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+    document.getElementById('candidate-name').textContent = displayName;
+
+    // Breadcrumb
+    document.getElementById('breadcrumb').innerHTML =
+      'Candidates <span>/ '+(cand.office_full||'')+' / '+
+      (cand.state||'')+(cand.district?'-'+cand.district:'')+' — '+displayName+'</span>';
+
+    // Tags
+    document.getElementById('meta-row').innerHTML =
+      '<span class="tag '+partyClass(cand.party)+'">'+partyLabel(cand.party)+'</span>'+
+      '<span class="tag tag-neutral">'+(cand.office_full||'')+' · '+
+      (cand.state||'')+(cand.district?'-'+cand.district:'')+'</span>'+
+      (cand.incumbent_challenge_full
+        ? '<span class="tag tag-neutral">'+cand.incumbent_challenge_full+'</span>' : '');
+
+    // Cycle switcher: default to most recent active cycle, or hash override
+    var now = new Date().getFullYear();
+    var hashParts = window.location.hash.replace(/^#/,'').split('#');
+    var hashCycle = parseInt(hashParts[0]);
+    var defaultCycle = ALL_CYCLES.reduce(function(best, cy) {
+      return cy <= now+1 && cy > best ? cy : best;
+    }, ALL_CYCLES[0]);
+    if (ALL_CYCLES.indexOf(hashCycle) !== -1) defaultCycle = hashCycle;
+    activeCycle = defaultCycle;
+
+    var sw = document.getElementById('cycle-switcher');
+    ALL_CYCLES.forEach(function(cy) {
+      var btn = document.createElement('button');
+      btn.className = 'cycle-btn'+(cy===activeCycle?' active':'');
+      btn.dataset.cycle = cy;
+      btn.textContent = cy;
+      btn.onclick = function(){ loadCycle(cy); };
+      sw.appendChild(btn);
+    });
+
+    // Reveal UI
+    document.getElementById('state-msg').style.display    = 'none';
+    document.getElementById('profile-header').style.display = 'block';
+    document.getElementById('tabs-bar').style.display     = 'flex';
+    document.getElementById('content').style.display      = 'block';
+    requestAnimationFrame(function() {
+      document.getElementById('profile-header').classList.add('visible');
+      document.getElementById('content').classList.add('visible');
+    });
+
+    // Load data
+    await loadCycle(activeCycle);
+
+    // Restore tab from hash
+    var tabHash = hashParts[1];
+    if (['summary','raised','spent','committees'].indexOf(tabHash) !== -1) showTab(tabHash);
+
+  } catch(err) {
+    var el = document.getElementById('state-msg');
+    el.className = 'state-msg error';
+    el.textContent = '⚠ Could not load candidate: '+err.message;
+    console.error('init error:', err);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
