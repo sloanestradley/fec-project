@@ -762,11 +762,12 @@ async function loadCycle(cycle) {
         due_date_lte: cycle+'-12-31',
         per_page: 50
       });
-      // Filter to Form 3 deadlines only — these apply to House and Senate candidate committees.
-      // The /reporting-dates/ endpoint returns deadlines for all form types (F3, F3P, F3X, etc.)
-      // without a form_type filter param, so we filter client-side.
+      // Filter to House/Senate (Form 3) report types only.
+      // The endpoint returns no report_form field — only report_type (e.g. "Q1", "YE").
+      // Exclude monthly types (M1-M12, presidential filers) and party/PAC types.
+      var EXCLUDE_TYPES = ['M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','MSA','MYS','CA','SA'];
       deadlines = (dlJson.results || []).filter(function(d) {
-        return d.report_form === 'Form 3' || d.form_type === 'F3';
+        return EXCLUDE_TYPES.indexOf(d.report_type) === -1;
       });
     } catch(e) { console.warn('Deadlines fetch failed:', e.message); }
 
