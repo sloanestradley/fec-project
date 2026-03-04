@@ -418,6 +418,17 @@ function toDate(s) {
 function isCycleActive(cycle) {
   return new Date() <= new Date(cycle + '-12-31T23:59:59Z');
 }
+// H=2yr, S=6yr, P=4yr
+function getCycleSpanYears() {
+  return CAND_OFFICE === 'S' ? 6 : (CAND_OFFICE === 'P' ? 4 : 2);
+}
+// FEC 2-year sub-cycle end years covering the full election cycle.
+// House/2026 → [2026]. Senate/2024 → [2020, 2022, 2024].
+function getSubCycles(cycle) {
+  var span = getCycleSpanYears(), subs = [];
+  for (var c = cycle - span + 2; c <= cycle; c += 2) subs.push(c);
+  return subs;
+}
 function partyClass(p) {
   if (!p) return 'tag-neutral';
   var u = p.toUpperCase();
@@ -496,9 +507,11 @@ function assessHealth(raised, spent, coh, debt) {
 function renderChart(reports, deadlines, electionDates, cycle) {
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 
-  // Cycle span: Jan 1 of prior odd year → Dec 31 of cycle year
-  var cycleStart = new Date(Date.UTC(cycle-1, 0, 1, 12));
-  var cycleEnd   = new Date(Date.UTC(cycle,   11, 31, 12));
+  // X-axis: full election cycle span (H=2yr, S=6yr, P=4yr)
+  var spanYears  = getCycleSpanYears();
+  var startYear  = cycle - spanYears + 1;
+  var cycleStart = new Date(Date.UTC(startYear, 0, 1, 12));
+  var cycleEnd   = new Date(Date.UTC(cycle, 11, 31, 12));
   var today      = new Date();
   var active     = isCycleActive(cycle);
 
@@ -507,39 +520,27 @@ function renderChart(reports, deadlines, electionDates, cycle) {
     .filter(function(r){ return r.coverage_end_date; })
     .sort(function(a,b){ return toDate(a.coverage_end_date)-toDate(b.coverage_end_date); });
 
-  // Strategy: use _ytd fields directly (already cumulative within each calendar year).
-  // FEC cycles span two calendar years, so YTD resets on Jan 1 of the cycle year.
-  // We carry the final YTD from year 1 as a base and add year-2 YTD on top.
+  // YTD stitching: _ytd fields reset each Jan 1, so carry forward the cumulative
+  // base from each calendar year into the next. Generalizes to any cycle span.
   var ptRaised = [], ptSpent = [], ptCoh = [];
-
-  // Split reports by calendar year
-  var year1 = sorted.filter(function(r) {
-    return parseInt((r.coverage_end_date||'').slice(0,4)) === cycle - 1;
-  });
-  var year2 = sorted.filter(function(r) {
-    return parseInt((r.coverage_end_date||'').slice(0,4)) === cycle;
-  });
-
-  // Base offset = final YTD totals from year 1 (last report of that year)
-  var lastY1 = year1[year1.length - 1] || null;
-  var baseRaised = lastY1 ? (parseFloat(lastY1.total_receipts_ytd)      || 0) : 0;
-  var baseSpent  = lastY1 ? (parseFloat(lastY1.total_disbursements_ytd) || 0) : 0;
-
-  // Plot all year-1 reports using their YTD directly
-  year1.forEach(function(r) {
-    var d = toDate(r.coverage_end_date);
-    ptRaised.push({ x: d, y: parseFloat(r.total_receipts_ytd)      || 0 });
-    ptSpent.push({  x: d, y: parseFloat(r.total_disbursements_ytd) || 0 });
-    ptCoh.push({    x: d, y: r.cash_on_hand_end_period != null ? parseFloat(r.cash_on_hand_end_period) : null });
-  });
-
-  // Plot year-2 reports: YTD + year-1 base
-  year2.forEach(function(r) {
-    var d = toDate(r.coverage_end_date);
-    ptRaised.push({ x: d, y: baseRaised + (parseFloat(r.total_receipts_ytd)      || 0) });
-    ptSpent.push({  x: d, y: baseSpent  + (parseFloat(r.total_disbursements_ytd) || 0) });
-    ptCoh.push({    x: d, y: r.cash_on_hand_end_period != null ? parseFloat(r.cash_on_hand_end_period) : null });
-  });
+  var baseRaised = 0, baseSpent = 0;
+  for (var yr = startYear; yr <= cycle; yr++) {
+    var yearRpts = sorted.filter(function(r) {
+      return parseInt((r.coverage_end_date||'').slice(0,4)) === yr;
+    });
+    yearRpts.forEach(function(r) {
+      var d = toDate(r.coverage_end_date);
+      ptRaised.push({ x: d, y: baseRaised + (parseFloat(r.total_receipts_ytd)      || 0) });
+      ptSpent.push({  x: d, y: baseSpent  + (parseFloat(r.total_disbursements_ytd) || 0) });
+      ptCoh.push({    x: d, y: r.cash_on_hand_end_period != null
+                                ? parseFloat(r.cash_on_hand_end_period) : null });
+    });
+    var lastRpt = yearRpts[yearRpts.length - 1];
+    if (lastRpt) {
+      baseRaised += parseFloat(lastRpt.total_receipts_ytd)      || 0;
+      baseSpent  += parseFloat(lastRpt.total_disbursements_ytd) || 0;
+    }
+  }
 
   var cumRaised = ptRaised.length ? ptRaised[ptRaised.length-1].y : 0;
   var cumSpent  = ptSpent.length  ? ptSpent[ptSpent.length-1].y   : 0;
@@ -731,15 +732,30 @@ async function loadCycle(cycle) {
   document.getElementById('stat-ratio').style.color = '';
 
   try {
-    // ── Step 1: get totals + committees in parallel ──
-    var [totalsJson, committeesJson] = await Promise.all([
-      apiFetch('/candidate/'+CANDIDATE_ID+'/totals/', { cycle: cycle }),
-      apiFetch('/candidate/'+CANDIDATE_ID+'/committees/', { cycle: cycle })
-    ]);
+    // ── Step 1: committees + totals for all sub-cycles in parallel ──
+    var subCycles = getSubCycles(cycle);
+    var fetchArgs = [apiFetch('/candidate/'+CANDIDATE_ID+'/committees/', { cycle: cycle })]
+      .concat(subCycles.map(function(sc) {
+        return apiFetch('/candidate/'+CANDIDATE_ID+'/totals/', { cycle: sc })
+               .catch(function(){ return { results: [] }; });
+      }));
+    var fetchResults = await Promise.all(fetchArgs);
+    var committees   = fetchResults[0].results || [];
+    var allTotalsArr = fetchResults.slice(1);
+    var principal    = committees.find(function(c){ return c.designation==='P'; }) || committees[0];
 
-    var totals     = (totalsJson.results||[])[0] || null;
-    var committees = committeesJson.results || [];
-    var principal  = committees.find(function(c){ return c.designation==='P'; }) || committees[0];
+    // Sum raised/spent across sub-cycles; COH/debt/covDate from most recent only
+    var raised = 0, spent = 0, coh = 0, debt = 0, covDate = null;
+    allTotalsArr.forEach(function(r, i) {
+      var t = (r.results||[])[0]; if (!t) return;
+      raised += t.receipts||0;
+      spent  += t.disbursements||0;
+      if (i === allTotalsArr.length - 1) {
+        coh     = t.last_cash_on_hand_end_period||0;
+        debt    = (t.loans_received||0) + (t.debts_owed_by_committee||0);
+        covDate = t.coverage_end_date ? t.coverage_end_date.split('T')[0] : null;
+      }
+    });
 
     // ── Step 2: fetch reports, deadlines, elections independently ──
     // Each is wrapped in its own try/catch so one failure doesn't kill the page.
@@ -747,32 +763,33 @@ async function loadCycle(cycle) {
     var reports = [];
     if (principal) {
       try {
-        var rJson = await apiFetch('/committee/'+principal.committee_id+'/reports/', {
-          cycle: cycle,
-          per_page: 20,
-          sort: 'coverage_end_date'
-          // No report_type filter — fetch all and let the chart use what's there
+        var rFetches = subCycles.map(function(sc) {
+          return apiFetch('/committee/'+principal.committee_id+'/reports/', {
+            cycle: sc, per_page: 20, sort: 'coverage_end_date'
+          }).catch(function(){ return { results: [] }; });
         });
-        reports = rJson.results || [];
+        reports = (await Promise.all(rFetches))
+          .reduce(function(acc, r){ return acc.concat(r.results||[]); }, []);
       } catch(e) { console.warn('Reports fetch failed:', e.message); }
     }
 
     var deadlines = [];
     try {
-      // due_date_gte/lte are silently ignored by this endpoint.
-      // Correct filter is report_year. Fetch both years of the cycle in parallel.
-      var [dlY1, dlY2] = await Promise.all([
-        apiFetch('/reporting-dates/', { report_year: cycle-1, sort: 'due_date', per_page: 100 }),
-        apiFetch('/reporting-dates/', { report_year: cycle,   sort: 'due_date', per_page: 100 })
-      ]);
-      // Keep only quarterly filing deadlines — the rhythm that matters on the chart.
-      // Pre-primary/pre-general deadlines (12P, 12G, etc.) are state-specific and
-      // redundant with the election dates overlay. Filtering to quarterly also avoids
-      // the per_page=100 cutoff (2026 alone has 182 records, mostly pre-primary).
-      var QUARTERLY_TYPES = ['Q1', 'Q2', 'Q3', 'YE', 'MY'];
-      deadlines = (dlY1.results||[]).concat(dlY2.results||[]).filter(function(d) {
-        return QUARTERLY_TYPES.indexOf(d.report_type) !== -1;
-      });
+      // One targeted call per report type per year — each returns exactly 1 record.
+      // Avoids the per_page=100 cutoff (2026 alone has 182 records sorted ascending).
+      var dlTypes = ['Q1','Q2','Q3','YE'];
+      var dlCalls = [];
+      var dlStartYear = cycle - getCycleSpanYears() + 1;
+      for (var dlYr = dlStartYear; dlYr <= cycle; dlYr++) {
+        dlTypes.forEach(function(t) {
+          dlCalls.push(
+            apiFetch('/reporting-dates/', { report_year: dlYr, report_type: t, per_page: 1 })
+            .catch(function(){ return { results: [] }; })
+          );
+        });
+      }
+      deadlines = (await Promise.all(dlCalls))
+        .reduce(function(acc, r){ return acc.concat(r.results||[]); }, []);
     } catch(e) { console.warn('Deadlines fetch failed:', e.message); }
 
     var electionDates = [];
@@ -786,18 +803,12 @@ async function loadCycle(cycle) {
     } catch(e) { console.warn('Election-dates fetch failed:', e.message); }
 
     // ── Step 3: populate stats ──
-    var raised = 0, spent = 0, coh = 0, debt = 0;
-    if (totals) {
-      raised = totals.receipts      || 0;
-      spent  = totals.disbursements || 0;
-      coh    = totals.last_cash_on_hand_end_period || 0;
-      debt   = (totals.loans_received||0) + (totals.debts_owed_by_committee||0);
-
+    // raised/spent/coh/debt/covDate already computed from allTotalsArr in Step 1
+    var cycleStartYear = cycle - getCycleSpanYears() + 1;
+    if (raised > 0 || spent > 0) {
       document.getElementById('stat-raised').textContent = fmt(raised);
       document.getElementById('stat-spent').textContent  = fmt(spent);
       document.getElementById('stat-coh').textContent    = fmt(coh);
-
-      var covDate = totals.coverage_end_date ? totals.coverage_end_date.split('T')[0] : null;
       if (covDate) document.getElementById('stat-coh-sub').textContent = 'As of '+fmtDate(covDate);
 
       var ratio = spent > 0 ? raised/spent : null;
@@ -805,14 +816,14 @@ async function loadCycle(cycle) {
       var ratioSub = document.getElementById('stat-ratio-sub');
       if (ratio !== null) {
         ratioEl.textContent = ratio.toFixed(2)+'x';
-        if (ratio < 1)    { ratioEl.style.color='var(--red)';   ratioSub.className='stat-sub neg';  ratioSub.textContent='Overspend'; }
+        if (ratio < 1)         { ratioEl.style.color='var(--red)';   ratioSub.className='stat-sub neg';  ratioSub.textContent='Overspend'; }
         else if (ratio < 1.25) { ratioEl.style.color='var(--amber)'; ratioSub.className='stat-sub warn'; ratioSub.textContent='Low cushion'; }
-        else              { ratioEl.style.color='var(--green)';  ratioSub.className='stat-sub pos';  ratioSub.textContent='Healthy range'; }
+        else                   { ratioEl.style.color='var(--green)';  ratioSub.className='stat-sub pos';  ratioSub.textContent='Healthy range'; }
       }
 
       document.getElementById('data-note').innerHTML =
         'Source: FEC — Candidate ID '+CANDIDATE_ID+'. '+
-        'Cycle '+cycle+' ('+( cycle-1)+'–'+cycle+').' +
+        'Cycle '+cycle+' ('+cycleStartYear+'–'+cycle+').'+
         (covDate ? ' Coverage through '+fmtDate(covDate)+'.' : '')+
         ' Raised-to-spent = total receipts ÷ total disbursements. Data updated nightly by FEC.';
     } else {
@@ -837,8 +848,7 @@ async function loadCycle(cycle) {
       var summary = cycle+' cycle concluded.';
       if (debt > 0) summary += ' Ended with '+fmt(debt)+' in outstanding debt.';
       else summary += ' No outstanding debt reported.';
-      var covDate2 = totals && totals.coverage_end_date ? totals.coverage_end_date.split('T')[0] : null;
-      if (covDate2) summary += ' Final coverage: '+fmtDate(covDate2)+'.';
+      if (covDate) summary += ' Final coverage: '+fmtDate(covDate)+'.';
       desc.textContent = summary;
       note.textContent = 'Closed cycle — real-time health indicator not applicable.';
     }
