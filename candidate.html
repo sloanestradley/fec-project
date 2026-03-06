@@ -11,6 +11,11 @@
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-array@3/dist/d3-array.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-geo@3/dist/d3-geo.min.js"></script>
+  <!-- Amplitude Analytics -->
+  <script type="text/javascript">
+  !function(){"use strict";!function(e,t){var r=e.amplitude||{_q:[],_iq:{}};if(r.invoked)e.console&&console.error&&console.error("Amplitude snippet has been loaded.");else{r.invoked=!0;var n=t.createElement("script");n.type="text/javascript";n.integrity="sha384-XNX6U2ua04l4cHvYEBAAAA3Iqz6nL5Wb74yHMzqO3HiAO+Gf3OT/fyH9F0TA4LJ";n.crossOrigin="anonymous";n.async=!0;n.src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz";n.onload=function(){e.amplitude.runQueuedFunctions||console.log("[Amplitude] Error: could not load SDK")};var s=t.getElementsByTagName("script")[0];function v(e,t){e.prototype[t]=function(){return this._q.push({name:t,args:Array.prototype.slice.call(arguments,0)}),this}}s.parentNode.insertBefore(n,s);for(var o=function(){return this._q=[],this},i=["add","append","clearAll","prepend","set","setOnce","unset","preInsert","postInsert","remove","getUserProperties"],a=0;a<i.length;a++)v(o,i[a]);r.Identify=o;for(var c=function(){return this._q=[],this},u=["getEventProperties","setProductId","setQuantity","setPrice","setRevenue","setRevenueType","setEventProperties"],l=0;l<u.length;l++)v(c,u[l]);r.Revenue=c;var p=["getDeviceId","setDeviceId","getSessionId","setSessionId","getUserId","setUserId","setOptOut","setTransport","reset","extendSession"],d=["init","add","remove","track","logEvent","identify","groupIdentify","setGroup","revenue","flush"];function f(e){function t(t,r){e[t]=function(){var n={promise:new Promise((r=>{e._q.push({name:t,args:Array.prototype.slice.call(arguments,0),resolve:r})}))};if(r)return n.promise;return n}}for(var r=0;r<p.length;r++)t(p[r],!1);for(var n=0;n<d.length;n++)t(d[n],!0)}f(r);e.amplitude=r}}(window,document)}();
+  amplitude.init('62280d38083601e001bf153dbcf38a9b', { defaultTracking: false });
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -533,8 +538,8 @@
       <button class="modal-close" onclick="closeCommitteesModal()">✕</button>
     </div>
     <div class="modal-tabs">
-      <button class="modal-tab-btn active" data-tab="active" onclick="showModalTab('active')">Active<span id="modal-active-count"></span></button>
-      <button class="modal-tab-btn" data-tab="history" id="modal-history-tab-btn" onclick="showModalTab('history')" style="display:none">History<span id="modal-history-count"></span></button>
+      <button class="modal-tab-btn active" data-tab="active" onclick="showModalTab('active');amplitude.track('Committees Tab Switched',{tab:'active'})">Active<span id="modal-active-count"></span></button>
+      <button class="modal-tab-btn" data-tab="history" id="modal-history-tab-btn" onclick="showModalTab('history');amplitude.track('Committees Tab Switched',{tab:'history'})" style="display:none">History<span id="modal-history-count"></span></button>
     </div>
     <div class="modal-body">
       <div id="modal-active-list"></div>
@@ -592,6 +597,7 @@ function showModalTab(name) {
   });
 }
 function openCommitteesModal() {
+  amplitude.track('Committees Modal Opened');
   document.getElementById('committees-modal').style.display = 'flex';
   showModalTab('active');
   if (!committeesLoaded) fetchAndRenderCommittees();
@@ -819,6 +825,7 @@ function showTab(name, e) {
     el.classList.toggle('active', el.getAttribute('href')==='#'+name);
   });
   history.replaceState(null, '', '#'+activeCycle+'#'+name);
+  if (e) amplitude.track('Tab Switched', { tab: name });
   if (name === 'raised') renderRaisedIfReady();
   if (name === 'spent')  renderSpentIfReady();
 }
@@ -1800,6 +1807,7 @@ async function init() {
     }, ALL_CYCLES[0]);
     if (ALL_CYCLES.indexOf(hashCycle) !== -1) defaultCycle = hashCycle;
     activeCycle = defaultCycle;
+    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: displayName, cycle: activeCycle });
 
     var sw = document.getElementById('cycle-switcher');
     ALL_CYCLES.forEach(function(cy) {
@@ -1807,7 +1815,7 @@ async function init() {
       btn.className = 'cycle-btn'+(cy===activeCycle?' active':'');
       btn.dataset.cycle = cy;
       btn.textContent = cy;
-      btn.onclick = function(){ loadCycle(cy); };
+      btn.onclick = function(){ amplitude.track('Cycle Switched', { cycle: cy }); loadCycle(cy); };
       sw.appendChild(btn);
     });
 
