@@ -29,7 +29,7 @@ A visual, non-partisan tool for answering one question fast: *where is money flo
 
 - Centers around race-level comparison of campaign financing across all candidates in a single race
 - Presents data visually — charts over tables
-- Shows the full committee ecosystem around a candidate (leadership PACs, joint fundraising committees, authorized committees) — a dimension that tools like OpenSecrets largely ignore
+- Surfaces the full committee ecosystem around a candidate — including leadership PACs via a FEC data relationship (`sponsor_candidate_id`) that tools like OpenSecrets miss entirely — giving strategists visibility into the full money network, not just the principal campaign committee
 - Objective, non-partisan presentation — data is shown without editorializing
 - Shows the most recently filed information, not just closed races
 - Note: OpenSecrets is the closest comparable, but presents data in a way that nudges toward negative conclusions about campaign financing
@@ -65,18 +65,18 @@ A visual, non-partisan tool for answering one question fast: *where is money flo
 **Compare feature**
 - Ability to view multiple candidates side-by-side; show candidate information in columns borrowing from the candidate page layout; make visual comparison easy across all candidates
 
-**Financials broken down by: Summary, Raised, Spent, Committees**
-- Each tab has its own anchor link for direct sharing (e.g. `#summary`, `#raised`, `#spent`, `#committees`)
+**Financials broken down by: Summary, Raised, Spent**
+- Each tab has its own anchor link for direct sharing (e.g. `#summary`, `#raised`, `#spent`)
 - Cycle is also encoded in the URL anchor (e.g. `#2024#summary`)
 
 *Summary*
 - **Primary question this view answers: "Is this campaign financially healthy or stressed?"**
 - Financial health indicator (green/amber/red) — behavior varies by lifecycle state (see Data Lifecycle States). Only shown as an active signal during an active cycle; framed differently for closed cycles, especially when debt remains.
-  - Key signal: **raised-to-spent ratio** (Tim's preferred framing — not "burn rate", which implies a monthly expense concept he doesn't associate with this). Label as "Raised vs. Spent Ratio" or similar. Intriguing as a health signal even to a domain expert who hadn't thought of it that way before.
-  - Additional signal of interest: "How much are they spending just to raise?" — fundraising cost efficiency (Tim)
-- Time-based line chart of Raised, Spent, and COH over the course of the cycle (Tim's suggestion; to be explored — may be more useful than a single static bar)
+  - Key signal: **raised-to-spent ratio** (John's preferred framing — not "burn rate", which implies a monthly expense concept he doesn't associate with this). Label as "Raised vs. Spent Ratio" or similar. Intriguing as a health signal even to a domain expert who hadn't thought of it that way before.
+  - Additional signal of interest: "How much are they spending just to raise?" — fundraising cost efficiency (John)
+- Time-based line chart of Raised, Spent, and COH over the course of the cycle (John's suggestion; to be explored — may be more useful than a single static bar)
 - When overspend occurs, flag clearly and explain likely cause (prior-cycle reserves, debt)
-- Spend-down rate is particularly interesting as a signal, especially in the final weeks before a primary or general (Tim)
+- Spend-down rate is particularly interesting as a signal, especially in the final weeks before a primary or general (John)
 
 *Raised*
 - Breakdown by contributor type (individual, ?, ?, ?, etc.)
@@ -89,10 +89,12 @@ A visual, non-partisan tool for answering one question fast: *where is money flo
 
 **Associated Committees**
 - Principal campaign committee
-- Leadership PAC (~92% of Congress, ~98% of Senate)
-- Joint fundraising committees
+- Leadership PAC (~92% of Congress, ~98% of Senate) — surfaced via a separate FEC API endpoint (`sponsor_candidate_id`), not available through standard candidate committee queries; OpenSecrets does not surface these
+- Joint fundraising committees (where candidate is the organizer)
 - Authorized by candidate
-- NOTE: Full committee ecosystem is a blindspot in OpenSecrets. Available via F2 Statement of Candidacy. If candidate associates with a new PAC mid-cycle, they must refile F2.
+- **Known gap:** JFA committees where the candidate is a participant (not organizer) have no `candidate_ids` or `sponsor_candidate_ids` in the FEC API — they don't appear in standard committee queries. Only surfaced in the candidate's F2 Statement of Candidacy filing. Surfacing these requires F2 parsing — not yet built; validate approach with John before implementing.
+- **UI:** Committees are presented in a header modal (not a tab), not cycle-scoped. Active and terminated committees shown in separate tabs with counts. Committees will eventually link to committee pages.
+- NOTE: If candidate associates with a new PAC mid-cycle, they must refile F2.
 
 ### Committee Profiles
 - TBD
@@ -115,7 +117,7 @@ A candidate's data exists in at least four distinct states, each requiring diffe
    - **Early cycle** — little data, spend patterns not yet established
    - **Mid-cycle** — baseline established; raised-to-spent ratio becomes meaningful
    - **Pre-primary / pre-general (final ~2 weeks)** — spend accelerates sharply; spend-down rate is the most interesting signal; 48/24-hour reporting kicks in (see Backlog: Early Signal Data)
-   - Tim example: *"We'll start spending in week 22, that's a bit earlier/later than others."*
+   - John example: *"We'll start spending in week 22, that's a bit earlier/later than others."*
 3. **Post-cycle** — race concluded, data complete. Health indicator no longer active; reframe any remaining debt as a lingering obligation rather than a real-time signal. Example: Kamala Harris' 2024 presidential campaign closed with significant debt that the Democratic Party has been slowly retiring — this should be surfaced transparently but framed as historical context, not active concern.
 4. **Amended** — prior filing corrected. Surface transparently; show latest figures with amendment noted.
 
@@ -176,7 +178,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 
 - **Raised tab** — contributor breakdown, top donors, geography heatmap
 - **Spent tab** — category breakdown, spend timeline
-- **Associated committees** — belongs at the candidate profile level (header modal or persistent section), not scoped to a cycle. Resolve F2 / leadership PAC data model with Tim before building. Committees will eventually link to committee pages.
+- ~~**Associated committees**~~ ✅ live — header modal with Active/History tabs, leadership PAC via `sponsor_candidate_id`, JFA participant gap acknowledged with transparent UI note.
 - **Data freshness indicators** — always show coverage date and filing recency. Staffers need to know if they're looking at last quarter or last week.
 - **Empty / zero-data states** — declared candidates with no filings, past candidates with closed cycles, candidates with debt remaining. Each needs a deliberate design treatment.
 - **Error states** — FEC API failures, slow responses, unexpected data shapes.
@@ -196,7 +198,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - **Committee page** — build after search exists so it can be navigated to meaningfully
 - **Race page** — the compare feature lives here. Two modes, one shared UI:
   - **Curated mode:** a specific contest (e.g. WA-03 2026) auto-populates all declared candidates; no user input needed
-  - **Ad hoc mode:** user searches and selects any candidates to compare regardless of race — designed for consultants managing multiple frontline races simultaneously (Tim's use case). No editorial curation required.
+  - **Ad hoc mode:** user searches and selects any candidates to compare regardless of race — designed for consultants managing multiple frontline races simultaneously (John's use case). No editorial curation required.
 - **Associated committees** — link to live committee pages once those exist
 
 ### Phase 4 — Differentiation features
@@ -219,24 +221,26 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - What data varies for Senate vs. Congressional candidates?
 - Do I include Presidential candidates yet? Are there drawbacks?
 - Would it be useful to "Compare committees"? Or show aggregate data across a candidate's committee ecosystem?
-- What does "financially healthy" mean quantitatively to a political strategist? What raised-to-spent ratio or COH level triggers concern at different stages of a cycle? *(Validate with Tim)*
-- How do we best visualize "how much are they spending just to raise?" — is this a ratio, a dollar figure, a chart? *(Validate with Tim)*
-- What does a healthy vs. concerning spend-down rate look like in the final two weeks before a primary/general? *(Validate with Tim)*
-- At what point in the active cycle sub-stages does the raised-to-spent ratio become a meaningful signal vs. noise? *(Validate with Tim)*
-- **Race page — defining "unserious" candidates:** Candidates with low or no financial data should be shown with reduced visual hierarchy on race pages, but what threshold defines "unserious"? A declared candidate with zero filings is different from one with minimal activity. *(Validate with Tim — what would a strategist actually want to see?)*
-- **Associated committees — F2 reliability at scale:** Can F2 (Statement of Candidacy) filings be used to surface associated committees reliably for any candidate, at scale? What are the edge cases? *(Validate with Tim)*
-- **Associated committees — leadership PAC identification:** Leadership PACs can't be identified through F2 alone. What's the most reliable method for surfacing them? *(Validate with Tim)*
-- **Raised tab — "Transfers In" category:** Tim flagged confusion between "Transfers In" and "PAC / Other Committees" — they appear to overlap because JFA contributions are categorized as "Transfers In" by the FEC rather than under "Individual" or "PAC." Total raised figures match campaign-confirmed numbers so double-counting is not occurring. Two actions needed: (1) confirm `receipt_type` values behind "Transfers In" via Schedule A in Claude Code; (2) add plain-language tooltip or footnote explaining the category to users. *(FEC note: contributions received as part of a joint fundraising transfer are included in "Transfers In" rather than "Individual contributions" in some data files)*
+- What does "financially healthy" mean quantitatively to a political strategist? What raised-to-spent ratio or COH level triggers concern at different stages of a cycle? *(Validate with John)*
+- How do we best visualize "how much are they spending just to raise?" — is this a ratio, a dollar figure, a chart? *(Validate with John)*
+- What does a healthy vs. concerning spend-down rate look like in the final two weeks before a primary/general? *(Validate with John)*
+- At what point in the active cycle sub-stages does the raised-to-spent ratio become a meaningful signal vs. noise? *(Validate with John)*
+- **Race page — defining "unserious" candidates:** Candidates with low or no financial data should be shown with reduced visual hierarchy on race pages, but what threshold defines "unserious"? A declared candidate with zero filings is different from one with minimal activity. *(Validate with John — what would a strategist actually want to see?)*
+- **JFA participant gap via F2:** For JFA committees where the candidate is a participant (not the organizer), the FEC API has no queryable relationship — these committees have no `candidate_ids` or `sponsor_candidate_ids`. The only source of truth is the candidate's most recent F2 filing. Is F2 parsing a reliable approach at scale? What are the edge cases? *(Validate with John before building)*
+- ~~**Associated committees — leadership PAC identification:**~~ ✅ Resolved. Use the `leadership_pac` boolean field on committee records, combined with a parallel call to `/committees/?sponsor_candidate_id={candidate_id}`. The `sponsor_candidate_id` relationship surfaces PACs the candidate sponsors — not indexed through the standard authorized-committee endpoint. `committee_type === 'D'` is unreliable (some leadership PACs have `committee_type: 'N'`).
+- **Raised tab — "Transfers In" category:** John flagged confusion between "Transfers In" and "PAC / Other Committees" — they appear to overlap because JFA contributions are categorized as "Transfers In" by the FEC rather than under "Individual" or "PAC." Total raised figures match campaign-confirmed numbers so double-counting is not occurring. Two actions needed: (1) confirm `receipt_type` values behind "Transfers In" via Schedule A in Claude Code; (2) add plain-language tooltip or footnote explaining the category to users. *(FEC note: contributions received as part of a joint fundraising transfer are included in "Transfers In" rather than "Individual contributions" in some data files)*
 
 ---
 
 ## Definitions
 
 - **Committee:** Legal entity (business); any PAC, candidate committee, or any legal entity allowed to raise or spend money
-- **JFA (Joint Fundraising Committee):** Allows multiple committees to raise together
+- **JFA (Joint Fundraising Committee):** Allows multiple committees to raise together. Note: there is an important distinction between a candidate who is the *organizer* of a JFA (queryable via FEC API) and one who is merely a *participant* (not queryable — only surfaced in F2 filings).
+- **Leadership PAC:** A political action committee sponsored by an elected official or candidate, separate from their principal campaign committee. Used to donate to other candidates and build political relationships. Queryable via `sponsor_candidate_id` in the FEC API.
+- **JFA participant gap:** JFA committees where a candidate participates (but is not the organizer) have no `candidate_ids` or `sponsor_candidate_ids` in the FEC API. They don't appear in standard committee queries — only surfaced in the candidate's F2 Statement of Candidacy filing.
 - **Hybrid PAC (Super PAC):** Allowed to have an unlimited IE side (soft side); there's a hard side also, with a wall between soft and hard
 - **Spend-down rate:** The pace at which a campaign is depleting its cash reserves, particularly relevant in the final weeks before an election
-- **Raised-to-spent ratio:** Total receipts divided by total disbursements for a cycle; a signal of financial efficiency and health (preferred framing over "burn rate" per Tim)
+- **Raised-to-spent ratio:** Total receipts divided by total disbursements for a cycle; a signal of financial efficiency and health (preferred framing over "burn rate" per John)
 
 ---
 
@@ -247,14 +251,14 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - California Target Book
 - X: CATargetBot0001
 - X: rspyers
-- Tim's 'Lay of the Land' deck
+- John's 'Lay of the Land' deck
 
 ---
 
 ## Unorganized Notes
 
-- Campaign teams report quarterly with the exception of a 2-week deadline right before primary and general elections; last-minute data shows spending at crunch time *(Tim)*
-- Candidate profile data is similar to their Principal Campaign Committee's profile data *(Tim)*
-- Separate out candidate and candidate committees *(Tim)*
+- Campaign teams report quarterly with the exception of a 2-week deadline right before primary and general elections; last-minute data shows spending at crunch time *(John)*
+- Candidate profile data is similar to their Principal Campaign Committee's profile data *(John)*
+- Separate out candidate and candidate committees *(John)*
 - Might be cool to have a search by zip code to view all federal races relevant to a voter in this cycle
 - Aggregate-level data of unions spending the most ("What unions should I reach out to proactively or have on my radar?")

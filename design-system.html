@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Design System — ledger.fec</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <!-- Amplitude Analytics -->
+  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <style>
+    /* ── Main ── */
+    .main { max-width: 900px; padding: 3rem; }
+
+    /* ── Design system layout ── */
+    .ds-section { margin-bottom: 4rem; }
+    .ds-section-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700;
+      letter-spacing:-0.02em; margin-bottom:1.5rem; padding-bottom:0.75rem;
+      border-bottom:2px solid var(--border); color:var(--text); }
+
+    /* ── Component cards ── */
+    .ds-component { border:1px solid var(--border); margin-bottom:1.25rem; }
+    .ds-component-header { display:flex; align-items:center; justify-content:space-between;
+      padding:0.75rem 1rem; border-bottom:1px solid var(--border); background:var(--surface); }
+    .ds-component-name { font-size:0.7rem; font-weight:500; color:var(--subtle);
+      font-family:'IBM Plex Mono',monospace; }
+    .ds-component-classes { font-size:0.57rem; color:var(--muted); padding:0.5rem 1rem;
+      border-bottom:1px solid var(--border); background:var(--surface);
+      font-family:'IBM Plex Mono',monospace; letter-spacing:0.02em; }
+    .ds-component-demo { padding:1.5rem; }
+
+    /* ── Status badges ── */
+    .ds-status { font-size:0.52rem; letter-spacing:0.1em; text-transform:uppercase;
+      padding:0.15rem 0.45rem; border-radius:2px; font-weight:500; border:1px solid; }
+    .ds-status.stable      { color:var(--green);  border-color:rgba(61,191,122,0.3);  background:rgba(61,191,122,0.08); }
+    .ds-status.candidate-only { color:var(--dem); border-color:rgba(74,144,217,0.3);  background:rgba(74,144,217,0.08); }
+    .ds-status.log-only    { color:var(--ind);   border-color:rgba(155,142,212,0.3); background:rgba(155,142,212,0.08); }
+    .ds-status.planned     { color:var(--muted); border-color:var(--border);          background:var(--surface2); }
+    .ds-status.deprecated  { color:var(--red);   border-color:rgba(217,74,74,0.3);   background:rgba(217,74,74,0.08); }
+
+    /* ── Token table ── */
+    .ds-token-table { width:100%; border-collapse:collapse; }
+    .ds-token-table th { padding:0.45rem 0.75rem; text-align:left; font-size:0.55rem;
+      letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);
+      border-bottom:1px solid var(--border); font-family:'IBM Plex Mono',monospace; }
+    .ds-token-table td { padding:0.55rem 0.75rem; border-bottom:1px solid rgba(37,42,56,0.4);
+      vertical-align:middle; font-size:0.64rem; color:var(--subtle);
+      font-family:'IBM Plex Mono',monospace; }
+    .ds-token-table tr:last-child td { border-bottom:none; }
+    .ds-token-table tr:hover td { background:rgba(28,32,48,0.35); }
+    .ds-token-dot { width:12px; height:12px; border-radius:2px; display:inline-block;
+      vertical-align:middle; border:1px solid rgba(255,255,255,0.06); margin-right:0.35rem; }
+    .ds-token-name { color:var(--dem); }
+    .ds-token-hex  { color:var(--muted); font-size:0.6rem; }
+
+
+    /* ── Color swatches ── */
+    .ds-swatch-group { margin-bottom:2rem; }
+    .ds-swatch-group-label { font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:0.75rem; }
+    .ds-swatch-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:0.75rem; }
+    .ds-swatch-color { height:44px; border-radius:3px; margin-bottom:0.4rem;
+      border:1px solid rgba(255,255,255,0.05); }
+    .ds-swatch-token { font-size:0.6rem; color:var(--subtle); font-family:'IBM Plex Mono',monospace; }
+    .ds-swatch-hex   { font-size:0.55rem; color:var(--muted); margin-top:0.1rem; }
+    .ds-swatch-desc  { font-size:0.54rem; color:var(--muted); margin-top:0.15rem; font-style:italic; }
+
+    /* ── Typography specimens ── */
+    .ds-type-group { margin-bottom:2rem; }
+    .ds-type-group-label { font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:0.75rem; }
+    .ds-type-row { display:flex; align-items:baseline; justify-content:space-between;
+      gap:2rem; padding:0.85rem 0; border-bottom:1px solid rgba(37,42,56,0.5); }
+    .ds-type-row:last-child { border-bottom:none; }
+    .ds-type-meta { font-size:0.57rem; color:var(--muted); white-space:nowrap;
+      flex-shrink:0; font-family:'IBM Plex Mono',monospace; line-height:1.4; text-align:right; }
+
+    /* ── Spacing scale ── */
+    .ds-spacing-row { display:flex; align-items:center; gap:1rem; margin-bottom:0.4rem; }
+    .ds-spacing-bar  { background:var(--subtle); height:6px; border-radius:2px; flex-shrink:0; }
+    .ds-spacing-label { font-size:0.6rem; color:var(--subtle); min-width:3.5rem;
+      font-family:'IBM Plex Mono',monospace; }
+    .ds-spacing-px { font-size:0.57rem; color:var(--muted); }
+
+    /* ── Demo helpers ── */
+    .ds-demo-row { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; }
+    .ds-demo-col { display:flex; flex-direction:column; gap:0.5rem; }
+    .ds-state-controls { display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+    .ds-state-btn { background:none; border:1px solid var(--border); border-radius:3px;
+      font-family:'IBM Plex Mono',monospace; font-size:0.6rem; color:var(--muted);
+      padding:0.25rem 0.6rem; cursor:pointer; transition:all 0.15s; }
+    .ds-state-btn:hover { border-color:var(--subtle); color:var(--text); }
+    .ds-state-btn.active { border-color:var(--text); color:var(--text); background:var(--surface2); }
+    .ds-mini-sidebar { background:var(--surface); border:1px solid var(--border);
+      border-radius:4px; padding:0.75rem 0.5rem; width:180px; }
+    .ds-chart-placeholder { background:var(--surface2); border:1px dashed var(--border);
+      border-radius:3px; height:140px; display:flex; align-items:center; justify-content:center;
+      color:var(--muted); font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase; }
+    .ds-note { font-size:0.58rem; color:var(--muted); font-style:italic; margin-bottom:0.75rem; }
+
+    /* ── Page header ── */
+    .page-header { border-top:3px solid var(--text); border-bottom:1px solid var(--border);
+      padding:1.5rem 0 1.5rem; margin-bottom:3.5rem; }
+    .page-eyebrow { font-size:0.6rem; letter-spacing:0.18em; text-transform:uppercase;
+      color:var(--accent); margin-bottom:0.4rem; }
+    .page-title { font-family:'Syne',sans-serif; font-size:clamp(1.6rem,3vw,2.2rem);
+      font-weight:800; letter-spacing:-0.03em; line-height:1.05; margin-bottom:0.75rem; }
+    .page-desc { font-size:0.75rem; color:var(--subtle); max-width:540px; line-height:1.7; }
+
+    /* ── Component CSS: Tags, banner, candidate header ── */
+    .profile-header { padding:2.5rem 0 2rem; border-bottom:1px solid var(--border); }
+    .breadcrumb { font-size:0.62rem; color:var(--muted); letter-spacing:0.1em;
+      text-transform:uppercase; margin-bottom:1.25rem; }
+    .candidate-row { display:flex; align-items:flex-start; gap:1.5rem; margin-bottom:1.25rem; }
+    .avatar { width:60px; height:60px; border-radius:4px; background:var(--surface2);
+      border:1px solid var(--border); display:flex; align-items:center; justify-content:center;
+      font-family:'Syne',sans-serif; font-size:0.9rem; font-weight:800;
+      color:var(--subtle); letter-spacing:0.05em; flex-shrink:0; }
+    .candidate-name { font-family:'Syne',sans-serif; font-size:clamp(1.4rem,3vw,2.2rem);
+      font-weight:800; line-height:1.05; letter-spacing:-0.03em; margin-bottom:0.6rem; }
+    .meta-row { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+    .cycle-switcher { display:flex; align-items:center; gap:0.35rem; margin-top:1rem; flex-wrap:wrap; }
+    .cycle-label { font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase;
+      color:var(--muted); margin-right:0.25rem; }
+    .cycle-btn { padding:0.2rem 0.6rem; border-radius:3px; font-size:0.65rem;
+      font-family:'IBM Plex Mono',monospace; cursor:pointer; border:1px solid var(--border);
+      background:transparent; color:var(--subtle); transition:all 0.15s; }
+    .cycle-btn:hover { border-color:var(--subtle); color:var(--text); }
+    .cycle-btn.active { border-color:var(--text); color:var(--text); background:var(--surface2); }
+    .committees-link { background:none; border:none; cursor:pointer;
+      font-family:'IBM Plex Mono',monospace; font-size:0.7rem; color:var(--subtle);
+      padding:0; margin-top:0.75rem; display:inline-block;
+      text-decoration:underline; text-decoration-color:transparent;
+      text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
+    .committees-link:hover { color:var(--text); text-decoration-color:var(--subtle); }
+
+    /* Stats */
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
+      gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:0; }
+    .stat-card  { background:var(--surface); padding:1.2rem 1.4rem; }
+    .stat-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:0.35rem; }
+    .stat-value { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:700;
+      line-height:1; letter-spacing:-0.02em; margin-bottom:0.25rem; }
+    .stat-sub   { font-size:0.6rem; color:var(--muted); }
+    .stat-sub.pos  { color:var(--green); }
+    .stat-sub.neg  { color:var(--red); }
+    .stat-sub.warn { color:var(--amber); }
+
+    /* Global banner */
+    .global-banner { background:var(--amber); height:28px;
+      display:flex; align-items:center; justify-content:center; border-radius:3px; }
+    .global-banner-text { font-size:0.57rem; color:rgba(13,15,18,0.75); letter-spacing:0.05em; }
+    .global-banner-text span { color:#0d0f12; font-weight:500; }
+
+    /* Raised tab grid */
+    .raised-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px;
+      background:var(--border); border:1px solid var(--border); margin-bottom:1.5rem; }
+    .raised-cell { background:var(--surface); padding:1.75rem; min-width:0; overflow:hidden; }
+    .raised-cell-title { font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase;
+      color:var(--subtle); margin-bottom:1.25rem; }
+
+    /* Donut center overlay */
+    .donut-canvas-placeholder { width:100%; height:100%; border-radius:50%;
+      background:conic-gradient(var(--dem) 0deg 194deg, var(--green) 194deg 302deg,
+      var(--amber) 302deg 338deg, var(--muted) 338deg 360deg); opacity:0.7; }
+
+    /* Timeline + entry (log-only) */
+    .timeline { position:relative; padding-left:2rem; }
+    .timeline::before { content:''; position:absolute; left:0; top:8px; bottom:0;
+      width:1px; background:var(--border); }
+    .entry { position:relative; margin-bottom:2rem; }
+    .entry::before { content:''; position:absolute; left:-2.375rem; top:6px;
+      width:8px; height:8px; border-radius:50%;
+      background:var(--border); border:1.5px solid var(--muted); }
+    .entry-date { font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:0.3rem; }
+    .entry-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700;
+      letter-spacing:-0.02em; line-height:1.2; margin-bottom:0.6rem; }
+    .entry-summary { font-size:0.75rem; color:var(--subtle); line-height:1.7;
+      margin-bottom:0; max-width:560px; }
+
+    /* Insight block (log-only) */
+    .insight { background:var(--surface); border:1px solid var(--border);
+      border-left:3px solid var(--accent); padding:0.85rem 1rem;
+      border-radius:0 3px 3px 0; }
+    .insight-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
+      color:var(--accent); margin-bottom:0.3rem; }
+    .insight-text { font-size:0.72rem; color:var(--subtle); line-height:1.7; }
+
+    /* Field notes block (log-only) */
+    .field-notes { background:var(--surface); border:1px solid var(--border);
+      border-left:3px solid var(--muted); padding:0.85rem 1rem;
+      border-radius:0 3px 3px 0; }
+    .field-notes-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:0.3rem; }
+    .field-notes-text { font-size:0.72rem; color:var(--subtle); line-height:1.7; }
+
+    /* Stack tags (log-only) */
+    .stack { display:flex; gap:0.4rem; flex-wrap:wrap; }
+    .stack-tag { font-size:0.58rem; letter-spacing:0.07em; text-transform:uppercase;
+      color:var(--muted); border:1px solid var(--border); border-radius:3px;
+      padding:0.15rem 0.5rem; background:var(--surface); }
+
+    /* Responsive */
+    @media (max-width:860px) {
+      .main { padding:1.5rem; padding-top: calc(var(--header-h) + 1.5rem); }
+      .stats-grid { grid-template-columns:repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo"><a href="index.html">ledger<em>.fec</em></a></div>
+    <div class="nav-section">
+      <div class="nav-label">Pages</div>
+      <a class="nav-item" href="candidate.html"><span class="nav-dot" style="background:var(--muted)"></span>Candidates</a>
+      <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Committees</a>
+      <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Races</a>
+      <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Search</a>
+    </div>
+    <div class="nav-section" style="margin-top:auto;padding-top:1.25rem;border-top:1px solid var(--border)">
+      <div class="nav-label">Documentation</div>
+      <a class="nav-item" href="process-log.html"><span class="nav-dot" style="background:var(--muted)"></span>Process Log</a>
+      <a class="nav-item active" href="design-system.html"><span class="nav-dot" style="background:var(--subtle)"></span>Design System</a>
+    </div>
+  </nav>
+
+  <!-- Mobile header -->
+  <header class="mobile-header" id="mobile-header">
+    <a class="mobile-logo" href="index.html">ledger<em>.fec</em></a>
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- Mobile nav -->
+  <nav class="mobile-nav" id="mobile-nav">
+    <a class="nav-item" href="candidate.html"><span class="nav-dot" style="background:var(--muted)"></span>Candidates</a>
+    <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Committees</a>
+    <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Races</a>
+    <a class="nav-item" href="process-log.html" style="border-top:1px solid var(--border);padding-top:0.85rem"><span class="nav-dot" style="background:var(--muted)"></span>Process Log</a>
+    <a class="nav-item active" href="design-system.html"><span class="nav-dot" style="background:var(--subtle)"></span>Design System</a>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+
+    <header class="page-header">
+      <div class="page-eyebrow">Reference</div>
+      <h1 class="page-title">Design System</h1>
+      <p class="page-desc">A living reference for all tokens, type, spacing, and components in use across ledger.fec. Everything rendered live — no screenshots. Update this page when components are added or removed.</p>
+    </header>
+
+    <!-- ── SECTION: Token naming strategy ─────────────────── -->
+    <section class="ds-section" id="tokens">
+      <h2 class="ds-section-title">Token Naming Strategy</h2>
+
+      <p class="ds-note" style="margin-bottom:1.5rem;font-style:normal;font-size:0.7rem;color:var(--subtle);line-height:1.7;">
+        Tokens are organized in three tiers. <strong style="color:var(--text)">Tier 1 primitives</strong> are raw hex values — not CSS variables, just the reference palette. <strong style="color:var(--text)">Tier 2 semantic tokens</strong> are CSS variables defined in <code style="font-size:0.65rem;color:var(--dem)">styles.css :root</code> — named by meaning, not appearance. <strong style="color:var(--text)">Tier 3 component tokens</strong> (not yet built) would be scoped to specific components, like <code style="font-size:0.65rem;color:var(--dem)">--tag-dem-bg</code>.
+      </p>
+
+      <div style="margin-bottom:1.5rem">
+        <div class="ds-swatch-group-label" style="margin-bottom:0.75rem">Tier 1 — Primitive palette (reference only, not CSS variables)</div>
+        <table class="ds-token-table">
+          <thead><tr><th>Name</th><th>Hex</th></tr></thead>
+          <tbody>
+            <tr><td><span class="ds-token-dot" style="background:#0d0f12"></span>gray-950</td><td class="ds-token-hex">#0d0f12</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#141720"></span>gray-900</td><td class="ds-token-hex">#141720</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#1c2030"></span>gray-850</td><td class="ds-token-hex">#1c2030</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#252a38"></span>gray-800</td><td class="ds-token-hex">#252a38</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#e8eaf0"></span>gray-200</td><td class="ds-token-hex">#e8eaf0</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#8890a0"></span>gray-400</td><td class="ds-token-hex">#8890a0</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#5a6070"></span>gray-500</td><td class="ds-token-hex">#5a6070</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#4a90d9"></span>blue-500</td><td class="ds-token-hex">#4a90d9</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#d94a4a"></span>red-500</td><td class="ds-token-hex">#d94a4a</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#9b8ed4"></span>purple-400</td><td class="ds-token-hex">#9b8ed4</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#3dbf7a"></span>green-500</td><td class="ds-token-hex">#3dbf7a</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#e8a020"></span>amber-400</td><td class="ds-token-hex">#e8a020</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <div class="ds-swatch-group-label" style="margin-bottom:0.75rem">Tier 2 — Semantic tokens (CSS variables in styles.css)</div>
+        <table class="ds-token-table">
+          <thead><tr><th>Token</th><th>Primitive</th><th>Hex</th><th>Usage</th></tr></thead>
+          <tbody>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--bg)"></span>--bg</td><td>gray-950</td><td class="ds-token-hex">#0d0f12</td><td>Page background</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--surface)"></span>--surface</td><td>gray-900</td><td class="ds-token-hex">#141720</td><td>Cards, sidebar, panels</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--surface2)"></span>--surface2</td><td>gray-850</td><td class="ds-token-hex">#1c2030</td><td>Hover states, subtle elevation</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--border);border:1px solid var(--surface2)"></span>--border</td><td>gray-800</td><td class="ds-token-hex">#252a38</td><td>Dividers, outlines</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--text)"></span>--text</td><td>gray-200</td><td class="ds-token-hex">#e8eaf0</td><td>Primary text</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--subtle)"></span>--subtle</td><td>gray-400</td><td class="ds-token-hex">#8890a0</td><td>Secondary text, icons</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--muted)"></span>--muted</td><td>gray-500</td><td class="ds-token-hex">#5a6070</td><td>Tertiary / disabled text</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--dem)"></span>--dem</td><td>blue-500</td><td class="ds-token-hex">#4a90d9</td><td>Democrat party color</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--rep)"></span>--rep ⚠</td><td>red-500</td><td class="ds-token-hex">#d94a4a</td><td>Republican party color</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--ind)"></span>--ind</td><td>purple-400</td><td class="ds-token-hex">#9b8ed4</td><td>Independent party color</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--green)"></span>--green</td><td>green-500</td><td class="ds-token-hex">#3dbf7a</td><td>Success / financially healthy</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--amber)"></span>--amber</td><td>amber-400</td><td class="ds-token-hex">#e8a020</td><td>Warning / watch</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--red)"></span>--red ⚠</td><td>red-500</td><td class="ds-token-hex">#d94a4a</td><td>Error / stressed campaign</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--accent)"></span>--accent</td><td>blue-500</td><td class="ds-token-hex">#4a90d9</td><td>Alias for --dem (process-log)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-raised)"></span>--chart-raised</td><td>--dem @ 90%</td><td class="ds-token-hex">rgba(74,144,217,0.9)</td><td>Raised money line in chart</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-raised-solid)"></span>--chart-raised-solid</td><td>--dem @ 100%</td><td class="ds-token-hex">rgba(74,144,217,1)</td><td>Raised chart point fill</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-spent)"></span>--chart-spent</td><td>--rep @ 85%</td><td class="ds-token-hex">rgba(217,74,74,0.85)</td><td>Spent money line in chart</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-spent-solid)"></span>--chart-spent-solid</td><td>--rep @ 100%</td><td class="ds-token-hex">rgba(217,74,74,1)</td><td>Spent chart point fill</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-coh)"></span>--chart-coh</td><td>--green @ 85%</td><td class="ds-token-hex">rgba(61,191,122,0.85)</td><td>Cash on Hand line in chart</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-coh-solid)"></span>--chart-coh-solid</td><td>--green @ 100%</td><td class="ds-token-hex">rgba(61,191,122,1)</td><td>CoH chart point fill</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-spent-bar)"></span>--chart-spent-bar</td><td>--rep @ 72%</td><td class="ds-token-hex">rgba(217,74,74,0.72)</td><td>Spend purpose bar fill</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-deadline)"></span>--chart-overlay-deadline</td><td>--muted @ 40%</td><td class="ds-token-hex">rgba(90,96,112,0.4)</td><td>Filing deadline vertical line</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-election)"></span>--chart-overlay-election</td><td>--amber @ 75%</td><td class="ds-token-hex">rgba(232,160,32,0.75)</td><td>Election date vertical line</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-today)"></span>--chart-overlay-today</td><td>--subtle @ 18%</td><td class="ds-token-hex">rgba(136,144,160,0.18)</td><td>Today marker (active cycles)</td></tr>
+          </tbody>
+        </table>
+        <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#d94a4a</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). If the status system diverges from the partisan palette in the future, they should split into separate primitives.</div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Color ──────────────────────────────────── -->
+    <section class="ds-section" id="color">
+      <h2 class="ds-section-title">Color</h2>
+
+      <div class="ds-swatch-group">
+        <div class="ds-swatch-group-label">Backgrounds</div>
+        <div class="ds-swatch-grid">
+          <div class="ds-swatch" data-token="--bg" data-hex="#0d0f12">
+            <div class="ds-swatch-color" style="background:var(--bg);border:1px solid var(--border)"></div>
+            <div class="ds-swatch-token">--bg</div>
+            <div class="ds-swatch-hex">#0d0f12</div>
+            <div class="ds-swatch-desc">Page background</div>
+          </div>
+          <div class="ds-swatch" data-token="--surface" data-hex="#141720">
+            <div class="ds-swatch-color" style="background:var(--surface)"></div>
+            <div class="ds-swatch-token">--surface</div>
+            <div class="ds-swatch-hex">#141720</div>
+            <div class="ds-swatch-desc">Cards, sidebar</div>
+          </div>
+          <div class="ds-swatch" data-token="--surface2" data-hex="#1c2030">
+            <div class="ds-swatch-color" style="background:var(--surface2)"></div>
+            <div class="ds-swatch-token">--surface2</div>
+            <div class="ds-swatch-hex">#1c2030</div>
+            <div class="ds-swatch-desc">Hover, elevation</div>
+          </div>
+          <div class="ds-swatch" data-token="--border" data-hex="#252a38">
+            <div class="ds-swatch-color" style="background:var(--border);border:1px solid var(--surface2)"></div>
+            <div class="ds-swatch-token">--border</div>
+            <div class="ds-swatch-hex">#252a38</div>
+            <div class="ds-swatch-desc">Dividers, outlines</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-swatch-group">
+        <div class="ds-swatch-group-label">Text</div>
+        <div class="ds-swatch-grid">
+          <div class="ds-swatch" data-token="--text" data-hex="#e8eaf0">
+            <div class="ds-swatch-color" style="background:var(--text)"></div>
+            <div class="ds-swatch-token">--text</div>
+            <div class="ds-swatch-hex">#e8eaf0</div>
+            <div class="ds-swatch-desc">Primary</div>
+          </div>
+          <div class="ds-swatch" data-token="--subtle" data-hex="#8890a0">
+            <div class="ds-swatch-color" style="background:var(--subtle)"></div>
+            <div class="ds-swatch-token">--subtle</div>
+            <div class="ds-swatch-hex">#8890a0</div>
+            <div class="ds-swatch-desc">Secondary</div>
+          </div>
+          <div class="ds-swatch" data-token="--muted" data-hex="#5a6070">
+            <div class="ds-swatch-color" style="background:var(--muted)"></div>
+            <div class="ds-swatch-token">--muted</div>
+            <div class="ds-swatch-hex">#5a6070</div>
+            <div class="ds-swatch-desc">Tertiary / disabled</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-swatch-group">
+        <div class="ds-swatch-group-label">Partisan</div>
+        <div class="ds-swatch-grid">
+          <div class="ds-swatch" data-token="--dem" data-hex="#4a90d9">
+            <div class="ds-swatch-color" style="background:var(--dem)"></div>
+            <div class="ds-swatch-token">--dem</div>
+            <div class="ds-swatch-hex">#4a90d9</div>
+            <div class="ds-swatch-desc">Democrat</div>
+          </div>
+          <div class="ds-swatch" data-token="--rep" data-hex="#d94a4a">
+            <div class="ds-swatch-color" style="background:var(--rep)"></div>
+            <div class="ds-swatch-token">--rep</div>
+            <div class="ds-swatch-hex">#d94a4a</div>
+            <div class="ds-swatch-desc">Republican</div>
+          </div>
+          <div class="ds-swatch" data-token="--ind" data-hex="#9b8ed4">
+            <div class="ds-swatch-color" style="background:var(--ind)"></div>
+            <div class="ds-swatch-token">--ind</div>
+            <div class="ds-swatch-hex">#9b8ed4</div>
+            <div class="ds-swatch-desc">Independent</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-swatch-group">
+        <div class="ds-swatch-group-label">Status</div>
+        <div class="ds-swatch-grid">
+          <div class="ds-swatch" data-token="--green" data-hex="#3dbf7a">
+            <div class="ds-swatch-color" style="background:var(--green)"></div>
+            <div class="ds-swatch-token">--green</div>
+            <div class="ds-swatch-hex">#3dbf7a</div>
+            <div class="ds-swatch-desc">Success / healthy</div>
+          </div>
+          <div class="ds-swatch" data-token="--amber" data-hex="#e8a020">
+            <div class="ds-swatch-color" style="background:var(--amber)"></div>
+            <div class="ds-swatch-token">--amber</div>
+            <div class="ds-swatch-hex">#e8a020</div>
+            <div class="ds-swatch-desc">Warning / watch</div>
+          </div>
+          <div class="ds-swatch" data-token="--red" data-hex="#d94a4a">
+            <div class="ds-swatch-color" style="background:var(--red)"></div>
+            <div class="ds-swatch-token">--red</div>
+            <div class="ds-swatch-hex">#d94a4a</div>
+            <div class="ds-swatch-desc">Error / stressed</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-swatch-group">
+        <div class="ds-swatch-group-label">Chart</div>
+        <div class="ds-swatch-grid">
+          <div class="ds-swatch" data-token="--chart-raised" data-hex="rgba(74,144,217,0.9)">
+            <div class="ds-swatch-color" style="background:var(--chart-raised)"></div>
+            <div class="ds-swatch-token">--chart-raised</div>
+            <div class="ds-swatch-hex">→ --dem</div>
+            <div class="ds-swatch-desc">Raised line</div>
+          </div>
+          <div class="ds-swatch" data-token="--chart-spent" data-hex="rgba(217,74,74,0.85)">
+            <div class="ds-swatch-color" style="background:var(--chart-spent)"></div>
+            <div class="ds-swatch-token">--chart-spent</div>
+            <div class="ds-swatch-hex">→ --rep</div>
+            <div class="ds-swatch-desc">Spent line</div>
+          </div>
+          <div class="ds-swatch" data-token="--chart-coh" data-hex="rgba(61,191,122,0.85)">
+            <div class="ds-swatch-color" style="background:var(--chart-coh)"></div>
+            <div class="ds-swatch-token">--chart-coh</div>
+            <div class="ds-swatch-hex">→ --green</div>
+            <div class="ds-swatch-desc">Cash on Hand line</div>
+          </div>
+          <div class="ds-swatch" data-token="--chart-overlay-deadline" data-hex="rgba(90,96,112,0.4)">
+            <div class="ds-swatch-color" style="background:var(--chart-overlay-deadline)"></div>
+            <div class="ds-swatch-token">--chart-overlay-deadline</div>
+            <div class="ds-swatch-hex">→ --muted</div>
+            <div class="ds-swatch-desc">Filing deadline line</div>
+          </div>
+          <div class="ds-swatch" data-token="--chart-overlay-election" data-hex="rgba(232,160,32,0.75)">
+            <div class="ds-swatch-color" style="background:var(--chart-overlay-election)"></div>
+            <div class="ds-swatch-token">--chart-overlay-election</div>
+            <div class="ds-swatch-hex">→ --amber</div>
+            <div class="ds-swatch-desc">Election date line</div>
+          </div>
+          <div class="ds-swatch" data-token="--chart-overlay-today" data-hex="rgba(136,144,160,0.18)">
+            <div class="ds-swatch-color" style="background:var(--chart-overlay-today)"></div>
+            <div class="ds-swatch-token">--chart-overlay-today</div>
+            <div class="ds-swatch-hex">→ --subtle</div>
+            <div class="ds-swatch-desc">Today marker</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Typography ────────────────────────────── -->
+    <section class="ds-section" id="typography">
+      <h2 class="ds-section-title">Typography</h2>
+
+      <div class="ds-type-group">
+        <div class="ds-type-group-label">Syne — Display &amp; Headings</div>
+        <div class="ds-type-row">
+          <span style="font-family:'Syne',sans-serif;font-size:clamp(1.4rem,3vw,2.2rem);font-weight:800;letter-spacing:-0.03em;line-height:1">Candidate Profile</span>
+          <span class="ds-type-meta">Syne 800 · clamp(1.4rem, 3vw, 2.2rem)<br>candidate name, page title</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:700;letter-spacing:-0.02em;line-height:1">$1.24M</span>
+          <span class="ds-type-meta">Syne 700 · 1.5rem<br>stat value</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:-0.02em">Process Log</span>
+          <span class="ds-type-meta">Syne 700 · 1.1rem<br>entry title, sidebar logo</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:-0.02em">Committee Ecosystem</span>
+          <span class="ds-type-meta">Syne 700 · 0.9rem<br>modal title</span>
+        </div>
+      </div>
+
+      <div class="ds-type-group">
+        <div class="ds-type-group-label">IBM Plex Mono — Data &amp; UI</div>
+        <div class="ds-type-row">
+          <span style="font-size:0.75rem;font-weight:500;color:var(--subtle);line-height:1.7">A running record of how this project came to be — decisions made, pivots taken, and things learned along the way.</span>
+          <span class="ds-type-meta">IBM Plex Mono 500 · 0.75rem<br>body, summary</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-size:0.72rem;font-weight:400;color:var(--subtle)">Raised-to-Spent Ratio</span>
+          <span class="ds-type-meta">IBM Plex Mono 400 · 0.72rem<br>label, insight text</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-size:0.75rem;font-weight:400;color:var(--subtle)">Candidates</span>
+          <span class="ds-type-meta">IBM Plex Mono 400 · 0.75rem<br>nav item</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-size:0.68rem;font-weight:400;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase">Summary</span>
+          <span class="ds-type-meta">IBM Plex Mono 400 · 0.68rem · uppercase<br>tab label</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-size:0.62rem;font-weight:300;color:var(--subtle)">Raised · Spent · Cash on Hand over cycle</span>
+          <span class="ds-type-meta">IBM Plex Mono 300 · 0.62rem<br>chart title, breadcrumb</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-size:0.6rem;font-weight:300;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase">Total Raised</span>
+          <span class="ds-type-meta">IBM Plex Mono 300 · 0.6rem · uppercase<br>section label, stat label</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-size:0.58rem;font-weight:300;color:var(--muted)">Cycle total</span>
+          <span class="ds-type-meta">IBM Plex Mono 300 · 0.58rem<br>stat sub, legend</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Spacing ───────────────────────────────── -->
+    <section class="ds-section" id="spacing">
+      <h2 class="ds-section-title">Spacing</h2>
+      <p class="ds-note">All spacing derived from component usage. 1rem = 16px (browser default); body font-size is 13px but spacing uses rem throughout.</p>
+      <div style="max-width:480px">
+        <div class="ds-spacing-row"><span class="ds-spacing-label">0.25rem</span><div class="ds-spacing-bar" style="width:0.25rem"></div><span class="ds-spacing-px">4px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">0.35rem</span><div class="ds-spacing-bar" style="width:0.35rem"></div><span class="ds-spacing-px">5.6px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">0.5rem</span><div class="ds-spacing-bar" style="width:0.5rem"></div><span class="ds-spacing-px">8px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">0.75rem</span><div class="ds-spacing-bar" style="width:0.75rem"></div><span class="ds-spacing-px">12px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">1rem</span><div class="ds-spacing-bar" style="width:1rem"></div><span class="ds-spacing-px">16px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">1.25rem</span><div class="ds-spacing-bar" style="width:1.25rem"></div><span class="ds-spacing-px">20px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">1.5rem</span><div class="ds-spacing-bar" style="width:1.5rem"></div><span class="ds-spacing-px">24px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">1.75rem</span><div class="ds-spacing-bar" style="width:1.75rem"></div><span class="ds-spacing-px">28px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">2rem</span><div class="ds-spacing-bar" style="width:2rem"></div><span class="ds-spacing-px">32px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">2.5rem</span><div class="ds-spacing-bar" style="width:2.5rem"></div><span class="ds-spacing-px">40px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">3rem</span><div class="ds-spacing-bar" style="width:3rem"></div><span class="ds-spacing-px">48px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label">3.5rem</span><div class="ds-spacing-bar" style="width:3.5rem"></div><span class="ds-spacing-px">56px</span></div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: Components ────────────────────────────── -->
+    <section class="ds-section" id="components">
+      <h2 class="ds-section-title">Components</h2>
+
+      <!-- 1. Tags -->
+      <div class="ds-component" id="comp-tags" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Tags</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.tag · .tag-dem · .tag-rep · .tag-ind · .tag-neutral</div>
+        <div class="ds-component-demo">
+          <div class="ds-demo-row">
+            <span class="tag tag-dem">Democrat</span>
+            <span class="tag tag-rep">Republican</span>
+            <span class="tag tag-ind">Independent</span>
+            <span class="tag tag-neutral">House · WA-03</span>
+            <span class="tag tag-neutral">Incumbent</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Health signal -->
+      <div class="ds-component" id="comp-health-signal" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Health Signal</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.health-signal · .health-signal.green · .health-signal.amber · .health-signal.red · .health-signal.grey</div>
+        <div class="ds-component-demo">
+          <div class="ds-demo-row">
+            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
+              <div class="health-signal green"></div>
+              <span style="font-size:0.58rem;color:var(--muted)">green</span>
+            </div>
+            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
+              <div class="health-signal amber"></div>
+              <span style="font-size:0.58rem;color:var(--muted)">amber</span>
+            </div>
+            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
+              <div class="health-signal red"></div>
+              <span style="font-size:0.58rem;color:var(--muted)">red</span>
+            </div>
+            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
+              <div class="health-signal grey"></div>
+              <span style="font-size:0.58rem;color:var(--muted)">grey</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Cycle buttons (interactive) -->
+      <div class="ds-component" id="comp-cycle-btn" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Cycle Button</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.cycle-btn · .cycle-btn.active — click to toggle</div>
+        <div class="ds-component-demo">
+          <div class="cycle-switcher" id="demo-cycle">
+            <span class="cycle-label">Cycle</span>
+            <button class="cycle-btn active">2024</button>
+            <button class="cycle-btn">2022</button>
+            <button class="cycle-btn">2020</button>
+            <button class="cycle-btn">2018</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Nav item -->
+      <div class="ds-component" id="comp-nav-item" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Nav Item</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.nav-item · .nav-item.active · .nav-dot · .nav-label</div>
+        <div class="ds-component-demo">
+          <div class="ds-mini-sidebar">
+            <div style="padding:0 0.5rem 0.5rem;margin-bottom:0.5rem;border-bottom:1px solid var(--border)">
+              <div class="nav-label">Pages</div>
+            </div>
+            <a class="nav-item active" href="#"><span class="nav-dot" style="background:var(--subtle)"></span>Candidates</a>
+            <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Committees</a>
+            <a class="nav-item" href="#"><span class="nav-dot" style="background:var(--muted)"></span>Races</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Global banner -->
+      <div class="ds-component" id="comp-global-banner" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Global Banner</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.global-banner · .global-banner-text — normally position:fixed top:0</div>
+        <div class="ds-component-demo">
+          <div class="ds-note" style="margin-bottom:0.75rem">Rendered inline here; on live pages it is <code style="font-size:0.6rem">position:fixed</code> and sits above the sidebar/main layout.</div>
+          <div class="global-banner">
+            <span class="global-banner-text">Early build, actively evolving. All data sourced from the <span>FEC public API</span>. Non-partisan by design.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Candidate header -->
+      <div class="ds-component" id="comp-candidate-header" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Candidate Header</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.profile-header · .candidate-row · .avatar · .candidate-name · .meta-row · .cycle-switcher · .committees-link</div>
+        <div class="ds-component-demo" style="padding:0">
+          <div class="profile-header" style="padding:2rem">
+            <div class="breadcrumb">Candidates <span>/ Marie Gluesenkamp Perez</span></div>
+            <div class="candidate-row">
+              <div class="avatar">MGP</div>
+              <div style="min-width:0">
+                <div class="candidate-name">Marie Gluesenkamp Perez</div>
+                <div class="meta-row">
+                  <span class="tag tag-dem">Democrat</span>
+                  <span class="tag tag-neutral">House · WA-03</span>
+                  <span class="tag tag-neutral">Incumbent</span>
+                </div>
+                <div class="cycle-switcher">
+                  <span class="cycle-label">Cycle</span>
+                  <button class="cycle-btn active">2024</button>
+                  <button class="cycle-btn">2022</button>
+                </div>
+                <div>
+                  <button class="committees-link">Committees (4) →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Health banner (interactive) -->
+      <div class="ds-component" id="comp-banner" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Health Banner</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.banner · .health-signal · .banner-label · .banner-desc · .banner-note — click to switch states</div>
+        <div class="ds-component-demo">
+          <div class="ds-state-controls">
+            <button class="ds-state-btn ds-health-btn active" data-state="healthy">Healthy</button>
+            <button class="ds-state-btn ds-health-btn" data-state="watch">Watch</button>
+            <button class="ds-state-btn ds-health-btn" data-state="stressed">Stressed</button>
+            <button class="ds-state-btn ds-health-btn" data-state="closed">Closed</button>
+          </div>
+          <div class="banner">
+            <div class="health-signal green" id="demo-health-signal"></div>
+            <div class="banner-label" id="demo-health-label">On Track</div>
+            <div class="banner-desc" id="demo-health-desc">Raised-to-spent ratio above 1.0. Cash on hand covers remaining quarters.</div>
+            <div class="banner-note" id="demo-health-note">Data through Q3 2024 · Coverage end: Sep 30, 2024</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Stats grid -->
+      <div class="ds-component" id="comp-stats-grid" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Stats Grid</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.stats-grid · .stat-card · .stat-label · .stat-value · .stat-sub · .stat-sub.pos / .neg / .warn</div>
+        <div class="ds-component-demo" style="padding:0">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Total Raised</div>
+              <div class="stat-value">$4.1M</div>
+              <div class="stat-sub">Cycle total</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Spent</div>
+              <div class="stat-value">$3.8M</div>
+              <div class="stat-sub">Cycle total</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Cash on Hand</div>
+              <div class="stat-value">$312K</div>
+              <div class="stat-sub">End of last report</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Raised-to-Spent</div>
+              <div class="stat-value">1.08×</div>
+              <div class="stat-sub pos">Raised ÷ Spent</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. Raised/Spent grid layout -->
+      <div class="ds-component" id="comp-raised-grid" data-status="candidate-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Raised/Spent Grid</span>
+          <span class="ds-status candidate-only">candidate-only</span>
+        </div>
+        <div class="ds-component-classes">.raised-grid · .raised-cell · .raised-cell-title</div>
+        <div class="ds-component-demo" style="padding:0">
+          <div class="raised-grid">
+            <div class="raised-cell">
+              <div class="raised-cell-title">Contributor Types</div>
+              <div style="font-size:0.65rem;color:var(--muted)">Chart or breakdown renders here</div>
+            </div>
+            <div class="raised-cell">
+              <div class="raised-cell-title">Where Contributions Come From</div>
+              <div style="font-size:0.65rem;color:var(--muted)">Chart or breakdown renders here</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9b. Choropleth map -->
+      <div class="ds-component" id="comp-map" data-status="candidate-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Choropleth Map</span>
+          <span class="ds-status candidate-only">candidate-only</span>
+        </div>
+        <div class="ds-component-classes">.map-svg-wrap · .map-legend · .map-legend-bar · .map-legend-lbl · .map-tt · .map-tt-name · .map-tt-val</div>
+        <div class="ds-component-demo">
+          <div class="map-svg-wrap" style="max-width:400px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;height:120px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">SVG path map</div>
+          <div class="map-legend" style="max-width:400px;margin-top:0.75rem">
+            <div class="map-legend-lbl">$0</div>
+            <div class="map-legend-bar" style="background:linear-gradient(to right,rgba(74,144,217,0.1),rgba(74,144,217,0.92))"></div>
+            <div class="map-legend-lbl">$250K+</div>
+          </div>
+          <div class="data-note">SVG paths generated via D3-style projection in <code style="font-size:0.55rem">renderChoropleth()</code>. State fill colors interpolate party-color rgba at 0.1–0.92 alpha based on contribution density. Tooltip (<code style="font-size:0.55rem">.map-tt</code>) is <code style="font-size:0.55rem">position:fixed</code>, follows cursor via mousemove.</div>
+        </div>
+      </div>
+
+      <!-- 10. Chart container (tab bar interactive) -->
+      <div class="ds-component" id="comp-chart-container" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Tab Bar + Chart Container</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.tabs-bar · .tab · .tab.active · .chart-card · .chart-header · .chart-title · .chart-legend · .legend-item · .legend-swatch · .legend-dashed · .legend-amber-dashed</div>
+        <div class="ds-component-demo" style="padding:0">
+          <div class="tabs-bar" id="demo-tabs">
+            <a class="tab active" href="#">Summary</a>
+            <a class="tab" href="#">Raised</a>
+            <a class="tab" href="#">Spent</a>
+          </div>
+          <div style="padding:1.5rem">
+            <div class="chart-card">
+              <div class="chart-header">
+                <div class="chart-title">Raised · Spent · Cash on Hand over cycle</div>
+                <div class="chart-legend">
+                  <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-raised)"></div>Raised</div>
+                  <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-spent)"></div>Spent</div>
+                  <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-coh)"></div>Cash on Hand</div>
+                  <div class="legend-item"><div class="legend-swatch legend-dashed"></div>Filing deadline</div>
+                  <div class="legend-item"><div class="legend-swatch legend-amber-dashed"></div>Election day</div>
+                </div>
+              </div>
+              <div class="ds-chart-placeholder">Chart renders here (Chart.js canvas)</div>
+            </div>
+            <div class="data-note">Chart line/point colors use the <code style="font-size:0.55rem">CHART_COLORS</code> JS constant defined at the top of <code style="font-size:0.55rem">candidate.html</code>'s script block. HTML legend swatches use the corresponding <code style="font-size:0.55rem">--chart-*</code> CSS vars defined in <code style="font-size:0.55rem">styles.css :root</code>. Add new chart color vars there before using hardcoded rgba in chart configs.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. Section title + committee rows -->
+      <div class="ds-component" id="comp-committee-rows" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Section Title + Committee Rows</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.section-title · .committee-row · .committee-name · .committee-type · .committee-id — LP variant: amber border-left inline style</div>
+        <div class="ds-component-demo">
+          <div class="section-title">Principal Committee</div>
+          <div class="committee-row">
+            <div class="committee-name">MGP for Congress</div>
+            <div class="committee-type">Principal CC</div>
+            <div class="committee-id">C00775668</div>
+          </div>
+          <div class="section-title" style="margin-top:1rem">Joint Fundraising</div>
+          <div class="committee-row">
+            <div class="committee-name">WA Democratic Victory Fund</div>
+            <div class="committee-type">JFA</div>
+            <div class="committee-id">C00823765</div>
+          </div>
+          <div class="committee-row">
+            <div class="committee-name">Blue Wave JFC</div>
+            <div class="committee-type">JFA</div>
+            <div class="committee-id">C00812401</div>
+          </div>
+          <div class="section-title" style="margin-top:1rem">Leadership PAC</div>
+          <div class="committee-row" style="border-left:2px solid var(--amber);padding-left:0.75rem">
+            <div class="committee-name">MGP Leadership Fund</div>
+            <div class="committee-type">Leadership PAC</div>
+            <div class="committee-id">C00812345</div>
+          </div>
+          <div style="font-size:0.57rem;color:var(--muted);margin-top:0.5rem">↑ Leadership PAC variant — amber left border applied via inline style in <code style="font-size:0.55rem">renderCommitteeGroups()</code></div>
+        </div>
+      </div>
+
+      <!-- 11. Table -->
+      <div class="ds-component" id="comp-table" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Data Table</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.donors-card · .donors-head · .donors-table · .dn · .ds · .da</div>
+        <div class="ds-component-demo" style="padding:0">
+          <div class="donors-card">
+            <div class="donors-head">Top Committee Contributors · Most recent sub-cycle</div>
+            <table class="donors-table">
+              <thead><tr>
+                <th style="width:2rem">#</th>
+                <th>Committee</th>
+                <th>Type</th>
+                <th class="r">Total</th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td style="color:var(--muted)">1</td>
+                  <td><div class="dn">DCCC</div><div class="ds">Democratic Congressional Campaign Committee</div></td>
+                  <td style="color:var(--muted)">Party</td>
+                  <td class="da">$850K</td>
+                </tr>
+                <tr>
+                  <td style="color:var(--muted)">2</td>
+                  <td><div class="dn">House Majority PAC</div><div class="ds">Super PAC</div></td>
+                  <td style="color:var(--muted)">Super PAC</td>
+                  <td class="da">$420K</td>
+                </tr>
+                <tr>
+                  <td style="color:var(--muted)">3</td>
+                  <td><div class="dn">IBEW PAC</div><div class="ds">Labor union PAC</div></td>
+                  <td style="color:var(--muted)">Labor</td>
+                  <td class="da">$38K</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 12. Spend bars -->
+      <div class="ds-component" id="comp-spend-bars" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Spend Purpose Bars</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.spend-bar-item · .spend-bar-row · .spend-bar-lbl · .spend-bar-amt · .spend-bar-pct · .spend-bar-track · .spend-bar-fill</div>
+        <div class="ds-component-demo" style="max-width:480px">
+          <div class="spend-bar-item">
+            <div class="spend-bar-row">
+              <span class="spend-bar-lbl">TV & Radio Advertising</span>
+              <span class="spend-bar-amt">$1.2M</span>
+              <span class="spend-bar-pct">31%</span>
+            </div>
+            <div class="spend-bar-track"><div class="spend-bar-fill" style="width:72%"></div></div>
+          </div>
+          <div class="spend-bar-item">
+            <div class="spend-bar-row">
+              <span class="spend-bar-lbl">Digital Advertising</span>
+              <span class="spend-bar-amt">$680K</span>
+              <span class="spend-bar-pct">18%</span>
+            </div>
+            <div class="spend-bar-track"><div class="spend-bar-fill" style="width:45%"></div></div>
+          </div>
+          <div class="spend-bar-item">
+            <div class="spend-bar-row">
+              <span class="spend-bar-lbl">Staff & Payroll</span>
+              <span class="spend-bar-amt">$420K</span>
+              <span class="spend-bar-pct">11%</span>
+            </div>
+            <div class="spend-bar-track"><div class="spend-bar-fill" style="width:28%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 13. Donut center -->
+      <div class="ds-component" id="comp-donut" data-status="candidate-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Donut Center Overlay</span>
+          <span class="ds-status candidate-only">candidate-only</span>
+        </div>
+        <div class="ds-component-classes">.donut-wrap · .donut-chart-wrap · .donut-center · .donut-center-val · .donut-center-lbl · .donut-legend · .donut-row · .donut-sw · .donut-lbl · .donut-pct · .donut-val</div>
+        <div class="ds-component-demo">
+          <div style="display:flex;align-items:flex-start;gap:2rem;flex-wrap:wrap">
+            <div class="donut-chart-wrap" style="max-width:160px">
+              <div class="donut-canvas-placeholder"></div>
+              <div class="donut-center">
+                <div class="donut-center-val">$4.1M</div>
+                <div class="donut-center-lbl">Total Raised</div>
+              </div>
+            </div>
+            <div style="font-size:0.6rem;color:var(--muted);padding-top:0.5rem;line-height:1.8">
+              Center overlay positioned absolute over canvas.<br>
+              Background (donut chart) renders via Chart.js canvas.<br>
+              Background shown here as CSS approximation only.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 14. Timeline entry -->
+      <div class="ds-component" id="comp-timeline-entry" data-status="log-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Timeline Entry</span>
+          <span class="ds-status log-only">log-only</span>
+        </div>
+        <div class="ds-component-classes">.timeline · .entry · .entry-date · .entry-title · .entry-summary</div>
+        <div class="ds-component-demo">
+          <div class="timeline">
+            <div class="entry">
+              <div class="entry-date">Wed, Mar 4, 2026</div>
+              <div class="entry-title">The data was there — I was just asking the wrong question</div>
+              <div class="entry-summary">Two tabs shipped today: Raised and Spent. Both required the same move — recognizing that the first technically correct version was answering a less interesting question than the data actually supported.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 15. Insight block -->
+      <div class="ds-component" id="comp-insight" data-status="log-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Insight Block</span>
+          <span class="ds-status log-only">log-only</span>
+        </div>
+        <div class="ds-component-classes">.insight · .insight-label · .insight-text</div>
+        <div class="ds-component-demo">
+          <div class="insight">
+            <div class="insight-label">On finding the right question</div>
+            <div class="insight-text">The FEC's own spend categories sound useful until you look at them: ADVERTISING, MATERIALS, TRANSFERS, OTHER. The granularity is there — it just lives in a free-text field nobody enforces.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 16. Field notes -->
+      <div class="ds-component" id="comp-field-notes" data-status="log-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Field Notes Block</span>
+          <span class="ds-status log-only">log-only</span>
+        </div>
+        <div class="ds-component-classes">.field-notes · .field-notes-label · .field-notes-text</div>
+        <div class="ds-component-demo">
+          <div class="field-notes">
+            <div class="field-notes-label">Field notes</div>
+            <div class="field-notes-text">What you get out of AI is a reflection of what you bring to it — your values, your instincts, your priorities. The code change was one parameter. The judgment behind it took a week of domain learning to make.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 17. Stack tags -->
+      <div class="ds-component" id="comp-stack-tags" data-status="log-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Stack Tags</span>
+          <span class="ds-status log-only">log-only</span>
+        </div>
+        <div class="ds-component-classes">.stack · .stack-tag</div>
+        <div class="ds-component-demo">
+          <div class="stack">
+            <span class="stack-tag">FEC API</span>
+            <span class="stack-tag">Chart.js</span>
+            <span class="stack-tag">D3-geo</span>
+            <span class="stack-tag">Claude Code</span>
+            <span class="stack-tag">Amplitude</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 18. Loader / state message -->
+      <div class="ds-component" id="comp-loader" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Loader / State Message</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.state-msg · .state-msg.error · .loader</div>
+        <div class="ds-component-demo ds-demo-col">
+          <div class="state-msg" style="padding:1.5rem 0">
+            <div class="loader"></div><span>Fetching candidate data from FEC…</span>
+          </div>
+          <div class="state-msg error" style="padding:1rem 0">
+            <span>⚠ Could not load data: Network error</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 19. Callout -->
+      <div class="ds-component" id="comp-callout" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Callout</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.callout</div>
+        <div class="ds-component-demo">
+          <div class="callout">⚠ Disbursements exceed receipts this cycle — campaign is spending beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.</div>
+        </div>
+      </div>
+
+      <!-- 20. Data Note -->
+      <div class="ds-component" id="comp-data-note" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Data Note</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.data-note</div>
+        <div class="ds-component-demo">
+          <div class="data-note">Source: FEC public API · Committee ID: C00775668 · Data as of most recent filing · Coverage end: Sep 30, 2024</div>
+        </div>
+      </div>
+
+      <!-- 21. Modal -->
+      <div class="ds-component" id="comp-modal" data-status="candidate-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Modal</span>
+          <span class="ds-status candidate-only">candidate-only</span>
+        </div>
+        <div class="ds-component-classes">.modal-overlay · .modal-panel · .modal-header · .modal-title · .modal-close · .modal-body · .committees-link (trigger)</div>
+        <div class="ds-component-demo">
+          <button class="committees-link" id="ds-modal-trigger">Committees (4) →</button>
+        </div>
+      </div>
+
+    </section><!-- /components -->
+
+  </main>
+</div><!-- /layout -->
+
+<!-- Modal demo (outside layout) -->
+<div class="modal-overlay" id="ds-modal-demo" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div class="modal-title">Committee Ecosystem</div>
+      <button class="modal-close" id="ds-modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-title">Principal Committee</div>
+      <div class="committee-row">
+        <div class="committee-name">MGP for Congress</div>
+        <div class="committee-type">Principal CC</div>
+        <div class="committee-id">C00775668</div>
+      </div>
+      <div class="section-title" style="margin-top:1.25rem">Joint Fundraising</div>
+      <div class="committee-row">
+        <div class="committee-name">WA Democratic Victory Fund</div>
+        <div class="committee-type">JFA</div>
+        <div class="committee-id">C00823765</div>
+      </div>
+      <div class="data-note">This modal uses real CSS classes. In production it is populated dynamically from the FEC API via <code style="font-size:0.58rem">fetchAndRenderCommittees()</code> in candidate.html.</div>
+    </div>
+  </div>
+</div>
+
+<script src="main.js"></script>
+<script>
+(function() {
+  // Cycle button toggle
+  document.querySelectorAll('#demo-cycle .cycle-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('#demo-cycle .cycle-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+
+  // Tab bar toggle
+  document.querySelectorAll('#demo-tabs .tab').forEach(function(tab) {
+    tab.addEventListener('click', function(e) {
+      e.preventDefault();
+      document.querySelectorAll('#demo-tabs .tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+    });
+  });
+
+  // Health state switcher
+  var healthStates = {
+    healthy:  { signal:'green', label:'On Track',       desc:'Raised-to-spent ratio above 1.0. Cash on hand covers remaining quarters.',       note:'Best-guess assessment · Thresholds to be validated with domain expert' },
+    watch:    { signal:'amber', label:'Watch',           desc:'Cash on hand declining. Burn rate elevated entering final quarter.',              note:'Best-guess assessment · Thresholds to be validated with domain expert' },
+    stressed: { signal:'red',   label:'Stressed',        desc:'Disbursements exceed receipts this cycle. Drawing on prior-cycle reserves.',      note:'Best-guess assessment · Thresholds to be validated with domain expert' },
+    closed:   { signal:'grey',  label:'Cycle Complete',  desc:'2022 cycle concluded. No outstanding debt reported. Final coverage: Dec 31, 2022.', note:'Closed cycle — real-time health indicator not applicable.' }
+  };
+  document.querySelectorAll('.ds-health-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.ds-health-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var s = healthStates[btn.dataset.state];
+      document.getElementById('demo-health-signal').className = 'health-signal ' + s.signal;
+      document.getElementById('demo-health-label').textContent = s.label;
+      document.getElementById('demo-health-desc').textContent = s.desc;
+      document.getElementById('demo-health-note').textContent = s.note;
+    });
+  });
+
+  // Modal
+  document.getElementById('ds-modal-trigger').addEventListener('click', function() {
+    document.getElementById('ds-modal-demo').style.display = 'flex';
+  });
+  document.getElementById('ds-modal-close').addEventListener('click', function() {
+    document.getElementById('ds-modal-demo').style.display = 'none';
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') document.getElementById('ds-modal-demo').style.display = 'none';
+  });
+
+  // Amplitude pageview
+  amplitude.track('Page Viewed', { page: 'design-system' });
+})();
+</script>
+</body>
+</html>

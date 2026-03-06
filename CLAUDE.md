@@ -12,7 +12,11 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 **Live URL:** sloanestradley.netlify.app  
 **Repo:** GitHub (ask Sloane for the repo URL if you don't have it)  
 **Deployment:** Netlify, auto-deploys on push to main  
-**Analytics:** Amplitude (already integrated)
+**Analytics:** Amplitude
+- Integrated on the original FRED proof-of-concept index page; may not be present on all current pages — audit before assuming
+- Pageview tracking is the baseline expectation on every page
+- Meaningful interactions worth tracking: tab switches on the candidate page, committee modal opens, build log / reflections toggle on process log, search queries and result clicks (once search is built)
+- Do not add a second Amplitude instance to pages that already have it — check first
 
 ---
 
@@ -29,7 +33,39 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 ## Design system
 
-Dark theme. Key CSS variables (defined in `:root` on every page):
+**Reference file:** `design-system.html` is the living design system reference. Read it (or at minimum the token table and component list) before building any new page or component.
+
+**Shared files:** `styles.css` contains the CSS reset, token `:root`, shared layout (sidebar, mobile nav, header), utility classes, and all shared component CSS. `main.js` contains Amplitude init + Session Replay, mobile scroll-aware header, and hamburger nav (all null-guarded). Every page links both.
+
+**CSS consolidation principle:** Component CSS lives in `styles.css`. Inline `<style>` blocks in individual pages are for page-specific overrides only (layout grid, page-specific spacing, page-specific components). `design-system.html` imports the same `styles.css` as production — no component CSS is duplicated between pages.
+
+**Chart colors:** `--chart-*` CSS vars in `styles.css :root` are the canonical chart palette. JS chart configs reference the `CHART_COLORS` constant at the top of `candidate.html`'s `<script>` block (same rgba values). HTML legend swatches use the CSS vars directly (`style="background:var(--chart-raised)"`). Add new chart color vars to `styles.css :root` and `CHART_COLORS` before using hardcoded rgba in chart configs.
+
+### Token naming tiers
+
+- **Tier 1 — Primitives:** Raw hex values. Not CSS vars. Documented in `design-system.html` only. Do not use directly in components.
+- **Tier 2 — Semantic tokens:** CSS vars in `styles.css :root`. Named by meaning, not appearance (`--bg`, `--surface`, `--dem`, `--green`). New tokens always go here first. Add to `styles.css :root` and document in `design-system.html`.
+- **Tier 3 — Component tokens:** Not yet built. Would be things like `--tag-dem-bg`. Document as `planned` in `design-system.html` before building.
+
+**Known intentional overlap:** `--red` and `--rep` both resolve to `#d94a4a`. `--rep` = Republican partisan color; `--red` = status color (stressed/error). Do not merge them. If the status system ever diverges from the partisan palette, split them at that point.
+
+### Component status lifecycle
+
+Each component in `design-system.html` has a `data-status` attribute and badge:
+- New component added to one page → document with `candidate-only` or `log-only` status in the same session
+- Component moves to a second page → update status to `stable`
+- Component being removed → set `deprecated` first, remove code in a later session
+- Planned component → add with `planned` status before building
+
+### Figma data attributes
+
+Every color swatch has `data-token` and `data-hex` attributes. Every component card has `id="comp-{name}"`. Preserve these when editing `design-system.html`.
+
+---
+
+### CSS variables (defined in `styles.css :root`)
+
+Dark theme. Key CSS variables:
 
 ```
 --bg: #0d0f12        (page background)
@@ -261,20 +297,63 @@ Before diving in, note what's been updated since the last session:
 
 Ask Sloane what's been tested since the last session and what the current priority is. Don't assume the latest file in the repo matches what's been deployed — ask.
 
+**Session-start ritual check:** After reading CLAUDE.md and claude-to-claude.md, check whether the most recent entry in claude-to-claude.md is dated today or earlier. If the last session's entry is missing (i.e., today's date isn't in the log and work was clearly done), flag it: "It looks like the previous session wasn't wrapped up — no log entry found. Do you have screenshots or notes I can use to reconstruct it, or should we skip and move on?" Do not silently proceed without noting the gap.
+
 **Suggested opening prompt for Sloane to paste at session start:**
 ```
-Read CLAUDE.md and project-brief.md, then summarize: what's the current state of the candidate page, what's the top Phase 1 priority, and what do you need from me to get started?
+Read CLAUDE.md, project-brief.md, and claude-to-claude.md, then: (1) check whether the last session's end-of-session rituals were completed — if not, flag it. (2) Summarize the current state of the project, the top priority, and what you need from me to get started.
 ```
 
 ---
 
 ## When compacting or ending a session
 
-Before running /compact or ending a session, always output a process log entry draft covering:
-- A title in the voice of the existing entries (e.g. "Debugging in the dark, then the lights came on")
-- A 2–3 sentence summary written from Sloane's perspective, not a technical changelog
+Before running /compact or ending a session, output all four of the following — each in its own fenced code block so they're easy to copy individually. Sloane will bring these to Claude Chat.
+
+---
+
+### 1. Process log draft
+A draft entry for process-log.html covering:
+- A title in the voice of existing entries (e.g. "Debugging in the dark, then the lights came on")
+- A 2–3 sentence summary written from Sloane's perspective — not a technical changelog
 - Changelog bullets: what changed, in plain language
 - A field notes block: a journal-style reflection on what the session revealed — about the product, the process, or the tools
 - Stack tags for anything new introduced this session
 
-Format it as a fenced code block so it's easy to copy. Sloane will paste it into Claude Chat for final tone editing before adding it to process-log.html.
+---
+
+### 2. How Sloane steered the work
+A summary of the key moments where Sloane shaped direction this session — product instincts, UX calls, decisions to push back or redirect, priorities set. Written for Sloane, not as a changelog. Focus on judgment and intent, not implementation.
+
+Format: one named heading per moment (e.g. "Modal over tab — your call, for scale reasons"), followed by 2–3 sentences on what happened and why it mattered. Close with a 1–2 sentence through-line identifying the pattern across all the moments (e.g. "The through-line: you're making UX calls based on user psychology..."). No limit on number of moments — include everything that was genuinely Sloane's judgment call, not Claude's default.
+
+---
+
+### 3. Proposed CLAUDE.md updates
+A list of specific, actionable updates to make to CLAUDE.md based on what was learned or built this session — new API findings, resolved debt items, architectural decisions, workflow notes. Format as: section name + what to change. Do not rewrite the file — just propose the changes.
+
+---
+
+### 4. What to bring to Claude Chat
+A short list of topics, decisions, or open questions that are better discussed in Claude Chat than resolved in Claude Code — product direction, prioritization, design decisions, domain questions for John, anything requiring strategic thinking before building. 2–5 bullets.
+
+---
+
+### Logging to claude-to-claude.md
+After outputting all four blocks above, append outputs #1, #2, and #4 to `claude-to-claude.md` in the project root. Use this format:
+
+```
+---
+[DATE] [TIME]
+
+## Process log draft
+[content]
+
+## How Sloane steered the work
+[content]
+
+## What to bring to Claude Chat
+[content]
+```
+
+If the file doesn't exist, create it. Always append — never overwrite.
