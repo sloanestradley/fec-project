@@ -1,0 +1,15 @@
+{
+  "name": "ledger-fec-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Playwright tests for ledger.fec",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --config playwright.smoke.config.js",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}

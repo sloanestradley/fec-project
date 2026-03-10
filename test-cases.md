@@ -1,0 +1,378 @@
+# ledger.fec — Test Cases
+*Manual browser checklist. Run locally: `python3 -m http.server 8080` from project root.*
+
+---
+
+## How to use this file
+
+**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 170 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
+
+**Smoke tests (Track 2):** Run `npm run test:smoke` before deploys. Hits the live FEC API — 5 key checks. Requires the dev server to be running.
+
+**Manual browser checks:** Use the checklists below for things automated tests can't verify — visual design quality, chart rendering, animation smoothness, content accuracy. Run for every page touched in a session.
+
+**Amplitude verification method:** Open DevTools → Network tab → filter for `api2.amplitude.com`. Each event appears as a POST request. Click the request to inspect the payload and confirm event name + required properties. `Page Viewed` should fire within 2 seconds of load. Interaction events should fire only on user action, not on programmatic init calls.
+
+**Checkboxes reset each session** — uncheck everything before starting a run. The Test log is the persistent record, not the checkboxes.
+
+## How to maintain this file
+
+- **New feature lands:** Add test cases in the same session it ships. New page = new section. New feature on existing page = new cases in that section.
+- **Known issue resolved:** Remove from Known open issues table; add corresponding test cases to the page section.
+- **Scaffold → live transition:** Expand that page's section from scaffold-scope to full coverage.
+- **Test log:** Append a row for every test run. Never delete old rows — they show the testing history.
+
+---
+
+## Shared — run for every page touched this session
+
+*Items marked ✅ are covered by automated tests (`npx playwright test`). Run manual checks for the rest.*
+
+- [ ] ✅ `styles.css` and `main.js` both linked
+- [ ] ✅ Sidebar nav present with all 4 main nav links
+- [ ] ✅ Mobile search icon present, links to search.html
+- [ ] ✅ Nav active state is correct for this page
+- [ ] ✅ Page background is warm parchment (not dark or white)
+- [ ] ✅ Amplitude `Page Viewed` fires on load
+- [ ] ✅ No uncaught JS errors on load
+- [ ] Page loads without console errors (open DevTools — automated checks miss network/CORS noise)
+- [ ] Light broadsheet theme applied — visually warm parchment, not dark or white
+- [ ] Barlow Condensed used for headings and display text
+- [ ] DM Sans used for body and nav text
+- [ ] IBM Plex Mono used for data labels and monospaced values
+- [ ] Sidebar nav visible at desktop width (≥861px)
+- [ ] Hamburger menu icon visible at ≤860px; sidebar hidden
+- [ ] Mobile search icon (magnifying glass SVG) visible at ≤860px, links to search.html
+- [ ] Mobile search icon hidden at desktop width
+- [ ] Nav links resolve: Candidates → candidates.html, Committees → committees.html, Races → races.html, Search → search.html
+- [ ] Amplitude: `Page Viewed` fires within 2 seconds of load (verify via Network tab → api2.amplitude.com)
+
+---
+
+## candidate.html
+
+**Test URL:** `localhost:8080/candidate.html?id=H2WA03217` (MGP, House WA-03)
+**Also test with:** `localhost:8080/candidate.html?id=S0NY00410` (Gillibrand, Senate NY)
+
+### Nav active state
+- [ ] "Candidates" nav item is active (profile page activates parent browse)
+
+### Amplitude events
+- [ ] `Page Viewed` fires with properties: `page`, `candidate_id`, `candidate_name`, `cycle`
+- [ ] `Tab Switched` fires on tab click (not on init) with `tab`, `candidate_id`, `candidate_name`
+- [ ] `Cycle Switched` fires on cycle button click with `cycle`, `candidate_id`, `candidate_name`
+- [ ] `Committees Modal Opened` fires on clicking the committees trigger
+- [ ] `Committees Tab Switched` fires on clicking Active/History tabs inside modal
+
+### Profile header
+- [ ] Candidate name displays
+- [ ] Initials avatar present (3-letter preferred, e.g. "MGP")
+- [ ] Party tag visible (Dem / Rep / Ind)
+- [ ] Office + district tag visible (e.g. "House · WA-03")
+- [ ] Incumbency tag visible if applicable
+- [ ] "Committees (N) →" trigger shows a count immediately on load (not blank while loading)
+
+### Cycle switcher
+- [ ] Buttons render with all cycles from the candidate's `election_years`
+- [ ] Default to current active cycle (or most recent if no active cycle)
+- [ ] Clicking a different cycle re-fetches data and updates the view
+- [ ] URL anchor updates to `#YYYY#summary` on cycle change
+- [ ] `localhost:8080/candidate.html?id=H2WA03217#2022#raised` pre-selects 2022 cycle and Raised tab on load
+
+### Stats row
+- [ ] Total Raised shows a formatted dollar amount (not $0, not blank)
+- [ ] Total Spent shows a formatted dollar amount
+- [ ] Cash on Hand shows a formatted dollar amount
+- [ ] Raised-to-Spent Ratio shows a value
+
+### Health banner
+- [ ] Active cycle: green/amber/red signal visible with descriptive text
+- [ ] Closed cycle: "Cycle Complete" summary shown instead of health signal
+
+### Summary tab — chart
+- [ ] Chart renders with data (lines are visible, not flat at $0)
+- [ ] Raised and Spent lines are stepped (stair-step between filing dates)
+- [ ] Cash on Hand line is smooth/linear
+- [ ] X-axis spans the full election cycle (2yr for House, verified MGP)
+- [ ] Filing deadline markers visible as grey dashed vertical lines
+- [ ] Election date markers visible as amber dotted vertical lines
+- [ ] "Today" marker visible on active cycles
+
+### Raised tab
+- [ ] Contributor breakdown section renders with data
+- [ ] Geography section renders (choropleth or placeholder)
+- [ ] Top committee contributors section renders
+
+### Committees modal
+- [ ] Opens on clicking "Committees (N) →"
+- [ ] Active tab shows authorized/principal committees
+- [ ] History tab visible if terminated committees exist
+- [ ] Each committee row shows name and type; name links to committee.html?id=...
+- [ ] JFA gap note visible at bottom of modal
+- [ ] Modal closes on Escape key
+- [ ] Modal closes on clicking outside the modal panel
+
+### Senate-specific (Gillibrand S0NY00410)
+- [ ] Cycle switcher shows 6-year cycles
+- [ ] Chart x-axis spans 6 years
+- [ ] Stats represent full 6-year cycle totals
+
+---
+
+## search.html
+
+**Test URL:** `localhost:8080/search.html`
+
+### Nav active state
+- [ ] "Search" nav item is active
+
+### Amplitude events
+- [ ] `Page Viewed` fires with `page: 'search'`
+- [ ] `Candidate Searched` fires on search submit with `query` property
+- [ ] `Candidate Result Clicked` fires on result click with `candidate_id`, `candidate_name`, `query`, `result_position`
+
+### Search behavior
+- [ ] Search input is focused / prominent on page load
+- [ ] Typing a candidate name and pressing Enter returns results
+- [ ] Results show candidate name, office, state, party
+- [ ] Clicking a result navigates to `candidate.html?id=...`
+- [ ] `localhost:8080/search.html?q=pelosi` auto-fires a search on load and shows results
+- [ ] Empty search with no results shows a no-results state (not blank, not an error)
+- [ ] Loading state visible while fetch is in flight
+- [ ] API error shows an error state (not a blank page or crash)
+
+---
+
+## committee.html
+
+**Test URL:** Navigate from a candidate's committees modal, or `localhost:8080/committee.html?id=C00775668`
+*(C00775668 verified active with real filings — used as demo data in design-system.html)*
+
+### Nav active state
+- [ ] "Committees" nav item is active (profile page activates parent browse)
+
+### Amplitude events
+- [ ] `Page Viewed` fires with `page: 'committee'` and `committee_id` property
+
+### Profile header
+- [ ] Committee name displays
+- [ ] Committee type tag visible
+- [ ] Designation tag visible (Principal / Authorized / Joint Fundraising / etc.)
+- [ ] Active or Terminated status tag visible
+
+### Back-link
+- [ ] Back-link to candidates.html (or to candidate if navigated via `?from=`) is present and functional
+
+### Stats grid
+- [ ] Total Raised shows a formatted dollar amount (not $0 or blank)
+- [ ] Total Spent shows a formatted dollar amount
+- [ ] Cash on Hand shows a formatted dollar amount
+- [ ] Last Filing / Coverage date shows a real date
+
+### Scaffold sections (verify present, not that they have full data)
+- [ ] Filing history section renders (stub content is acceptable)
+- [ ] Associated candidates section renders (stub content is acceptable)
+
+---
+
+## races.html
+
+**Test URL:** `localhost:8080/races.html`
+
+### Nav active state
+- [ ] "Races" nav item is active
+
+### Amplitude events
+- [ ] `Page Viewed` fires with `page: 'races'`
+
+### Mode selector
+- [ ] Two mode cards render: Curated and Ad Hoc
+- [ ] Ad Hoc card shows a "planned" or disabled badge
+- [ ] Clicking Curated reveals the curated form
+
+### Curated form
+- [ ] State dropdown populates
+- [ ] Office dropdown populates (House, Senate, President)
+- [ ] Year/cycle input or dropdown present
+- [ ] District field appears when House is selected; hidden for Senate/President
+- [ ] Submitting the form navigates to `race.html?state=...&office=...&year=...`
+- [ ] If URL params are present on load, form pre-fills and auto-fetches
+
+---
+
+## race.html
+
+**Test URL:** `localhost:8080/race.html?state=WA&district=03&year=2024&office=H`
+*(2024 is a completed cycle with known filings — 2026 is too early to have reliable financial data)*
+
+### Nav active state
+- [ ] "Races" nav item is active (profile page activates parent browse)
+
+### Amplitude events
+- [ ] `Page Viewed` fires with `page: 'race'` and `state`, `year`, `office`, `district` properties
+- [ ] `Candidate Result Clicked` fires on card click with `candidate_id`, `from_page: 'race'`, `race_year`
+
+### API correctness
+- [ ] No 422 error in console (confirms office param is sent as lowercase full word: "house", not "H")
+- [ ] Check Network tab: the `/elections/` API call includes `office=house` (not `office=H`)
+
+### Race header
+- [ ] Race title renders (state, office, district, year)
+- [ ] Back-link to races.html present and functional
+
+### Candidate cards
+- [ ] At least 1 candidate card renders (not a blank list)
+- [ ] Each card shows candidate name
+- [ ] Each card shows party tag
+- [ ] Each card shows financial figures — Raised, Spent, COH — formatted (not $0, not blank)
+- [ ] Clicking a card navigates to `candidate.html?id={id}#{year}#summary` (cycle-anchored — verify the hash in the URL after clicking)
+
+---
+
+## candidates.html
+
+**Test URL:** `localhost:8080/candidates.html`
+
+### Nav active state
+- [ ] "Candidates" nav item is active
+
+### Amplitude events
+- [ ] `Page Viewed` fires with `page: 'candidates'`
+- [ ] `Candidates Browsed` fires on filter submit with filter properties
+- [ ] `Candidate Result Clicked` fires on result click with `candidate_id`, `from_page: 'candidates'`, `result_position`
+
+### Filters and results
+- [ ] State dropdown populates
+- [ ] Office dropdown populates (House, Senate, President)
+- [ ] Party dropdown populates
+- [ ] Cycle field present
+- [ ] Submitting filters returns candidate results
+- [ ] Result cards show name, office, state, party
+- [ ] Clicking a result navigates to `candidate.html?id=...`
+- [ ] No-results state renders if filters return nothing (not blank/crash)
+
+---
+
+## committees.html
+
+**Test URL:** `localhost:8080/committees.html`
+
+### Nav active state
+- [ ] "Committees" nav item is active
+
+### Amplitude events
+- [ ] `Page Viewed` fires with `page: 'committees'`
+- [ ] `Committees Browsed` fires on filter submit with filter properties
+- [ ] `Committee Result Clicked` fires on result click with `committee_id`, `from_page: 'committees'`, `result_position`
+
+### Filters and results
+- [ ] State dropdown populates
+- [ ] Committee type dropdown populates
+- [ ] Submitting filters returns committee results
+- [ ] Result rows show committee name and type
+- [ ] Clicking a result navigates to `committee.html?id=...`
+- [ ] No-results state renders if filters return nothing (not blank/crash)
+
+---
+
+## process-log.html
+
+**Test URL:** `localhost:8080/process-log.html`
+
+### Nav active state
+- [ ] "Process Log" link in Documentation section is active
+
+### Amplitude events
+- [ ] `Page Viewed` fires with `page: 'process-log'`
+- [ ] `Process Log View Toggled` fires when toggling between view modes, with `view` property
+
+### Content
+- [ ] All entries readable; no clipped or overflowing text
+- [ ] View toggle buttons functional (if present)
+- [ ] No broken layout at desktop width (1280px+)
+- [ ] No broken layout at mobile width (390px)
+
+---
+
+## design-system.html
+
+**Test URL:** `localhost:8080/design-system.html`
+
+### Nav active state
+- [ ] "Design System" link in Documentation section is active
+
+### Amplitude events
+- [ ] `Page Viewed` fires with `page: 'design-system'`
+
+### Token tables
+- [ ] Tier 1 primitives table renders
+- [ ] Tier 2 semantic token table renders; `--chart-*` vars present in the list
+
+### Color swatches
+- [ ] Background swatches show warm light colors (not dark)
+- [ ] Partisan swatches: Dem (dark navy), Rep (dark red), Ind (purple)
+- [ ] Status swatches: Green, Amber, Red
+- [ ] Chart color swatches present
+- [ ] Inspect any swatch element: `data-token` and `data-hex` attributes present
+
+### Typography
+- [ ] Barlow Condensed specimen renders
+- [ ] DM Sans specimen renders
+- [ ] IBM Plex Mono specimen renders
+
+### Component cards
+- [ ] Each card has `id="comp-{name}"` attribute (inspect element to verify one)
+- [ ] Each card has a status badge (stable / candidate-only / log-only / planned / deprecated)
+- [ ] Live demos work: tab bar switches tabs, health banner cycles through Green/Amber/Red/Closed states, modal opens and closes
+- [ ] View page source: no `<style>` block in `<head>` containing component CSS (all CSS should be in styles.css)
+
+---
+
+## index.html
+
+**Test URL:** `localhost:8080/` or `localhost:8080/index.html`
+
+- [ ] Redirects immediately to search.html
+- [ ] No visible flash of unstyled or blank content before redirect
+
+---
+
+## Post-deploy checks (Netlify only — cannot run locally)
+
+*These verify clean URL rewrites in `_redirects`. Run against `sloanestradley.netlify.app` after any deploy.*
+
+- [ ] `/search` loads search.html (not 404)
+- [ ] `/candidates` loads candidates.html (not 404)
+- [ ] `/committees` loads committees.html (not 404)
+- [ ] `/races` loads races.html (not 404)
+- [ ] `/candidate/H2WA03217` loads candidate.html with MGP's profile (not 404 or blank)
+- [ ] `/committee/C00744946` loads committee.html with committee data (not 404 or blank)
+- [ ] `/race?state=WA&district=03&year=2024&office=H` loads race.html with candidate cards (not 404 or blank)
+- [ ] Browser URL bar shows clean path (not `.html` equivalent) for all above
+- [ ] Navigating to a clean URL and refreshing does not 404
+
+---
+
+## Known open issues
+
+Expected failures — not bugs to fix now. Remove a row when the issue is resolved; add test cases to the relevant page section at that time.
+
+| Issue | Page | Added |
+|-------|------|-------|
+| Spent tab not yet built | candidate.html | 2026-03-10 |
+| Filing history not yet built | committee.html | 2026-03-10 |
+| Associated candidates section not yet built | committee.html | 2026-03-10 |
+| Ad hoc mode is stub/planned only | races.html | 2026-03-10 |
+
+---
+
+## Test log
+
+Append a row after each test run. Never delete old rows.
+
+| Date | Session focus | Pages tested | Failures found | Status |
+|------|---------------|--------------|----------------|--------|
+| 2026-03-10 | test-cases.md creation + CLAUDE.md ritual update | None (infrastructure session — no HTML pages modified) | — | N/A |
+| 2026-03-10 | Playwright setup — Track 1 structural (170 tests) + Track 2 smoke (5 tests) | All 9 pages + index (automated) | design-system.html missing .mobile-search-icon (fixed) | 170/170 Track 1 passing; Track 2 ready for manual run |
+| 2026-03-10 | utils.js extraction — shared utilities refactor | All pages (automated) | None | 170/170 Track 1 passing |
+| 2026-03-10 | _redirects — Netlify clean URL rewrites | None (no HTML modified; Playwright can't test Netlify rewrites) | None | 170/170 Track 1 passing; post-deploy checks pending |

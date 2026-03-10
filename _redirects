@@ -1,0 +1,12 @@
+# Netlify clean URL rewrites
+# These are 200 rewrites (not redirects) — the HTML files stay in root,
+# but users see clean paths in the browser. Query params are passed through automatically.
+# Netlify _redirects syntax: /source  /destination  status-code
+
+/candidate/:id    /candidate.html?id=:id    200
+/committee/:id    /committee.html?id=:id    200
+/race             /race.html                200
+/search           /search.html              200
+/candidates       /candidates.html          200
+/committees       /committees.html          200
+/races            /races.html               200

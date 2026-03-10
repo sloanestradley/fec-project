@@ -52,27 +52,6 @@
     .content { padding:2.5rem 3rem; opacity:0; transition:opacity 0.3s ease; min-width:0; }
     .content.visible { opacity:1; }
 
-    /* Stats */
-    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
-      gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:1.5rem; }
-    .stat-card { background:var(--surface); padding:1.2rem 1.4rem; }
-    .stat-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
-      color:var(--muted); margin-bottom:0.35rem; }
-    .stat-value { font-family:'Barlow Condensed',sans-serif; font-size:2rem; font-weight:800;
-      line-height:1; letter-spacing:0; margin-bottom:0.25rem; }
-    .stat-sub { font-size:0.6rem; color:var(--muted); }
-    .stat-sub.pos { color:var(--green); }
-    .stat-sub.neg { color:var(--red); }
-    .stat-sub.warn { color:var(--amber); }
-
-    /* Committees trigger link */
-    .committees-link { background:none; border:none; cursor:pointer;
-      font-family:'IBM Plex Mono',monospace; font-size:0.7rem; color:var(--subtle);
-      padding:0; margin-top:0.75rem; display:inline-block;
-      text-decoration:underline; text-decoration-color:transparent;
-      text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
-    .committees-link:hover { color:var(--text); text-decoration-color:var(--subtle); }
-
     /* Responsive */
     @media (max-width:860px) {
       .main { padding-top:calc(var(--banner-h) + var(--header-h)); }
@@ -80,7 +59,6 @@
       .tabs-bar { padding:0 1.25rem; }
       .content { padding:1.5rem 1.25rem; }
       .state-msg { padding:2rem 1.25rem; }
-      .stats-grid { grid-template-columns:repeat(2,1fr); }
     }
     @media (max-width:480px) { .stat-value { font-size:1.2rem; } }
 
@@ -112,10 +90,10 @@
     <div class="sidebar-logo"><a href="index.html">ledger<em>.fec</em></a></div>
     <div class="nav-section">
       <div class="nav-label">Pages</div>
-      <a class="nav-item active" href="candidate.html"><span class="nav-dot"></span>Candidates</a>
-      <a class="nav-item" href="#"><span class="nav-dot"></span>Committees</a>
-      <a class="nav-item" href="#"><span class="nav-dot"></span>Races</a>
-      <a class="nav-item" href="#"><span class="nav-dot"></span>Search</a>
+      <a class="nav-item active" href="candidates.html"><span class="nav-dot"></span>Candidates</a>
+      <a class="nav-item" href="committees.html"><span class="nav-dot"></span>Committees</a>
+      <a class="nav-item" href="races.html"><span class="nav-dot"></span>Races</a>
+      <a class="nav-item" href="search.html"><span class="nav-dot"></span>Search</a>
     </div>
     <div class="nav-section" style="margin-top:auto;padding-top:1.25rem;border-top:1px solid var(--sidebar-border)">
       <div class="nav-label">Documentation</div>
@@ -127,6 +105,9 @@
   <!-- Mobile header -->
   <header class="mobile-header" id="mobile-header">
     <a class="mobile-logo" href="index.html">ledger<em>.fec</em></a>
+    <a href="search.html" class="mobile-search-icon" aria-label="Search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </a>
     <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
       <span></span><span></span><span></span>
     </button>
@@ -134,10 +115,10 @@
 
   <!-- Mobile nav -->
   <nav class="mobile-nav" id="mobile-nav">
-    <a class="nav-item active" href="candidate.html"><span class="nav-dot"></span>Candidates</a>
-    <a class="nav-item" href="#"><span class="nav-dot"></span>Committees</a>
-    <a class="nav-item" href="#"><span class="nav-dot"></span>Races</a>
-    <a class="nav-item" href="#"><span class="nav-dot"></span>Search</a>
+    <a class="nav-item active" href="candidates.html"><span class="nav-dot"></span>Candidates</a>
+    <a class="nav-item" href="committees.html"><span class="nav-dot"></span>Committees</a>
+    <a class="nav-item" href="races.html"><span class="nav-dot"></span>Races</a>
+    <a class="nav-item" href="search.html"><span class="nav-dot"></span>Search</a>
     <a class="nav-item" href="process-log.html" style="border-top:1px solid var(--sidebar-border);padding-top:0.85rem"><span class="nav-dot"></span>Process Log</a>
     <a class="nav-item" href="design-system.html"><span class="nav-dot"></span>Design System</a>
   </nav>
@@ -345,6 +326,7 @@
 </div>
 
 <script src="main.js"></script>
+<script src="utils.js"></script>
 <script>
 // ── Chart color palette ─────────────────────────────
 var CHART_COLORS = {
@@ -378,8 +360,6 @@ var CAND_DIST    = null;
 var CAND_OFFICE  = null;   // 'H', 'S', or 'P'
 var ALL_CYCLES   = [];
 var activeCycle  = null;
-var BASE         = 'https://api.open.fec.gov/v1';
-var API_KEY      = 'Y7CL6AyMB9NPbwuuMWHduJ6LVu6OWsv49TDZcXZT';
 var chartInstance = null;
 var donutInstance = null;
 var spentDonutInstance = null;
@@ -446,7 +426,11 @@ function renderCommitteeGroups(comms, muted) {
         var lpac = c._isLeadershipPac || c.leadership_pac === true;
         var nameStyle = muted ? 'color:var(--muted)' : '';
         return '<div class="committee-row"'+(lpac?' style="border-left:2px solid var(--amber);padding-left:0.75rem"':'')+'>'+
-          '<div class="committee-name"'+(nameStyle?' style="'+nameStyle+'"':'')+'>'+( c.name||'—')+'</div>'+
+          '<div class="committee-name"'+(nameStyle?' style="'+nameStyle+'"':'')+'>'+
+            (c.committee_id
+              ? '<a href="committee.html?id='+c.committee_id+'" class="committee-name-link">'+( c.name||'—')+'</a>'
+              : (c.name||'—'))+
+          '</div>'+
           '<div class="committee-type">'+committeeTypeLabel(c.committee_type)+'</div>'+
           '<div class="committee-id">'+(c.committee_id||'')+'</div>'+
         '</div>';
@@ -504,25 +488,10 @@ async function fetchAndRenderCommittees() {
   }
 }
 
-// ── Utilities ───────────────────────────────────────
-function fmt(n) {
-  if (n == null || isNaN(n)) return '—';
-  var abs = Math.abs(n);
-  if (abs >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
-  if (abs >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
-  return '$' + Math.round(n).toLocaleString();
-}
+// ── Utilities (candidate-specific) ──────────────────
 function fmtFull(n) {
   if (n == null || isNaN(n)) return '—';
   return '$' + Math.round(n).toLocaleString();
-}
-// Strip timestamps — "2024-07-15T00:00:00" → "Jul 15, 2024"
-function fmtDate(s) {
-  if (!s) return '';
-  var d = s.split('T')[0].split('-');
-  if (d.length < 3) return s.split('T')[0];
-  var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return M[parseInt(d[1])-1] + ' ' + parseInt(d[2]) + ', ' + d[0];
 }
 // "2024-07-15" → Date object (noon UTC to avoid timezone day-off)
 function toDate(s) {
@@ -565,20 +534,6 @@ function getSubCycles(cycle) {
   for (var c = cycle - span + 2; c <= cycle; c += 2) subs.push(c);
   return subs;
 }
-function partyClass(p) {
-  if (!p) return 'tag-neutral';
-  var u = p.toUpperCase();
-  if (u === 'DEM') return 'tag-dem';
-  if (u === 'REP') return 'tag-rep';
-  return 'tag-ind';
-}
-function partyLabel(p) {
-  if (!p) return 'Unknown';
-  var u = p.toUpperCase();
-  if (u === 'DEM') return 'Democrat';
-  if (u === 'REP') return 'Republican';
-  return p;
-}
 function getInitials(name) {
   if (!name) return '?';
   var parts = name.split(',');
@@ -588,14 +543,6 @@ function getInitials(name) {
   var li    = last.split(/[\s-]+/).filter(Boolean).map(function(w){return w[0];}).join('');
   return (fi + li).toUpperCase().slice(0,3);
 }
-function committeeTypeLabel(t) {
-  var map = { P:'Principal Campaign Committee', J:'Joint Fundraising Committee',
-    D:'Leadership PAC', O:'Super PAC', Q:'PAC — Qualified', N:'PAC — Non-Qualified',
-    V:'Hybrid PAC', H:'House Candidate Committee', S:'Senate Candidate Committee',
-    Y:'Party Committee', I:'Independent Expenditure (Non-Contribution)', U:'Single Candidate IE' };
-  return map[t] || ('Type: ' + t);
-}
-
 // ── Tab routing ─────────────────────────────────────
 function showTab(name, e) {
   if (e) e.preventDefault();
@@ -609,15 +556,6 @@ function showTab(name, e) {
   if (e) amplitude.track('Tab Switched', { tab: name, candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME });
   if (name === 'raised') renderRaisedIfReady();
   if (name === 'spent')  renderSpentIfReady();
-}
-
-// ── API fetch ───────────────────────────────────────
-async function apiFetch(path, params) {
-  var p = Object.assign({ api_key: API_KEY }, params||{});
-  var qs = Object.keys(p).map(function(k){ return k+'='+encodeURIComponent(p[k]); }).join('&');
-  var res = await fetch(BASE+path+'?'+qs);
-  if (!res.ok) throw new Error('FEC '+res.status+' — '+path);
-  return res.json();
 }
 
 // ── Health assessment ───────────────────────────────

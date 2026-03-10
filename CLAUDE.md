@@ -30,10 +30,11 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 - Vanilla HTML/CSS/JS — no framework, intentional for this stage
 - Chart.js 4.4.0 + chartjs-adapter-date-fns 3.0.0 (time scale support)
-- Google Fonts: Syne (headings) + IBM Plex Mono (body/data)
+- Google Fonts: Barlow Condensed (display/headings) + DM Sans (body/nav) + IBM Plex Mono (labels/data)
 - FEC public API: `https://api.open.fec.gov/v1`
 - Netlify Functions for any server-side API proxying needed
 - No build step — files are served directly
+- **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 170 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
 
 ---
 
@@ -41,7 +42,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **Reference file:** `design-system.html` is the living design system reference. Read it (or at minimum the token table and component list) before building any new page or component.
 
-**Shared files:** `styles.css` contains the CSS reset, token `:root`, shared layout (sidebar, mobile nav, header), utility classes, and all shared component CSS. `main.js` contains Amplitude init + Session Replay, mobile scroll-aware header, and hamburger nav (all null-guarded). Every page links both.
+**Shared files:** `styles.css` contains the CSS reset, token `:root`, shared layout (sidebar, mobile nav, header), utility classes, and all shared component CSS. `main.js` contains Amplitude init + Session Replay, mobile scroll-aware header, and hamburger nav (all null-guarded). `utils.js` contains shared JS utilities: `BASE`, `API_KEY`, `apiFetch`, `fmt`, `fmtDate`, `toTitleCase`, `partyClass`, `partyLabel`, `committeeTypeLabel`. Every page links all three (main.js → utils.js → inline script block).
 
 **CSS consolidation principle:** Component CSS lives in `styles.css`. Inline `<style>` blocks in individual pages are for page-specific overrides only (layout grid, page-specific spacing, page-specific components). `design-system.html` imports the same `styles.css` as production — no component CSS is duplicated between pages.
 
@@ -106,12 +107,35 @@ Typography: Barlow Condensed 700–900 for display/headings (uppercase), DM Sans
 ## Current files
 
 ```
-candidate.html    — Candidate profile page (primary active file)
+index.html        — Root redirect → search.html (entry point)
+search.html       — Candidate name search (live)
+candidates.html   — Browse candidates by state/office/party/cycle (scaffold)
+candidate.html    — Single candidate profile (live, primary active file)
+committees.html   — Browse committees by type/state (scaffold)
+committee.html    — Single committee profile (scaffold)
+races.html        — Race mode selector — curated form + ad hoc stub (scaffold)
+race.html         — Single race view — all candidates in a contest (scaffold)
 process-log.html  — Living case study / dev diary
+design-system.html — Token and component reference (live)
 project-brief.md  — Full product vision and open questions
+ia.md             — Information architecture reference (page inventory, nav structure, URL patterns)
+test-cases.md     — Manual browser test checklist; one section per page + shared checks + test log
+TESTING.md        — Playwright automated test setup, Track 1 vs Track 2 commands, how mocking works
+playwright.config.js       — Playwright config (Track 1, structural, mocked API)
+playwright.smoke.config.js — Playwright config (Track 2, smoke, live FEC API)
+package.json      — npm scripts: test, test:smoke, test:report
+_redirects        — Netlify clean URL rewrites (200 rewrites; HTML files stay in root)
+tests/
+  helpers/amp-mock.js  — Amplitude mock (blocks CDN, stubs sessionReplay, reads _q queue)
+  helpers/api-mock.js  — FEC API mock (route intercept + fixture data for all endpoints)
+  shared.spec.js       — 63 structural tests × all 9 pages (nav, CSS, Amplitude, background)
+  candidate.spec.js    — candidate.html tests (stats, modal, chart, tabs, Amplitude events)
+  search.spec.js       — search.html tests (states, interaction, Amplitude events)
+  pages.spec.js        — all other pages + mobile layout
+  smoke.spec.js        — 5 live-API smoke tests (@smoke tagged)
 ```
 
-A homepage (`index.html`) doesn't exist yet — candidate.html is the entry point for now.
+**Local dev:** `python3 -m http.server 8080` from project root → `localhost:8080/` (redirects to search.html)
 
 ---
 
@@ -155,10 +179,24 @@ GET /candidate/{id}/                          — candidate metadata
 GET /candidate/{id}/totals/?cycle={year}      — cycle-level financial totals
 GET /candidate/{id}/committees/               — associated committees (not cycle-scoped; returns all)
 GET /committees/?sponsor_candidate_id={id}    — leadership PACs sponsored by this candidate (separate endpoint!)
+GET /committee/{id}/                          — committee metadata (name, type, designation, status)
+GET /committee/{id}/totals/?per_page=1        — committee financial summary (most recent filing)
 GET /committee/{id}/reports/?cycle={year}     — per-period filing reports (chart data)
 GET /reporting-dates/?report_year={year}&report_type={type} — filing deadlines (one call per type)
 GET /election-dates/?election_state=&office_sought=&election_year= — actual election dates
+GET /elections/?state=&cycle=&office=&district= — all candidates in a contest with financial summaries
+GET /candidates/search/?q=&per_page=&sort=    — name-based candidate search
+GET /candidates/?state=&office=&party=&election_year= — browse candidates by filter
+GET /committees/?state=&committee_type=       — browse committees by filter
 ```
+
+**Critical — `/elections/` office param:** This endpoint requires `office` as a **lowercase full word** (`house`, `senate`, `president`), NOT the single-letter code (`H`, `S`, `P`) used by other endpoints. Passing `H`/`S`/`P` returns a 422 error. Use a conversion function:
+```javascript
+function officeApiParam(o) {
+  return { H:'house', S:'senate', P:'president' }[o] || o.toLowerCase();
+}
+```
+Other endpoints (`/candidates/`, `/candidate/{id}/totals/`) use the single-letter codes — the inconsistency is an FEC API quirk.
 
 ### Key FEC API field names (verified from live response)
 Reports endpoint (`/committee/{id}/reports/`) returns per-filing objects with:
@@ -194,18 +232,25 @@ Candidate totals endpoint returns:
 
 See `project-brief.md` for the full phased roadmap. Short version:
 
-**Phase 1 (current):** Finish the candidate page before building anything new.
+**Phase 1 (complete):** Candidate page.
 - ~~Raised tab~~ ✅ live
-- **Spent tab** (category breakdown, spend timeline) — current priority
 - ~~Associated committees~~ ✅ live — header modal with active/history tabs, leadership PAC support, JFA gap note
-- Data freshness indicators on all data displays
-- Empty and error states
-- Design system documentation page
-- Mobile chart pass
+- ~~Design system documentation page~~ ✅ live
+- **Spent tab** (category breakdown, spend timeline) — still pending, lower priority now that nav/browse is built
 
-**Phase 2:** Search and navigation.
-**Phase 3:** Committee page, race page (which is also the compare feature — two modes, one UI).
-**Phase 4:** Early signal data (48/24hr reports), AI insights.
+**Phase 2 (complete):** Search and navigation.
+- ~~search.html~~ ✅ live — name search, result cards, Amplitude events
+- ~~candidates.html~~ ✅ scaffold — browse by state/office/party/cycle
+- ~~index.html~~ ✅ live — redirect to search.html
+
+**Phase 3 (scaffold):** Committee and race pages.
+- ~~committee.html~~ ✅ scaffold — header with financials, back-link to candidate
+- ~~committees.html~~ ✅ scaffold — browse by state/type
+- ~~races.html~~ ✅ scaffold — mode selector (curated form live; ad hoc stub)
+- ~~race.html~~ ✅ scaffold — single race view, candidate cards with financials, cycle-anchored links
+- Remaining: filing history on committee.html, associated candidates on committee.html, ad hoc mode on races.html
+
+**Phase 4:** Early signal data (48/24hr reports), AI insights, transaction-level search.
 
 ## Remaining architectural debt
 
@@ -213,6 +258,7 @@ See `project-brief.md` for the full phased roadmap. Short version:
 - **Presidential cycle untested:** 4-year cycle is architecturally supported via `getCycleSpanYears()` / `getSubCycles()` but has not been tested with a real presidential candidate.
 - **Multi-cycle stat labels:** Stats row (Raised, Spent, COH) doesn't yet indicate when figures represent a multi-sub-cycle sum (e.g. "6-year total" vs. "cycle total"). Needs a label or caveat for Senate candidates.
 - **JFA committee gap:** Joint fundraising committees where a candidate is a participant (not the principal) have `candidate_ids: []` and `sponsor_candidate_ids: null` in the FEC API — they don't appear in either `/candidate/{id}/committees/` or `/committees/?sponsor_candidate_id=`. The only source of truth is the candidate's F2 filing document, which lists them as authorized committees. Surfacing these would require fetching the most recent F2 via `/filings/?candidate_id=&form_type=F2` and parsing committee references from the filing data. Not built yet; validate approach with John before implementing.
+- ~~**utils.js duplication:**~~ ✅ Resolved. Shared utilities extracted to `utils.js` — `BASE`, `API_KEY`, `apiFetch`, `fmt`, `fmtDate`, `toTitleCase`, `partyClass`, `partyLabel`, `committeeTypeLabel`. All pages load it between `main.js` and their own script block.
 
 ## Committee modal architecture
 
@@ -231,6 +277,24 @@ Key committee fields:
 - `filing_frequency` — `'T'` = terminated, `'Q'` = quarterly (active)
 - `leadership_pac` — boolean; most reliable leadership PAC signal
 - `sponsor_candidate_ids` — array on committee record; leadership PACs carry the candidate's ID here
+
+## Navigation and IA architecture
+
+The nav has a browse/profile split that must be preserved as new pages are added:
+
+- **Browse pages** (`candidates.html`, `committees.html`, `races.html`) are primary nav destinations — each is its own nav item's active target
+- **Profile pages** (`candidate.html`, `committee.html`, `race.html`) are subsections — they activate their *parent* browse page's nav item (e.g. `candidate.html` keeps "Candidates" active)
+- **`ia.md`** is the canonical IA reference — page inventory, URL patterns, nav hierarchy, page relationships, phase roadmap. Read it before adding new pages or changing nav structure.
+
+Nav link targets (all pages must use these — no stubs):
+- Candidates → `candidates.html`
+- Committees → `committees.html`
+- Races → `races.html`
+- Search → `search.html`
+
+The `.mobile-search-icon` (search icon SVG in `.mobile-header`) must appear on every page. It links to `search.html` and is `display:none` at desktop, `display:block` at ≤860px via `styles.css`.
+
+Cycle-anchored links from race view: `candidate.html?id={id}#{year}#summary` — the `#{year}#summary` hash pre-selects the correct election cycle on the candidate page. Use this pattern whenever linking to a candidate from a race context.
 
 ## Senate multi-sub-cycle architecture
 
@@ -283,9 +347,9 @@ Senate 6-year cycles introduce a multi-sub-cycle pattern worth understanding bef
 - [x] All hardcoded candidate values derived from API response (state, district, office, cycle list from `election_years`)
 - [x] Page works for any candidate ID passed as a URL param (`?id=H2WA03217`) — verified with MGP (House) and Gillibrand (Senate)
 - [x] Responsive: mobile header, hamburger nav, chart doesn't overflow viewport
-- [ ] Search / homepage
+- [x] Search / homepage — search.html live, index.html redirects
 - [x] Raised tab: contributor breakdown, geography heatmap, top committee contributors — live and verified
-- [ ] Spent tab: category breakdown, spend timeline — next priority
+- [x] Spent tab: category breakdown, purpose breakdown, top vendors — live
 - [x] Associated committees: header modal with Active/History tabs, leadership PAC via sponsor endpoint, JFA gap note
 
 ---
@@ -301,18 +365,17 @@ The full product brief (`project-brief.md`) has MVP scope, audience definition, 
 ## How to start a session
 
 ```bash
-cd ~/Vibecoding/fec-project
-claude
+cd ~/Vibecoding/fec-project && claude
 ```
 
-First thing: read this file. Then read `candidate.html` for current implementation state.
+Read this file and `claude-to-claude.md` first. Check whether the most recent entry in `claude-to-claude.md` is from the last session — if the log is missing an entry and work was clearly done, flag it before proceeding.
 
-Before diving in, note what's been updated since the last session:
-- `CLAUDE.md` — updated with verified API behavior, remaining debt items, Senate architecture notes
-- `project-brief.md` — significantly expanded: now includes a phased roadmap, global nav spec (including mobile search icon behavior), race page / compare architecture, and new open questions on associated committees and unserious candidates
-- `process-log.html` — updated with Mar 3 session entry and a new Mar 4 entry stub
+Then ask Sloane what the current priority is. Don't assume the latest file in the repo matches what's been deployed.
 
-Ask Sloane what's been tested since the last session and what the current priority is. Don't assume the latest file in the repo matches what's been deployed — ask.
+**Opening prompt:**
+```
+Read CLAUDE.md, project-brief.md, and claude-to-claude.md, then: (1) check whether the last session's end-of-session rituals were completed — if not, flag it. (2) Summarize the current state of the project, the top priority, and what you need from me to get started.
+```
 
 **Session-start ritual check:** After reading CLAUDE.md and claude-to-claude.md, check whether the most recent entry in claude-to-claude.md is dated today or earlier. If the last session's entry is missing (i.e., today's date isn't in the log and work was clearly done), flag it: "It looks like the previous session wasn't wrapped up — no log entry found. Do you have screenshots or notes I can use to reconstruct it, or should we skip and move on?" Do not silently proceed without noting the gap.
 
@@ -324,6 +387,8 @@ Read CLAUDE.md, project-brief.md, and claude-to-claude.md, then: (1) check wheth
 ---
 
 ## When compacting or ending a session
+
+**Before wrapping up:** Run `npx playwright test` (Track 1 — structural, mocked API, ~1 min). Fix any new failures before shipping. Then run the manual browser checks from `test-cases.md` for every page touched this session. Append a row to the Test log table at the bottom of `test-cases.md`. If any new failures are found, add them to the Known open issues table. If new features shipped, add both automated and manual test cases for them in the same session they shipped.
 
 Before running /compact or ending a session, output all four of the following — each in its own fenced code block so they're easy to copy individually. Sloane will bring these to Claude Chat.
 

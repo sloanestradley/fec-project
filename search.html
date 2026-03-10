@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Search — ledger.fec</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Amplitude Analytics -->
+  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <style>
+    :root { --banner-h: 28px; }
+    .main { overflow-x:hidden; min-width:0; }
+
+    /* Search bar — always visible at top */
+    .search-bar-wrap { padding:2.5rem 3rem 2rem; border-bottom:1px solid var(--border); }
+    .search-bar { display:flex; gap:0; max-width:600px; }
+    .search-input { flex:1; padding:0.65rem 1rem; font-family:'DM Sans',sans-serif;
+      font-size:16px; /* 16px prevents iOS auto-zoom */
+      background:var(--surface); border:1px solid var(--border-strong);
+      border-right:none; color:var(--text); outline:none;
+      transition:border-color 0.15s; border-radius:0; }
+    .search-input:focus { border-color:var(--accent); }
+    .search-input::placeholder { color:var(--muted); }
+    .search-btn { padding:0.65rem 1.25rem; background:var(--text); color:var(--bg);
+      border:1px solid var(--text); font-family:'Barlow Condensed',sans-serif;
+      font-size:0.9rem; font-weight:700; letter-spacing:0; text-transform:uppercase;
+      cursor:pointer; transition:opacity 0.15s; white-space:nowrap; }
+    .search-btn:hover { opacity:0.85; }
+
+    /* Empty / hero state */
+    .search-hero { padding:5rem 3rem; max-width:560px; }
+    .search-hero-title { font-family:'Barlow Condensed',sans-serif; font-size:clamp(2rem,5vw,3.5rem);
+      font-weight:800; text-transform:uppercase; letter-spacing:0; line-height:1;
+      color:var(--text); margin-bottom:0.75rem; }
+    .search-hero-sub { font-size:0.82rem; color:var(--muted); line-height:1.6; }
+
+    /* Results area */
+    .results-area { padding:2rem 3rem; }
+    .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
+      text-transform:uppercase; letter-spacing:0; color:var(--muted);
+      margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border); }
+    .results-list { display:flex; flex-direction:column; gap:1px;
+      background:var(--border); border:1px solid var(--border); }
+
+    /* No results */
+    .no-results { padding:3rem 3rem; color:var(--muted); font-size:0.8rem; }
+    .no-results strong { color:var(--text); display:block; font-size:1rem;
+      font-family:'Barlow Condensed',sans-serif; font-weight:700; text-transform:uppercase;
+      letter-spacing:0; margin-bottom:0.4rem; }
+
+    @media (max-width:860px) {
+      .main { padding-top:calc(var(--banner-h) + var(--header-h)); }
+      .search-bar-wrap { padding:1.25rem; }
+      .search-hero { padding:3rem 1.25rem 2rem; }
+      .results-area { padding:1.5rem 1.25rem; }
+      .no-results { padding:2rem 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Desktop sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo"><a href="index.html">ledger<em>.fec</em></a></div>
+    <div class="nav-section">
+      <div class="nav-label">Pages</div>
+      <a class="nav-item" href="candidates.html"><span class="nav-dot"></span>Candidates</a>
+      <a class="nav-item" href="committees.html"><span class="nav-dot"></span>Committees</a>
+      <a class="nav-item" href="races.html"><span class="nav-dot"></span>Races</a>
+      <a class="nav-item active" href="search.html"><span class="nav-dot"></span>Search</a>
+    </div>
+    <div class="nav-section" style="margin-top:auto;padding-top:1.25rem;border-top:1px solid var(--sidebar-border)">
+      <div class="nav-label">Documentation</div>
+      <a class="nav-item" href="process-log.html"><span class="nav-dot"></span>Process Log</a>
+      <a class="nav-item" href="design-system.html"><span class="nav-dot"></span>Design System</a>
+    </div>
+  </nav>
+
+  <!-- Mobile header -->
+  <header class="mobile-header" id="mobile-header">
+    <a class="mobile-logo" href="index.html">ledger<em>.fec</em></a>
+    <a href="search.html" class="mobile-search-icon" aria-label="Search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </a>
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- Mobile nav -->
+  <nav class="mobile-nav" id="mobile-nav">
+    <a class="nav-item" href="candidates.html"><span class="nav-dot"></span>Candidates</a>
+    <a class="nav-item" href="committees.html"><span class="nav-dot"></span>Committees</a>
+    <a class="nav-item" href="races.html"><span class="nav-dot"></span>Races</a>
+    <a class="nav-item active" href="search.html"><span class="nav-dot"></span>Search</a>
+    <a class="nav-item" href="process-log.html" style="border-top:1px solid var(--sidebar-border);padding-top:0.85rem"><span class="nav-dot"></span>Process Log</a>
+    <a class="nav-item" href="design-system.html"><span class="nav-dot"></span>Design System</a>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Search bar — always visible -->
+    <div class="search-bar-wrap">
+      <form class="search-bar" id="search-form" onsubmit="handleSubmit(event)">
+        <input type="search" class="search-input" id="search-input"
+          placeholder="Search candidates by name…" autocomplete="off" spellcheck="false"/>
+        <button type="submit" class="search-btn">Search</button>
+      </form>
+    </div>
+
+    <!-- State: empty (pre-search) -->
+    <div id="state-empty">
+      <div class="search-hero">
+        <div class="search-hero-title">Search<br>Candidates</div>
+        <p class="search-hero-sub">Enter a candidate name above to search FEC filings. Results include House, Senate, and Presidential candidates from all election cycles.</p>
+      </div>
+    </div>
+
+    <!-- State: loading -->
+    <div id="state-loading" style="display:none">
+      <div class="state-msg"><div class="loader"></div><span>Searching FEC records…</span></div>
+    </div>
+
+    <!-- State: results -->
+    <div id="state-results" style="display:none">
+      <div class="results-area">
+        <div class="results-header" id="results-header"></div>
+        <div class="results-list" id="results-list"></div>
+      </div>
+    </div>
+
+    <!-- State: no results -->
+    <div id="state-no-results" style="display:none">
+      <div class="no-results">
+        <strong>No candidates found</strong>
+        Try a different spelling, or search by last name only.
+      </div>
+    </div>
+
+  </div><!-- /.main -->
+</div><!-- /.layout -->
+
+<div class="global-banner">
+  <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
+</div>
+
+<script src="main.js"></script>
+<script src="utils.js"></script>
+<script>
+var currentQuery = '';
+var STATES = ['empty','loading','results','no-results'];
+
+function showState(name) {
+  document.getElementById('state-empty').style.display       = name === 'empty'      ? 'block' : 'none';
+  document.getElementById('state-loading').style.display     = name === 'loading'    ? 'block' : 'none';
+  document.getElementById('state-results').style.display     = name === 'results'    ? 'block' : 'none';
+  document.getElementById('state-no-results').style.display  = name === 'no-results' ? 'block' : 'none';
+}
+
+function renderResults(candidates) {
+  var list = document.getElementById('results-list');
+  list.innerHTML = candidates.map(function(c, i) {
+    var displayName = toTitleCase(c.name);
+    var pcls  = partyClass(c.party);
+    var plbl  = partyLabel(c.party);
+    var office = [c.office_full, c.state, c.district && c.district !== '00' ? c.district : '']
+      .filter(Boolean).join(' · ');
+    var latestCycle = c.election_years && c.election_years.length
+      ? Math.max.apply(null, c.election_years)
+      : '';
+
+    return '<a class="candidate-card" href="candidate.html?id=' + c.candidate_id + '"'
+      + ' onclick="trackClick(event,' + JSON.stringify(c.candidate_id) + ',' + JSON.stringify(displayName) + ',' + i + ')">'
+      + '<div class="candidate-card-name">' + displayName + '</div>'
+      + '<div class="candidate-card-meta">'
+      + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
+      + (office ? '<span class="candidate-card-office">' + office + '</span>' : '')
+      + (latestCycle ? '<span class="candidate-card-cycle">' + latestCycle + '</span>' : '')
+      + '</div>'
+      + '</a>';
+  }).join('');
+
+  document.getElementById('results-header').textContent =
+    candidates.length + ' result' + (candidates.length !== 1 ? 's' : '') + ' for "' + currentQuery + '"';
+}
+
+function trackClick(e, candidateId, candidateName, position) {
+  amplitude.track('Candidate Result Clicked', {
+    candidate_id: candidateId,
+    candidate_name: candidateName,
+    query: currentQuery,
+    result_position: position,
+    from_page: 'search'
+  });
+}
+
+async function doSearch(query) {
+  if (!query.trim()) return;
+  currentQuery = query.trim();
+  showState('loading');
+  amplitude.track('Candidate Searched', { query: currentQuery });
+
+  try {
+    var data = await apiFetch('/candidates/search/', { q: currentQuery, per_page: 20, sort: '-receipts' });
+    var results = data.results || [];
+    if (!results.length) {
+      showState('no-results');
+      return;
+    }
+    renderResults(results);
+    showState('results');
+  } catch(err) {
+    document.getElementById('state-loading').style.display = 'none';
+    document.getElementById('state-empty').style.display   = 'block';
+    console.error('search error:', err);
+  }
+}
+
+function handleSubmit(e) {
+  e.preventDefault();
+  var q = document.getElementById('search-input').value;
+  if (!q.trim()) return;
+  // Update URL without reload
+  history.pushState(null, '', 'search.html?q=' + encodeURIComponent(q.trim()));
+  doSearch(q);
+}
+
+(function init() {
+  amplitude.track('Page Viewed', { page: 'search' });
+  var params = new URLSearchParams(window.location.search);
+  var q = params.get('q');
+  if (q) {
+    document.getElementById('search-input').value = q;
+    doSearch(q);
+  } else {
+    showState('empty');
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Races — ledger.fec</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Amplitude Analytics -->
+  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <style>
+    :root { --banner-h: 28px; }
+    .main { overflow-x:hidden; min-width:0; }
+
+    /* ── Mode selector ── */
+    .mode-selector { padding:2.5rem 3rem; }
+    .mode-selector-title { font-family:'Barlow Condensed',sans-serif; font-size:0.75rem;
+      font-weight:600; letter-spacing:0; text-transform:uppercase; color:var(--muted);
+      margin-bottom:1.5rem; }
+    .mode-cards { display:grid; grid-template-columns:1fr 1fr; gap:1px;
+      background:var(--border); border:1px solid var(--border); max-width:700px; }
+    .mode-card { background:var(--surface); padding:2rem 1.75rem; cursor:pointer;
+      transition:background 0.15s; }
+    .mode-card:hover:not(.mode-card-disabled) { background:var(--surface2); }
+    .mode-card-disabled { opacity:0.45; cursor:default; }
+    .mode-card-label { font-family:'Barlow Condensed',sans-serif; font-size:1.3rem;
+      font-weight:800; text-transform:uppercase; letter-spacing:0; color:var(--text);
+      margin-bottom:0.5rem; display:flex; align-items:center; gap:0.6rem; }
+    .mode-card-desc { font-size:0.78rem; color:var(--muted); line-height:1.55; margin-bottom:1.25rem; }
+    .planned-badge { font-family:'IBM Plex Mono',monospace; font-size:0.54rem;
+      text-transform:uppercase; letter-spacing:0; border:1px solid var(--border-strong);
+      color:var(--muted); padding:0.1rem 0.4rem; }
+
+    /* Curated form */
+    .curated-form { display:none; border-top:1px solid var(--border); padding-top:1.25rem; margin-top:0.25rem; }
+    .curated-form.open { display:block; }
+    .form-row { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:0.75rem; }
+    .form-field { display:flex; flex-direction:column; gap:0.3rem; }
+    .form-label { font-family:'IBM Plex Mono',monospace; font-size:0.58rem;
+      text-transform:uppercase; letter-spacing:0; color:var(--muted); }
+    .form-select, .form-input { padding:0.45rem 0.6rem; font-family:'DM Sans',sans-serif;
+      font-size:0.8rem; background:var(--bg); border:1px solid var(--border-strong);
+      color:var(--text); outline:none; transition:border-color 0.15s; border-radius:0; }
+    .form-select:focus, .form-input:focus { border-color:var(--accent); }
+    .form-input { width:80px; }
+    .form-input.wide { width:130px; }
+    .form-go-btn { padding:0.45rem 1rem; background:var(--text); color:var(--bg);
+      border:1px solid var(--text); font-family:'Barlow Condensed',sans-serif;
+      font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:0;
+      cursor:pointer; transition:opacity 0.15s; white-space:nowrap; }
+    .form-go-btn:hover { opacity:0.85; }
+    #district-wrap { display:none; }
+
+    @media (max-width:860px) {
+      .main { padding-top:calc(var(--banner-h) + var(--header-h)); }
+      .mode-selector { padding:1.5rem 1.25rem; }
+      .mode-cards { grid-template-columns:1fr; }
+      .state-msg { padding:2rem 1.25rem; }
+    }
+    @media (max-width:480px) { .form-row { flex-direction:column; } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Desktop sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo"><a href="index.html">ledger<em>.fec</em></a></div>
+    <div class="nav-section">
+      <div class="nav-label">Pages</div>
+      <a class="nav-item" href="candidates.html"><span class="nav-dot"></span>Candidates</a>
+      <a class="nav-item" href="committees.html"><span class="nav-dot"></span>Committees</a>
+      <a class="nav-item active" href="races.html"><span class="nav-dot"></span>Races</a>
+      <a class="nav-item" href="search.html"><span class="nav-dot"></span>Search</a>
+    </div>
+    <div class="nav-section" style="margin-top:auto;padding-top:1.25rem;border-top:1px solid var(--sidebar-border)">
+      <div class="nav-label">Documentation</div>
+      <a class="nav-item" href="process-log.html"><span class="nav-dot"></span>Process Log</a>
+      <a class="nav-item" href="design-system.html"><span class="nav-dot"></span>Design System</a>
+    </div>
+  </nav>
+
+  <!-- Mobile header -->
+  <header class="mobile-header" id="mobile-header">
+    <a class="mobile-logo" href="index.html">ledger<em>.fec</em></a>
+    <a href="search.html" class="mobile-search-icon" aria-label="Search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </a>
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- Mobile nav -->
+  <nav class="mobile-nav" id="mobile-nav">
+    <a class="nav-item" href="candidates.html"><span class="nav-dot"></span>Candidates</a>
+    <a class="nav-item" href="committees.html"><span class="nav-dot"></span>Committees</a>
+    <a class="nav-item active" href="races.html"><span class="nav-dot"></span>Races</a>
+    <a class="nav-item" href="search.html"><span class="nav-dot"></span>Search</a>
+    <a class="nav-item" href="process-log.html" style="border-top:1px solid var(--sidebar-border);padding-top:0.85rem"><span class="nav-dot"></span>Process Log</a>
+    <a class="nav-item" href="design-system.html"><span class="nav-dot"></span>Design System</a>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="mode-selector">
+      <div class="mode-selector-title">Select a mode</div>
+      <div class="mode-cards">
+
+        <!-- Curated mode -->
+        <div class="mode-card" id="curated-card" onclick="toggleCuratedForm()">
+          <div class="mode-card-label">Curated Race</div>
+          <div class="mode-card-desc">Browse all declared candidates in a specific contest. Select state, office, and election year.</div>
+          <div class="curated-form" id="curated-form" onclick="event.stopPropagation()">
+            <div class="form-row">
+              <div class="form-field">
+                <label class="form-label" for="form-office">Office</label>
+                <select class="form-select" id="form-office" onchange="handleOfficeChange()">
+                  <option value="H">House</option>
+                  <option value="S">Senate</option>
+                  <option value="P">President</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="form-state">State</label>
+                <input class="form-input wide" type="text" id="form-state" placeholder="e.g. WA" maxlength="2"/>
+              </div>
+              <div class="form-field" id="district-wrap">
+                <label class="form-label" for="form-district">District</label>
+                <input class="form-input" type="text" id="form-district" placeholder="e.g. 03" maxlength="2"/>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="form-year">Year</label>
+                <input class="form-input" type="text" id="form-year" placeholder="e.g. 2026" maxlength="4"/>
+              </div>
+              <button class="form-go-btn" onclick="goToCuratedRace()">View Race →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ad hoc mode — planned -->
+        <div class="mode-card mode-card-disabled">
+          <div class="mode-card-label">
+            Ad Hoc Compare
+            <span class="planned-badge">Planned</span>
+          </div>
+          <div class="mode-card-desc">Compare any candidates across races. Build a custom field — useful for tracking multiple frontline races at once.</div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /.main -->
+</div><!-- /.layout -->
+
+<div class="global-banner">
+  <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
+</div>
+
+<script src="main.js"></script>
+<script>
+amplitude.track('Page Viewed', { page: 'races' });
+
+function toggleCuratedForm() {
+  var form = document.getElementById('curated-form');
+  form.classList.toggle('open');
+}
+
+function handleOfficeChange() {
+  var office = document.getElementById('form-office').value;
+  document.getElementById('district-wrap').style.display = office === 'H' ? 'block' : 'none';
+}
+
+function goToCuratedRace() {
+  var office   = document.getElementById('form-office').value;
+  var state    = document.getElementById('form-state').value.trim().toUpperCase();
+  var district = document.getElementById('form-district').value.trim();
+  var year     = document.getElementById('form-year').value.trim();
+  if (!state || !year) { alert('Please enter state and year.'); return; }
+  var url = 'race.html?office=' + office + '&state=' + state + '&year=' + year;
+  if (office === 'H' && district) url += '&district=' + district;
+  window.location.href = url;
+}
+
+// Show district field for House (default)
+document.getElementById('district-wrap').style.display = 'block';
+</script>
+
+</body>
+</html>

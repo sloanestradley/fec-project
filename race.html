@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Race — ledger.fec</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Amplitude Analytics -->
+  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <style>
+    :root { --banner-h: 28px; }
+    .main { overflow-x:hidden; min-width:0; }
+
+    .race-header { padding:2.5rem 3rem 2rem; border-bottom:1px solid var(--border);
+      opacity:0; transform:translateY(10px); transition:opacity 0.4s ease, transform 0.4s ease; }
+    .race-header.visible { opacity:1; transform:translateY(0); }
+    .breadcrumb { font-size:0.62rem; color:var(--muted); letter-spacing:0.1em;
+      text-transform:uppercase; margin-bottom:1.25rem; }
+    .breadcrumb span { color:var(--subtle); }
+    .race-title { font-family:'Barlow Condensed',sans-serif; font-size:clamp(1.6rem,3vw,2.4rem);
+      font-weight:800; text-transform:uppercase; letter-spacing:0; line-height:1; margin-bottom:0.5rem; }
+    .race-meta { font-family:'IBM Plex Mono',monospace; font-size:0.65rem; color:var(--muted); }
+    .back-link-area { margin-top:0.85rem; }
+    .back-link-area a { font-family:'IBM Plex Mono',monospace; font-size:0.68rem;
+      color:var(--subtle); text-decoration:underline; text-decoration-color:transparent;
+      text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
+    .back-link-area a:hover { color:var(--accent); text-decoration-color:var(--accent); }
+
+    .race-content { padding:2rem 3rem; opacity:0; transition:opacity 0.3s ease; }
+    .race-content.visible { opacity:1; }
+    .race-list { display:flex; flex-direction:column; gap:1px;
+      background:var(--border); border:1px solid var(--border); margin-bottom:1.5rem; }
+
+    @media (max-width:860px) {
+      .main { padding-top:calc(var(--banner-h) + var(--header-h)); }
+      .race-header { padding:1.5rem 1.25rem 1.25rem; }
+      .race-content { padding:1.5rem 1.25rem; }
+      .state-msg { padding:2rem 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Desktop sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo"><a href="index.html">ledger<em>.fec</em></a></div>
+    <div class="nav-section">
+      <div class="nav-label">Pages</div>
+      <a class="nav-item" href="candidates.html"><span class="nav-dot"></span>Candidates</a>
+      <a class="nav-item" href="committees.html"><span class="nav-dot"></span>Committees</a>
+      <a class="nav-item active" href="races.html"><span class="nav-dot"></span>Races</a>
+      <a class="nav-item" href="search.html"><span class="nav-dot"></span>Search</a>
+    </div>
+    <div class="nav-section" style="margin-top:auto;padding-top:1.25rem;border-top:1px solid var(--sidebar-border)">
+      <div class="nav-label">Documentation</div>
+      <a class="nav-item" href="process-log.html"><span class="nav-dot"></span>Process Log</a>
+      <a class="nav-item" href="design-system.html"><span class="nav-dot"></span>Design System</a>
+    </div>
+  </nav>
+
+  <!-- Mobile header -->
+  <header class="mobile-header" id="mobile-header">
+    <a class="mobile-logo" href="index.html">ledger<em>.fec</em></a>
+    <a href="search.html" class="mobile-search-icon" aria-label="Search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </a>
+    <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- Mobile nav -->
+  <nav class="mobile-nav" id="mobile-nav">
+    <a class="nav-item" href="candidates.html"><span class="nav-dot"></span>Candidates</a>
+    <a class="nav-item" href="committees.html"><span class="nav-dot"></span>Committees</a>
+    <a class="nav-item active" href="races.html"><span class="nav-dot"></span>Races</a>
+    <a class="nav-item" href="search.html"><span class="nav-dot"></span>Search</a>
+    <a class="nav-item" href="process-log.html" style="border-top:1px solid var(--sidebar-border);padding-top:0.85rem"><span class="nav-dot"></span>Process Log</a>
+    <a class="nav-item" href="design-system.html"><span class="nav-dot"></span>Design System</a>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+
+    <div class="state-msg" id="state-msg">
+      <div class="loader"></div><span>Fetching race data from FEC…</span>
+    </div>
+
+    <div class="race-header" id="race-header" style="display:none">
+      <div class="breadcrumb">Races <span id="breadcrumb-race"></span></div>
+      <div class="race-title" id="race-title">—</div>
+      <div class="race-meta" id="race-meta"></div>
+      <div class="back-link-area"><a href="races.html">← All Races</a></div>
+    </div>
+
+    <div class="race-content" id="race-content" style="display:none">
+      <div class="section-title" id="race-candidates-label"></div>
+      <div class="race-list" id="race-list"></div>
+      <div class="data-note" id="race-note"></div>
+    </div>
+
+  </div><!-- /.main -->
+</div><!-- /.layout -->
+
+<div class="global-banner">
+  <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
+</div>
+
+<script src="main.js"></script>
+<script src="utils.js"></script>
+<script>
+var urlParams    = new URLSearchParams(window.location.search);
+var stateParam   = urlParams.get('state');
+var districtParam= urlParams.get('district');
+var yearParam    = urlParams.get('year');
+var officeParam  = urlParams.get('office');
+
+function officeName(o) {
+  if (!o) return '';
+  return { H:'House', S:'Senate', P:'President' }[o] || o;
+}
+
+// /elections/ endpoint requires lowercase full words, not single-letter codes
+function officeApiParam(o) {
+  return { H:'house', S:'senate', P:'president' }[o] || o.toLowerCase();
+}
+
+function buildCandidateCard(c) {
+  var id    = c.candidate_id || (c.candidate_ids && c.candidate_ids[0]);
+  var name  = toTitleCase(c.candidate_name || c.name);
+  var party = c.party || '';
+  var pcls  = partyClass(party);
+  var plbl  = partyLabel(party);
+
+  // Link directly to the race's cycle year so the candidate page opens at the right cycle
+  var href = id ? 'candidate.html?id=' + id + '#' + yearParam + '#summary' : '#';
+
+  var statsHtml = '';
+  if (c.total_receipts != null || c.total_disbursements != null) {
+    statsHtml = '<div class="candidate-card-stats">'
+      + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Raised</span>'
+      + '<span class="candidate-card-stat-val">' + fmt(c.total_receipts) + '</span></div>'
+      + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Spent</span>'
+      + '<span class="candidate-card-stat-val">' + fmt(c.total_disbursements) + '</span></div>'
+      + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Cash on Hand</span>'
+      + '<span class="candidate-card-stat-val">' + fmt(c.cash_on_hand_end_period) + '</span></div>'
+      + '</div>';
+  }
+
+  return '<a class="candidate-card" href="' + href + '"'
+    + ' onclick="amplitude.track(\'Candidate Result Clicked\',{candidate_id:' + JSON.stringify(id)
+    + ',from_page:\'race\',race_year:' + JSON.stringify(yearParam) + '})">'
+    + '<div class="candidate-card-name">' + name + '</div>'
+    + '<div class="candidate-card-meta">'
+    + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
+    + '</div>'
+    + statsHtml
+    + '</a>';
+}
+
+async function init() {
+  amplitude.track('Page Viewed', {
+    page: 'race', state: stateParam, year: yearParam, office: officeParam, district: districtParam
+  });
+
+  if (!stateParam || !yearParam || !officeParam) {
+    var el = document.getElementById('state-msg');
+    el.className = 'state-msg error';
+    el.innerHTML = '⚠ No race specified. <a href="races.html" style="color:inherit">← Back to Races</a>';
+    return;
+  }
+
+  try {
+    var queryParams = { state: stateParam, cycle: yearParam, office: officeApiParam(officeParam), per_page: 50 };
+    if (districtParam) queryParams.district = districtParam;
+    var data    = await apiFetch('/elections/', queryParams);
+    var results = data.results || [];
+
+    var districtStr = (officeParam === 'H' && districtParam) ? '-' + districtParam : '';
+    var raceLabel   = stateParam + districtStr + ' ' + officeName(officeParam) + ' · ' + yearParam;
+
+    document.getElementById('breadcrumb-race').textContent = '/ ' + raceLabel;
+    document.getElementById('race-title').textContent = stateParam + districtStr + ' ' + officeName(officeParam);
+    document.getElementById('race-meta').textContent  = yearParam + ' · '
+      + results.length + ' candidate' + (results.length !== 1 ? 's' : '');
+    document.getElementById('race-candidates-label').textContent =
+      'Candidates (' + results.length + ')';
+    document.title = raceLabel + ' — ledger.fec';
+
+    var list = document.getElementById('race-list');
+    list.innerHTML = results.length
+      ? results.map(buildCandidateCard).join('')
+      : '<div class="placeholder">No candidates found for this race in the FEC system.</div>';
+
+    document.getElementById('race-note').textContent =
+      'Financial figures are cycle totals as reported to the FEC. Candidates may not yet have filed for all periods.';
+
+    document.getElementById('state-msg').style.display = 'none';
+    var headerEl  = document.getElementById('race-header');
+    var contentEl = document.getElementById('race-content');
+    headerEl.style.display = 'block';
+    contentEl.style.display = 'block';
+    requestAnimationFrame(function(){
+      headerEl.classList.add('visible');
+      contentEl.classList.add('visible');
+    });
+
+  } catch(err) {
+    var el = document.getElementById('state-msg');
+    el.className = 'state-msg error';
+    el.textContent = '⚠ Could not load race: ' + err.message;
+    console.error('race load error:', err);
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
