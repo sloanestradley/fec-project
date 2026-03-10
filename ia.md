@@ -19,7 +19,7 @@
 | `process-log.html` | Living case study / dev diary | `/process-log.html` | Live | 1 |
 | `design-system.html` | Design token and component reference | `/design-system.html` | Live | 1 |
 
-**Clean URL note:** Clean URLs are Netlify 200 rewrites defined in `_redirects`. The `.html` files stay in root; Netlify rewrites the path server-side. Clean URLs only work on the deployed Netlify site — locally (`localhost:8080`) use `.html` paths directly.
+**Clean URL note:** Clean URLs are Netlify 200 rewrites defined in `_redirects`. The `.html` files stay in root; Netlify rewrites the path server-side. Clean URLs only work on the deployed Netlify site — locally (`localhost:8080`) use `.html` paths directly. **Netlify Pretty URLs is also enabled** (site setting), which automatically redirects `.html` URLs to their clean equivalents (e.g. `/candidate.html?id=X` → `/candidate?id=X`). **Profile pages with path-segment URLs** (`candidate.html`, `committee.html`) must use absolute paths for all local resources and nav links — see CLAUDE.md tech stack note.
 
 **Status key:** Live = fully functional | Scaffold = real structure + real data, not all features built | Stub = placeholder, no data
 

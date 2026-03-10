@@ -17,7 +17,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **Live URL:** sloanestradley.netlify.app  
 **Repo:** GitHub (ask Sloane for the repo URL if you don't have it)  
-**Deployment:** Netlify, auto-deploys on push to main  
+**Deployment:** Netlify, auto-deploys on push to main. **Pretty URLs is enabled** (site setting) — Netlify automatically strips `.html` from URLs and redirects to clean paths.
 **Analytics:** Amplitude
 - Integrated on the original FRED proof-of-concept index page; may not be present on all current pages — audit before assuming
 - Pageview tracking is the baseline expectation on every page
@@ -34,6 +34,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 - FEC public API: `https://api.open.fec.gov/v1`
 - Netlify Functions for any server-side API proxying needed
 - No build step — files are served directly
+- **Clean URLs:** `_redirects` defines Netlify 200 rewrites for all pages. Profile pages with path-segment URLs (`/candidate/:id`, `/committee/:id`) **must use absolute paths** for every local resource and nav link — `href="/styles.css"`, `src="/main.js"`, `href="/candidates"`, etc. Relative paths break because the browser treats the path segment as a subdirectory (e.g. from `/candidate/H2WA03217`, relative `utils.js` resolves to `/candidate/utils.js`, which also matches the rewrite rule and returns HTML served as JS). Browse pages (`/candidates`, `/committees`, `/races`, `/race`, `/search`) use single-level paths so relative links still resolve to root — but any new page with a deeper path must follow the absolute-path rule.
 - **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 170 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
 
 ---

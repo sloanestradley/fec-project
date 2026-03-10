@@ -337,6 +337,18 @@
 
 ---
 
+## Pre-deploy checks — clean URL pages
+
+*Run before committing any changes to `candidate.html` or `committee.html`, or when adding a new profile page with a path-segment clean URL. Playwright cannot catch this class of bug.*
+
+- [ ] `styles.css` linked as `href="/styles.css"` (absolute), not `href="styles.css"` (relative)
+- [ ] `main.js` linked as `src="/main.js"` (absolute)
+- [ ] `utils.js` linked as `src="/utils.js"` (absolute)
+- [ ] All nav links use absolute paths: `/candidates`, `/committees`, `/races`, `/search`, `/`, `/process-log.html`, `/design-system.html`
+- [ ] Any outgoing links to other profile pages use clean URL format: `/candidate/{id}`, `/committee/{id}`
+
+---
+
 ## Post-deploy checks (Netlify only — cannot run locally)
 
 *These verify clean URL rewrites in `_redirects`. Run against `sloanestradley.netlify.app` after any deploy.*
@@ -376,3 +388,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-10 | Playwright setup — Track 1 structural (170 tests) + Track 2 smoke (5 tests) | All 9 pages + index (automated) | design-system.html missing .mobile-search-icon (fixed) | 170/170 Track 1 passing; Track 2 ready for manual run |
 | 2026-03-10 | utils.js extraction — shared utilities refactor | All pages (automated) | None | 170/170 Track 1 passing |
 | 2026-03-10 | _redirects — Netlify clean URL rewrites | None (no HTML modified; Playwright can't test Netlify rewrites) | None | 170/170 Track 1 passing; post-deploy checks pending |
+| 2026-03-10 | Clean URL debugging — relative path fix on profile pages | candidate.html, committee.html, race.html (automated + live) | apiFetch not defined on /candidate/:id; unstyled committee page; race nav submitting to wrong path; index redirect using relative URL | 170/170 Track 1 passing; live post-deploy checks in progress |
