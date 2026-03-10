@@ -71,24 +71,35 @@ Every color swatch has `data-token` and `data-hex` attributes. Every component c
 
 ### CSS variables (defined in `styles.css :root`)
 
-Dark theme. Key CSS variables:
+Light "broadsheet" theme. Key CSS variables:
 
 ```
---bg: #0d0f12        (page background)
---surface: #141720   (cards, sidebar)
---surface2: #1c2030  (hover states)
---border: #252a38
---text: #e8eaf0
---muted: #5a6070
---subtle: #8890a0
---dem: #4a90d9       (Democrat)
---rep: #d94a4a       (Republican)
---green: #3dbf7a     (healthy)
---amber: #e8a020     (watch / warning)
---red: #d94a4a       (stressed)
+--bg: #ede8e0        (page background)
+--surface: #f7f4ef   (cards, panels)
+--surface2: #eee9e1  (chart interiors, inset elements)
+--border: #cdc7bc
+--border-strong: #a8a099  (strong borders, nav dots default)
+--text: #1a1510
+--muted: #625b52
+--subtle: #46403a
+--dem: #1e3a5f       (Democrat)
+--rep: #a83228       (Republican)
+--ind: #5a4a7a       (Independent)
+--green: #1e6644     (healthy)
+--amber: #8a5f10     (watch / warning)
+--red: #a83228       (stressed)
+--accent: #2c5282    (interactive accent, active indicators)
+--accent-dim: rgba(44,82,130,0.1)  (accent tint)
+
+Sidebar-scoped tokens (avoid using outside sidebar):
+--sidebar-bg: #e8e2d8
+--sidebar-border: #cdc7bc
+--sidebar-text: #1a1510
+--sidebar-muted: #625b52
+--sidebar-active-bg: #d4cdc3
 ```
 
-Typography: Syne 800 for display/headings, IBM Plex Mono 300–500 for everything else.
+Typography: Barlow Condensed 700–900 for display/headings (uppercase), DM Sans 300–500 for body/nav, IBM Plex Mono 400–500 for labels and data.
 
 ---
 
