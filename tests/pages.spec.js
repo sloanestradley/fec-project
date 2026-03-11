@@ -188,6 +188,11 @@ test.describe('race.html', () => {
     expect(cardText?.match(/\$[\d,.]+/)).toBeTruthy();
   });
 
+  test('candidate cards show a party tag', async ({ page }) => {
+    const tag = page.locator('.candidate-card .tag').first();
+    await expect(tag).toBeVisible();
+  });
+
   test('candidate card links to candidate page with cycle hash', async ({ page }) => {
     // Accept both /candidate/{id}#year#summary (clean URL) and candidate.html?id=...#year
     const link = page.locator('a.candidate-card[href*="candidate"]').first();

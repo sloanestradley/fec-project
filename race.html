@@ -143,7 +143,7 @@ function buildYearSelector() {
 function buildCandidateCard(c) {
   var id    = c.candidate_id || (c.candidate_ids && c.candidate_ids[0]);
   var name  = toTitleCase(c.candidate_name || c.name);
-  var party = c.party || '';
+  var party = c.party || c.party_full || '';
   var pcls  = partyClass(party);
   var plbl  = partyLabel(party);
 
@@ -165,8 +165,7 @@ function buildCandidateCard(c) {
   return '<a class="candidate-card" href="' + href + '"'
     + ' onclick="amplitude.track(\'Candidate Result Clicked\',{candidate_id:' + JSON.stringify(id)
     + ',from_page:\'race\',race_year:' + JSON.stringify(yearParam) + '})">'
-    + '<div class="candidate-card-name">' + name + '</div>'
-    + '<div class="candidate-card-meta">'
+    + '<div class="candidate-card-name">' + name
     + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
     + '</div>'
     + statsHtml

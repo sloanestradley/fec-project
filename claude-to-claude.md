@@ -609,3 +609,77 @@ The through-line: Sloane is consistently enforcing process (plan mode), making s
 - The .layout / banner overlap on candidate.html — needs a fresh debugging session. Before starting, open DevTools on localhost:8080/candidate.html?id=H2WA03217, inspect the .layout element, check computed top offset and whether body padding-top:36px is being applied. Bring a screenshot of the Elements panel showing computed layout.
 - Breadcrumb uppercase on entity names — currently text-transform:uppercase renders candidate names, committee names, and race names fully uppercase in breadcrumbs (MARIE GLUESENKAMP PEREZ, FRIENDS OF MGP FOR CONGRESS). Is this the intended reading experience, or should only navigational segments be uppercase while the entity name stays mixed case?
 - Spent tab on candidate.html — still the only unbuilt tab. Now that headers, breadcrumbs, and browse infrastructure are stable, is this the next priority?
+
+---
+2026-03-11 — Party tag on race candidate cards
+
+## Process log draft
+Title: The tag was there all along — just speaking a different language
+
+The party tags were wired up from the start — partyClass(), partyLabel(), the HTML, the CSS — but they never appeared on the race page. The /elections/ endpoint turned out to return party_full ("DEMOCRATIC PARTY") instead of the three-letter party code ("DEM") used by every other FEC endpoint. The utilities only matched the short codes, so every lookup returned empty string and the tags silently disappeared. Once the actual API response was fetched and inspected, the fix was three lines.
+
+Changelog:
+– race.html: moved party tag from separate .candidate-card-meta div into .candidate-card-name div (inline with name, same row)
+– styles.css: added display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap to .candidate-card-name
+– race.html: buildCandidateCard now reads c.party || c.party_full to handle both endpoint shapes
+– utils.js: partyClass() and partyLabel() now match startsWith('DEMOCRAT') and startsWith('REPUBLICAN') in addition to 'DEM'/'REP' short codes — handles any endpoint returning full party names
+
+Field notes:
+The debugging process here was a good reminder of how the mock/live gap works in this project. The Playwright tests all passed because the mock fixture used party: 'DEM' — matching what the utilities expected. The live API returns a completely different field name for the same concept, and there's no test that exercises the live shape. The fix to partyClass/partyLabel to accept both formats is the right call: it means any future endpoint returning full party names will just work without another round of this.
+
+Stack tags: FEC API · utils.js
+
+## How Sloane steered the work
+**Catching the visual gap immediately**
+The party tags weren't visible after the first deploy of the change, and rather than assuming it was a caching issue and moving on, you flagged it and confirmed via DevTools that the CSS was fresh. That distinction — "the CSS is definitely loaded, the tag is still missing" — is what shifted the investigation from a caching red herring to an actual data bug.
+
+**Providing the screenshot**
+Sharing the screenshot made the gap unambiguous. "Missing entirely" plus a visual of the cards confirmed there was nothing to hover, nothing hidden by overflow — the HTML just wasn't rendering the tag at all. That's a different class of bug than "tag is there but styled wrong," and the screenshot made that clear in one look.
+
+The through-line: Sloane gave debugging exactly the right signal at each step — confirmed the CSS was fresh before assuming cache, confirmed the tag was absent (not just mispositioned), and escalated to a screenshot when words weren't enough. Each signal closed a branch of the investigation rather than opening new ones.
+
+## What to bring to Claude Chat
+- The mock/live field name gap is a structural risk — the /elections/ mock uses party: 'DEM' but live returns party_full. Worth a quick audit: are there other fields in the mock fixtures that don't match actual API response shapes? This won't surface in Playwright but will bite in production.
+- Next priority alignment: CLAUDE.md lists Spent tab, committee filing history, and ad hoc race mode as remaining work. Which of these is the right next session?
+
+---
+2026-03-11 — Mock/live field shape audit
+
+## Process log draft
+Title: The tests were green. The map was empty.
+
+The Playwright suite had been passing since the mock was first written, but one fixture was quietly serving the wrong data shape for the geography heatmap. The /schedules/schedule_a/by_state/ endpoint returns state-level aggregates — {state, state_full, total, count} — but the mock was returning individual contribution records with {contributor_state, contribution_receipt_amount}. The page code used d.state and d.total; the mock had neither. The heatmap rendered nothing in tests and nobody noticed, because no test asserted on it. The party tag bug from the previous session was the right prompt to audit systematically — and the audit found seven more gaps before any of them bit in production.
+
+Changelog:
+– Fetched live responses for all 9 mocked FEC endpoints and compared field names and value formats against fixtures
+– SCHEDULE_A_BY_STATE: new fixture with correct field names (state, state_full, total, count); split from individual SCHEDULE_A fixture which now uses proper individual-contribution shape
+– Route handler: /by_state/ now routes before plain /schedule_a/ so each path gets the right fixture
+– TOTALS + COMMITTEE_TOTALS: coverage_end_date updated from '2024-12-31' to '2024-12-31T00:00:00' (live API always includes timestamp)
+– REPORTS: total_receipts_ytd changed from number to string (live API quirk — only receipts is a string; disbursements is a float)
+– CANDIDATE_COMMITTEES: leadership_pac changed from false to null (live value)
+– COMMITTEE: organization_type_full changed from 'Candidate' to null (live value)
+– CANDIDATE: added party_full: 'DEMOCRATIC PARTY' (present in live, missing from mock)
+– CLAUDE.md: added mock/live gap risk pattern to Remaining architectural debt; updated test count 174 → 175
+– test-cases.md: updated test count in How to use section; added test log row
+– 175/175 structural tests pass
+
+Field notes:
+The audit structure — fetch live, compare to mock, document gaps before touching code — is the right process for this class of bug. The party tag failure from the previous session was a case where the live API used a different field name entirely (party_full vs party). This audit found a case where the field names were correct but the value types differed (string vs number), a case where an entire fixture was serving the wrong endpoint shape (by_state vs individual), and several cases where null vs false or null vs 'Candidate' diverged silently. None of these produced test failures. All of them would have produced silent rendering failures in production if the page code hadn't already been written defensively (parseFloat, split('T'), partyClass accepting both formats). The mock/live gap is structural — the only fix is a standing practice: fetch one live response when adding any new endpoint, before writing the mock.
+
+Stack tags: FEC API · Playwright · api-mock.js
+
+## How Sloane steered the work
+**Framing this as a pre-deploy audit, not a feature**
+The explicit constraint — "no UI changes, no new features, audit only" — kept the session focused. Without that framing, an audit session can drift into refactoring or improvement. With it, every fix was scoped to field name/value gaps only. That's exactly right for a session whose job is to close unknown unknowns before they ship.
+
+**Treating the party tag bug as a signal, not a one-off**
+The previous session fixed one gap (party_full vs party). Rather than closing that ticket and moving on, you recognized it as a representative failure — evidence that the mock/live gap was a pattern worth auditing systematically. That's the difference between fixing the bug and fixing the class of bug.
+
+**Setting the ritual order: log first, then deploy**
+Asking to run end-of-session rituals before the deploy commit means the session log and CLAUDE.md updates land in the same commit as the code changes. That's a better artifact than a floating log entry that doesn't reference a real commit.
+
+The through-line: Sloane consistently treats process discipline as part of the work, not overhead after it. The audit structure, the scope constraint, the commit order — all of it reflects a belief that the codebase should remain legible to a future session, not just functional right now.
+
+## What to bring to Claude Chat
+– Next priority alignment: audit is done, tests are clean, party tag fix and mock corrections are ready to deploy. CLAUDE.md lists Spent tab timeline, committee filing history, and ad hoc race mode as remaining Phase 3 work. Which is next?
+– Mock test coverage gap: no Playwright tests assert on the geography heatmap or the contributor breakdown table — the by_state fixture was wrong for months without detection. Worth deciding whether to add light assertions on those sections (e.g. heatmap SVG renders, top-states table has rows) before Phase 4 adds more endpoints.

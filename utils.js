@@ -59,16 +59,16 @@ function toTitleCase(name) {
 function partyClass(p) {
   if (!p) return 'tag-neutral';
   var u = p.toUpperCase();
-  if (u === 'DEM') return 'tag-dem';
-  if (u === 'REP') return 'tag-rep';
+  if (u === 'DEM' || u.startsWith('DEMOCRAT')) return 'tag-dem';
+  if (u === 'REP' || u.startsWith('REPUBLICAN')) return 'tag-rep';
   return 'tag-ind';
 }
 
 function partyLabel(p) {
   if (!p) return '';
   var u = p.toUpperCase();
-  if (u === 'DEM') return 'Democrat';
-  if (u === 'REP') return 'Republican';
+  if (u === 'DEM' || u.startsWith('DEMOCRAT')) return 'Democrat';
+  if (u === 'REP' || u.startsWith('REPUBLICAN')) return 'Republican';
   return p;
 }
 

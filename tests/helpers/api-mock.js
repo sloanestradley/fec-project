@@ -16,6 +16,7 @@ const CANDIDATE = {
     candidate_id: 'H2WA03217',
     name: 'GLUESENKAMP PEREZ, MARIE',
     party: 'DEM',
+    party_full: 'DEMOCRATIC PARTY',
     office: 'H',
     state: 'WA',
     district: '03',
@@ -31,7 +32,7 @@ const TOTALS = {
     receipts: 3500000,
     disbursements: 3100000,
     last_cash_on_hand_end_period: 450000,
-    coverage_end_date: '2024-12-31',
+    coverage_end_date: '2024-12-31T00:00:00',
     cycle: 2024,
   }],
   pagination: { count: 1 },
@@ -47,7 +48,7 @@ const CANDIDATE_COMMITTEES = {
     committee_type: 'H',
     committee_type_full: 'House',
     filing_frequency: 'Q',
-    leadership_pac: false,
+    leadership_pac: null,
     sponsor_candidate_ids: null,
   }],
   pagination: { count: 1 },
@@ -70,7 +71,7 @@ const COMMITTEE = {
     designation_full: 'Principal campaign committee',
     filing_frequency: 'Q',
     state: 'WA',
-    organization_type_full: 'Candidate',
+    organization_type_full: null,
   }],
   pagination: { count: 1 },
 };
@@ -81,18 +82,20 @@ const COMMITTEE_TOTALS = {
     receipts: 3500000,
     disbursements: 3100000,
     last_cash_on_hand_end_period: 450000,
-    coverage_end_date: '2024-12-31',
+    coverage_end_date: '2024-12-31T00:00:00',
   }],
   pagination: { count: 1 },
 };
 
 // Per-period filing reports (used for chart data)
+// Note: live API returns total_receipts_ytd as a string (FEC API quirk);
+// total_disbursements_ytd is a float. parseFloat() in candidate.html handles both.
 const REPORTS = {
   results: [
     {
       coverage_start_date: '2024-01-01T00:00:00',
       coverage_end_date:   '2024-03-31T00:00:00',
-      total_receipts_ytd:       1200000,
+      total_receipts_ytd:       '1200000.00',
       total_disbursements_ytd:   900000,
       cash_on_hand_end_period:   450000,
       report_form: 'Form 3',
@@ -101,7 +104,7 @@ const REPORTS = {
     {
       coverage_start_date: '2024-04-01T00:00:00',
       coverage_end_date:   '2024-06-30T00:00:00',
-      total_receipts_ytd:       2500000,
+      total_receipts_ytd:       '2500000.00',
       total_disbursements_ytd:  2000000,
       cash_on_hand_end_period:   600000,
       report_form: 'Form 3',
@@ -110,7 +113,7 @@ const REPORTS = {
     {
       coverage_start_date: '2024-07-01T00:00:00',
       coverage_end_date:   '2024-09-30T00:00:00',
-      total_receipts_ytd:       3200000,
+      total_receipts_ytd:       '3200000.00',
       total_disbursements_ytd:  2700000,
       cash_on_hand_end_period:   550000,
       report_form: 'Form 3',
@@ -159,7 +162,7 @@ const ELECTIONS = {
   results: [{
     candidate_id:              'H2WA03217',
     candidate_name:            'GLUESENKAMP PEREZ, MARIE',
-    party:                     'DEM',
+    party_full:                'DEMOCRATIC PARTY',
     total_receipts:            3500000,
     total_disbursements:       3100000,
     cash_on_hand_end_period:    450000,
@@ -190,11 +193,23 @@ const DISBURSEMENTS = {
   pagination: { count: 2 },
 };
 
-// Schedule A (individual contributions by state/zip)
+// Schedule A — by_state aggregation (/schedules/schedule_a/by_state/)
+// Returns state-level totals, NOT individual contributions.
+// Fields: state, state_full, total, count (not contributor_state / contribution_receipt_amount)
+const SCHEDULE_A_BY_STATE = {
+  results: [
+    { committee_id: 'C00775668', cycle: 2024, state: 'WA', state_full: 'Washington', total: 500000, count: 1200 },
+    { committee_id: 'C00775668', cycle: 2024, state: 'CA', state_full: 'California',  total: 200000, count:  480 },
+  ],
+  pagination: { count: 2 },
+};
+
+// Schedule A — individual contributions (/schedules/schedule_a/)
+// Fields: contributor_name, contribution_receipt_amount, contributor_state, etc.
 const SCHEDULE_A = {
   results: [
-    { contributor_state: 'WA', contribution_receipt_amount: 500000 },
-    { contributor_state: 'CA', contribution_receipt_amount: 200000 },
+    { contributor_name: 'SMITH, JOHN', contribution_receipt_amount: 2900, contributor_state: 'WA', contributor_city: 'OLYMPIA', contributor_employer: 'SELF', contributor_occupation: 'ENGINEER' },
+    { contributor_name: 'DOE, JANE',  contribution_receipt_amount: 1500, contributor_state: 'CA', contributor_city: 'OAKLAND',  contributor_employer: 'ACME',  contributor_occupation: 'TEACHER' },
   ],
   pagination: { count: 2 },
 };
@@ -265,7 +280,10 @@ function resolveFixture(path, params) {
     return COMMITTEES_LIST;
   }
 
-  // Schedule A (individual contributions)
+  // Schedule A — by_state aggregation (must come before plain schedule_a check)
+  if (/\/schedules\/schedule_a\/by_state\//.test(path)) return SCHEDULE_A_BY_STATE;
+
+  // Schedule A — individual contributions
   if (/\/schedules\/schedule_a\//.test(path)) return SCHEDULE_A;
 
   // Schedule B (disbursements)
