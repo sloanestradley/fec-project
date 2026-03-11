@@ -54,6 +54,16 @@
   --chart-overlay-today:    rgba(136,144,160,0.18);
 }
 
+/* ── Global banner ── */
+.global-banner { position:fixed; top:0; left:0; right:0; z-index:300;
+  background:#1c1710; height:var(--banner-h);
+  display:flex; align-items:center; justify-content:center; }
+.global-banner-text { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0;
+  text-transform:uppercase; color:#7a7060; text-align:center; line-height:1; }
+.global-banner-text strong { color:#c8c0b0; }
+/* In design system component previews, render inline not fixed */
+.ds-component-preview .global-banner { position:static; width:100%; border-radius:3px; }
+
 /* ── Base ── */
 body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif;
   font-size:14px; line-height:1.55; min-height:100vh; overflow-x:hidden;
