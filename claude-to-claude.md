@@ -471,3 +471,46 @@ The through-line: you're treating the test suite as production infrastructure, n
 – Test coverage gaps to prioritize next: the Spent tab isn't built yet, so there's no test for it. When Spent ships, tests need to be added in the same session. Worth flagging this as a pattern — new features need test cases written at the same time they're built, or the suite drifts.
 
 – Whether to add Playwright to the Netlify deploy pipeline (CI). Currently tests only run locally. Adding them as a pre-deploy check would catch regressions before they go live, but requires the FEC API key to be available in CI for smoke tests, or keeping smoke tests local-only.
+---
+2026-03-10 — Banner refactor and polish fixes session
+
+## Process log draft
+
+**Title:** The global banner was everywhere and nowhere at once
+
+Every page was supposed to show the early-build banner. Most did — but only candidate.html had the CSS to style it. All the others had the markup sitting unstyled at the bottom of the page, invisible until you scrolled past the sidebar. Process-log and design-system had no banner at all. This session made it truly global: one CSS rule in styles.css, identical markup on every page, one canonical height token, no overrides.
+
+Changelog:
+- Moved `.global-banner` and `.global-banner-text` CSS from candidate.html inline `<style>` into styles.css as the single source of truth
+- Added `position:fixed; top:0; left:0; right:0; z-index:300` — the fix that makes DOM placement irrelevant
+- Added `.ds-component-preview .global-banner { position:static }` so the design system preview renders inline, not flyover
+- Added banner HTML to process-log.html and design-system.html (previously missing entirely)
+- Removed stale `:root { --banner-h: 28px }` overrides from 6 browse pages (search, races, committees, candidates, committee, race); `styles.css :root { --banner-h: 36px }` is now the only definition
+- Removed the same stale 28px override from candidate.html (previously fixed the inline CSS but left the variable)
+- Fixed design-system.html component preview to use identical markup — `<p>` tag + `&nbsp;` spacing — matching all other pages
+- Fixed race.html `<title>` to omit the `·` bullet separator
+- Fixed committee.html `<title>` to set dynamically to `[Committee Name] — ledger.fec` on data load, matching candidate.html pattern
+
+Field notes:
+The stale `--banner-h: 28px` overrides were a ghost from an earlier phase — probably copied into each scaffold page when candidate.html was the reference template. They were never cleaned up as the design system matured. The inconsistency only became visible after the CSS was centralized, which is the point: consolidation reveals drift that was always there but hidden by redundancy. The `<span>` vs `<p>` discrepancy in the design system preview was the same class of thing — a copy-paste from an earlier draft that lived undetected in a component demo nobody was directly comparing to the live version.
+
+Stack tags: CSS architecture · Design system
+
+## How Sloane steered the work
+
+**Starting with symptoms, not a known cause**
+You came in describing a visual inconsistency — height and spacing differences on three specific pages — without knowing the root cause. That's the right framing: surface the observation, let investigation reveal the mechanism. The alternative (guessing a fix and applying it) would have missed the `--banner-h` variable drift entirely.
+
+**Not accepting "it worked in tests" as enough**
+After the banner CSS consolidation, tests passed 170/170. But you flagged the visual regression anyway — the cache issue first, then the height inconsistency. Automated tests confirmed structural correctness; your eye confirmed visual correctness. Both are needed.
+
+**Catching the markup mismatch on design-system.html**
+The `<span>` vs `<p>` difference in the component preview was subtle — same class names, same text, slightly different spacing due to the element type and missing `&nbsp;` spacers. Flagging it separately, after the height fix, showed that you were evaluating the result visually and not just trusting that "the HTML was added" equaled "it looks right."
+
+The through-line: you're treating visual consistency as a first-class quality signal, not a polish afterthought. The fixes this session were small in code terms but meaningful in portfolio terms — the kind of detail that separates a designed product from a built one.
+
+## What to bring to Claude Chat
+
+- The banner is now globally consistent — good moment to evaluate whether 36px is the right height, or whether it should be tightened. Worth a visual check on the deployed site before moving on.
+- Spent tab remains the top unbuilt feature. Now that the infrastructure cleanup is done, is this session the right moment to start planning it, or are there more polish fixes to address first?
+- The process-log.html and design-system.html hadn't had a full manual test run since the broadsheet theme shipped. Worth doing a browser pass to confirm everything looks right before the next feature build.
