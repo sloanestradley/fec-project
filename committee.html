@@ -220,11 +220,12 @@ function renderHeader(c) {
   document.getElementById('committee-name').textContent = c.name || '—';
 
   // Meta row: type tag, status tag, designation
-  var isTerminated = c.filing_frequency === 'T';
+  var dotCls  = filingFrequencyDotClass(c.filing_frequency);
+  var freqLbl = filingFrequencyLabel(c.filing_frequency);
   var metaHtml = '';
   metaHtml += '<span class="tag tag-neutral">' + committeeTypeLabel(c.committee_type) + '</span>';
-  metaHtml += ' <span class="tag ' + (isTerminated ? 'tag-terminated' : 'tag-active') + '">'
-    + (isTerminated ? 'Terminated' : 'Active') + '</span>';
+  metaHtml += ' <span class="tag tag-neutral"><span class="status-dot ' + dotCls + '"></span>'
+    + freqLbl + '</span>';
   if (c.designation && c.designation !== c.committee_type) {
     metaHtml += ' <span class="designation-label">· ' + designationLabel(c.designation) + '</span>';
   }

@@ -442,9 +442,9 @@ async function fetchAndRenderCommittees() {
       seen.add(c.committee_id); return true;
     });
 
-    // Split: filing_frequency 'T' = terminated
-    var active     = unique.filter(function(c){ return c.filing_frequency !== 'T'; });
-    var terminated = unique.filter(function(c){ return c.filing_frequency === 'T'; });
+    // Split: 'T' = terminated, 'A' = administratively terminated (FEC-initiated, outstanding debts)
+    var active     = unique.filter(function(c){ return c.filing_frequency !== 'T' && c.filing_frequency !== 'A'; });
+    var terminated = unique.filter(function(c){ return c.filing_frequency === 'T' || c.filing_frequency === 'A'; });
 
     // Render Active tab
     var activeHtml = renderCommitteeGroups(active, false);

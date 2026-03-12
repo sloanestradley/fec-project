@@ -123,7 +123,7 @@
 ### Committees modal
 - [ ] Opens on clicking "Committees (N) →"
 - [ ] Active tab shows authorized/principal committees
-- [ ] History tab visible if terminated committees exist
+- [ ] History tab visible if terminated committees exist (`filing_frequency === 'T'` or `'A'`; administratively terminated committees go here too)
 - [ ] Each committee row shows name and type; name links to committee.html?id=...
 - [ ] JFA gap note visible at bottom of modal
 - [ ] Modal closes on Escape key
@@ -154,7 +154,7 @@
 - [ ] Typing 2+ characters → dropdown appears within ~350ms
 - [ ] Dropdown shows "Candidates" and "Committees" group labels
 - [ ] Each candidate row: `First Last (CANDIDATE_ID)` on left, `House`/`Senate`/`President` on right
-- [ ] Each committee row: `Committee Name (COMMITTEE_ID)` on left, colored status dot + `Active`/`Terminated` on right (green dot = active, grey = terminated)
+- [ ] Each committee row: `Committee Name (COMMITTEE_ID)` on left, colored status dot + `Active`/`Terminated` on right (green dot = active, grey = terminated; `filing_frequency 'T'` or `'A'` both show as Terminated)
 - [ ] "No candidates found" shown when API returns 0 candidates for that group
 - [ ] "No committees found" shown when API returns 0 committees for that group
 - [ ] Pressing Escape closes the dropdown
@@ -497,6 +497,7 @@ Expected failures — not bugs to fix now. Remove a row when the issue is resolv
 | Filing history not yet built | committee.html | 2026-03-10 |
 | Associated candidates section not yet built | committee.html | 2026-03-10 |
 | Ad hoc mode is stub/planned only | races.html | 2026-03-10 |
+| Schedule B 422s — Schedule B fetch failed: FEC 422 — /schedules/schedule_b/ — Fires 3–7 times per candidate page load. Predates the browse/search overhaul. FEC's /schedules/schedule_b/ endpoint requires committee_id as a mandatory param; at least some calls are firing without it. Contained to the Spent tab. Silently handled (console warning, no user-facing error). Non-blocking — fix before any work that touches the Spent tab. | candidate.html | 2026-03-12 |
 
 ---
 
@@ -522,3 +523,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-12 | Search overhaul (Session 1) — typeahead dropdown, two-group results preview, formatCandidateName, committee search fixture | search.html, utils.js, styles.css, api-mock.js, search.spec.js (automated) | None | 198/198 Track 1 passing |
 | 2026-03-12 | Search overhaul (Session 2) — ?q= search mode on candidates.html and committees.html (filter bar hide, infinite scroll, clean URL links, treasurer in committee search rows) | candidates.html, committees.html, pages.spec.js (automated) | None | 209/209 Track 1 passing |
 | 2026-03-12 | Unified browse+search control surface — auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state, clean URLs in all modes; apiFetch concurrency queue (MAX_CONCURRENT=4) | candidates.html, committees.html, utils.js, pages.spec.js, shared.spec.js, api-mock.js (automated) | None | 222/222 Track 1 passing |
+| 2026-03-12 | Filing status refactor — filing_frequency 'A' (admin terminated) fix; filingFrequencyLabel/DotClass utilities; replace binary Active/Terminated with raw labels + semantic dot tokens; token naming correction (--filing-active, --filing-terminated) | candidate.html, search.html, committees.html, committee.html, utils.js, styles.css, design-system.html (automated) | None | 222/222 Track 1 passing |

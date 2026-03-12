@@ -118,6 +118,16 @@ function formatRaceName(office, state, district) {
 
 // ── Committee utilities ──────────────────────────────────────────────────────
 
+function filingFrequencyLabel(code) {
+  var map = { A: 'Administratively Terminated', D: 'Debt', M: 'Monthly Filer',
+              Q: 'Quarterly Filer', T: 'Terminated', W: 'Waived' };
+  return map[code] || code || '—';
+}
+
+function filingFrequencyDotClass(code) {
+  return (code === 'T' || code === 'A') ? 'dot-gray' : 'dot-active';
+}
+
 function committeeTypeLabel(t) {
   var map = {
     P: 'Principal Campaign Committee',

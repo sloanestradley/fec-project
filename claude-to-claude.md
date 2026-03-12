@@ -886,3 +886,45 @@ The through-line: you're shipping features that feel finished — not scaffolded
 - **Filter persistence on back-navigation** — should filters set on candidates.html carry forward when navigating to a candidate and hitting back? Currently they do via pushState, but the UX hasn't been thought through intentionally.
 - **Committee page completeness** — filing history and associated candidates on committee.html are the main remaining Phase 3 scaffolds. Worth deciding priority vs. race page ad hoc mode before the next session.
 - **apiFetch queue tuning** — MAX_CONCURRENT=4 was chosen conservatively. Worth monitoring in production whether 4 is right once real traffic hits.
+
+---
+2026-03-12 — Filing status refactor: explicit labels, correct termination handling, token system correction
+
+## Process log draft
+Title: More explicit, more correct — the quiet kind of progress
+
+Sometimes a session doesn't ship a feature — it fixes the assumptions underneath one. The committee filing status display was technically working, but it was wrong: it couldn't distinguish between a committee that chose to terminate and one the FEC administratively terminated for unresolved debt. This session made it correct, then made it honest — showing the actual filing frequency label instead of a collapsed binary, backed by a proper token system.
+
+Changelog:
+– candidate.html: filing_frequency 'A' (administratively terminated) now routes to History tab alongside 'T'; previously fell through to Active
+– search.html, committees.html, committee.html: replaced binary Active/Terminated tag with dot + human-readable filing frequency label (Quarterly Filer, Terminated, Administratively Terminated, etc.)
+– utils.js: two new shared utilities — filingFrequencyLabel() (A/D/M/Q/T/W → display text) and filingFrequencyDotClass() (green or gray dot class)
+– styles.css: added --filing-active (#3dbf7a) and --filing-terminated (#a8a099) as semantic Tier 2 tokens; removed .tag-active and .tag-terminated (no remaining usages); added .status-dot and .dot-gray
+– design-system.html: both new tokens documented in token table
+– project-brief.md: termination status definitions added (voluntary vs. administrative)
+– CLAUDE.md: filing_frequency values documented; end-of-session ritual updated to include design-system.html and project-brief.md as mandatory documentation targets
+
+Field notes:
+The token naming correction was the most instructive moment. Promoting primitives (warm-active, green-500) directly to CSS variables under their primitive names is exactly the pattern the design system's tier hierarchy exists to prevent. The fix — --filing-active, --filing-terminated — is two words longer but carries real meaning: what the color is for, not what it looks like. The ritual additions at the end of the session are the same instinct applied to process: making the right thing the default thing, so it doesn't depend on remembering.
+
+Stack tags: none
+
+## How Sloane steered the work
+**Catching the token naming violation before it shipped**
+When --green-500 and --warm-active appeared as new CSS variables, Sloane immediately flagged that these were primitive names, not semantic ones — exactly what the token tier system prohibits. The redirect to --filing-active and --filing-terminated was fast and precise. Small call, but it kept the design system coherent.
+
+**"Let's try filing-terminated at warm-rule-dark instead"**
+Rather than accepting the first color choice, Sloane iterated on the terminated dot value by referencing a specific primitive by name. That's the design system working as intended — decisions made in terms of the token vocabulary, not hex values.
+
+**Baking new rituals into CLAUDE.md**
+Two additions in one session — design-system.html and project-brief.md as mandatory end-of-session documentation targets. Both came directly from noticing gaps in this session's work and closing them at the process level rather than relying on case-by-case judgment.
+
+**"UX isn't as clean as I want it to be, but it works for now"**
+Naming the UX debt explicitly rather than declaring the refactor done. That's a product instinct — knowing when something is correct but not finished, and saying so out loud so it doesn't get forgotten.
+
+The through-line: Sloane consistently enforces the system — the token hierarchy, the ritual structure, the UX bar — and treats violations as signals to fix the process, not just the instance.
+
+## What to bring to Claude Chat
+– Filing status UX debt: the dot + label pattern is more correct but Sloane flagged it's not as clean as she wants. Worth a dedicated design pass — what would the ideal treatment look like? Is the label necessary, or can the dot alone carry enough meaning with a tooltip?
+
+– Token system maturity: this session surfaced a gap between Tier 1 primitives and Tier 2 semantic tokens — specifically, no clear process for deciding when a primitive warrants a semantic token vs. inline hex. Worth defining a rule of thumb before the token table grows further.

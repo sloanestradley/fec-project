@@ -91,8 +91,10 @@ Light "broadsheet" theme. Key CSS variables:
 --rep: #a83228       (Republican)
 --ind: #5a4a7a       (Independent)
 --green: #1e6644     (healthy)
+--filing-active: #3dbf7a (active filing status dot)
 --amber: #8a5f10     (watch / warning)
 --red: #a83228       (stressed)
+--filing-terminated: #a8a099 (terminated filing status dot)
 --accent: #2c5282    (interactive accent, active indicators)
 --accent-dim: rgba(44,82,130,0.1)  (accent tint)
 
@@ -278,7 +280,7 @@ The associated committees feature is a modal triggered from the profile header �
 
 - **Two parallel API calls at init:** `/candidate/{id}/committees/` (authorized committees) + `/committees/?sponsor_candidate_id={id}` (leadership PACs). Results merged, deduped by `committee_id`.
 - **Leadership PAC identification:** `leadership_pac: true` boolean field on the committee record is the reliable signal. `committee_type === 'D'` is unreliable — some leadership PACs have `committee_type: 'N'`. Records from the sponsor endpoint are tagged `_isLeadershipPac = true` as a fallback.
-- **Active vs. terminated split:** `filing_frequency === 'T'` = terminated. Active committees go in the Active tab; terminated in History tab (hidden if empty).
+- **Active vs. terminated split:** `filing_frequency === 'T'` = terminated; `filing_frequency === 'A'` = administratively terminated (FEC-initiated, committee has unresolved debts). Both route to the History tab. Active tab = everything else.
 - **Committee grouping order:** Principal Committee → Joint Fundraising → Leadership PAC → Other Authorized → Other. Uses an `assigned` Set to prevent double-counting.
 - **Eager loading:** `fetchAndRenderCommittees()` called in `init()` (not on modal open) so the count in the trigger label is immediate. `committeesLoaded` flag prevents double-fetch on modal re-open.
 - **JFA gap acknowledged in modal:** A `.data-note` at the bottom of the modal explains that JFA committees where the candidate is a participant (not principal) may not appear — this is an FEC API indexing limitation, not a bug.
@@ -286,7 +288,7 @@ The associated committees feature is a modal triggered from the profile header �
 Key committee fields:
 - `designation` — `'P'` = Principal CC, `'A'` = Authorized, `'J'` = Joint Fundraising
 - `committee_type` — `'J'` = JFA, `'D'` = Leadership PAC (unreliable for LP detection — use `leadership_pac` boolean)
-- `filing_frequency` — `'T'` = terminated, `'Q'` = quarterly (active)
+- `filing_frequency` — `'T'` = terminated, `'A'` = administratively terminated (FEC-initiated), `'Q'` = quarterly (active)
 - `leadership_pac` — boolean; most reliable leadership PAC signal
 - `sponsor_candidate_ids` — array on committee record; leadership PACs carry the candidate's ID here
 
@@ -423,6 +425,8 @@ Read CLAUDE.md, project-brief.md, and claude-to-claude.md, then: (1) check wheth
 - `test-cases.md` — add manual test cases for new features; update test count if changed; append test log row
 - `TESTING.md` — update test count; update the pages.spec.js coverage description if new describe blocks were added
 - `ia.md` — update Page Inventory status, URL Patterns table, Browse→Profile link patterns, or Phase Roadmap if any pages changed behavior or were promoted
+- `design-system.html` — add new tokens to the token table (with primitive source and usage note); update or add component cards for any new or changed components; remove entries for anything deleted
+- `project-brief.md` — add or update definitions for any new domain concepts, data fields, status values, or product decisions introduced this session
 
 Before running /compact or ending a session, output all four of the following — each in its own fenced code block so they're easy to copy individually. Sloane will bring these to Claude Chat.
 

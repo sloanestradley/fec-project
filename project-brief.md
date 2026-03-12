@@ -94,6 +94,7 @@ A visual, non-partisan tool for answering one question fast: *where is money flo
 - Authorized by candidate
 - **Known gap:** JFA committees where the candidate is a participant (not organizer) have no `candidate_ids` or `sponsor_candidate_ids` in the FEC API — they don't appear in standard committee queries. Only surfaced in the candidate's F2 Statement of Candidacy filing. Surfacing these requires F2 parsing — not yet built; validate approach with John before implementing.
 - **UI:** Committees are presented in a header modal (not a tab), not cycle-scoped. Active and terminated committees shown in separate tabs with counts. Committees will eventually link to committee pages.
+- **Termination statuses:** Two distinct terminated states exist in FEC data. *Voluntarily terminated* (`filing_frequency: 'T'`) — committee filed to close. *Administratively terminated* (`filing_frequency: 'A'`) — FEC-initiated; applies to inactive committees with unresolved debts that failed to settle through normal procedures. Both are shown in the History tab; the distinction is not currently surfaced in the UI.
 - NOTE: If candidate associates with a new PAC mid-cycle, they must refile F2.
 
 ### Committee Profiles
@@ -168,9 +169,6 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 
 ---
 
-
----
-
 ## Phased Roadmap
 
 ### Phase 1 — Make the candidate page genuinely useful
@@ -215,6 +213,20 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - **The name** — "Ledger" appears in the process log nav but hasn't been committed to. Name and domain matter for portfolio presentation and user perception.
 - **UI, interaction, and accessibility** — needs a holistic pass; not scoped to a single phase. Accessibility standards, motion design, touch targets, color contrast, keyboard navigation.
 - **House / Senate browsing pages** — breadcrumbs reference these but they're not priority pages. Filtered search results serve this function for MVP; revisit post-Phase 2.
+
+---
+
+## Infrastructure / Architecture debt
+
+- **Netlify Function proxy** - the API key is currently exposed client-side in utils.js; the fix is a Netlify serverless function that proxies all FEC requests server-side, holds the key as an environment variable, and optionally adds response caching for repeat lookups. Worth a dedicated session — it touches utils.js, requires a netlify/functions/ directory, a netlify.toml, and Netlify environment variable configuration. - *FLAG: this is a pre-launch priority, not a polish item.*
+
+---
+
+## Open items (not prioritized)
+
+- **Default sort for browse mode (candidates + committees)** - Currently sort=name. Ideally sort=-receipts for discovery, but FEC API blocks it without a q= param. Date-based alternatives (last_file_date, load_date, first_file_date) are either invalid sort fields or null-heavy, producing useless ordering. Options: default to election_year=2026 filter to narrow the browse set meaningfully, or revisit when the Netlify proxy is in place (server-side could pre-filter or cache a sorted set). Not urgent but intentionally deferred. *noted, but this might not be as much of an issue when it stops being a top-level page and acts as a landing after kicking off search*
+
+---
 
 ## Open Questions
 

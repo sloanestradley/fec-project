@@ -319,9 +319,8 @@ function showState(name) {
 // ── Row builder ───────────────────────────────────────────────────────────────
 
 function buildRow(c, i, fromPage) {
-  var isTerminated = c.filing_frequency === 'T';
-  var statusCls    = isTerminated ? 'tag-terminated' : 'tag-active';
-  var statusLbl    = isTerminated ? 'Terminated' : 'Active';
+  var dotCls  = filingFrequencyDotClass(c.filing_frequency);
+  var freqLbl = filingFrequencyLabel(c.filing_frequency);
 
   return '<div class="committee-row">'
     + '<div class="committee-name">'
@@ -334,8 +333,8 @@ function buildRow(c, i, fromPage) {
     + '<div class="committee-type">' + committeeTypeLabel(c.committee_type) + '</div>'
     + '<div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">'
     +   (c.treasurer_name || '—') + '</div>'
-    + '<div class="committee-id"><span class="tag ' + statusCls + '" style="font-size:0.52rem">'
-    +   statusLbl + '</span></div>'
+    + '<div class="committee-id"><span class="tag tag-neutral" style="font-size:0.52rem">'
+    + '<span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span></div>'
     + '</div>';
 }
 

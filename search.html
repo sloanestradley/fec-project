@@ -203,15 +203,12 @@ function buildTypeaheadHTML(candidates, committees) {
   html += '<div class="typeahead-group-label">Committees</div>';
   if (committees.length) {
     html += committees.map(function(c) {
-      var isTerminated = c.filing_frequency === 'T';
-      var dotCls = isTerminated ? 'dot-terminated' : 'dot-active';
-      var statusLbl = isTerminated ? 'Terminated' : 'Active';
+      var dotCls = filingFrequencyDotClass(c.filing_frequency);
       return '<a class="typeahead-row" href="/committee/' + c.committee_id + '">'
         + '<span class="typeahead-row-left">' + c.name
         + ' <span class="typeahead-row-id">(' + c.committee_id + ')</span></span>'
         + '<span class="typeahead-row-right">'
         + '<span class="typeahead-status-dot ' + dotCls + '"></span>'
-        + statusLbl
         + '</span>'
         + '</a>';
     }).join('');
@@ -300,10 +297,9 @@ function renderCommitteeGroup(committees, total, query) {
     return;
   }
   list.innerHTML = committees.map(function(c, i) {
-    var isTerminated = c.filing_frequency === 'T';
-    var statusCls = isTerminated ? 'tag-terminated' : 'tag-active';
-    var statusLbl = isTerminated ? 'Terminated' : 'Active';
-    var typeLbl   = committeeTypeLabel(c.committee_type);
+    var dotCls  = filingFrequencyDotClass(c.filing_frequency);
+    var freqLbl = filingFrequencyLabel(c.filing_frequency);
+    var typeLbl = committeeTypeLabel(c.committee_type);
     return '<a class="committee-result-row" href="/committee/' + c.committee_id + '"'
       + ' onclick="amplitude.track(\'Committee Result Clicked\',{'
       + 'committee_id:' + JSON.stringify(c.committee_id) + ','
@@ -313,7 +309,8 @@ function renderCommitteeGroup(committees, total, query) {
       + '<span class="committee-result-name">' + c.name + '</span>'
       + '<span class="committee-result-meta">'
       + '<span class="committee-result-type">' + typeLbl + '</span>'
-      + '<span class="tag ' + statusCls + '" style="font-size:0.52rem">' + statusLbl + '</span>'
+      + '<span class="tag tag-neutral" style="font-size:0.52rem">'
+      + '<span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span>'
       + '</span>'
       + '</a>';
   }).join('');
