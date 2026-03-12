@@ -10,9 +10,9 @@
 |---|---|---|---|---|
 | `index.html` | Root redirect → search.html | `/` | Live (redirect) | 1 |
 | `search.html` | Name-based candidate + committee search with typeahead | `/search?q={query}` | Live | 2 |
-| `candidates.html` | Browse candidates by state/office/party/cycle | `/candidates?state=WA&office=H&party=DEM&cycle=2026` | Scaffold | 2 |
+| `candidates.html` | Browse candidates by filter, or search by name via `?q=` | `/candidates?state=WA&office=H&party=DEM&cycle=2026` or `/candidates?q={query}` | Scaffold + search | 2 |
 | `candidate.html` | Single candidate profile | `/candidate/{fec_candidate_id}#{cycle}#{tab}` | Live | 1 |
-| `committees.html` | Browse committees by type/state | `/committees?state=WA&type=P` | Scaffold | 3 |
+| `committees.html` | Browse committees by type/state, or search by name via `?q=` | `/committees?state=WA&type=P` or `/committees?q={query}` | Scaffold + search | 3 |
 | `committee.html` | Single committee profile | `/committee/{fec_committee_id}` | Scaffold | 3 |
 | `races.html` | Race mode selector (curated / ad hoc) | `/races` | Scaffold | 3 |
 | `race.html` | Single race view — all candidates in a contest | `/race?state=WA&district=03&year=2026&office=H` | Scaffold | 3 |
@@ -58,8 +58,10 @@ Documentation
 
 | Browse page | Profile page | Link pattern |
 |---|---|---|
-| `candidates.html` | `candidate.html` | `candidate.html?id={candidate_id}` |
-| `committees.html` | `committee.html` | `committee.html?id={committee_id}` |
+| `candidates.html` (browse mode) | `candidate.html` | `candidate.html?id={candidate_id}` |
+| `candidates.html` (search mode) | `candidate.html` | `/candidate/{candidate_id}` (clean URL) |
+| `committees.html` (browse mode) | `committee.html` | `committee.html?id={committee_id}` |
+| `committees.html` (search mode) | `committee.html` | `/committee/{committee_id}` (clean URL) |
 | `races.html` → `race.html` | `candidate.html` | `candidate.html?id={id}#{year}#summary` |
 | `search.html` | `candidate.html` | `/candidate/{candidate_id}` |
 | `search.html` | `committee.html` | `/committee/{committee_id}` |
@@ -98,8 +100,8 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 | `committee.html` | `/committee/{id}` | `id` (path segment) | — | No ID → error state |
 | `race.html` | `/race` | `state`, `year`, `office` | `district` (required for House) | No params → error state |
 | `races.html` | `/races` | — | — | Mode selector only; no data params |
-| `candidates.html` | `/candidates` | — | `state`, `office`, `party`, `cycle` | All optional; if present, auto-browses on load |
-| `committees.html` | `/committees` | — | `state`, `type` | All optional; if present, auto-browses on load |
+| `candidates.html` | `/candidates` | — | `state`, `office`, `party`, `cycle`, `q` | `?q=` triggers search mode (hides filter bar, shows paginated results with infinite scroll, links to `/candidate/{id}`); browse params trigger browse mode |
+| `committees.html` | `/committees` | — | `state`, `type`, `q` | `?q=` triggers search mode (hides filter bar, shows paginated results with treasurer name, infinite scroll, links to `/committee/{id}`); browse params trigger browse mode |
 | `search.html` | `/search` | — | `q` | If `q` present, auto-fires search on load |
 
 **FEC candidate_id format:** `H2WA03217` — office (H/S/P) + cycle digits + state + district + sequence

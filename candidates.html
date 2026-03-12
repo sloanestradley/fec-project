@@ -214,6 +214,73 @@ function buildCard(c, i) {
     + '</div></a>';
 }
 
+// ── Search mode (activated when ?q= is in URL) ────────────────────────────────
+
+var searchQuery     = null;
+var searchPage      = 1;
+var searchTotalPages = 1;
+var searchLoading   = false;
+
+function buildSearchCard(c, i) {
+  var name  = formatCandidateName(c.name);
+  var pcls  = partyClass(c.party);
+  var plbl  = partyLabel(c.party);
+  var office = [c.office_full, c.state, c.district && c.district !== '00' ? c.district : '']
+    .filter(Boolean).join(' · ');
+  var latestCycle = c.election_years && c.election_years.length
+    ? Math.max.apply(null, c.election_years) : '';
+
+  return '<a class="candidate-card" href="/candidate/' + c.candidate_id + '"'
+    + ' onclick="amplitude.track(\'Candidate Result Clicked\',{candidate_id:'
+    + JSON.stringify(c.candidate_id) + ',from_page:\'candidates_search\',result_position:' + i + '})">'
+    + '<div class="candidate-card-name">' + name + '</div>'
+    + '<div class="candidate-card-meta">'
+    + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
+    + (office ? '<span class="candidate-card-office">' + office + '</span>' : '')
+    + (latestCycle ? '<span class="candidate-card-cycle">' + latestCycle + '</span>' : '')
+    + '</div></a>';
+}
+
+async function search(query, page) {
+  if (searchLoading) return;
+  searchLoading = true;
+  if (page === 1) {
+    showState('loading');
+    amplitude.track('Candidates Searched', { query: query });
+  }
+  try {
+    var data    = await apiFetch('/candidates/', { q: query, per_page: 50, sort: '-receipts', page: page });
+    var results = data.results || [];
+    var pagination = data.pagination || {};
+    searchTotalPages = pagination.pages || 1;
+    searchPage = page + 1;
+    if (page === 1 && !results.length) { showState('no-results'); searchLoading = false; return; }
+    var cards = results.map(buildSearchCard).join('');
+    if (page === 1) {
+      document.getElementById('results-list').innerHTML = cards;
+      var total = pagination.count || results.length;
+      document.getElementById('results-header').textContent =
+        total + ' candidate' + (total !== 1 ? 's' : '') + ' for \u201c' + query + '\u201d';
+      showState('results');
+    } else {
+      document.getElementById('results-list').insertAdjacentHTML('beforeend', cards);
+    }
+  } catch(err) {
+    if (page === 1) showState('empty');
+    console.error('candidates search error:', err);
+  }
+  searchLoading = false;
+}
+
+window.addEventListener('scroll', function() {
+  if (!searchQuery || searchLoading || searchPage > searchTotalPages) return;
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+    search(searchQuery, searchPage);
+  }
+});
+
+// ── Browse mode ────────────────────────────────────────────────────────────────
+
 async function browse(filters) {
   showState('loading');
   amplitude.track('Candidates Browsed', filters);
@@ -255,8 +322,18 @@ function handleSubmit(e) {
 (function init() {
   amplitude.track('Page Viewed', { page: 'candidates' });
 
-  // Pre-fill and auto-browse if URL params present
   var p = new URLSearchParams(window.location.search);
+  var q = p.get('q');
+
+  if (q) {
+    // Search mode: hide filter bar, run search
+    document.querySelector('.filter-bar-wrap').style.display = 'none';
+    searchQuery = q;
+    search(q, 1);
+    return;
+  }
+
+  // Browse mode: pre-fill and auto-browse if URL params present
   var hasFilters = false;
   if (p.get('state'))  { document.getElementById('f-state').value  = p.get('state');  hasFilters = true; }
   if (p.get('office')) { document.getElementById('f-office').value = p.get('office'); hasFilters = true; }

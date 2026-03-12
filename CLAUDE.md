@@ -115,9 +115,9 @@ Typography: Barlow Condensed 700–900 for display/headings (uppercase), DM Sans
 ```
 index.html        — Root redirect → search.html (entry point)
 search.html       — Candidate name search (live)
-candidates.html   — Browse candidates by state/office/party/cycle (scaffold)
+candidates.html   — Browse candidates by state/office/party/cycle (scaffold) + search mode (?q=) live
 candidate.html    — Single candidate profile (live, primary active file)
-committees.html   — Browse committees by type/state (scaffold)
+committees.html   — Browse committees by type/state (scaffold) + search mode (?q=) live
 committee.html    — Single committee profile (scaffold)
 races.html        — Race mode selector — curated form + ad hoc stub (scaffold)
 race.html         — Single race view — all candidates in a contest (scaffold)
@@ -249,12 +249,12 @@ See `project-brief.md` for the full phased roadmap. Short version:
 
 **Phase 2 (complete):** Search and navigation.
 - ~~search.html~~ ✅ live — name search, result cards, Amplitude events
-- ~~candidates.html~~ ✅ scaffold — browse by state/office/party/cycle
+- ~~candidates.html~~ ✅ scaffold + search mode — browse by state/office/party/cycle; ?q= triggers search mode with infinite scroll
 - ~~index.html~~ ✅ live — redirect to search.html
 
 **Phase 3 (scaffold):** Committee and race pages.
 - ~~committee.html~~ ✅ scaffold — header with financials, back-link to candidate
-- ~~committees.html~~ ✅ scaffold — browse by state/type
+- ~~committees.html~~ ✅ scaffold + search mode — browse by state/type; ?q= triggers search mode with infinite scroll and treasurer name in results
 - ~~races.html~~ ✅ scaffold — mode selector (curated form live; ad hoc stub)
 - ~~race.html~~ ✅ scaffold — single race view, candidate cards with financials, cycle-anchored links
 - Remaining: filing history on committee.html, associated candidates on committee.html, ad hoc mode on races.html
@@ -400,6 +400,12 @@ Read CLAUDE.md, project-brief.md, and claude-to-claude.md, then: (1) check wheth
 ## When compacting or ending a session
 
 **Before wrapping up:** Run `npx playwright test` (Track 1 — structural, mocked API, ~1 min). Fix any new failures before shipping. Then run the manual browser checks from `test-cases.md` for every page touched this session. Append a row to the Test log table at the bottom of `test-cases.md`. If any new failures are found, add them to the Known open issues table. If new features shipped, add both automated and manual test cases for them in the same session they shipped.
+
+**Documentation updates (always apply before outputting the four blocks below):** After tests pass, audit and apply any needed updates to these four files — do not wait to be asked:
+- `CLAUDE.md` — update Current files list, What to build next checklist, and any API/architecture notes learned this session
+- `test-cases.md` — add manual test cases for new features; update test count if changed; append test log row
+- `TESTING.md` — update test count; update the pages.spec.js coverage description if new describe blocks were added
+- `ia.md` — update Page Inventory status, URL Patterns table, Browse→Profile link patterns, or Phase Roadmap if any pages changed behavior or were promoted
 
 Before running /compact or ending a session, output all four of the following — each in its own fenced code block so they're easy to copy individually. Sloane will bring these to Claude Chat.
 

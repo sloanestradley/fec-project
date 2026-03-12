@@ -2,6 +2,46 @@
 *A running log of session handoffs — appended automatically by Claude Code at the end of every session. Bring this file to Claude Chat when you need context on recent sessions.*
 
 ---
+2026-03-12 — Search overhaul Session 2: ?q= mode on candidates.html + committees.html
+
+## Process log draft
+Title: The search comes full circle
+
+The "View all →" links from search.html had nowhere to go — they pointed at /candidates?q= and /committees?q=, but both pages ignored the q param and showed their default browse state. This session wired the other end: both pages now detect ?q= on load, hide the filter bar, and show paginated search results with infinite scroll. The search overhaul started in Session 1 is now a complete path.
+
+Changelog:
+– candidates.html: search mode — detects ?q=, hides filter bar, fetches /candidates/?q= per_page 50, renders paginated candidate cards with infinite scroll, links to /candidate/{id} (clean URL), Amplitude Candidates Searched event
+– committees.html: search mode — same pattern; separate buildSearchRow() function (browse mode's buildRow() untouched) includes treasurer name in results, links to /committee/{id}
+– Both pages: browse mode completely untouched — different code paths, no shared state
+– tests/pages.spec.js: 11 new tests across two describe blocks; 198 → 209 total
+– Documentation: TESTING.md test count updated; ia.md URL Patterns and Browse→Profile tables updated; test-cases.md new search mode sections + test log row; CLAUDE.md current files list updated
+– CLAUDE.md ritual: documentation update step added as mandatory pre-wrap checklist item — no longer waiting to be asked
+
+Field notes:
+The key decision was a small one: write a separate buildSearchRow() instead of adding an optional parameter to the existing buildRow(). The constraint — "browse mode completely untouched" — made the choice obvious, and the result is cleaner than the alternative would have been: two independent functions, no conditional logic bleeding between modes, separately testable. The constraint shaped the architecture. The ritual edit at the end of the session is the same instinct at a different scale: instead of relying on a prompted question to trigger documentation updates, the checklist now makes it mandatory. The project is current because the process says it must be, not because someone remembered to ask.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+**"Browse mode completely untouched" — a constraint that shaped the architecture**
+Specifying this upfront prevented a path that would have worked technically but muddied the separation: modifying buildRow() with an optional parameter. The constraint produced buildSearchRow() as a genuinely independent function. A small direction call with real structural consequences.
+
+**Catching the buildRow() proposal before it was written**
+When the plan proposed updating buildRow() to include treasurer name in both modes, Sloane caught it and redirected — search mode rows only. That's the right read: browse mode is filter-driven and has different information density needs than discovery-driven search. The distinction isn't just aesthetic; it's about what each mode is for.
+
+**Making the ritual self-executing**
+The observation — "you always recommend updates to the same four files, can we automate this?" — is a systems-thinking move. The ritual now has the doc update baked in as a mandatory step rather than a prompted question. That's the difference between a checklist and a habit.
+
+The through-line: Sloane consistently catches where "technically correct" and "architecturally clean" diverge, and redirects before the wrong choice is made. Same instinct, different scales — from a function signature to a process ritual.
+
+## What to bring to Claude Chat
+– Back-navigation UX: now that the full search path is wired (typeahead → preview → full results → profile), how does back-button feel? If someone lands on /candidates?q=marie from search.html, does returning to search.html feel right, or should the full-results page have its own back affordance? Worth checking on the live site.
+
+– Browse mode promotion: candidates.html and committees.html browse mode is still scaffold-level — per_page capped at 20, no infinite scroll, no result count from pagination total. Is there a session to bring browse mode to full parity with search mode, or is search mode sufficient for current use?
+
+– Phase 3 remaining work: search overhaul is complete. CLAUDE.md lists committee filing history, associated candidates on committee.html, and ad hoc race mode as the remaining Phase 3 items. Worth aligning on sequencing before the next session.
+
+---
 2026-03-10 — Clean URLs, deployment, and debugging
 
 ## Process log draft

@@ -303,8 +303,10 @@
 - [ ] `Page Viewed` fires with `page: 'candidates'`
 - [ ] `Candidates Browsed` fires on filter submit with filter properties
 - [ ] `Candidate Result Clicked` fires on result click with `candidate_id`, `from_page: 'candidates'`, `result_position`
+- [ ] ✅ `Candidates Searched` fires on `?q=` load with `query` property
+- [ ] ✅ `Candidate Result Clicked` fires on search result click with `from_page: 'candidates_search'`
 
-### Filters and results
+### Filters and results (browse mode)
 - [ ] State dropdown populates
 - [ ] Office dropdown populates (House, Senate, President)
 - [ ] Party dropdown populates
@@ -313,6 +315,16 @@
 - [ ] Result cards show name, office, state, party
 - [ ] Clicking a result navigates to `candidate.html?id=...`
 - [ ] No-results state renders if filters return nothing (not blank/crash)
+
+### Search mode (`?q=` present)
+**Test URL:** `localhost:8080/candidates.html?q=marie`
+- [ ] ✅ Filter bar is hidden (`.filter-bar-wrap` not visible)
+- [ ] ✅ Candidate cards render with results
+- [ ] ✅ Candidate name displayed (title case)
+- [ ] ✅ Candidate card links to `/candidate/{id}` (clean URL)
+- [ ] Results header shows count and query (e.g. "1 candidate for "marie"")
+- [ ] Infinite scroll: scrolling near bottom triggers fetch for next page (test with a broad query like `a`)
+- [ ] Empty state renders if query returns no candidates
 
 ---
 
@@ -327,14 +339,26 @@
 - [ ] `Page Viewed` fires with `page: 'committees'`
 - [ ] `Committees Browsed` fires on filter submit with filter properties
 - [ ] `Committee Result Clicked` fires on result click with `committee_id`, `from_page: 'committees'`, `result_position`
+- [ ] ✅ `Committees Searched` fires on `?q=` load with `query` property
+- [ ] ✅ `Committee Result Clicked` fires on search result click with `from_page: 'committees_search'`
 
-### Filters and results
+### Filters and results (browse mode)
 - [ ] State dropdown populates
 - [ ] Committee type dropdown populates
 - [ ] Submitting filters returns committee results
 - [ ] Result rows show committee name and type
 - [ ] Clicking a result navigates to `committee.html?id=...`
 - [ ] No-results state renders if filters return nothing (not blank/crash)
+
+### Search mode (`?q=` present)
+**Test URL:** `localhost:8080/committees.html?q=marie`
+- [ ] ✅ Filter bar is hidden (`.filter-bar-wrap` not visible)
+- [ ] ✅ Committee rows render with results
+- [ ] ✅ Committee name displayed and linked to `/committee/{id}` (clean URL)
+- [ ] ✅ Treasurer name visible in each search result row
+- [ ] Results header shows count and query (e.g. "1 committee for "marie"")
+- [ ] Infinite scroll: scrolling near bottom triggers fetch for next page
+- [ ] Empty state renders if query returns no committees
 
 ---
 
@@ -464,3 +488,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-11 | Add Raised tab smoke tests — geography heatmap SVG + contributor table row coverage | candidate.html (automated) | None | 177/177 Track 1 passing |
 | 2026-03-11 | Audit local apiFetch duplicates in race.html + committee.html | race.html, committee.html (automated) | No local definitions found — already removed in utils.js extraction session | 177/177 Track 1 passing |
 | 2026-03-12 | Search overhaul (Session 1) — typeahead dropdown, two-group results preview, formatCandidateName, committee search fixture | search.html, utils.js, styles.css, api-mock.js, search.spec.js (automated) | None | 198/198 Track 1 passing |
+| 2026-03-12 | Search overhaul (Session 2) — ?q= search mode on candidates.html and committees.html (filter bar hide, infinite scroll, clean URL links, treasurer in committee search rows) | candidates.html, committees.html, pages.spec.js (automated) | None | 209/209 Track 1 passing |

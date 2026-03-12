@@ -289,6 +289,94 @@ test.describe('committees.html', () => {
   });
 });
 
+// ── candidates.html — search mode (?q=) ──────────────────────────────────────
+
+test.describe('candidates.html — search mode (?q=)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidates.html?q=marie');
+    await page.waitForSelector('#state-results', { state: 'visible', timeout: 8000 });
+  });
+
+  test('filter bar is hidden in search mode', async ({ page }) => {
+    const filterBar = page.locator('.filter-bar-wrap');
+    await expect(filterBar).not.toBeVisible();
+  });
+
+  test('search results render at least one candidate card', async ({ page }) => {
+    const cards = page.locator('.candidate-card');
+    await expect(cards).not.toHaveCount(0);
+  });
+
+  test('candidate name is displayed', async ({ page }) => {
+    const card = page.locator('.candidate-card').first();
+    const nameEl = card.locator('.candidate-card-name');
+    await expect(nameEl).toBeVisible();
+    const text = await nameEl.textContent();
+    expect(text?.trim().length).toBeGreaterThan(0);
+  });
+
+  test('candidate card links to clean /candidate/{id} URL', async ({ page }) => {
+    const link = page.locator('a.candidate-card').first();
+    const href = await link.getAttribute('href');
+    expect(href).toMatch(/^\/candidate\//);
+  });
+
+  test('Candidates Searched Amplitude event fires', async ({ page }) => {
+    const event = await findTrackEvent(page, 'Candidates Searched');
+    expect(event).toBeDefined();
+    expect(event.args[1]).toMatchObject({ query: 'marie' });
+  });
+});
+
+// ── committees.html — search mode (?q=) ──────────────────────────────────────
+
+test.describe('committees.html — search mode (?q=)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/committees.html?q=marie');
+    await page.waitForSelector('#state-results', { state: 'visible', timeout: 8000 });
+  });
+
+  test('filter bar is hidden in search mode', async ({ page }) => {
+    const filterBar = page.locator('.filter-bar-wrap');
+    await expect(filterBar).not.toBeVisible();
+  });
+
+  test('search results render at least one committee row', async ({ page }) => {
+    const rows = page.locator('.committee-row');
+    await expect(rows).not.toHaveCount(0);
+  });
+
+  test('committee name is displayed', async ({ page }) => {
+    const nameLink = page.locator('.committee-name-link').first();
+    await expect(nameLink).toBeVisible();
+    const text = await nameLink.textContent();
+    expect(text?.trim().length).toBeGreaterThan(0);
+  });
+
+  test('treasurer name is displayed in search results', async ({ page }) => {
+    const treasurer = page.locator('.committee-treasurer').first();
+    await expect(treasurer).toBeVisible();
+    const text = await treasurer.textContent();
+    expect(text?.trim().length).toBeGreaterThan(0);
+  });
+
+  test('committee row links to /committee/{id}', async ({ page }) => {
+    const link = page.locator('.committee-name-link').first();
+    const href = await link.getAttribute('href');
+    expect(href).toMatch(/^\/committee\//);
+  });
+
+  test('Committees Searched Amplitude event fires', async ({ page }) => {
+    const event = await findTrackEvent(page, 'Committees Searched');
+    expect(event).toBeDefined();
+    expect(event.args[1]).toMatchObject({ query: 'marie' });
+  });
+});
+
 // ── process-log.html ──────────────────────────────────────────────────────────
 
 test.describe('process-log.html', () => {

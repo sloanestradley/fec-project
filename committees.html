@@ -199,6 +199,73 @@ function buildRow(c, i) {
     + '</div>';
 }
 
+// ── Search mode (activated when ?q= is in URL) ────────────────────────────────
+
+var searchQuery      = null;
+var searchPage       = 1;
+var searchTotalPages = 1;
+var searchLoading    = false;
+
+function buildSearchRow(c, i) {
+  var isTerminated = c.filing_frequency === 'T';
+  var statusCls    = isTerminated ? 'tag-terminated' : 'tag-active';
+  var statusLbl    = isTerminated ? 'Terminated' : 'Active';
+
+  return '<div class="committee-row">'
+    + '<div class="committee-name">'
+    +   '<a href="/committee/' + c.committee_id + '" class="committee-name-link"'
+    +   ' onclick="amplitude.track(\'Committee Result Clicked\',{committee_id:'
+    +   JSON.stringify(c.committee_id) + ',from_page:\'committees_search\',result_position:' + i + '})">'
+    +   (c.name || '—') + '</a>'
+    + '</div>'
+    + '<div class="committee-type">' + committeeTypeLabel(c.committee_type) + '</div>'
+    + '<div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">'
+    +   (c.treasurer_name || '—') + '</div>'
+    + '<div class="committee-id"><span class="tag ' + statusCls + '" style="font-size:0.52rem">'
+    +   statusLbl + '</span></div>'
+    + '</div>';
+}
+
+async function search(query, page) {
+  if (searchLoading) return;
+  searchLoading = true;
+  if (page === 1) {
+    showState('loading');
+    amplitude.track('Committees Searched', { query: query });
+  }
+  try {
+    var data    = await apiFetch('/committees/', { q: query, per_page: 50, sort: '-receipts', page: page });
+    var results = data.results || [];
+    var pagination = data.pagination || {};
+    searchTotalPages = pagination.pages || 1;
+    searchPage = page + 1;
+    if (page === 1 && !results.length) { showState('no-results'); searchLoading = false; return; }
+    var rows = results.map(buildSearchRow).join('');
+    if (page === 1) {
+      document.getElementById('results-list').innerHTML = rows;
+      var total = pagination.count || results.length;
+      document.getElementById('results-header').textContent =
+        total + ' committee' + (total !== 1 ? 's' : '') + ' for \u201c' + query + '\u201d';
+      showState('results');
+    } else {
+      document.getElementById('results-list').insertAdjacentHTML('beforeend', rows);
+    }
+  } catch(err) {
+    if (page === 1) showState('empty');
+    console.error('committees search error:', err);
+  }
+  searchLoading = false;
+}
+
+window.addEventListener('scroll', function() {
+  if (!searchQuery || searchLoading || searchPage > searchTotalPages) return;
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+    search(searchQuery, searchPage);
+  }
+});
+
+// ── Browse mode ────────────────────────────────────────────────────────────────
+
 async function browse(filters) {
   showState('loading');
   amplitude.track('Committees Browsed', filters);
@@ -237,6 +304,17 @@ function handleSubmit(e) {
   amplitude.track('Page Viewed', { page: 'committees' });
 
   var p = new URLSearchParams(window.location.search);
+  var q = p.get('q');
+
+  if (q) {
+    // Search mode: hide filter bar, run search
+    document.querySelector('.filter-bar-wrap').style.display = 'none';
+    searchQuery = q;
+    search(q, 1);
+    return;
+  }
+
+  // Browse mode: pre-fill and auto-browse if URL params present
   var hasFilters = false;
   if (p.get('state')) { document.getElementById('f-state').value = p.get('state'); hasFilters = true; }
   if (p.get('type'))  { document.getElementById('f-type').value  = p.get('type');  hasFilters = true; }
