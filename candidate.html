@@ -1520,7 +1520,7 @@ async function init() {
     document.getElementById('meta-row').innerHTML =
       '<span class="tag '+partyClass(cand.party)+'">'+partyLabel(cand.party)+'</span>'+
       '<span class="tag tag-neutral">'+(cand.office_full||'')+' · '+
-      (cand.state||'')+(cand.district?'-'+cand.district:'')+'</span>'+
+      (cand.state||'')+(cand.district&&cand.district!=='00'?'-'+cand.district:'')+'</span>'+
       (cand.incumbent_challenge_full
         ? '<span class="tag tag-neutral">'+cand.incumbent_challenge_full+'</span>' : '');
 

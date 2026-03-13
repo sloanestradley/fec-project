@@ -968,3 +968,29 @@ The through-line: Sloane is consistently using existing, already-polished work a
 ## What to bring to Claude Chat
 – The filter bar CSS (.filter-bar-wrap, .filter-bar, .form-field, .form-label, .state-combo, chip styles, etc.) is still duplicated between candidates.html and committees.html — now that form controls are extracted, this is the remaining obvious duplication. Worth a dedicated session, or fold into Phase 3 remaining work?
 – Phase 3 remaining: committee filing history, associated candidates on committee.html, ad hoc race mode. What's the priority order?
+
+---
+2026-03-12 — Senate district tag fix
+
+## Process log draft
+Title: One character at a time
+
+Senate candidates were showing "Senate · WA-00" because the FEC API returns district: '00' for Senate races. A one-line guard — the same pattern already used on the browse page — cleaned it up to "Senate · WA". Sometimes the smallest bugs are the ones that make you look the least like a designer built it.
+
+Changelog:
+– candidate.html: office/location tag now suppresses district segment when district is '00' or empty (Senate candidates show "Senate · NY" instead of "Senate · NY-00")
+
+Field notes:
+The fix was already in the codebase on candidates.html's buildCard function — this was just the candidate profile page lagging behind. The kind of inconsistency that creeps in when the same data renders in multiple places. The guard is simple: `cand.district && cand.district !== '00'`. The FEC API's use of '00' as a sentinel for "no district" is a quirk worth knowing.
+
+Stack tags: none
+
+## How Sloane steered the work
+**Specific, surgical task scoping**
+Sloane identified the exact line number, the exact condition to change, and even provided the replacement code. This turned what could have been a 20-minute investigation into a 2-minute fix-and-verify. The task description was indistinguishable from a well-written code review comment.
+
+The through-line: Sloane is operating at a level where the instructions are as precise as the implementation — the value of the session is in the verification and testing, not the discovery.
+
+## What to bring to Claude Chat
+– The Schedule B 422 errors (known issue in test-cases.md) predate today's work but are worth prioritizing before any Spent tab polish — they fire 3-7 times per candidate page load.
+– Phase 3 remaining work prioritization: committee filing history, associated candidates on committee.html, ad hoc race mode — what's next?
