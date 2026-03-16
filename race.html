@@ -167,6 +167,7 @@ function buildCandidateCard(c) {
     + ',from_page:\'race\',race_year:' + JSON.stringify(yearParam) + '})">'
     + '<div class="candidate-card-name">' + name
     + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
+    + (c.incumbent_challenge === 'I' || c.incumbent_challenge_full === 'Incumbent' ? '<span class="tag tag-neutral">Incumbent</span>' : '')
     + '</div>'
     + statsHtml
     + '</a>';

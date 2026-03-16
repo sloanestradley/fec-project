@@ -5,7 +5,7 @@
 
 ## How to use this file
 
-**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 226 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
+**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 227 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
 
 **Smoke tests (Track 2):** Run `npm run test:smoke` before deploys. Hits the live FEC API — 5 key checks. Requires the dev server to be running.
 
@@ -289,6 +289,8 @@
 - [ ] Each card shows party tag
 - [ ] Each card shows financial figures — Raised, Spent, COH — formatted (not $0, not blank)
 - [ ] Clicking a card navigates to `candidate.html?id={id}#{year}#summary` (cycle-anchored — verify the hash in the URL after clicking)
+- [ ] Incumbent candidate shows "Incumbent" tag (tag-neutral style) next to party tag
+- [ ] Challenger candidates show no incumbency tag (party tag only)
 
 ---
 
@@ -540,3 +542,5 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-12 | Filing status refactor — filing_frequency 'A' (admin terminated) fix; filingFrequencyLabel/DotClass utilities; replace binary Active/Terminated with raw labels + semantic dot tokens; token naming correction (--filing-active, --filing-terminated) | candidate.html, search.html, committees.html, committee.html, utils.js, styles.css, design-system.html (automated) | None | 222/222 Track 1 passing |
 | 2026-03-12 | Polish pass — load-more spinner + end-of-results; typeahead gap fix; search bar compact style; typeahead row unification (.typeahead-row on browse pages); typeahead right-side content trimmed; CSS refactor (.form-input/.form-search-btn + .typeahead-dropdown into styles.css) | candidates.html, committees.html, search.html, styles.css, tests/search.spec.js, tests/pages.spec.js (automated) | None | 226/226 Track 1 passing |
 | 2026-03-12 | Senate district tag fix — suppress district '00' in candidate.html office tag | candidate.html (automated) | None | 226/226 Track 1 passing |
+| 2026-03-16 | Incumbent tag on race.html candidate cards — reads incumbent_challenge_full from /elections/ response | race.html, tests/helpers/api-mock.js (automated) | Live API returns incumbent_challenge_full (not incumbent_challenge short code) — mock corrected; condition checks both | 226/226 Track 1 passing |
+| 2026-03-16 | Add incumbent tag test — assert .tag-neutral "Incumbent" renders on race candidate card; fix missing test coverage from previous session | tests/pages.spec.js (automated) | None | 227/227 Track 1 passing |

@@ -168,6 +168,7 @@ const ELECTIONS = {
     total_disbursements:       3100000,
     cash_on_hand_end_period:    450000,
     incumbent_challenge:       'I',
+    incumbent_challenge_full:  'Incumbent',
   }],
   pagination: { count: 1 },
 };

@@ -994,3 +994,40 @@ The through-line: Sloane is operating at a level where the instructions are as p
 ## What to bring to Claude Chat
 – The Schedule B 422 errors (known issue in test-cases.md) predate today's work but are worth prioritizing before any Spent tab polish — they fire 3-7 times per candidate page load.
 – Phase 3 remaining work prioritization: committee filing history, associated candidates on committee.html, ad hoc race mode — what's next?
+---
+2026-03-16 — Incumbent tag on race.html + FEC incumbency research
+
+## Process log draft
+Title: One field, one tag, one field name correction
+
+The race comparison page is meant to be the differentiator — the view you can't get on the FEC site. Adding the incumbent tag is a small thing on the surface, but it's the first step toward the race view doing real analytical work. The change itself was a single line. What took longer was verifying that the live API and the mock disagreed on the field name — and fixing that gap before it caused a test/live divergence.
+
+Changelog:
+– race.html: Incumbent tag added to candidate cards — reads incumbent_challenge_full from /elections/ response; renders .tag.tag-neutral "Incumbent" label only for incumbents; challengers and open-seat candidates get no tag
+– tests/helpers/api-mock.js: ELECTIONS fixture corrected — added incumbent_challenge_full: 'Incumbent' to match live API shape (live returns full string, not short code)
+– CLAUDE.md: new Critical note for /elections/ incumbent field — documents full-string vs short-code discrepancy, future-cycle availability, and dual-check pattern
+– test-cases.md: incumbent tag test cases added to race.html candidate cards section; test log row appended
+
+Field notes:
+The field name discrepancy — mock had incumbent_challenge: 'I', live returns incumbent_challenge_full: 'Incumbent' — is exactly the class of bug the mock/live audit rule exists to catch. It surfaced immediately because the tag didn't render, which prompted a live API check. The fix is defensive: check both shapes in the condition, correct the mock, document the discrepancy. The broader session was mostly research and design thinking: understanding how incumbency status works across cycles, whether /elections/ can serve the candidate page, what the FEC can and can't tell you about election outcomes. The answer to that last question — it can't, but the incumbent tag on the next cycle implicitly answers "who won" for most use cases — is worth building into the UX design.
+
+Stack tags: none
+
+## How Sloane steered the work
+**Pushing back on the performance dismissal**
+When the initial analysis concluded that cycle-specific incumbency on candidate.html wasn't worth an extra API call, Sloane pushed back after seeing how fast the race page loaded locally. That prompted a more honest reassessment: the call would slot into the existing parallel batch, so the incremental wall-clock cost is likely zero. The first answer was technically defensible but overly conservative — the pushback produced the right answer.
+
+**Scoping the incumbent tag precisely**
+"Just the incumbent label — no challenger tag, nothing for open seat" is a design decision with real reasoning behind it: incumbent status is meaningful signal in a race context; challenger is noise (everyone who isn't the incumbent is a challenger by definition); open seat is better communicated through absence. That constraint shaped a cleaner implementation than "show all statuses."
+
+**Holding the feature for a larger UX solution**
+Rather than bolt cycle-specific incumbency onto candidate.html as a quick fix, Sloane recognized it belongs to a larger design effort involving /elections/ data on the candidate page. The decision to defer and design it properly rather than ship a partial solution shows the right instinct — the race comparison page is the differentiator, and it deserves a considered design pass, not incremental patches.
+
+The through-line: Sloane consistently corrects for over-caution — pushing back when analysis is too conservative, scoping features to their minimum meaningful expression, and holding work for the right moment rather than shipping for its own sake.
+
+## What to bring to Claude Chat
+– Cycle-specific incumbency on candidate.html: Sloane is designing a UX solution that loads /elections/ data after initial candidate load. Worth thinking through: where does the incumbent tag live in the profile header relative to the existing party/office tags? Does it update visually on cycle switch, or is it set once after the secondary load completes?
+
+– What /elections/ data unlocks beyond incumbency: the endpoint returns all candidates in the contest with financials. Once it's loading on the candidate page, you have the full competitive context — could power a "running against" module, a relative fundraising bar, or a "field" section. Worth designing the full shape of what this panel could be before building any of it.
+
+– Election outcome data gap: the FEC can't tell you who won. For the race comparison view to show outcomes on past cycles, you'd need a supplemental data source (MIT Election Lab, Ballotpedia). Worth deciding whether that's in scope before building out the historical race view.

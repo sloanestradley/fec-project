@@ -35,7 +35,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 - Netlify Functions for any server-side API proxying needed
 - No build step — files are served directly
 - **Clean URLs:** `_redirects` defines Netlify 200 rewrites for all pages. Profile pages with path-segment URLs (`/candidate/:id`, `/committee/:id`) **must use absolute paths** for every local resource and nav link — `href="/styles.css"`, `src="/main.js"`, `href="/candidates"`, etc. Relative paths break because the browser treats the path segment as a subdirectory (e.g. from `/candidate/H2WA03217`, relative `utils.js` resolves to `/candidate/utils.js`, which also matches the rewrite rule and returns HTML served as JS). Browse pages (`/candidates`, `/committees`, `/races`, `/race`, `/search`) use single-level paths so relative links still resolve to root — but any new page with a deeper path must follow the absolute-path rule.
-- **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 222 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
+- **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 227 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
 - **apiFetch concurrency queue:** `utils.js` implements a `MAX_CONCURRENT = 4` request queue to avoid 429 rate-limit errors when pages fire many parallel API calls (candidate page fires 15–20 on load). All calls still execute — they just pace to ≤4 in-flight at a time. No call-site changes needed; `apiFetch(path, params)` signature is identical.
 
 ---
@@ -216,6 +216,8 @@ Other endpoints (`/candidates/`, `/candidate/{id}/totals/`) use the single-lette
 
 **Critical — `/elections/` party field:** This endpoint does NOT return a `party` field. Party affiliation comes back as `party_full` with full names like `"DEMOCRATIC PARTY"` / `"REPUBLICAN PARTY"`. When building cards from `/elections/` data, read `c.party || c.party_full`. The `partyClass()` and `partyLabel()` utilities in `utils.js` accept both short codes (`DEM`, `REP`) and full names (`DEMOCRATIC PARTY`, `REPUBLICAN PARTY`).
 
+**Critical — `/elections/` incumbent field:** This endpoint returns `incumbent_challenge_full` (e.g. `'Incumbent'`, `'Challenger'`, `'Open seat'`) — NOT the short-code `incumbent_challenge: 'I'/'C'/'O'` that appears on the `/candidate/{id}/` metadata endpoint. The field is populated at time of candidacy filing, so it's available for future cycles as soon as a candidate has declared. Check `c.incumbent_challenge === 'I' || c.incumbent_challenge_full === 'Incumbent'` to handle both shapes (mock uses short code; live API returns full string).
+
 ### Key FEC API field names (verified from live response)
 Reports endpoint (`/committee/{id}/reports/`) returns per-filing objects with:
 - `total_receipts_period` — raised this filing period only
@@ -278,7 +280,7 @@ See `project-brief.md` for the full phased roadmap. Short version:
 - **Spent tab timeline:** A spend-over-time line chart (parallel to the Raised tab's chart) has not been built. Lower priority — the category/purpose/vendor breakdown is sufficient for current use. Add when the Raised chart pattern is ready to be reused.
 - **JFA committee gap:** Joint fundraising committees where a candidate is a participant (not the principal) have `candidate_ids: []` and `sponsor_candidate_ids: null` in the FEC API — they don't appear in either `/candidate/{id}/committees/` or `/committees/?sponsor_candidate_id=`. The only source of truth is the candidate's F2 filing document, which lists them as authorized committees. Surfacing these would require fetching the most recent F2 via `/filings/?candidate_id=&form_type=F2` and parsing committee references from the filing data. Not built yet; validate approach with John before implementing.
 - ~~utils.js duplication:~~ ✅ Resolved. Shared utilities extracted to `utils.js` — `BASE`, `API_KEY`, `apiFetch`, `fmt`, `fmtDate`, `toTitleCase`, `partyClass`, `partyLabel`, `committeeTypeLabel`. All pages load it between `main.js` and their own script block.
-- **Mock/live field shape gap risk:** Some FEC endpoints return different field names or value types than their mock counterparts — the `/elections/` endpoint returns `party_full` (full name) instead of `party` (short code); `total_receipts_ytd` in reports is a string in the live API but was mocked as a number; `/schedule_a/by_state/` returns `{state, state_full, total, count}` while the individual `/schedule_a/` endpoint returns `{contributor_state, contribution_receipt_amount, ...}`. Audited and fixed 2026-03-11. Rule: when adding a new endpoint, fetch one live response and verify field names against the mock before writing assertions. Utilities should always accept both short and full-form values where the API may vary by endpoint.
+- **Mock/live field shape gap risk:** Some FEC endpoints return different field names or value types than their mock counterparts — the `/elections/` endpoint returns `party_full` (full name) instead of `party` (short code); `/elections/` returns `incumbent_challenge_full` (full string) not `incumbent_challenge` (short code) — mock corrected 2026-03-16; `total_receipts_ytd` in reports is a string in the live API but was mocked as a number; `/schedule_a/by_state/` returns `{state, state_full, total, count}` while the individual `/schedule_a/` endpoint returns `{contributor_state, contribution_receipt_amount, ...}`. Audited and fixed 2026-03-11. Rule: when adding a new endpoint, fetch one live response and verify field names against the mock before writing assertions. Utilities should always accept both short and full-form values where the API may vary by endpoint.
 
 ## Committee modal architecture
 
@@ -413,7 +415,7 @@ Then ask Sloane what the current priority is. Don't assume the latest file in th
 Read CLAUDE.md, project-brief.md, and claude-to-claude.md, then: (1) check whether the last session's end-of-session rituals were completed — if not, flag it. (2) Summarize the current state of the project, the top priority, and what you need from me to get started.
 ```
 
-**Session-start ritual check:** After reading CLAUDE.md and claude-to-claude.md, check whether the most recent entry in claude-to-claude.md is dated today or earlier. If the last session's entry is missing (i.e., today's date isn't in the log and work was clearly done), flag it: "It looks like the previous session wasn't wrapped up — no log entry found. Do you have screenshots or notes I can use to reconstruct it, or should we skip and move on?" Do not silently proceed without noting the gap.
+**Session-start ritual check:** After reading CLAUDE.md and claude-to-claude.md: (1) Check whether the most recent entry in `claude-to-claude.md` is dated today or earlier. If the last session's entry is missing and work was clearly done, flag it. (2) Run `git status` — if there are uncommitted changes, flag them: "There are uncommitted changes from a previous session. These should be committed before we start new work." Treat both a missing log entry and uncommitted changes as signs the previous session's ritual was incomplete.
 
 **Suggested opening prompt for Sloane to paste at session start:**
 ```
@@ -424,7 +426,7 @@ Read CLAUDE.md, project-brief.md, ia.md, and claude-to-claude.md, then: (1) chec
 
 ## When compacting or ending a session
 
-**Before wrapping up:** Run `npx playwright test` (Track 1 — structural, mocked API, ~1 min). Fix any new failures before shipping. Then run the manual browser checks from `test-cases.md` for every page touched this session. Append a row to the Test log table at the bottom of `test-cases.md`. If any new failures are found, add them to the Known open issues table. If new features shipped, add both automated and manual test cases for them in the same session they shipped.
+**Before wrapping up:** Run `npx playwright test` (Track 1 — structural, mocked API, ~1 min). Fix any new failures before shipping. Then run the manual browser checks from `test-cases.md` for every page touched this session. Append a row to the Test log table at the bottom of `test-cases.md`. If any new failures are found, add them to the Known open issues table. If new features shipped, write Playwright assertions for them in the same session — not just manual checklist items in `test-cases.md`. The bar: any new DOM element, conditional render, or API behavior change must have at least one `.spec.js` assertion covering it.
 
 **Documentation updates (always apply before outputting the four blocks below):** After tests pass, audit and apply any needed updates to these four files — do not wait to be asked:
 - `CLAUDE.md` — update Current files list, What to build next checklist, and any API/architecture notes learned this session
@@ -483,3 +485,5 @@ After outputting all four blocks above, append outputs #1, #2, and #4 to `claude
 ```
 
 If the file doesn't exist, create it. Always append — never overwrite.
+
+**Final step — commit:** After appending to `claude-to-claude.md`, commit all session changes with `git add` (specific files, not `-A`) and a descriptive commit message. Uncommitted changes at session end are invisible to the next session's start check and will appear as mysterious working tree noise. If the session produced no code changes (discussion-only), a commit is not needed — but documentation-only changes still warrant one.

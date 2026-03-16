@@ -225,6 +225,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 ## Open items (not prioritized)
 
 - **Default sort for browse mode (candidates + committees)** - Currently sort=name. Ideally sort=-receipts for discovery, but FEC API blocks it without a q= param. Date-based alternatives (last_file_date, load_date, first_file_date) are either invalid sort fields or null-heavy, producing useless ordering. Options: default to election_year=2026 filter to narrow the browse set meaningfully, or revisit when the Netlify proxy is in place (server-side could pre-filter or cache a sorted set). Not urgent but intentionally deferred. *noted, but this might not be as much of an issue when it stops being a top-level page and acts as a landing after kicking off search*
+- **Primary losers in active cycle candidate counts** — The FEC API does not filter out candidates who lost a primary from the /elections/ endpoint results. Challenger counts and race pages will overcount active candidates mid-cycle (between primary and general). Fixing this requires cross-referencing election results data, which the FEC API does not provide — likely requires a third-party data source. Noted as a known gap; acceptable for now.
 
 ---
 

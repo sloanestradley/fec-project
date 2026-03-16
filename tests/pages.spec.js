@@ -215,6 +215,14 @@ test.describe('race.html', () => {
     await page.waitForTimeout(300);
     expect(errors422).toHaveLength(0);
   });
+
+  test('incumbent candidate card shows Incumbent tag', async ({ page }) => {
+    // Mock fixture has incumbent_challenge_full: 'Incumbent' — tag should render
+    const incumbentTag = page.locator('.candidate-card .tag-neutral').first();
+    await expect(incumbentTag).toBeVisible();
+    const text = await incumbentTag.textContent();
+    expect(text?.trim()).toBe('Incumbent');
+  });
 });
 
 // ── candidates.html ───────────────────────────────────────────────────────────
