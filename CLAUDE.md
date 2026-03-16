@@ -417,7 +417,7 @@ Read CLAUDE.md, project-brief.md, and claude-to-claude.md, then: (1) check wheth
 
 **Suggested opening prompt for Sloane to paste at session start:**
 ```
-Read CLAUDE.md, project-brief.md, and claude-to-claude.md, then: (1) check whether the last session's end-of-session rituals were completed — if not, flag it. (2) Summarize the current state of the project, the top priority, and what you need from me to get started.
+Read CLAUDE.md, project-brief.md, ia.md, and claude-to-claude.md, then: (1) check whether the last session's end-of-session rituals were completed — if not, flag it. (2) Summarize the current state of the project, the top priority, and what you need from me to get started.
 ```
 
 ---
