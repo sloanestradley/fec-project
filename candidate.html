@@ -1320,6 +1320,12 @@ async function loadCycle(cycle) {
     b.classList.toggle('active', +b.dataset.cycle === cycle);
   });
 
+  // Show skeleton in race-context while /elections/ fetch is in-flight
+  var raceCtx = document.getElementById('race-context');
+  if (raceCtx) {
+    raceCtx.innerHTML = '<span class="skeleton" style="width:80px;height:1.1rem"></span>';
+  }
+
   // Reset stats to em-dash while loading
   ['stat-raised','stat-spent','stat-coh','stat-ratio'].forEach(function(id) {
     document.getElementById(id).textContent = '—';
@@ -1425,6 +1431,59 @@ async function loadCycle(cycle) {
       electionDates = elJson.results || [];
     } catch(e) { console.warn('Election-dates fetch failed:', e.message); }
 
+    var electionsData = [];
+    try {
+      var officeApiParam = function(o) {
+        return { H: 'house', S: 'senate', P: 'president' }[o] || o.toLowerCase();
+      };
+      var eParams = { cycle: cycle, office: officeApiParam(CAND_OFFICE), per_page: 20 };
+      if (CAND_OFFICE !== 'P') eParams.state = CAND_STATE;
+      if (CAND_OFFICE === 'H') eParams.district = CAND_DIST;
+      var eJson = await apiFetch('/elections/', eParams);
+      electionsData = eJson.results || [];
+    } catch(e) { electionsData = []; console.warn('Elections fetch failed:', e.message); }
+
+    // ── Race context sentence ──────────────────────────────────────
+    (function() {
+      var raceCtx = document.getElementById('race-context');
+      if (!raceCtx) return;
+
+      var distParam = (CAND_OFFICE === 'H' && CAND_DIST && CAND_DIST !== '00')
+        ? '&district=' + CAND_DIST : '';
+      var raceHref = '/race?state=' + encodeURIComponent(CAND_STATE)
+        + distParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + cycle;
+      var viewRaceLink = '\u00a0<a href="' + raceHref + '">View race \u2192</a>';
+
+      if (!electionsData.length) {
+        raceCtx.innerHTML = '<span class="tag-context">' + viewRaceLink.trim() + '</span>';
+        return;
+      }
+
+      var tense = isCycleActive(cycle) ? 'is' : 'was';
+      var total = electionsData.length;
+      var incumbentRecord = electionsData.find(function(c) {
+        return c.incumbent_challenge_full === 'Incumbent';
+      });
+
+      var sentence;
+      if (!incumbentRecord) {
+        var candidateWord = total === 1 ? 'candidate' : 'candidates';
+        sentence = 'Open seat with ' + total + ' ' + candidateWord + '.';
+      } else {
+        var challengers = total - 1;
+        var incumbentName = formatCandidateName(incumbentRecord.candidate_name);
+        if (challengers === 0) {
+          sentence = incumbentName + ' ' + tense + ' unopposed.';
+        } else {
+          var challengerWord = challengers === 1 ? 'challenger' : 'challengers';
+          sentence = incumbentName + ' ' + tense + ' the incumbent with '
+            + challengers + ' ' + challengerWord + '.';
+        }
+      }
+
+      raceCtx.innerHTML = '<span class="tag-context">' + sentence + viewRaceLink + '</span>';
+    })();
+
     // ── Step 3: populate stats ──
     // raised/spent/coh/debt/covDate already computed from allTotalsArr in Step 1
     var cycleStartYear = cycle - getCycleSpanYears() + 1;
@@ -1518,11 +1577,10 @@ async function init() {
 
     // Tags
     document.getElementById('meta-row').innerHTML =
-      '<span class="tag '+partyClass(cand.party)+'">'+partyLabel(cand.party)+'</span>'+
+      '<span class="tag '+partyClass(cand.party)+'">'+partyLabel(cand.party)+'</span> '+
       '<span class="tag tag-neutral">'+(cand.office_full||'')+' · '+
-      (cand.state||'')+(cand.district&&cand.district!=='00'?'-'+cand.district:'')+'</span>'+
-      (cand.incumbent_challenge_full
-        ? '<span class="tag tag-neutral">'+cand.incumbent_challenge_full+'</span>' : '');
+      (cand.state||'')+(cand.district&&cand.district!=='00'?'-'+cand.district:'')+'</span> '+
+      '<span id="race-context"></span>';
 
     // Cycle switcher: default to most recent active cycle, or hash override
     var now = new Date().getFullYear();

@@ -35,14 +35,19 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 - Netlify Functions for any server-side API proxying needed
 - No build step — files are served directly
 - **Clean URLs:** `_redirects` defines Netlify 200 rewrites for all pages. Profile pages with path-segment URLs (`/candidate/:id`, `/committee/:id`) **must use absolute paths** for every local resource and nav link — `href="/styles.css"`, `src="/main.js"`, `href="/candidates"`, etc. Relative paths break because the browser treats the path segment as a subdirectory (e.g. from `/candidate/H2WA03217`, relative `utils.js` resolves to `/candidate/utils.js`, which also matches the rewrite rule and returns HTML served as JS). Browse pages (`/candidates`, `/committees`, `/races`, `/race`, `/search`) use single-level paths so relative links still resolve to root — but any new page with a deeper path must follow the absolute-path rule.
-- **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 227 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
+- **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 228 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
 - **apiFetch concurrency queue:** `utils.js` implements a `MAX_CONCURRENT = 4` request queue to avoid 429 rate-limit errors when pages fire many parallel API calls (candidate page fires 15–20 on load). All calls still execute — they just pace to ≤4 in-flight at a time. No call-site changes needed; `apiFetch(path, params)` signature is identical.
+- **FEC API field verification:** Before writing logic that depends on a specific field name or value from any FEC endpoint, verify the actual response shape first. Navigate directly to the endpoint in a browser (or use `apiFetch` in the console) and confirm field names, value formats, and null behavior. Do not infer from the FEC docs alone — the docs and actual responses diverge in practice (e.g. `/elections/` returns `incumbent_challenge_full` as `"Incumbent"/"Challenger"/"Open seat"`, not the single-letter `incumbent_challenge` code). Document any verified field behavior in the relevant section below.
 
 ---
 
 ## Design system
 
 **Reference file:** `design-system.html` is the living design system reference. Read it (or at minimum the token table and component list) before building any new page or component.
+
+**Skeleton loading:** `.skeleton` (in `styles.css`) is the standard placeholder for content that loads asynchronously after the initial page render. Use it whenever a UI element shows a loading state before data resolves — set `width` and `height` inline to approximate the expected content size. Do not define page-specific skeleton keyframes; always use the shared class. Size guidance: height should match the resolved element's total height (content + padding), width should approximate the minimum resolved state. Do NOT wrap the skeleton in its resolved container (e.g. `.tag-context`) during loading — that adds a second visible background layer behind the pulse.
+
+**Tag context:** `.tag-context` (in `styles.css`) is a filled-background tag variant for contextual prose inline with the tag row. No border, no uppercase — distinct from `.tag`. Used for the race context sentence on the candidate profile. Promote from `candidate-only` to `stable` in `design-system.html` when used on a second page.
 
 **Shared files:** `styles.css` contains the CSS reset, token `:root`, shared layout (sidebar, mobile nav, header), utility classes, and all shared component CSS — including `.page-header` (layout-only: padding, border-bottom — no animation), `.page-header-reveal` (animation modifier: `opacity:0` fade-in; add this alongside `.page-header` on elements that JS reveals via `.visible`; profile pages use both, browse/static pages use `.page-header` only), `.page-header-title` (Barlow Condensed 800, clamp 1.6–2.4rem, uppercase — used as the page title on candidate, committee, and race pages), and `.breadcrumb` (breadcrumb typography and link styles; `text-transform:uppercase` applied — all items render uppercase including entity names). `main.js` contains Amplitude init + Session Replay, mobile scroll-aware header, and hamburger nav (all null-guarded). `utils.js` contains shared JS utilities: `BASE`, `API_KEY`, `apiFetch` (concurrency-limited to MAX_CONCURRENT=4 — see tech stack note), `fmt`, `fmtDate`, `toTitleCase`, `formatCandidateName` (semantic alias for `toTitleCase` — use this when rendering candidate names at call sites), `partyClass`, `partyLabel`, `committeeTypeLabel`, `formatRaceName` (returns e.g. `'House • WA-03'` from office/state/district — used by candidate breadcrumb, race title, and race breadcrumb). Every page links all three (main.js → utils.js → inline script block).
 
@@ -164,7 +169,7 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 
 ### What's working
 - Three-segment linked breadcrumb: Candidates → race (e.g. `House • WA-03`, links to `/race?...&year={activeCycle}`) → candidate name (plain text). `updateBreadcrumb()` is called after initial load and at the top of `loadCycle()` so the race link year stays in sync with the selected cycle.
-- Profile header with initials avatar, party tag, office/district tag, incumbency tag
+- Profile header with initials avatar, party tag, office/district tag, and cycle-accurate race context sentence (`.tag-context` pill sourced from `/elections/`, skeleton while loading, resolves to e.g. "Smith is the incumbent with 4 challengers. View race →")
 - Cycle switcher (buttons to toggle between cycles, re-fetches data)
 - URL anchor encodes cycle + tab: `candidate.html#2024#summary`
 - Tab navigation: Summary, Raised, Spent

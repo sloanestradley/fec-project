@@ -55,6 +55,11 @@ test.describe('candidate.html — profile header', () => {
     await expect(tags).not.toHaveCount(0);
   });
 
+  test('race-context element is present in meta-row', async ({ page }) => {
+    await setup(page);
+    await expect(page.locator('#race-context')).toBeAttached();
+  });
+
   test('breadcrumb contains link to /candidates', async ({ page }) => {
     await setup(page);
     const link = page.locator('.breadcrumb a[href="/candidates"]');

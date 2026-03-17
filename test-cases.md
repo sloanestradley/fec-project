@@ -52,7 +52,7 @@
 ## candidate.html
 
 **Test URL:** `localhost:8080/candidate.html?id=H2WA03217` (MGP, House WA-03)
-**Also test with:** `localhost:8080/candidate.html?id=S0NY00410` (Gillibrand, Senate NY)
+**Also test with:** `localhost:8080/candidate.html?id=H6WA09025` (D. Adam Smith, House WA-09), `localhost:8080/candidate.html?id=S0NY00410` (Gillibrand, Senate NY)
 
 ### Nav active state
 - [ ] "Candidates" nav item is active (profile page activates parent browse)
@@ -86,7 +86,19 @@
 - [ ] Initials avatar present (3-letter preferred, e.g. "MGP")
 - [ ] Party tag visible (Dem / Rep / Ind)
 - [ ] Office + district tag visible (e.g. "House · WA-03")
-- [ ] Incumbency tag visible if applicable
+- [ ] ✅ `#race-context` element present in meta-row
+- [ ] Skeleton pulse appears in meta-row while `/elections/` fetch is in-flight (brief flash on fast connections)
+- [ ] Race context sentence resolves to filled `.tag-context` pill inline with party and office tags
+- [ ] Active cycle → sentence uses "is" (e.g. "Smith is the incumbent…")
+- [ ] Past cycle → sentence uses "was"
+- [ ] Incumbent with N challengers → "…the incumbent with N challenger/challengers." (plural conditional)
+- [ ] Incumbent with 0 challengers → "[Name] is/was unopposed."
+- [ ] Open seat → "Open seat with N candidate/candidates."
+- [ ] No `/elections/` data → "View race →" link only, no broken UI
+- [ ] "View race →" link goes to the correct race URL for the active cycle; updates on cycle switch
+- [ ] Senate candidate: race link has no `-00` district segment; sentence renders correctly
+- [ ] `.tag-context` has filled background, no border, no uppercase text
+- [ ] Space between sentence period and "View race →" link is visible (non-breaking space)
 - [ ] "Committees (N) →" trigger shows a count immediately on load (not blank while loading)
 
 ### Cycle switcher
@@ -544,3 +556,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-12 | Senate district tag fix — suppress district '00' in candidate.html office tag | candidate.html (automated) | None | 226/226 Track 1 passing |
 | 2026-03-16 | Incumbent tag on race.html candidate cards — reads incumbent_challenge_full from /elections/ response | race.html, tests/helpers/api-mock.js (automated) | Live API returns incumbent_challenge_full (not incumbent_challenge short code) — mock corrected; condition checks both | 226/226 Track 1 passing |
 | 2026-03-16 | Add incumbent tag test — assert .tag-neutral "Incumbent" renders on race candidate card; fix missing test coverage from previous session | tests/pages.spec.js (automated) | None | 227/227 Track 1 passing |
+| 2026-03-16 | Skeleton loading infrastructure + race context sentence on candidate.html — .skeleton, .tag-context, #race-context, /elections/ fetch | styles.css, candidate.html, design-system.html, tests/candidate.spec.js (automated) | None | 228/228 Track 1 passing |

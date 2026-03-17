@@ -1031,3 +1031,48 @@ The through-line: Sloane consistently corrects for over-caution — pushing back
 – What /elections/ data unlocks beyond incumbency: the endpoint returns all candidates in the contest with financials. Once it's loading on the candidate page, you have the full competitive context — could power a "running against" module, a relative fundraising bar, or a "field" section. Worth designing the full shape of what this panel could be before building any of it.
 
 – Election outcome data gap: the FEC can't tell you who won. For the race comparison view to show outcomes on past cycles, you'd need a supplemental data source (MIT Election Lab, Ballotpedia). Worth deciding whether that's in scope before building out the historical race view.
+---
+2026-03-16 — Skeleton loading infrastructure + race context sentence on candidate.html
+
+## Process log draft
+Title: Infrastructure first, then meaning
+
+Two things shipped today that are deliberately small but load-bearing. A skeleton loading class is nothing on its own — it's permission to show intent while data loads without writing a one-off animation per component. The race context sentence is one API call and fifty lines of logic, but it's the first time the candidate profile communicates something about the race rather than just the candidate. "Smith is the incumbent with 4 challengers" is a sentence. It tells you something. That's new.
+
+Changelog:
+– styles.css: .skeleton class added — shared animation, caller-supplied sizing; @keyframes skeleton-pulse
+– styles.css: .tag-context added — filled background tag variant, no border, no uppercase, with link states
+– candidate.html: #meta-row rebuilt — unreliable incumbent_challenge_full tag removed; #race-context placeholder added
+– candidate.html: skeleton shows in #race-context at top of loadCycle() (bare, not wrapped in .tag-context — avoids double-background visual artifact)
+– candidate.html: /elections/ fetch added in Step 2 of loadCycle(); officeApiParam defined as var expression to avoid scope collision with race.html
+– candidate.html: race context sentence resolves after fetch — incumbent/challenger/open-seat/unopposed branches, active/closed tense, "View race →" link with non-breaking space separator
+– design-system.html: comp-skeleton card added (stable); comp-tag-context card added (candidate-only)
+– tests/candidate.spec.js: #race-context DOM presence test added; 227 → 228 tests
+– CLAUDE.md, TESTING.md, test-cases.md: updated counts, race context test cases, skeleton sizing guidance
+
+Field notes:
+Two bugs caught in real time. The first: the skeleton wrapped in .tag-context produced two simultaneous backgrounds — the filled tag shape visible behind the pulsing bar. The fix was a single line: remove the wrapper during loading, apply it only on resolve. The second: white-space: nowrap collapsed the space between the sentence period and "View race →". A regular space gets eaten; a non-breaking space (\u00a0) doesn't. Both bugs were visible immediately, caught before shipping. The pattern: render, look at it, notice what's wrong, fix it. The design system's guidance on skeleton sizing — "approximate the minimum resolved state" — came directly from this session's calibration of width to "View race →" and height to the total .tag-context box height.
+
+Stack tags: none
+
+## How Sloane steered the work
+**Catching the double-background immediately**
+The skeleton wrapped in `.tag-context` looked wrong the moment it rendered — a filled box shape behind a pulsing bar, two separate visual layers. Catching it immediately rather than shipping it means the component behaves correctly from day one. No user sees the artifact.
+
+**Sizing the skeleton to the minimum resolved state**
+The prompt already specified this instinct ("width to match 'View race →'") — but the reasoning behind it is worth naming: a skeleton that's too wide creates a visual jolt when the content resolves shorter. Sizing to the minimum avoids that. The skeleton expands to the sentence naturally; it never has to shrink.
+
+**Noticing the missing space**
+The screenshot showing ".View race →" flush against the period was a precise observation — the kind of thing that's easy to overlook on a fast render. Catching it and flagging it exactly ("no space between the '.' and 'View race'") gave the fix an unambiguous target. The `\u00a0` was one character.
+
+**Deferring the full `/elections/` integration on candidate.html to this session**
+The previous session noted that cycle-specific incumbency on the candidate page deserved a considered design pass. This session delivered it — and the final form is cleaner than a tag would have been. The sentence carries more information, links to the race, and updates on cycle switch. Holding work for the right moment produced the right solution.
+
+The through-line: Sloane catches visual artifacts quickly, sizes things relative to their resolved state (not a guess), and notices precision failures — a missing space, a double background — at the level of detail that separates designed work from developer defaults.
+
+## What to bring to Claude Chat
+– Race context sentence as the pattern for /elections/ integration: now that /elections/ loads on the candidate page, the data is available. Worth designing what else it could power — a "running against" mini-module, a relative fundraising bar, a "field" section. What's the full shape of this panel before any of it gets built?
+
+– Election outcome gap: the race context sentence shows who the incumbent is and how many challengers exist, but can't show who won past races. For past cycles, "Smith was the incumbent with 4 challengers" is incomplete — a reader naturally wants to know the result. Worth deciding whether a supplemental data source (MIT Election Lab, Ballotpedia) is in scope before building out any historical race view.
+
+– .tag-context reuse opportunities: it's candidate-only now. Committee profiles are the obvious next candidate — a "sponsored by [candidate]" or "filed as [designation]" sentence in the committee header. Worth noting for Phase 3 committee page work.
