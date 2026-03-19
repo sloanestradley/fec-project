@@ -1582,7 +1582,7 @@ async function init() {
     document.getElementById('meta-row').innerHTML =
       '<span class="tag tag-neutral">'+(cand.office_full||'')+' · '+
       (cand.state||'')+(cand.district&&cand.district!=='00'?'-'+cand.district:'')+'</span> '+
-      '<span class="tag '+partyClass(cand.party)+'">'+partyLabel(cand.party)+'</span>';
+      '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>';
 
     // Cycle switcher: default to most recent active cycle, or hash override
     var now = new Date().getFullYear();

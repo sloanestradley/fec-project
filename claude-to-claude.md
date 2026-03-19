@@ -1249,3 +1249,46 @@ The through-line: Sloane brought the diagnosis and the correct tool at each step
 – .committee-row is used in both the candidate profile's committee modal and the committees.html browse list. The new full-border + surface-bg style was designed for the browse list context. Worth a visual check in the modal to confirm it still reads well in that narrower/denser layout.
 
 – Phase 3 remaining work: committee filing history, associated candidates on committee.html, and ad hoc race mode. Worth a quick alignment on sequencing before the next session.
+
+---
+2026-03-19 — Party labels, tooltips, full-row committee links, search header restructure
+
+## Process log draft
+Title: Small things that compound — label order, full-row links, tooltip groundwork
+
+Three targeted refinements this session, each one about closing a small gap between how the product looks and how it behaves. Party labels got a proper taxonomy (N/A bucket, named fallbacks, tooltips via the native title attribute). Committee rows became full-row links, matching the pattern search.html already had. And the search results header learned to introduce itself — count first, label second, query in quotes — rather than just announcing a category.
+
+Changelog:
+– utils.js: partyLabel() expanded — N/A bucket (NNE/NON/UNK/OTH/NPA/UN/W/O → "Party N/A"), named map (DEM/REP/LIB/GRE/IND), raw code fallback for unmapped parties
+– utils.js: partyTooltip(p, party_full) added — title-cases party_full if available, fallback map for known codes, "No party affiliation on file" for N/A bucket
+– candidates.html, search.html, candidate.html: party tags updated with title="partyTooltip(...)" and race-before-party render order
+– search.html: .results-group-header restructured — count span carries full label text (set by JS), view-all link sits alongside it; JS updated to write "N candidates/committees for "query""
+– committees.html: buildRow() outer element converted from <div> to <a> with href + Amplitude onclick; inner .committee-name-link removed; .committee-name now a plain div
+– styles.css: .committee-row gets text-decoration:none; color:inherit (now an <a>); .committee-name-link flagged deprecated
+– tests/pages.spec.js: 3 tests targeting .committee-name-link updated to .committee-row / .committee-row .committee-name
+– project-brief.md: tooltip UI debt noted under Open items — title attribute limitations, when to fix, what the fix looks like
+– styles.css, candidates.html, committees.html: padding-bottom restored on .section-title, .results-group-header, .results-header (removed then restored same session)
+
+Field notes:
+The tooltip issue surfaced something worth keeping: "the code is right" and "it's working" are different claims. The title attribute was correctly set, the function was correctly defined, utils.js was correctly loaded — and the tooltip still wasn't appearing, because party_full wasn't being returned by the /candidates/ endpoint. The fallback map fixed it. The lesson isn't just "check your data shapes" — it's that a feature can be correctly implemented and silently inert at the same time, and only actually using the product surfaces that gap. The full-row link on committees.html is the same instinct at a different scale: the name link worked, but clicking the whitespace around it did nothing, and that dead zone is a friction point that's invisible until you actually try to use the page.
+
+Stack tags: none
+
+## How Sloane steered the work
+**Catching the padding-bottom over-edit**
+The original prompt asked to remove margin-bottom, padding-bottom, and border-bottom. When the result looked off, Sloane immediately flagged it as "my mistake" and asked for padding-bottom to be restored — without ambiguity about what went wrong or what the fix should be. That self-correction kept the session from spending time diagnosing a visual problem.
+
+**"Where would you suggest adding UI debt around tooltips?"**
+Rather than asking to fix the tooltip UX immediately, Sloane asked where the right place to note it would be — a sequencing question, not an implementation question. The answer (mobile polish pass, data-tooltip pattern, project-brief.md) was the right call: native title attribute is fine for now, and the note makes the tradeoff explicit without creating work that isn't yet warranted.
+
+**Specifying the full-row link fix precisely**
+The committee row change came in with the full HTML structure, the JS change, and the CSS additions spelled out — not "make the row clickable" but the exact conversion from div to a, where the href and onclick move, and what happens to the inner anchor. That precision made the edit a one-pass change with no interpretation required.
+
+The through-line: Sloane consistently distinguishes between "fix this now" and "note this for later," and brings enough specificity when something needs to be fixed that the implementation is unambiguous.
+
+## What to bring to Claude Chat
+– Tooltip UX on mobile: the native title attribute is invisible on touch. When does this become worth addressing? Likely tied to a broader mobile polish pass — but worth flagging if the site gets any mobile traffic before then.
+
+– Party N/A label: "Party N/A" is the chosen label for unmapped codes (NNE, NON, UNK, OTH, etc.). Is that the right framing for the audience (strategists, journalists)? An alternative like "No party" or "Unaffiliated" might read more clearly. Worth a quick gut-check.
+
+– committee.html remaining Phase 3 work: filing history and associated candidates are still unbuilt. Now that the committee row interaction is at parity with search.html, is committee.html the next priority, or does Phase 4 work (early signal data, AI insights) take precedence?

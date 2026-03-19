@@ -183,9 +183,10 @@
 
 ### Two-group results
 - [ ] Submitting search shows a "Candidates" group and a "Committees" group
+- [ ] Each group header reads e.g. "5 candidates for "cantwell"" with count first, label second, query in quotes
 - [ ] Candidate cards link to `/candidate/{id}` (clean URL, no `?id=`)
 - [ ] Committee rows link to `/committee/{id}` (clean URL)
-- [ ] Candidate card shows name (First Last), party tag, office · state (e.g. `House · WA · 03`)
+- [ ] Candidate card shows name (First Last), race tag first, party tag second
 - [ ] Committee row shows name, committee type, Active/Terminated status tag
 - [ ] If total candidates > 5: "View all N →" link appears and links to `/candidates?q={query}`
 - [ ] If total committees > 5: "View all N →" link appears and links to `/committees?q={query}`
@@ -368,7 +369,9 @@
 ### Results
 - [ ] ✅ Candidate cards render on load (not blank)
 - [ ] ✅ Candidate card links to `/candidate/{id}` (clean URL — all modes, not just search)
-- [ ] Cards show name (title case), party tag (`tag tag-dem`/`tag-rep`/etc.), and race as `tag tag-neutral` via `formatRaceName()` (e.g. "House • WA-03")
+- [ ] Cards show name (title case), race tag first (`tag tag-neutral` via `formatRaceName()`), then party tag (`tag tag-dem`/`tag-rep`/etc.)
+- [ ] Party tag shows correct label: "Democrat", "Republican", "Libertarian", "Green Party", "Independent", or "Party N/A" for unmapped codes
+- [ ] Hovering a party tag on desktop shows a tooltip (e.g. "Democratic Party", "No party affiliation on file")
 - [ ] Results header shows count (e.g. "1 candidate")
 - [ ] No-results state renders if filters return nothing (not blank/crash)
 
@@ -426,6 +429,7 @@
 - [ ] ✅ Committee row links to `/committee/{id}` (clean URL — all modes)
 - [ ] Treasurer name always shown in each row (not only in search mode)
 - [ ] Committee rows show name → treasurer → type → status (tag + dot); column order matches spec
+- [ ] ✅ Clicking anywhere on a committee row navigates to `/committee/{id}` (full row is an `<a>`, not just name link)
 - [ ] Committee rows have `var(--surface)` background and full border (not just a bottom rule)
 - [ ] Between adjacent committee rows: gap reads as a single 1px line (not doubled)
 - [ ] No-results state renders if filters return nothing
@@ -593,3 +597,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-19 | Candidate header IA overhaul — tags inline in candidate-row, committees button right-aligned, cycle select in tabs bar, race context bar, profile header top border, .main-inner max-width wrapper | candidate.html, styles.css, design-system.html, tests/candidate.spec.js, tests/smoke.spec.js (automated) | None | 234/234 Track 1 passing |
 | 2026-03-19 | .main-inner centering — add to all 7 pages, add margin:auto, update max-width to 1600px; remove profile header top border + page-header-title bottom margin | all pages, styles.css, candidate.html (automated) | None | 234/234 Track 1 passing |
 | 2026-03-19 | Visual consistency pass — list item borders, column order, race tag unification, adjacent sibling border fix, .race-list old pattern removed | styles.css, candidates.html, committees.html, search.html, race.html, design-system.html (automated) | None | 234/234 Track 1 passing |
+| 2026-03-19 | Party label/tooltip refactor (partyLabel, partyTooltip, partyNaTooltip in utils.js); search.html results-group-header restructure (count+label+query); race-before-party tag order on candidates.html + search.html; committees.html full-row <a> (was name-link only); .committee-name-link deprecated; padding-bottom tweaks on section labels | utils.js, candidates.html, committees.html, search.html, candidate.html, styles.css, tests/pages.spec.js (automated) | 3 tests targeting .committee-name-link (fixed to .committee-row / .committee-name) | 234/234 Track 1 passing |

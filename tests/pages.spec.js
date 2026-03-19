@@ -386,8 +386,8 @@ test.describe('committees.html', () => {
   });
 
   test('committee rows use clean /committee/{id} URL', async ({ page }) => {
-    await page.waitForSelector('.committee-name-link', { timeout: 8000 });
-    const link = page.locator('.committee-name-link').first();
+    await page.waitForSelector('.committee-row', { timeout: 8000 });
+    const link = page.locator('.committee-row').first();
     const href = await link.getAttribute('href');
     expect(href).toMatch(/^\/committee\//);
   });
@@ -498,9 +498,9 @@ test.describe('committees.html — search mode (?q=)', () => {
   });
 
   test('committee name is displayed', async ({ page }) => {
-    const nameLink = page.locator('.committee-name-link').first();
-    await expect(nameLink).toBeVisible();
-    const text = await nameLink.textContent();
+    const nameEl = page.locator('.committee-row .committee-name').first();
+    await expect(nameEl).toBeVisible();
+    const text = await nameEl.textContent();
     expect(text?.trim().length).toBeGreaterThan(0);
   });
 
@@ -512,7 +512,7 @@ test.describe('committees.html — search mode (?q=)', () => {
   });
 
   test('committee row links to /committee/{id}', async ({ page }) => {
-    const link = page.locator('.committee-name-link').first();
+    const link = page.locator('.committee-row').first();
     const href = await link.getAttribute('href');
     expect(href).toMatch(/^\/committee\//);
   });

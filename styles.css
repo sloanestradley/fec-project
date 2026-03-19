@@ -127,8 +127,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 
 /* ── Utilities ── */
 .section-title { font-family:'IBM Plex Mono',monospace; font-size:0.6rem; letter-spacing:0; text-transform:uppercase;
-  color:var(--muted); margin-bottom:1rem; padding-bottom:0.75rem;
-  border-bottom:1px solid var(--border); }
+  color:var(--muted); padding-bottom:0.75rem; }
 .state-msg { display:flex; align-items:center; gap:1rem;
   padding:4rem 3rem; color:var(--muted); font-size:0.75rem; }
 .state-msg.error { color:var(--red); }
@@ -222,7 +221,8 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 /* ── E: Committee rows ── */
 .committee-row { display:grid; grid-template-columns:1fr auto auto;
   align-items:center; gap:1rem; padding:0.85rem 1rem;
-  background:var(--surface); border:1px solid var(--border); transition:border-color 0.15s; }
+  background:var(--surface); border:1px solid var(--border); transition:border-color 0.15s;
+  text-decoration:none; color:inherit; }
 .committee-row + .committee-row { border-top:none; }
 .committee-row:hover { border-color:var(--border-strong); }
 .committee-name { font-size:0.78rem; }
@@ -354,6 +354,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   font-weight:700; letter-spacing:0; color:var(--text); }
 
 /* ── O: Committee name link (in committee rows) ── */
+/* .committee-name-link — unused; committee-row is now a full <a>; remove after confirming no other call sites */
 .committee-name-link { color:inherit; text-decoration:underline;
   text-decoration-color:transparent; text-underline-offset:2px;
   transition:color 0.15s, text-decoration-color 0.15s; }
@@ -447,8 +448,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   display:flex; justify-content:space-between; align-items:baseline;
   font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
   text-transform:uppercase; letter-spacing:0; color:var(--muted);
-  margin-bottom:0.75rem; padding-bottom:0.5rem;
-  border-bottom:1px solid var(--border); }
+  padding-bottom:0.5rem; }
 .results-view-all {
   font-family:'IBM Plex Mono',monospace; font-size:0.58rem;
   color:var(--accent); text-decoration:none;

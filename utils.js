@@ -99,11 +99,30 @@ function partyClass(p) {
 }
 
 function partyLabel(p) {
-  if (!p) return '';
+  if (!p) return 'Party N/A';
+  var naGroup = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
+  if (naGroup.indexOf(p.toUpperCase()) !== -1) return 'Party N/A';
+  var map = { DEM: 'Democrat', REP: 'Republican', LIB: 'Libertarian', GRE: 'Green Party', IND: 'Independent' };
   var u = p.toUpperCase();
-  if (u === 'DEM' || u.startsWith('DEMOCRAT')) return 'Democrat';
-  if (u === 'REP' || u.startsWith('REPUBLICAN')) return 'Republican';
-  return p;
+  if (map[u]) return map[u];
+  if (u.startsWith('DEMOCRAT'))   return 'Democrat';
+  if (u.startsWith('REPUBLICAN')) return 'Republican';
+  return p; // raw code fallback for unmapped named parties
+}
+
+// Returns a title attribute value for a party tag.
+// Named parties: shows party_full title-cased (e.g. "Republican Party").
+// N/A bucket: explains why.
+// party_full comes from the API as ALL CAPS — title-case it before display.
+function partyTooltip(p, party_full) {
+  if (!p) return 'No party affiliation on file';
+  var naGroup = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
+  if (naGroup.indexOf(p.toUpperCase()) !== -1) return 'No party affiliation on file';
+  if (party_full) {
+    return party_full.charAt(0).toUpperCase() + party_full.slice(1).toLowerCase();
+  }
+  var fallback = { DEM: 'Democratic Party', REP: 'Republican Party', LIB: 'Libertarian Party', GRE: 'Green Party', IND: 'Independent' };
+  return fallback[p.toUpperCase()] || '';
 }
 
 // ── Race utilities ───────────────────────────────────────────────────────────

@@ -62,7 +62,7 @@
     .results-area { padding:2rem var(--page-gutter); }
     .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
       text-transform:uppercase; letter-spacing:0; color:var(--muted);
-      margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border); }
+      padding-bottom:0.75rem; }
     /* Override committee-row grid for unified 4-column layout (name + type + treasurer + status) */
     #results-list .committee-row { grid-template-columns:1fr auto auto auto; }
 
@@ -307,20 +307,17 @@ function buildRow(c, i, fromPage) {
   var dotCls  = filingFrequencyDotClass(c.filing_frequency);
   var freqLbl = filingFrequencyLabel(c.filing_frequency);
 
-  return '<div class="committee-row">'
-    + '<div class="committee-name">'
-    +   '<a href="/committee/' + c.committee_id + '" class="committee-name-link"'
-    +   ' onclick="amplitude.track(\'Committee Result Clicked\',{committee_id:'
-    +   JSON.stringify(c.committee_id) + ',from_page:' + JSON.stringify(fromPage || 'committees')
-    +   ',result_position:' + i + '})">'
-    +   (c.name || '—') + '</a>'
-    + '</div>'
+  return '<a class="committee-row" href="/committee/' + c.committee_id + '"'
+    + ' onclick="amplitude.track(\'Committee Result Clicked\',{committee_id:'
+    + JSON.stringify(c.committee_id) + ',from_page:' + JSON.stringify(fromPage || 'committees')
+    + ',result_position:' + i + '})">'
+    + '<div class="committee-name">' + (c.name || '—') + '</div>'
     + '<div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">'
     +   (c.treasurer_name || '—') + '</div>'
     + '<div class="committee-type">' + committeeTypeLabel(c.committee_type) + '</div>'
     + '<div class="committee-id"><span class="tag tag-neutral" style="font-size:0.52rem">'
     + '<span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span></div>'
-    + '</div>';
+    + '</a>';
 }
 
 // ── Unified fetch ─────────────────────────────────────────────────────────────

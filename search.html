@@ -118,21 +118,15 @@
       <div class="results-area">
         <div class="results-group" id="group-candidates">
           <div class="results-group-header">
-            <span>Candidates</span>
-            <span>
-              <span id="candidates-count"></span>
-              <a id="candidates-view-all" class="results-view-all" href="#" style="display:none">View all →</a>
-            </span>
+            <span id="candidates-count"></span>
+            <a id="candidates-view-all" class="results-view-all" href="#" style="display:none">View all →</a>
           </div>
           <div id="candidates-list"></div>
         </div>
         <div class="results-group" id="group-committees">
           <div class="results-group-header">
-            <span>Committees</span>
-            <span>
-              <span id="committees-count"></span>
-              <a id="committees-view-all" class="results-view-all" href="#" style="display:none">View all →</a>
-            </span>
+            <span id="committees-count"></span>
+            <a id="committees-view-all" class="results-view-all" href="#" style="display:none">View all →</a>
           </div>
           <div id="committees-list"></div>
         </div>
@@ -259,15 +253,15 @@ function renderCandidateGroup(candidates, total, query) {
       + 'from_page:\'search\'})">'
       + '<div class="candidate-card-name">' + name + '</div>'
       + '<div class="candidate-card-meta">'
-      + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
       + (office ? '<span class="tag tag-neutral" style="font-size:0.62rem">' + office + '</span>' : '')
+      + '<span class="tag ' + pcls + '" title="' + partyTooltip(c.party, c.party_full) + '">' + plbl + '</span>'
       + '</div>'
       + '</a>';
   }).join('');
 
   var n = total;
   document.getElementById('candidates-count').textContent =
-    n + ' candidate' + (n !== 1 ? 's' : '');
+    n + ' candidate' + (n !== 1 ? 's' : '') + ' for \u201c' + query + '\u201d';
   var viewAll = document.getElementById('candidates-view-all');
   if (total > 5) {
     viewAll.href = '/candidates?q=' + encodeURIComponent(query);
@@ -306,7 +300,7 @@ function renderCommitteeGroup(committees, total, query) {
 
   var n = total;
   document.getElementById('committees-count').textContent =
-    n + ' committee' + (n !== 1 ? 's' : '');
+    n + ' committee' + (n !== 1 ? 's' : '') + ' for \u201c' + query + '\u201d';
   var viewAll = document.getElementById('committees-view-all');
   if (total > 5) {
     viewAll.href = '/committees?q=' + encodeURIComponent(query);

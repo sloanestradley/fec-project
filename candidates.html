@@ -60,7 +60,7 @@
     .results-area { padding:2rem var(--page-gutter); }
     .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
       text-transform:uppercase; letter-spacing:0; color:var(--muted);
-      margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border); }
+      padding-bottom:0.75rem; }
     /* .results-list is defined in styles.css */
 
     /* No results / error */
@@ -342,8 +342,8 @@ function buildCard(c, i, fromPage) {
     + ',result_position:' + i + '})">'
     + '<div class="candidate-card-name">' + name + '</div>'
     + '<div class="candidate-card-meta">'
-    + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
     + (office ? '<span class="tag tag-neutral" style="font-size:0.62rem">' + office + '</span>' : '')
+    + '<span class="tag ' + pcls + '" title="' + partyTooltip(c.party, c.party_full) + '">' + plbl + '</span>'
     + (latestCycle ? '<span class="candidate-card-cycle">' + latestCycle + '</span>' : '')
     + '</div></a>';
 }
