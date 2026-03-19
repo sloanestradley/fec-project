@@ -1163,3 +1163,43 @@ The through-line: Sloane writes specs that are complete enough to execute withou
 – Responsive behavior of the new header: tags wrapping below name/avatar on narrow viewports is the specified behavior, but worth a visual check on a real device or in DevTools at 375px/390px to confirm it feels right rather than just technically correct.
 – Race context bar — should it hide on mobile? On narrow viewports it adds height between the tab bar and content. Worth deciding whether to collapse or hide it below a breakpoint.
 – Phase 3 remaining work: with the IA polish done, the remaining Phase 3 items are committee filing history, associated candidates on committee.html, and ad hoc race mode. Worth aligning on which to tackle next.
+
+---
+2026-03-19 — .main-inner centering + profile header cleanup
+
+## Process log draft
+Title: Content at home on any screen — the fix that actually worked
+
+Three earlier attempts to cap content width on ultra-wide screens all failed for the same reason: applying max-width to a CSS Grid item doesn't respond to margin:auto for centering. The solution was one level in — .main-inner is a regular block element inside the grid cell, where margin:auto works exactly as expected. While we were in the layout, two small visual details on the candidate profile header got cleaned up as well: the heavy black top border came off, and the title bottom margin was trimmed.
+
+Changelog:
+– styles.css: .main-inner now max-width:1600px; margin-left:auto; margin-right:auto; width:100% — content caps and centers correctly on ultra-wide screens (2560px+)
+– All 7 content pages (committee.html, candidates.html, committees.html, race.html, races.html, search.html) now wrap .main children in .main-inner; candidate.html already had it
+– candidate.html: removed border-top:3px solid var(--text) from .profile-header
+– styles.css: removed margin-bottom:0.5rem from .page-header-title
+– CLAUDE.md: documented the centering mechanism and why earlier attempts on .layout and .main failed
+– test-cases.md: removed stale "3px top border" test case; added session test log row
+
+Field notes:
+The max-width problem had been attempted before — "grid items ignore margin:auto" was the known failure mode. The fix wasn't about fighting the grid; it was about not trying to. .main-inner is just a div inside a grid cell, which is a perfectly normal block formatting context where centering works. Knowing why the previous approaches failed made the correct level of intervention obvious on the first pass. The header cleanup was smaller but still deliberate — the 3px border had been functioning as a visual crutch, marking the top of content with a heavy line. Without it, the breadcrumb and title stand on their own.
+
+Stack tags: none
+
+## How Sloane steered the work
+"That's why it failed before" — diagnosing before prescribing
+Sloane arrived with a precise problem statement: not just "cap the width" but a clear explanation of why .main and .layout don't work, and why .main-inner does. That diagnosis made the correct solution immediately obvious rather than discovered by trial and error. Zero debugging time lost.
+
+Iterating the max-width in two deliberate passes
+After the fix landed at 1380px, Sloane quickly pushed to 1600px. This wasn't indecision — it was a calibration pass. The first number was a starting point; the second was the right answer after seeing it in context. Knowing when to iterate quickly and when to hold is a judgment call that kept the session moving.
+
+Trimming visual weight from the profile header
+Two small but considered requests: remove the top border, remove the title bottom margin. Both reduce mass at the top of the candidate profile. The border had been serving as a structural anchor but was adding more visual noise than structure. Removing it signals that the layout can hold itself.
+
+The through-line: Sloane consistently brings the diagnosis alongside the prescription — not just "fix this" but "here's why it's broken and here's the lever." That pattern cuts iteration cycles to one.
+
+## What to bring to Claude Chat
+– The profile header top border is gone — worth checking on the live site to confirm the header still feels visually anchored. If it reads too flat, options include a subtle border-bottom on the breadcrumb row, stronger weight on the page title, or a thin accent line. Worth a visual judgment call before it ships to stakeholders.
+
+– With .main-inner capping at 1600px on all pages, ultra-wide centering is now consistent across the whole app. Worth viewing on a large monitor to confirm the centering reads as intentional rather than stranded — particularly browse pages where the filter bar and results list have their own internal max-widths.
+
+– The claude-to-claude.md log has a gap: sessions covering the candidate header IA overhaul, skeleton loading, and dynamic cycle dropdown (commits 0f14d6d through 1fa6829) have no log entries. Worth a retroactive note if any of those sessions produced decisions worth preserving, or just acknowledging the gap is expected given how the sessions went.
