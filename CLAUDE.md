@@ -169,7 +169,7 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 
 ### What's working
 - Three-segment linked breadcrumb: Candidates → race (e.g. `House • WA-03`, links to `/race?...&year={activeCycle}`) → candidate name (plain text). `updateBreadcrumb()` is called after initial load and at the top of `loadCycle()` so the race link year stays in sync with the selected cycle.
-- Profile header with 3px top border; initials avatar, office/district tag first then party tag, all inline in `.candidate-row` with flex-wrap; "Committees (N) →" trigger floats right via `margin-left:auto` within the same row
+- Profile header (no top border); initials avatar, office/district tag first then party tag, all inline in `.candidate-row` with flex-wrap; "Committees (N) →" trigger floats right via `margin-left:auto` within the same row
 - Race context sentence (`.tag-context` pill sourced from `/elections/`, skeleton while loading) lives in a persistent `#race-context-bar` strip between the tab bar and content — visible on all tabs
 - Cycle switcher is a `<select>` element, first child of `.tabs-bar`, populated from `election_years` — `loadCycle()` updates `select.value` in sync; Amplitude `Cycle Switched` fires on `onchange`
 - URL anchor encodes cycle + tab: `candidate.html#2024#summary`
@@ -179,7 +179,7 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 - Associated committees modal: "Committees (N) →" trigger in profile header opens a modal with Active and History tabs; committees fetched eagerly at init so count is immediate
 - Responsive layout: desktop sidebar nav, mobile scroll-aware header + hamburger drawer
 - Smooth fade-in animations on load; profile header, tabs bar, race context bar, and content all revealed together in the RAF block
-- `.main-inner` wrapper inside `.main` constrains content to `max-width:1600px` without affecting the grid column or sidebar positioning — defined in `styles.css`
+- `.main-inner` wrapper inside `.main` constrains content to `max-width:1600px` and centers it via `margin-left:auto; margin-right:auto` — defined in `styles.css`. All 7 pages use it. Key insight: `margin:auto` centering doesn't work on grid items (`.main` itself), but does work on a normal block element inside a grid item — that's why `.main-inner` solves the ultra-wide problem where earlier attempts on `.layout` and `.main` failed.
 
 ### Chart architecture
 - Type: line chart with `type: 'time'` x-axis (requires date-fns adapter)

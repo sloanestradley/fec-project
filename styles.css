@@ -74,7 +74,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 
 /* ── Layout ── */
 .layout { display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; }
-.main-inner { max-width:1600px; width:100%; }
+.main-inner { max-width:1600px; margin-left:auto; margin-right:auto; width:100%; }
 
 /* ── Sidebar ── */
 .sidebar { background:var(--sidebar-bg); border-right:1px solid var(--sidebar-border);
@@ -373,7 +373,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 
 .page-header-title { font-family:'Barlow Condensed',sans-serif;
   font-size:clamp(1.6rem,3vw,2.4rem); font-weight:800; line-height:1;
-  letter-spacing:0; text-transform:uppercase; margin-bottom:0.5rem; }
+  letter-spacing:0; text-transform:uppercase; }
 
 /* ── P: Form controls ── */
 .form-select, .form-input { padding:0.45rem 0.6rem; font-family:'DM Sans',sans-serif;

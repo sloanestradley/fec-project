@@ -82,7 +82,6 @@
 - [ ] No vertical jump or layout shift as the header fades in (opacity-only transition, no translateY)
 
 ### Profile header
-- [ ] Profile header has a 3px solid top border (structural anchor at top of content area)
 - [ ] Candidate name displays
 - [ ] Initials avatar present (3-letter preferred, e.g. "MGP")
 - [ ] Race/office tag appears first (e.g. "House · WA-03"), party tag second — in that order inline
@@ -589,3 +588,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-16 | Skeleton loading infrastructure + race context sentence on candidate.html — .skeleton, .tag-context, #race-context, /elections/ fetch | styles.css, candidate.html, design-system.html, tests/candidate.spec.js (automated) | None | 228/228 Track 1 passing |
 | 2026-03-19 | Dynamic cycle dropdown + Senate class indicator + URL param validation on race.html | race.html, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | None | 234/234 Track 1 passing |
 | 2026-03-19 | Candidate header IA overhaul — tags inline in candidate-row, committees button right-aligned, cycle select in tabs bar, race context bar, profile header top border, .main-inner max-width wrapper | candidate.html, styles.css, design-system.html, tests/candidate.spec.js, tests/smoke.spec.js (automated) | None | 234/234 Track 1 passing |
+| 2026-03-19 | .main-inner centering — add to all 7 pages, add margin:auto, update max-width to 1600px; remove profile header top border + page-header-title bottom margin | all pages, styles.css, candidate.html (automated) | None | 234/234 Track 1 passing |
