@@ -61,8 +61,7 @@
     .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
       text-transform:uppercase; letter-spacing:0; color:var(--muted);
       margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border); }
-    .results-list { display:flex; flex-direction:column; gap:1px;
-      background:var(--border); border:1px solid var(--border); }
+    /* .results-list is defined in styles.css */
 
     /* No results / error */
     .no-results { padding:2.5rem var(--page-gutter); color:var(--muted); font-size:0.8rem; }
@@ -333,8 +332,7 @@ function buildCard(c, i, fromPage) {
   var name  = formatCandidateName(c.name);
   var pcls  = partyClass(c.party);
   var plbl  = partyLabel(c.party);
-  var office = [c.office_full, c.state, c.district && c.district !== '00' ? c.district : '']
-    .filter(Boolean).join(' · ');
+  var office = formatRaceName(c.office, c.state, c.district);
   var latestCycle = c.election_years && c.election_years.length
     ? Math.max.apply(null, c.election_years) : '';
 
@@ -345,7 +343,7 @@ function buildCard(c, i, fromPage) {
     + '<div class="candidate-card-name">' + name + '</div>'
     + '<div class="candidate-card-meta">'
     + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
-    + (office ? '<span class="candidate-card-office">' + office + '</span>' : '')
+    + (office ? '<span class="tag tag-neutral" style="font-size:0.62rem">' + office + '</span>' : '')
     + (latestCycle ? '<span class="candidate-card-cycle">' + latestCycle + '</span>' : '')
     + '</div></a>';
 }

@@ -221,8 +221,9 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 
 /* ── E: Committee rows ── */
 .committee-row { display:grid; grid-template-columns:1fr auto auto;
-  align-items:center; gap:1rem; padding:0.85rem 0; border-bottom:1px solid var(--border); }
-.committee-row:last-child { border-bottom:none; }
+  align-items:center; gap:1rem; padding:0.85rem 1rem;
+  background:var(--surface); border:1px solid var(--border); transition:border-color 0.15s; }
+.committee-row:hover { border-color:var(--border-strong); }
 .committee-name { font-size:0.78rem; }
 .committee-type { font-size:0.6rem; color:var(--muted); text-align:right; }
 .committee-id { font-size:0.6rem; color:var(--muted); }
@@ -339,6 +340,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .candidate-card-name { font-family:'DM Sans',sans-serif; font-weight:500; color:var(--text);
   margin-bottom:0.4rem; font-size:0.88rem; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
 .candidate-card-meta { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
+/* .candidate-card-office — unused, replaced by tag tag-neutral; remove after confirming no other call sites */
 .candidate-card-office { font-family:'IBM Plex Mono',monospace; font-size:0.62rem; color:var(--muted); }
 .candidate-card-cycle { font-family:'IBM Plex Mono',monospace; font-size:0.62rem; color:var(--muted); margin-left:auto; }
 .candidate-card-stats { display:flex; gap:1.25rem; margin-top:0.65rem;
@@ -433,6 +435,9 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   color:var(--muted); padding:0.55rem 0.85rem;
   text-transform:uppercase; letter-spacing:0; }
 
+/* ── P: Browse results list container ── */
+.results-list { display:flex; flex-direction:column; }
+
 /* ── Q: Search two-group results ── */
 .results-group { margin-bottom:2.5rem; }
 .results-group:last-child { margin-bottom:0; }
@@ -450,10 +455,9 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .committee-result-row {
   display:flex; align-items:center; justify-content:space-between;
   gap:1rem; padding:0.8rem 1rem; background:var(--surface);
-  border:1px solid var(--border); border-radius:0.5rem;
+  border:1px solid var(--border);
   text-decoration:none; transition:border-color 0.15s;
-  margin-bottom:0.5rem; color:inherit; }
-.committee-result-row:last-child { margin-bottom:0; }
+  color:inherit; }
 .committee-result-row:hover { border-color:var(--border-strong); }
 .committee-result-name {
   font-size:0.82rem; color:var(--text); font-weight:500;

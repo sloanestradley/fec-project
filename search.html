@@ -249,9 +249,7 @@ function renderCandidateGroup(candidates, total, query) {
     var name  = formatCandidateName(c.name);
     var pcls  = partyClass(c.party || c.party_full);
     var plbl  = partyLabel(c.party || c.party_full);
-    var parts = [officeWord(c.office), c.state,
-      (c.district && c.district !== '00') ? c.district : ''].filter(Boolean);
-    var office = parts.join(' · ');
+    var office = formatRaceName(c.office, c.state, c.district);
     return '<a class="candidate-card" href="/candidate/' + c.candidate_id + '"'
       + ' onclick="amplitude.track(\'Candidate Result Clicked\',{'
       + 'candidate_id:' + JSON.stringify(c.candidate_id) + ','
@@ -262,7 +260,7 @@ function renderCandidateGroup(candidates, total, query) {
       + '<div class="candidate-card-name">' + name + '</div>'
       + '<div class="candidate-card-meta">'
       + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
-      + (office ? '<span class="candidate-card-office">' + office + '</span>' : '')
+      + (office ? '<span class="tag tag-neutral" style="font-size:0.62rem">' + office + '</span>' : '')
       + '</div>'
       + '</a>';
   }).join('');
