@@ -223,6 +223,52 @@ test.describe('race.html', () => {
     const text = await incumbentTag.textContent();
     expect(text?.trim()).toBe('Incumbent');
   });
+
+  test('year selector options come from elections/search endpoint', async ({ page }) => {
+    const sel = page.locator('#year-select');
+    const options = await sel.locator('option').allTextContents();
+    // ELECTIONS_SEARCH mock returns cycles 2024 and 2022
+    expect(options).toContain('2024');
+    expect(options).toContain('2022');
+  });
+
+  test('House race does not show Senate class indicator', async ({ page }) => {
+    const meta = page.locator('#race-meta');
+    const text = await meta.textContent();
+    expect(text).not.toContain('Class');
+  });
+
+  test('Senate race shows class indicator in meta', async ({ page }) => {
+    // Navigate to a Senate race — 2024 is Class I
+    await page.goto('/race.html?state=WA&office=S&year=2024');
+    await waitForRaceLoad(page);
+    const meta = page.locator('#race-meta');
+    const text = await meta.textContent();
+    expect(text).toContain('Class I seat');
+  });
+
+  test('invalid state shows error with back link', async ({ page }) => {
+    await page.goto('/race.html?state=ZZ&office=H&district=03&year=2024');
+    await waitForRaceLoad(page);
+    const msg = page.locator('#state-msg');
+    await expect(msg).toContainText('Invalid state');
+    const link = msg.locator('a[href*="races"]');
+    await expect(link).toBeAttached();
+  });
+
+  test('invalid office shows error', async ({ page }) => {
+    await page.goto('/race.html?state=WA&office=X&district=03&year=2024');
+    await waitForRaceLoad(page);
+    const msg = page.locator('#state-msg');
+    await expect(msg).toContainText('Invalid office');
+  });
+
+  test('odd year shows error', async ({ page }) => {
+    await page.goto('/race.html?state=WA&office=H&district=03&year=2023');
+    await waitForRaceLoad(page);
+    const msg = page.locator('#state-msg');
+    await expect(msg).toContainText('Invalid election year');
+  });
 });
 
 // ── candidates.html ───────────────────────────────────────────────────────────

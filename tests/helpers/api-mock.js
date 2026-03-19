@@ -158,6 +158,15 @@ const SEARCH_RESULTS = {
   pagination: { count: 1, pages: 1, per_page: 20, page: 1 },
 };
 
+// Available election cycles (/elections/search/ endpoint)
+const ELECTIONS_SEARCH = {
+  results: [
+    { cycle: 2024, district: '03', office: 'H', state: 'WA' },
+    { cycle: 2022, district: '03', office: 'H', state: 'WA' },
+  ],
+  pagination: { count: 2 },
+};
+
 // Race candidates (/elections/ endpoint)
 const ELECTIONS = {
   results: [{
@@ -281,6 +290,9 @@ function resolveFixture(path, params) {
 
   // election-dates/
   if (/\/election-dates\//.test(path)) return ELECTION_DATES;
+
+  // elections/search/ (available cycles for a race)
+  if (/\/elections\/search\//.test(path)) return ELECTIONS_SEARCH;
 
   // elections/ (race candidates)
   if (/\/elections\//.test(path)) return ELECTIONS;

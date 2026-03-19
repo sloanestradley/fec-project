@@ -206,6 +206,7 @@ GET /committee/{id}/reports/?cycle={year}     — per-period filing reports (cha
 GET /reporting-dates/?report_year={year}&report_type={type} — filing deadlines (one call per type)
 GET /election-dates/?election_state=&office_sought=&election_year= — actual election dates
 GET /elections/?state=&cycle=&office=&district= — all candidates in a contest with financial summaries
+GET /elections/search/?state=&office=&district=&per_page= — available election cycles for a race (returns {cycle, district, office, state})
 GET /candidates/search/?q=&per_page=&sort=    — name-based candidate search
 GET /candidates/?state=&office=&party=&election_year= — browse candidates by filter
 GET /committees/?state=&committee_type=       — browse committees by filter
@@ -251,6 +252,15 @@ Candidate totals endpoint returns:
 - `last_cash_on_hand_end_period` — most recent COH
 - `coverage_end_date` — most recent coverage date
 
+Elections-search endpoint (`/elections/search/`) returns:
+- `cycle` — integer, election cycle year (even number)
+- `district` — string, e.g. `'03'` (House only)
+- `office` — string, e.g. `'H'`, `'S'`, `'P'`
+- `state` — string, e.g. `'WA'`
+- **Critical:** Returns projected future cycles out to 2060+ — must cap client-side. House: cap at current cycle. Senate: cap at current cycle + 4 (covers both seats' next election).
+- **Critical:** For Senate, returns cycles for *both* seats in the state (unioned). Deduplication required.
+- **Critical:** No Senate class field exists anywhere in the FEC API (`/elections/`, `/elections/search/`). Senate seat class (I/II/III) must be derived heuristically from cycle year.
+
 ---
 
 ## What to build next
@@ -272,7 +282,7 @@ See `project-brief.md` for the full phased roadmap. Short version:
 - ~~committee.html~~ ✅ scaffold — header with financials, back-link to candidate
 - ~~committees.html~~ ✅ unified browse+search — auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state, treasurer always shown
 - ~~races.html~~ ✅ scaffold — mode selector (curated form live; ad hoc stub)
-- ~~race.html~~ ✅ scaffold — single race view, candidate cards with financials, cycle-anchored links
+- ~~race.html~~ ✅ scaffold — single race view, candidate cards with financials, cycle-anchored links, dynamic cycle dropdown from `/elections/search/`, Senate class indicator, URL param validation
 - Remaining: filing history on committee.html, associated candidates on committee.html, ad hoc mode on races.html
 
 **Phase 4:** Early signal data (48/24hr reports), AI insights, transaction-level search.
@@ -285,6 +295,7 @@ See `project-brief.md` for the full phased roadmap. Short version:
 - **Spent tab timeline:** A spend-over-time line chart (parallel to the Raised tab's chart) has not been built. Lower priority — the category/purpose/vendor breakdown is sufficient for current use. Add when the Raised chart pattern is ready to be reused.
 - **JFA committee gap:** Joint fundraising committees where a candidate is a participant (not the principal) have `candidate_ids: []` and `sponsor_candidate_ids: null` in the FEC API — they don't appear in either `/candidate/{id}/committees/` or `/committees/?sponsor_candidate_id=`. The only source of truth is the candidate's F2 filing document, which lists them as authorized committees. Surfacing these would require fetching the most recent F2 via `/filings/?candidate_id=&form_type=F2` and parsing committee references from the filing data. Not built yet; validate approach with John before implementing.
 - ~~utils.js duplication:~~ ✅ Resolved. Shared utilities extracted to `utils.js` — `BASE`, `API_KEY`, `apiFetch`, `fmt`, `fmtDate`, `toTitleCase`, `partyClass`, `partyLabel`, `committeeTypeLabel`. All pages load it between `main.js` and their own script block.
+- **Senate class heuristic:** `getSenateClass()` in race.html derives class from cycle year via modular arithmetic. Special elections can seat a senator from a different class than the cycle implies. The FEC `/election-dates/` endpoint exposes SP/SG/SGR election types that could detect this, but financial data in `/elections/search/` has no special election flag — specials are folded into the standard 2-year cycle. Low priority: ~1-2 special Senate elections per decade.
 - **Mock/live field shape gap risk:** Some FEC endpoints return different field names or value types than their mock counterparts — the `/elections/` endpoint returns `party_full` (full name) instead of `party` (short code); `/elections/` returns `incumbent_challenge_full` (full string) not `incumbent_challenge` (short code) — mock corrected 2026-03-16; `total_receipts_ytd` in reports is a string in the live API but was mocked as a number; `/schedule_a/by_state/` returns `{state, state_full, total, count}` while the individual `/schedule_a/` endpoint returns `{contributor_state, contribution_receipt_amount, ...}`. Audited and fixed 2026-03-11. Rule: when adding a new endpoint, fetch one live response and verify field names against the mock before writing assertions. Utilities should always accept both short and full-form values where the API may vary by endpoint.
 
 ## Committee modal architecture

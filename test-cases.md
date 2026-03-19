@@ -5,7 +5,7 @@
 
 ## How to use this file
 
-**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 227 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
+**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 234 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
 
 **Smoke tests (Track 2):** Run `npm run test:smoke` before deploys. Hits the live FEC API — 5 key checks. Requires the dev server to be running.
 
@@ -295,6 +295,29 @@
 - [ ] Changing year dropdown to 2022 reloads page with `year=2022` in URL
 - [ ] ✅ Year dropdown shows 2024 as selected value when URL param is `year=2024`
 
+### Dynamic cycle dropdown
+- [ ] ✅ Year dropdown options populated from `/elections/search/` endpoint (not hardcoded)
+- [ ] House race: dropdown shows historical cycles from FEC data, capped at current cycle
+- [ ] Senate race: dropdown shows cycles for both seats (unioned), capped at current cycle + 4
+- [ ] No future projected cycles beyond the cap (e.g. no 2060)
+- [ ] Network tab: `/elections/search/` and `/elections/` fire near-simultaneously (parallel fetch)
+- [ ] If `/elections/search/` fails: dropdown falls back to [2026, 2024, 2022, 2020, 2018]; console warning fires
+- [ ] Year in URL not in dropdown (e.g. `year=2028` with no data): page snaps to nearest valid cycle
+
+### Senate class indicator
+- [ ] ✅ Senate race shows class label in meta (e.g. "3 candidates · Class I seat")
+- [ ] ✅ House race does NOT show class label
+- [ ] WA Senate 2024 → "Class I seat"; WA Senate 2022 → "Class III seat"
+- [ ] Switching year on Senate race: class label updates correctly on reload
+- [ ] Class label uses `.race-meta` style (IBM Plex Mono, --muted)
+
+### URL param validation
+- [ ] ✅ Invalid state (e.g. `state=ZZ`) shows error with back link to /races
+- [ ] ✅ Invalid office (e.g. `office=X`) shows error
+- [ ] ✅ Odd year (e.g. `year=2023`) shows error
+- [ ] Garbage params (e.g. `state=ABCDEFG`) show error, not a loading spinner
+- [ ] Valid but no-data params (e.g. `state=WY&office=S&year=2024`) show "No candidates found" (not error)
+
 ### Candidate cards
 - [ ] At least 1 candidate card renders (not a blank list)
 - [ ] Each card shows candidate name
@@ -557,3 +580,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-16 | Incumbent tag on race.html candidate cards — reads incumbent_challenge_full from /elections/ response | race.html, tests/helpers/api-mock.js (automated) | Live API returns incumbent_challenge_full (not incumbent_challenge short code) — mock corrected; condition checks both | 226/226 Track 1 passing |
 | 2026-03-16 | Add incumbent tag test — assert .tag-neutral "Incumbent" renders on race candidate card; fix missing test coverage from previous session | tests/pages.spec.js (automated) | None | 227/227 Track 1 passing |
 | 2026-03-16 | Skeleton loading infrastructure + race context sentence on candidate.html — .skeleton, .tag-context, #race-context, /elections/ fetch | styles.css, candidate.html, design-system.html, tests/candidate.spec.js (automated) | None | 228/228 Track 1 passing |
+| 2026-03-19 | Dynamic cycle dropdown + Senate class indicator + URL param validation on race.html | race.html, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | None | 234/234 Track 1 passing |

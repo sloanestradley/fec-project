@@ -1076,3 +1076,48 @@ The through-line: Sloane catches visual artifacts quickly, sizes things relative
 – Election outcome gap: the race context sentence shows who the incumbent is and how many challengers exist, but can't show who won past races. For past cycles, "Smith was the incumbent with 4 challengers" is incomplete — a reader naturally wants to know the result. Worth deciding whether a supplemental data source (MIT Election Lab, Ballotpedia) is in scope before building out any historical race view.
 
 – .tag-context reuse opportunities: it's candidate-only now. Committee profiles are the obvious next candidate — a "sponsored by [candidate]" or "filed as [designation]" sentence in the committee header. Worth noting for Phase 3 committee page work.
+
+---
+2026-03-19 — Dynamic cycle dropdown + Senate class indicator + URL validation on race.html
+
+## Process log draft
+Title: The dropdown that thought it could see the future
+
+The race page's year dropdown was hardcoded — five years, no more, no less. Replacing it with a dynamic call to the FEC's /elections/search/ endpoint was straightforward, until the API returned cycles through 2060. Senate races made it more interesting: two seats per state means the dropdown unions both, and the class of the seat changes with the cycle. The FEC doesn't expose Senate class anywhere in its API, so the label is a heuristic — modular arithmetic against known class years. Then the edge case conversation happened: what about garbage in the URL? What about special elections that break the class pattern? The heuristic got its limits documented, and the page got input validation it should have had from the start.
+
+Changelog:
+– race.html: replaced hardcoded [2018–2026] year dropdown with dynamic cycles from /elections/search/; added Senate class indicator (Class I/II/III) via cycle-year heuristic; added URL param validation (state, office, district, year); parallel fetch strategy (Promise.all when year is explicit, sequential when defaulting); fallback to hardcoded list on API failure; snap-to-nearest when requested year isn't in available cycles
+– tests/helpers/api-mock.js: added ELECTIONS_SEARCH fixture + route
+– tests/pages.spec.js: 6 new tests — dynamic dropdown content, no class on House, class label on Senate, invalid state/office/year error states
+– CLAUDE.md: added /elections/search/ endpoint docs, Senate class heuristic debt note, elections-search field verification
+– test-cases.md: added dynamic cycle dropdown, Senate class indicator, and URL validation test cases; updated test count; appended test log row
+– TESTING.md: updated test count to 234
+
+Field notes:
+The most interesting part of this session wasn't the implementation — it was the edge case audit. Walking through real examples (Oklahoma 2022 with simultaneous regular and special elections, California's two-race same-cycle scenario, Alaska's at-large district) revealed that the Senate class heuristic is exactly wrong in the one case where it matters most: when a special election puts two seats on the ballot in the same cycle. The right response wasn't to build a more complex heuristic — it was to document the limitation clearly and move on. The FEC API doesn't give us the data to do better without cross-referencing /election-dates/, which is a different level of complexity. The input validation was the opposite story: once we saw that any garbage in the URL would produce a silent loading spinner, the fix was obvious and cheap. Sometimes the edge case audit surfaces a known limitation you accept; sometimes it surfaces a gap you fix immediately.
+
+Stack tags: /elections/search/ · Senate class heuristic
+
+## How Sloane steered the work
+**"Why are we showing up to the year 2060 in the dropdown?"**
+Caught the most visible bug immediately after the first implementation — the API returns projected future cycles that no user would expect to see. This led directly to the cycle-capping logic and the Senate +4 refinement.
+
+**"Would it really be current cycle + 4?"**
+Walked through the math live, caught that +6 was too generous. The reasoning was precise: in 2025/2026 with currentCycle=2026, 2032 isn't relevant yet. +4 covers both seats without overreaching.
+
+**"When no year param set, can we default to current cycle or next upcoming race?"**
+Identified that defaulting to the highest cycle (which could be 2030 for Senate) isn't the same as defaulting to the most relevant one. The fix — smallest cycle >= current — gives users the race that's happening now or next, not the one furthest in the future.
+
+**The edge case audit**
+The comprehensive edge case list with real-world examples (Oklahoma specials, California double races, Alaska at-large, Texas redistricting) wasn't just testing — it was product thinking. Each case was paired with a real election to make the abstract concrete.
+
+**"This seems like a higher priority issue" → garbage URL params**
+Reframed X3/X4 from "minor edge case" to "the page trusts user input completely." The demo URL with state=ABCDEFGHIJKLMNOPQRSTUVWXYZ made the problem visceral. Then "Why not #3 now?" — no hesitation on scope, just ship the validation.
+
+The through-line: Sloane tests the implementation against reality, not against the spec. The 2060 dropdown, the +6 vs +4 math, the garbage URL — each was caught by asking "what would a real person see?" rather than "does the code do what the plan said?"
+
+## What to bring to Claude Chat
+– Input validation on other pages: race.html now validates URL params; candidate.html, committee.html, and the browse pages do not. Worth auditing whether the same garbage-URL problem exists there.
+– Oklahoma 2022 / dual-race display: when a state has two Senate races in the same cycle (regular + special), the race page shows all candidates merged. Should there be any UI to distinguish which seat each candidate is running for?
+– At-large district display: the -00 suffix for at-large House districts is a known cosmetic issue. Worth scheduling a fix.
+– Previous session ritual gap: the 2026-03-16 session (skeleton loading + race context sentence) has no claude-to-claude.md entry. Decide whether to reconstruct from git history or note the gap and move on.

@@ -112,20 +112,73 @@
 <script src="utils.js"></script>
 <script>
 var urlParams    = new URLSearchParams(window.location.search);
-var stateParam   = urlParams.get('state');
+var stateParam   = (urlParams.get('state') || '').toUpperCase();
 var districtParam= urlParams.get('district');
 var yearParam    = urlParams.get('year') || '2026';
-var officeParam  = urlParams.get('office');
+var officeParam  = (urlParams.get('office') || '').toUpperCase();
+
+// ── Param validation ────────────────────────────────────────────────────────
+var VALID_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
+  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS',
+  'MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA',
+  'RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY',
+  'DC','AS','GU','MP','PR','VI'];
+var VALID_OFFICES = ['H','S','P'];
+
+function validateParams() {
+  if (!stateParam || !officeParam) return 'No race specified.';
+  if (VALID_STATES.indexOf(stateParam) === -1) return 'Invalid state: ' + stateParam;
+  if (VALID_OFFICES.indexOf(officeParam) === -1) return 'Invalid office: ' + officeParam;
+  if (officeParam === 'H' && districtParam && !/^\d{1,2}$/.test(districtParam)) return 'Invalid district: ' + districtParam;
+  var yr = Number(yearParam);
+  if (isNaN(yr) || yr < 1980 || yr > 2060 || yr % 2 !== 0) return 'Invalid election year: ' + yearParam;
+  return null;
+}
 
 // /elections/ endpoint requires lowercase full words, not single-letter codes
 function officeApiParam(o) {
   return { H:'house', S:'senate', P:'president' }[o] || o.toLowerCase();
 }
 
-function buildYearSelector() {
+// Senate class heuristic — no FEC API field exists for this.
+// Verified: /elections/ and /elections/search/ return no class/seat field.
+// Class I: 2018, 2024, 2030 … | Class II: 2020, 2026, 2032 … | Class III: 2016, 2022, 2028 …
+// Approximate — special elections break the pattern. The FEC /election-dates/
+// endpoint has SP/SG/SGR type codes that could detect specials, but financial
+// data is cycle-bound (no separate special election cycle in /elections/search/).
+function getSenateClass(cycle) {
+  var yr = Number(cycle);
+  if ((yr - 2018) % 6 === 0) return 'I';
+  if ((yr - 2020) % 6 === 0) return 'II';
+  if ((yr - 2016) % 6 === 0) return 'III';
+  return null;
+}
+
+// Fetch available election cycles from /elections/search/
+// Response shape: each result has { cycle, district, office, state }
+async function fetchCycles() {
+  var params = { state: stateParam, office: officeApiParam(officeParam), per_page: 100 };
+  if (officeParam === 'H' && districtParam) params.district = districtParam;
+  var data = await apiFetch('/elections/search/', params);
+  var results = data.results || [];
+  // Cap cycles — the API returns projected cycles out to 2060+
+  // Senate: current cycle + 4 (covers both seats' next election in the state)
+  // House/President: current cycle only
+  var now = new Date().getFullYear();
+  var currentCycle = now % 2 === 0 ? now : now + 1;
+  var maxCycle = officeParam === 'S' ? currentCycle + 4 : currentCycle;
+  var seen = {};
+  var cycles = [];
+  results.forEach(function(r) {
+    if (r.cycle <= maxCycle && !seen[r.cycle]) { seen[r.cycle] = true; cycles.push(r.cycle); }
+  });
+  cycles.sort(function(a, b) { return b - a; });
+  return cycles;
+}
+
+function buildYearSelector(cycles) {
   var sel = document.getElementById('year-select');
-  // Update this list as new cycles begin
-  var cycles = [2018, 2020, 2022, 2024, 2026];
+  sel.innerHTML = '';
   cycles.forEach(function(yr) {
     var opt = document.createElement('option');
     opt.value = yr;
@@ -174,31 +227,89 @@ function buildCandidateCard(c) {
 }
 
 async function init() {
-  buildYearSelector();
+  var hasExplicitYear = urlParams.has('year');
+  var fallbackCycles = [2026, 2024, 2022, 2020, 2018];
 
   amplitude.track('Page Viewed', {
     page: 'race', state: stateParam, year: yearParam, office: officeParam, district: districtParam
   });
 
-  if (!stateParam || !officeParam) {
+  var validationError = validateParams();
+  if (validationError) {
     var el = document.getElementById('state-msg');
     el.className = 'state-msg error';
-    el.innerHTML = '⚠ No race specified. <a href="/races" style="color:inherit">← Back to Races</a>';
+    el.innerHTML = '⚠ ' + validationError + ' <a href="/races" style="color:inherit">← Back to Races</a>';
     return;
   }
 
   try {
-    var queryParams = { state: stateParam, cycle: yearParam, office: officeApiParam(officeParam), per_page: 50 };
-    if (districtParam) queryParams.district = districtParam;
-    var data    = await apiFetch('/elections/', queryParams);
-    var results = data.results || [];
+    var cycles, results;
+
+    if (hasExplicitYear) {
+      // Parallel: fetch cycles and candidates simultaneously
+      var queryParams = { state: stateParam, cycle: yearParam, office: officeApiParam(officeParam), per_page: 50 };
+      if (districtParam) queryParams.district = districtParam;
+
+      var settled = await Promise.all([
+        fetchCycles().catch(function(err) { console.warn('elections/search failed, using fallback cycles:', err); return null; }),
+        apiFetch('/elections/', queryParams)
+      ]);
+
+      cycles = (settled[0] && settled[0].length > 0) ? settled[0] : fallbackCycles;
+      results = (settled[1].results || []);
+
+      // If requested year isn't in available cycles, snap to nearest and re-fetch
+      if (cycles.indexOf(Number(yearParam)) === -1) {
+        var yrNum = Number(yearParam);
+        var nearest = cycles.reduce(function(best, c) {
+          return Math.abs(c - yrNum) < Math.abs(best - yrNum) ? c : best;
+        }, cycles[0]);
+        yearParam = String(nearest);
+        queryParams.cycle = yearParam;
+        var data = await apiFetch('/elections/', queryParams);
+        results = data.results || [];
+      }
+    } else {
+      // Sequential: need cycles first to determine default year
+      var fetchedCycles;
+      try {
+        fetchedCycles = await fetchCycles();
+      } catch(err) {
+        console.warn('elections/search failed, using fallback cycles:', err);
+        fetchedCycles = null;
+      }
+
+      cycles = (fetchedCycles && fetchedCycles.length > 0) ? fetchedCycles : fallbackCycles;
+      // Default to current cycle, or next upcoming if current has no race
+      var nowYear = new Date().getFullYear();
+      var curCycle = nowYear % 2 === 0 ? nowYear : nowYear + 1;
+      var defaultCycle = cycles.find(function(c) { return c >= curCycle; });
+      // cycles is descending, so find() gets the largest >= curCycle; we want the smallest
+      defaultCycle = cycles.filter(function(c) { return c >= curCycle; }).pop() || cycles[0];
+      yearParam = String(defaultCycle);
+
+      var queryParams = { state: stateParam, cycle: yearParam, office: officeApiParam(officeParam), per_page: 50 };
+      if (districtParam) queryParams.district = districtParam;
+      var data = await apiFetch('/elections/', queryParams);
+      results = data.results || [];
+    }
+
+    buildYearSelector(cycles);
 
     var raceName = formatRaceName(officeParam, stateParam, districtParam);
 
     document.getElementById('breadcrumb-race').textContent = raceName;
     document.getElementById('race-title').textContent = raceName;
-    document.getElementById('race-meta').textContent  =
-      results.length + ' candidate' + (results.length !== 1 ? 's' : '');
+
+    // Build meta: candidate count + optional Senate class
+    var metaParts = [];
+    metaParts.push(results.length + ' candidate' + (results.length !== 1 ? 's' : ''));
+    if (officeParam === 'S') {
+      var cls = getSenateClass(yearParam);
+      if (cls) metaParts.push('Class ' + cls + ' seat');
+    }
+    document.getElementById('race-meta').textContent = metaParts.join(' \u00b7 ');
+
     document.getElementById('race-candidates-label').textContent =
       'Candidates (' + results.length + ')';
     document.title = raceName + ' — ledger.fec';
