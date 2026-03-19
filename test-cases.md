@@ -82,13 +82,17 @@
 - [ ] No vertical jump or layout shift as the header fades in (opacity-only transition, no translateY)
 
 ### Profile header
+- [ ] Profile header has a 3px solid top border (structural anchor at top of content area)
 - [ ] Candidate name displays
 - [ ] Initials avatar present (3-letter preferred, e.g. "MGP")
-- [ ] Party tag visible (Dem / Rep / Ind)
-- [ ] Office + district tag visible (e.g. "House · WA-03")
-- [ ] ✅ `#race-context` element present in meta-row
-- [ ] Skeleton pulse appears in meta-row while `/elections/` fetch is in-flight (brief flash on fast connections)
-- [ ] Race context sentence resolves to filled `.tag-context` pill inline with party and office tags
+- [ ] Race/office tag appears first (e.g. "House · WA-03"), party tag second — in that order inline
+- [ ] Tags are inline with the candidate name in the same flex row (not in a separate row below)
+- [ ] "Committees (N) →" trigger floats to the far right of the candidate row, vertically centered
+- [ ] At narrow viewports (≤860px), tags wrap below the name/avatar; committees link stays right-aligned
+- [ ] ✅ `#race-context` element present in DOM (now in `#race-context-bar`, not meta-row)
+- [ ] Race context bar appears as a persistent strip between the tab bar and content (visible on all tabs)
+- [ ] Skeleton pulse appears in the race context bar while `/elections/` fetch is in-flight
+- [ ] Race context sentence resolves to filled `.tag-context` pill in the bar
 - [ ] Active cycle → sentence uses "is" (e.g. "Smith is the incumbent…")
 - [ ] Past cycle → sentence uses "was"
 - [ ] Incumbent with N challengers → "…the incumbent with N challenger/challengers." (plural conditional)
@@ -97,14 +101,17 @@
 - [ ] No `/elections/` data → "View race →" link only, no broken UI
 - [ ] "View race →" link goes to the correct race URL for the active cycle; updates on cycle switch
 - [ ] Senate candidate: race link has no `-00` district segment; sentence renders correctly
-- [ ] `.tag-context` has filled background, no border, no uppercase text
+- [ ] `.tag-context` text wraps at narrow viewports (no overflow); "View race →" link stays inline with last line
 - [ ] Space between sentence period and "View race →" link is visible (non-breaking space)
 - [ ] "Committees (N) →" trigger shows a count immediately on load (not blank while loading)
 
 ### Cycle switcher
-- [ ] Buttons render with all cycles from the candidate's `election_years`
+- [ ] ✅ Cycle switcher renders as a `<select>` with options populated from candidate's `election_years`
+- [ ] Select is positioned as the first element in the tab bar, left of the tab links
+- [ ] No border on the select; tab bar's bottom border provides visual structure
 - [ ] Default to current active cycle (or most recent if no active cycle)
-- [ ] Clicking a different cycle re-fetches data and updates the view
+- [ ] Selecting a different cycle re-fetches data and updates the view; select value stays in sync
+- [ ] `Cycle Switched` Amplitude event fires on select change (not on init)
 - [ ] URL anchor updates to `#YYYY#summary` on cycle change
 - [ ] `localhost:8080/candidate.html?id=H2WA03217#2022#raised` pre-selects 2022 cycle and Raised tab on load
 
@@ -581,3 +588,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-16 | Add incumbent tag test — assert .tag-neutral "Incumbent" renders on race candidate card; fix missing test coverage from previous session | tests/pages.spec.js (automated) | None | 227/227 Track 1 passing |
 | 2026-03-16 | Skeleton loading infrastructure + race context sentence on candidate.html — .skeleton, .tag-context, #race-context, /elections/ fetch | styles.css, candidate.html, design-system.html, tests/candidate.spec.js (automated) | None | 228/228 Track 1 passing |
 | 2026-03-19 | Dynamic cycle dropdown + Senate class indicator + URL param validation on race.html | race.html, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | None | 234/234 Track 1 passing |
+| 2026-03-19 | Candidate header IA overhaul — tags inline in candidate-row, committees button right-aligned, cycle select in tabs bar, race context bar, profile header top border, .main-inner max-width wrapper | candidate.html, styles.css, design-system.html, tests/candidate.spec.js, tests/smoke.spec.js (automated) | None | 234/234 Track 1 passing |

@@ -64,12 +64,12 @@ test('@smoke: Gillibrand (Senate) page loads with 6-year cycle switcher', async 
   expect(name?.trim()).toMatch(/GILLIBRAND/i);
 
   // Cycle switcher should show Senate cycles
-  await page.waitForSelector('.cycle-btn');
-  const cycles = page.locator('.cycle-btn');
+  await page.waitForSelector('select#cycle-switcher option');
+  const cycles = page.locator('select#cycle-switcher option');
   const count = await cycles.count();
   expect(count).toBeGreaterThanOrEqual(1);
 
-  // At least one cycle button text should be a year
+  // At least one option value should be a year
   const firstCycleText = await cycles.first().textContent();
   expect(firstCycleText?.trim()).toMatch(/\d{4}/);
 });

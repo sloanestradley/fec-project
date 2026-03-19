@@ -74,6 +74,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 
 /* ── Layout ── */
 .layout { display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; }
+.main-inner { max-width:1600px; width:100%; }
 
 /* ── Sidebar ── */
 .sidebar { background:var(--sidebar-bg); border-right:1px solid var(--sidebar-border);
@@ -184,7 +185,8 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   background: var(--sidebar-bg);
   border-radius: 2px;
   color: var(--subtle);
-  white-space: nowrap;
+  flex-wrap: wrap;
+  row-gap: 0.2rem;
 }
 .tag-context a { color: var(--subtle); text-decoration: underline; text-underline-offset: 2px; }
 .tag-context a:hover { color: var(--text); }
@@ -324,7 +326,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 /* ── L: Committees trigger link ── */
 .committees-link { background:none; border:none; cursor:pointer;
   font-family:'IBM Plex Mono',monospace; font-size:0.7rem; color:var(--subtle);
-  padding:0; margin-top:0.75rem; display:inline-block;
+  padding:0; white-space:nowrap;
   text-decoration:underline; text-decoration-color:transparent;
   text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
 .committees-link:hover { color:var(--text); text-decoration-color:var(--subtle); }

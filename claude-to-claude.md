@@ -1121,3 +1121,45 @@ The through-line: Sloane tests the implementation against reality, not against t
 – Oklahoma 2022 / dual-race display: when a state has two Senate races in the same cycle (regular + special), the race page shows all candidates merged. Should there be any UI to distinguish which seat each candidate is running for?
 – At-large district display: the -00 suffix for at-large House districts is a known cosmetic issue. Worth scheduling a fix.
 – Previous session ritual gap: the 2026-03-16 session (skeleton loading + race context sentence) has no claude-to-claude.md entry. Decide whether to reconstruct from git history or note the gap and move on.
+
+---
+2026-03-19 — Candidate header IA overhaul
+
+## Process log draft
+Title: Tightening the header — structure as communication
+
+The candidate profile header had grown vertically: tags on one row, cycle buttons on the next, committees link below that, race context inline with tags. It worked but didn't read as a unit. This session collapsed it — tags and committees are now a single flex row at the top, the cycle select moves to the tab bar where it belongs contextually (you're choosing what data to see, right where you see it), and the race context sentence gets its own persistent strip so it reads as connective tissue between the header and the content tabs rather than as one more tag.
+
+Changelog:
+– candidate.html header restructured: race tag first then party tag, both inline in candidate-row with the avatar and name; committees trigger floats right with margin-left:auto
+– Cycle switcher replaced: .cycle-switcher + .cycle-btn buttons removed; <select id="cycle-switcher"> is now first child of .tabs-bar; loadCycle() updates select.value; Amplitude tracking preserved in onchange
+– #race-context-bar added: persistent strip between tabs-bar and content; #race-context span lives inside it; skeleton and resolve logic in loadCycle() unchanged; .tag-context white-space:nowrap removed to allow wrapping on narrow viewports
+– Profile header top border: border-top:3px solid var(--text) added via .profile-header in inline style block
+– .main-inner wrapper: max-width:1600px content constraint in styles.css without touching .layout or grid behavior; solves the grid item / margin:auto shrink bug from multiple previous iterations
+– styles.css: .committees-link margin-top removed (now inline in flex row); .tag-context white-space:nowrap → flex-wrap:wrap; .layout and .main max-width experiments cleaned up
+– design-system.html: comp-cycle-btn removed; comp-candidate-header demo updated; comp-chart-container demo updated with cycle select; comp-tag-context notes updated; stale CSS rules removed from inline style block
+– tests/candidate.spec.js, tests/smoke.spec.js: cycle switcher assertions updated from .cycle-btn to select#cycle-switcher option
+– 234/234 Track 1 passing
+
+Field notes:
+The max-width iteration took longer than it should have. The constraint was simple — CSS Grid grid items with margin:auto shrink to content width — but we hit it three times before isolating it. The lesson: any layout change that involves margin:auto on a grid item needs to be treated as suspect until tested at a wide viewport. The .main-inner wrapper is the cleanest solution and the one that should have been proposed first: it doesn't touch the grid, doesn't touch the sidebar, and the max-width applies to exactly what we want it to. The header restructure itself was faster and cleaner — the spec was precise enough that each change mapped to exactly one edit.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+**Spec precision — each change mapped to one edit**
+The six-change spec was written at exactly the right level of detail: HTML structure, CSS class names, JS behavior notes, responsive behavior, design intent. Nothing was underspecified enough to require a follow-up question, and nothing was overspecified in a way that forced an awkward implementation. That precision is what made the first set of changes go quickly.
+
+**Catching the max-width problem early and staying patient through iterations**
+The max-width problem took four iterations (layout, main, main again, then .main-inner). Sloane caught each wrong behavior quickly ("the width appears to only be computed at about 1092px") and provided clear directional feedback without over-explaining. The final fix (.main-inner wrapper) came from a precisely specified prompt that correctly identified both the CSS Grid behavior root cause and the correct architectural solution. That kind of root-cause spec — not just "make it work" — is what produced the right fix immediately.
+
+**Targeted follow-up spec — same format as the original**
+The second set of nine fixes was written in the same structured format as the first: named section, problem statement, fix instruction, scope note. This made it easy to execute in one pass with no ambiguity about which elements to touch or what behavior to verify.
+
+The through-line: Sloane writes specs that are complete enough to execute without negotiation. The session moved fast because the instructions were pre-thought — the implementation choices had already been made before the first edit.
+
+## What to bring to Claude Chat
+– Max-width: is 1600px the right number? We converged on it after iterating up through 2200, 2800, 3200. Worth a deliberate decision rather than a leftover from iteration — what's the actual target viewport for this tool's primary users?
+– Responsive behavior of the new header: tags wrapping below name/avatar on narrow viewports is the specified behavior, but worth a visual check on a real device or in DevTools at 375px/390px to confirm it feels right rather than just technically correct.
+– Race context bar — should it hide on mobile? On narrow viewports it adds height between the tab bar and content. Worth deciding whether to collapse or hide it below a breakpoint.
+– Phase 3 remaining work: with the IA polish done, the remaining Phase 3 items are committee filing history, associated candidates on committee.html, and ad hoc race mode. Worth aligning on which to tackle next.

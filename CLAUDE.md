@@ -169,22 +169,17 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 
 ### What's working
 - Three-segment linked breadcrumb: Candidates → race (e.g. `House • WA-03`, links to `/race?...&year={activeCycle}`) → candidate name (plain text). `updateBreadcrumb()` is called after initial load and at the top of `loadCycle()` so the race link year stays in sync with the selected cycle.
-- Profile header with initials avatar, party tag, office/district tag, and cycle-accurate race context sentence (`.tag-context` pill sourced from `/elections/`, skeleton while loading, resolves to e.g. "Smith is the incumbent with 4 challengers. View race →")
-- Cycle switcher (buttons to toggle between cycles, re-fetches data)
+- Profile header with 3px top border; initials avatar, office/district tag first then party tag, all inline in `.candidate-row` with flex-wrap; "Committees (N) →" trigger floats right via `margin-left:auto` within the same row
+- Race context sentence (`.tag-context` pill sourced from `/elections/`, skeleton while loading) lives in a persistent `#race-context-bar` strip between the tab bar and content — visible on all tabs
+- Cycle switcher is a `<select>` element, first child of `.tabs-bar`, populated from `election_years` — `loadCycle()` updates `select.value` in sync; Amplitude `Cycle Switched` fires on `onchange`
 - URL anchor encodes cycle + tab: `candidate.html#2024#summary`
 - Tab navigation: Summary, Raised, Spent
 - Stats row: Total Raised, Total Spent, Cash on Hand, Raised-to-Spent Ratio
 - Cycle-aware banner: health signal (green/amber/red) for active cycles; "Cycle Complete" summary for closed cycles
 - Associated committees modal: "Committees (N) →" trigger in profile header opens a modal with Active and History tabs; committees fetched eagerly at init so count is immediate
 - Responsive layout: desktop sidebar nav, mobile scroll-aware header + hamburger drawer
-- Smooth fade-in animations on load
-
-### What's broken / in progress
-1. **Chart data showing $0** — ✅ Fixed. Using `total_receipts_ytd` / `total_disbursements_ytd` with year-boundary accumulation.
-
-2. **Election date markers** — ✅ Mostly working. Current cycle shows primary only (general not yet scheduled in FEC system — expected behavior). Past cycles show both. Field name confirmed: `election_date`.
-
-3. **Filing deadline markers** — ✅ Fixed and verified live. `due_date_gte`/`due_date_lte` are silently ignored by the API — returns all 4,896 records if used. Fix: 4 parallel calls per cycle year, one each for Q1, Q2, Q3, YE using `report_year` + `report_type`. Each returns exactly 1 record.
+- Smooth fade-in animations on load; profile header, tabs bar, race context bar, and content all revealed together in the RAF block
+- `.main-inner` wrapper inside `.main` constrains content to `max-width:1600px` without affecting the grid column or sidebar positioning — defined in `styles.css`
 
 ### Chart architecture
 - Type: line chart with `type: 'time'` x-axis (requires date-fns adapter)
@@ -267,16 +262,9 @@ Elections-search endpoint (`/elections/search/`) returns:
 
 See `project-brief.md` for the full phased roadmap. Short version:
 
-**Phase 1 (complete):** Candidate page.
-- ~~Raised tab~~ ✅ live
-- ~~Associated committees~~ ✅ live — header modal with active/history tabs, leadership PAC support, JFA gap note
-- ~~Design system documentation page~~ ✅ live
-- ~~Spent tab~~ ✅ live — category breakdown, purpose breakdown, top vendors
+**Phase 1 (complete):** Candidate page — all tabs (Summary, Raised, Spent), committees modal, design system.
 
-**Phase 2 (complete):** Search and navigation.
-- ~~search.html~~ ✅ live — name search, result cards, Amplitude events
-- ~~candidates.html~~ ✅ unified browse+search — auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state, clean URLs in all modes
-- ~~index.html~~ ✅ live — redirect to search.html
+**Phase 2 (complete):** Search + navigation — search.html, candidates.html, committees.html, index redirect.
 
 **Phase 3 (scaffold):** Committee and race pages.
 - ~~committee.html~~ ✅ scaffold — header with financials, back-link to candidate
@@ -294,7 +282,6 @@ See `project-brief.md` for the full phased roadmap. Short version:
 - **Multi-cycle stat labels:** Stats row (Raised, Spent, COH) doesn't yet indicate when figures represent a multi-sub-cycle sum (e.g. "6-year total" vs. "cycle total"). Needs a label or caveat for Senate candidates.
 - **Spent tab timeline:** A spend-over-time line chart (parallel to the Raised tab's chart) has not been built. Lower priority — the category/purpose/vendor breakdown is sufficient for current use. Add when the Raised chart pattern is ready to be reused.
 - **JFA committee gap:** Joint fundraising committees where a candidate is a participant (not the principal) have `candidate_ids: []` and `sponsor_candidate_ids: null` in the FEC API — they don't appear in either `/candidate/{id}/committees/` or `/committees/?sponsor_candidate_id=`. The only source of truth is the candidate's F2 filing document, which lists them as authorized committees. Surfacing these would require fetching the most recent F2 via `/filings/?candidate_id=&form_type=F2` and parsing committee references from the filing data. Not built yet; validate approach with John before implementing.
-- ~~utils.js duplication:~~ ✅ Resolved. Shared utilities extracted to `utils.js` — `BASE`, `API_KEY`, `apiFetch`, `fmt`, `fmtDate`, `toTitleCase`, `partyClass`, `partyLabel`, `committeeTypeLabel`. All pages load it between `main.js` and their own script block.
 - **Senate class heuristic:** `getSenateClass()` in race.html derives class from cycle year via modular arithmetic. Special elections can seat a senator from a different class than the cycle implies. The FEC `/election-dates/` endpoint exposes SP/SG/SGR election types that could detect this, but financial data in `/elections/search/` has no special election flag — specials are folded into the standard 2-year cycle. Low priority: ~1-2 special Senate elections per decade.
 - **Mock/live field shape gap risk:** Some FEC endpoints return different field names or value types than their mock counterparts — the `/elections/` endpoint returns `party_full` (full name) instead of `party` (short code); `/elections/` returns `incumbent_challenge_full` (full string) not `incumbent_challenge` (short code) — mock corrected 2026-03-16; `total_receipts_ytd` in reports is a string in the live API but was mocked as a number; `/schedule_a/by_state/` returns `{state, state_full, total, count}` while the individual `/schedule_a/` endpoint returns `{contributor_state, contribution_receipt_amount, ...}`. Audited and fixed 2026-03-11. Rule: when adding a new endpoint, fetch one live response and verify field names against the mock before writing assertions. Utilities should always accept both short and full-form values where the API may vary by endpoint.
 
@@ -390,24 +377,6 @@ Senate 6-year cycles introduce a multi-sub-cycle pattern worth understanding bef
 
 ---
 
-## What "done" looks like for the candidate page
-
-- [x] Chart renders real data (not $0)
-- [x] Stepped lines visible between quarterly filing points
-- [x] Full cycle x-axis with future quarters shown as empty space — office-aware (H=2yr, S=6yr, P=4yr)
-- [x] Filing deadline markers: Form 3 quarterly only, correctly positioned, verified live
-- [x] Election date markers: primary + general, amber dotted lines (current cycle: primary only — general not yet in FEC system)
-- [x] Health banner: active vs. closed cycle logic working
-- [x] All hardcoded candidate values derived from API response (state, district, office, cycle list from `election_years`)
-- [x] Page works for any candidate ID passed as a URL param (`?id=H2WA03217`) — verified with MGP (House) and Gillibrand (Senate)
-- [x] Responsive: mobile header, hamburger nav, chart doesn't overflow viewport
-- [x] Search / homepage — search.html live, index.html redirects
-- [x] Raised tab: contributor breakdown, geography heatmap, top committee contributors — live and verified
-- [x] Spent tab: category breakdown, purpose breakdown, top vendors — live
-- [x] Associated committees: header modal with Active/History tabs, leadership PAC via sponsor endpoint, JFA gap note
-
----
-
 ## Design reference
 
 The process log (`process-log.html`) has the full project history including domain research notes, John's feedback, and all key decisions with rationale. Read it for context on *why* things are the way they are.
@@ -422,18 +391,9 @@ The full product brief (`project-brief.md`) has MVP scope, audience definition, 
 cd ~/Vibecoding/fec-project && claude
 ```
 
-Read this file and `claude-to-claude.md` first. Check whether the most recent entry in `claude-to-claude.md` is from the last session — if the log is missing an entry and work was clearly done, flag it before proceeding.
-
-Then ask Sloane what the current priority is. Don't assume the latest file in the repo matches what's been deployed.
+**Session-start ritual check:** Read CLAUDE.md, project-brief.md, ia.md, and claude-to-claude.md. (1) Check whether the most recent entry in `claude-to-claude.md` matches the last commit — if the log entry is missing and work was clearly done, flag it. (2) Run `git status` — if there are uncommitted changes, flag them before starting new work.
 
 **Opening prompt:**
-```
-Read CLAUDE.md, project-brief.md, and claude-to-claude.md, then: (1) check whether the last session's end-of-session rituals were completed — if not, flag it. (2) Summarize the current state of the project, the top priority, and what you need from me to get started.
-```
-
-**Session-start ritual check:** After reading CLAUDE.md and claude-to-claude.md: (1) Check whether the most recent entry in `claude-to-claude.md` is dated today or earlier. If the last session's entry is missing and work was clearly done, flag it. (2) Run `git status` — if there are uncommitted changes, flag them: "There are uncommitted changes from a previous session. These should be committed before we start new work." Treat both a missing log entry and uncommitted changes as signs the previous session's ritual was incomplete.
-
-**Suggested opening prompt for Sloane to paste at session start:**
 ```
 Read CLAUDE.md, project-brief.md, ia.md, and claude-to-claude.md, then: (1) check whether the last session's end-of-session rituals were completed — if not, flag it. (2) Summarize the current state of the project, the top priority, and what you need from me to get started.
 ```

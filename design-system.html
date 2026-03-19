@@ -124,18 +124,9 @@
       color:var(--bg); letter-spacing:0; text-transform:uppercase; flex-shrink:0; }
     .candidate-name { font-family:'Barlow Condensed',sans-serif; font-size:clamp(1.6rem,3vw,2.4rem);
       font-weight:800; line-height:1; letter-spacing:0; text-transform:uppercase; min-width:0; }
-    .meta-row { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
-    .cycle-switcher { display:flex; align-items:center; gap:0.35rem; margin-top:1rem; flex-wrap:wrap; }
-    .cycle-label { font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase;
-      color:var(--muted); margin-right:0.25rem; }
-    .cycle-btn { padding:0.2rem 0.6rem; border-radius:3px; font-size:0.65rem;
-      font-family:'IBM Plex Mono',monospace; cursor:pointer; border:1px solid var(--border);
-      background:transparent; color:var(--subtle); transition:all 0.15s; }
-    .cycle-btn:hover { border-color:var(--subtle); color:var(--text); }
-    .cycle-btn.active { border-color:var(--text); color:var(--text); background:var(--surface2); }
     .committees-link { background:none; border:none; cursor:pointer;
       font-family:'IBM Plex Mono',monospace; font-size:0.7rem; color:var(--subtle);
-      padding:0; margin-top:0.75rem; display:inline-block;
+      padding:0; white-space:nowrap;
       text-decoration:underline; text-decoration-color:transparent;
       text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
     .committees-link:hover { color:var(--text); text-decoration-color:var(--subtle); }
@@ -641,24 +632,6 @@
         </div>
       </div>
 
-      <!-- 3. Cycle buttons (interactive) -->
-      <div class="ds-component" id="comp-cycle-btn" data-status="stable">
-        <div class="ds-component-header">
-          <span class="ds-component-name">Cycle Button</span>
-          <span class="ds-status stable">stable</span>
-        </div>
-        <div class="ds-component-classes">.cycle-btn · .cycle-btn.active — click to toggle</div>
-        <div class="ds-component-demo">
-          <div class="cycle-switcher" id="demo-cycle">
-            <span class="cycle-label">Cycle</span>
-            <button class="cycle-btn active">2024</button>
-            <button class="cycle-btn">2022</button>
-            <button class="cycle-btn">2020</button>
-            <button class="cycle-btn">2018</button>
-          </div>
-        </div>
-      </div>
-
       <!-- 4. Nav item -->
       <div class="ds-component" id="comp-nav-item" data-status="stable">
         <div class="ds-component-header">
@@ -721,26 +694,20 @@
           <span class="ds-component-name">Candidate Header</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">extends .page-header · .candidate-row · .avatar · .candidate-name · .meta-row · .cycle-switcher · .committees-link</div>
+        <div class="ds-component-classes">extends .page-header · .candidate-row · .avatar · .candidate-name · .cycle-select · .committees-link</div>
         <div class="ds-component-demo" style="padding:0">
           <div class="profile-header page-header" style="padding:2rem">
             <div class="breadcrumb"><a href="#">Candidates</a> <span>/ <a href="#">House • WA-03</a> / Marie Gluesenkamp Perez</span></div>
-            <div class="candidate-row">
+            <div class="candidate-row" style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
               <div class="avatar">MGP</div>
               <div class="candidate-name page-header-title">Marie Gluesenkamp Perez</div>
-            </div>
-            <div class="meta-row" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-              <span class="tag tag-dem">Democrat</span>
-              <span class="tag tag-neutral">House · WA-03</span>
-              <span class="tag tag-neutral">Incumbent</span>
-            </div>
-            <div class="cycle-switcher">
-              <span class="cycle-label">Cycle</span>
-              <button class="cycle-btn active">2024</button>
-              <button class="cycle-btn">2022</button>
-            </div>
-            <div>
-              <button class="committees-link">Committees (4) →</button>
+              <div class="meta-row" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+                <span class="tag tag-neutral">House · WA-03</span>
+                <span class="tag tag-dem">Democrat</span>
+              </div>
+              <div style="margin-left:auto">
+                <button class="committees-link">Committees (4) →</button>
+              </div>
             </div>
           </div>
         </div>
@@ -847,9 +814,13 @@
           <span class="ds-component-name">Tab Bar + Chart Container</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.tabs-bar · .tab · .tab.active · .chart-card · .chart-header · .chart-title · .chart-legend · .legend-item · .legend-swatch · .legend-dashed · .legend-amber-dashed</div>
+        <div class="ds-component-classes">.tabs-bar · .tab · .tab.active · .cycle-select · .chart-card · .chart-header · .chart-title · .chart-legend · .legend-item · .legend-swatch · .legend-dashed · .legend-amber-dashed</div>
         <div class="ds-component-demo" style="padding:0">
           <div class="tabs-bar" id="demo-tabs">
+            <select class="form-select cycle-select" style="align-self:stretch;border:none;border-radius:0;font-size:0.72rem;padding:0 0.75rem;min-width:5.5rem;margin-right:1rem;background:var(--bg);color:var(--subtle)">
+              <option>2024</option>
+              <option>2022</option>
+            </select>
             <a class="tab active" href="#">Summary</a>
             <a class="tab" href="#">Raised</a>
             <a class="tab" href="#">Spent</a>
@@ -869,6 +840,7 @@
               <div class="ds-chart-placeholder">Chart renders here (Chart.js canvas)</div>
             </div>
             <div class="data-note">Chart line/point colors use the <code style="font-size:0.55rem">CHART_COLORS</code> JS constant defined at the top of <code style="font-size:0.55rem">candidate.html</code>'s script block. HTML legend swatches use the corresponding <code style="font-size:0.55rem">--chart-*</code> CSS vars defined in <code style="font-size:0.55rem">styles.css :root</code>. Add new chart color vars there before using hardcoded rgba in chart configs.</div>
+            <div class="data-note" style="margin-top:0.5rem">The cycle <code style="font-size:0.55rem">&lt;select&gt;</code> uses <code style="font-size:0.55rem">.form-select</code> as base with <code style="font-size:0.55rem">.cycle-select</code> for tab-bar-specific sizing (no borders, <code style="font-size:0.55rem">margin-right:1rem</code>, <code style="font-size:0.55rem">align-self:stretch</code>). Scoped to <code style="font-size:0.55rem">candidate.html</code>'s inline style block.</div>
           </div>
         </div>
       </div>
@@ -1121,7 +1093,7 @@
           <span class="tag-context">Smith is the incumbent with 2 challengers. <a href="#">View race →</a></span>
         </div>
         <div class="ds-component-notes" style="padding:0.75rem 1rem;font-size:0.72rem;color:var(--muted);border-top:1px solid var(--border)">
-          Filled background variant of the tag family. No border, no uppercase. Used for contextual prose inline with tag row (race context sentence on candidate profile). Promote to <code>stable</code> when used on a second page.
+          Filled background variant of the tag family. No border, no uppercase. Lives inside <code>#race-context-bar</code> — a persistent strip between the tab bar and content, visible on all tabs. The bar wrapper uses a CSS rule in <code>candidate.html</code>'s inline style block (<code>padding</code>, <code>border-bottom</code>, opacity fade-in). The <code>.tag-context</code> span wraps on narrow viewports (<code>flex-wrap:wrap</code>, no <code>white-space:nowrap</code>) so the "View race →" link stays inline with the last line of text. Promote to <code>stable</code> when used on a second page.
         </div>
       </div>
 
@@ -1194,14 +1166,6 @@
 <script src="main.js"></script>
 <script>
 (function() {
-  // Cycle button toggle
-  document.querySelectorAll('#demo-cycle .cycle-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('#demo-cycle .cycle-btn').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-    });
-  });
-
   // Tab bar toggle
   document.querySelectorAll('#demo-tabs .tab').forEach(function(tab) {
     tab.addEventListener('click', function(e) {

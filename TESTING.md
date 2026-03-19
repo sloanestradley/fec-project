@@ -37,7 +37,7 @@ All tests mock the FEC API (instant responses, no network) and the Amplitude SDK
 | File | What's covered |
 |------|----------------|
 | `tests/shared.spec.js` | Shared checks for every page: `styles.css` linked, `main.js` linked, sidebar nav present with all 4 links, correct active nav item, mobile search icon present, warm parchment background, `Page Viewed` Amplitude event fires |
-| `tests/candidate.spec.js` | Profile header (including `#race-context` DOM presence), stats row (non-$0 financials), health banner, chart canvas, tab navigation, committees modal, Amplitude events, URL hash pre-selection, API correctness (no 422 errors) |
+| `tests/candidate.spec.js` | Profile header (including `#race-context` DOM presence in `#race-context-bar`), cycle switcher as `select#cycle-switcher` with options, stats row (non-$0 financials), health banner, chart canvas, tab navigation, committees modal, Amplitude events, URL hash pre-selection, API correctness (no 422 errors) |
 | `tests/search.spec.js` | Hero state, typeahead dropdown (2-char trigger, two groups, keyboard/click behavior), two-group results (candidates + committees), `?q=` auto-search, View all links, Amplitude events, no-results state |
 | `tests/pages.spec.js` | committee.html, races.html (mode cards, curated form), race.html (candidate cards, financial figures, cycle-anchored links), candidates.html (auto-load, search input, clean URLs, filter chips, URL sync, error state, ?q= search mode, #load-more-spinner and #end-of-results DOM presence), committees.html (same as candidates), process-log.html, design-system.html (token tables, color swatches, component card attributes), index.html redirect, mobile layout at 390px and 1280px |
 

@@ -20,25 +20,27 @@
     .main { overflow-x:hidden; min-width:0; }
 
     /* Profile header — shared base via .page-header and .page-header-title in styles.css */
-    .candidate-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; }
+    .profile-header { border-top:3px solid var(--text); }
+    .candidate-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap; }
     .avatar { width:32px; height:32px; border-radius:2px; background:var(--text);
       display:flex; align-items:center; justify-content:center;
       font-family:'Barlow Condensed',sans-serif; font-size:0.9rem;
       color:var(--bg); letter-spacing:0; text-transform:uppercase; flex-shrink:0; }
     .candidate-name { min-width:0; }
     .meta-row { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
-    .cycle-switcher { display:flex; align-items:center; gap:0.35rem; margin-top:1rem; flex-wrap:wrap; }
-    .cycle-label { font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase;
-      color:var(--muted); margin-right:0.25rem; }
-    .cycle-btn { padding:0.2rem 0.6rem; border-radius:3px; font-size:0.65rem;
-      font-family:'IBM Plex Mono',monospace; cursor:pointer; border:1px solid var(--border);
-      background:transparent; color:var(--subtle); transition:all 0.15s; }
-    .cycle-btn:hover { border-color:var(--subtle); color:var(--text); }
-    .cycle-btn.active { border-color:var(--text); color:var(--text); background:var(--surface2); }
 
-    /* Tabs */
+    /* Tabs + cycle select */
     .tabs-bar { padding:0 var(--page-gutter); opacity:0; transition:opacity 0.4s ease; }
     .tabs-bar.visible { opacity:1; }
+    .cycle-select { align-self:stretch; border:none; border-radius:0;
+      font-size:0.72rem; padding:0 0.75rem; min-width:5.5rem; margin-right:1rem;
+      background:var(--bg); color:var(--subtle); cursor:pointer; }
+    .cycle-select:focus { outline:none; color:var(--text); }
+
+    /* Race context bar */
+    #race-context-bar { padding:0.55rem var(--page-gutter); border-bottom:1px solid var(--border);
+      opacity:0; transition:opacity 0.4s ease; min-height:2rem; }
+    #race-context-bar.visible { opacity:1; }
 
     /* Content */
     .content { padding:2.5rem var(--page-gutter); opacity:0; transition:opacity 0.3s ease; min-width:0; }
@@ -108,6 +110,7 @@
 
   <!-- Main -->
   <div class="main">
+  <div class="main-inner">
     <div class="state-msg" id="state-msg">
       <div class="loader"></div><span>Fetching candidate data from FEC…</span>
     </div>
@@ -117,21 +120,21 @@
       <div class="candidate-row">
         <div class="avatar" id="avatar">—</div>
         <div class="candidate-name page-header-title" id="candidate-name">—</div>
-      </div>
-      <div class="meta-row" id="meta-row"></div>
-      <div class="cycle-switcher" id="cycle-switcher">
-        <span class="cycle-label">Cycle</span>
-      </div>
-      <div id="committees-trigger" style="display:none">
-        <button class="committees-link" onclick="openCommitteesModal()">Committees →</button>
+        <div class="meta-row" id="meta-row"></div>
+        <div id="committees-trigger" style="display:none;margin-left:auto;align-self:center">
+          <button class="committees-link" onclick="openCommitteesModal()">Committees →</button>
+        </div>
       </div>
     </div>
 
     <div class="tabs-bar" id="tabs-bar" style="display:none">
+      <select id="cycle-switcher" class="form-select cycle-select"></select>
       <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
       <a class="tab"        href="#raised"  onclick="showTab('raised',event)">Raised</a>
       <a class="tab"        href="#spent"   onclick="showTab('spent',event)">Spent</a>
     </div>
+
+    <div id="race-context-bar" style="display:none"><span id="race-context"></span></div>
 
     <div class="content" id="content" style="display:none">
 
@@ -278,6 +281,7 @@
       </div>
 
     </div><!-- /content -->
+  </div><!-- /main-inner -->
   </div><!-- /main -->
 </div><!-- /layout -->
 
@@ -1315,10 +1319,9 @@ async function loadCycle(cycle) {
   document.getElementById('spent-loading').style.display = 'flex';
   document.getElementById('spent-content').style.display = 'none';
 
-  // Update cycle button states
-  document.querySelectorAll('.cycle-btn').forEach(function(b) {
-    b.classList.toggle('active', +b.dataset.cycle === cycle);
-  });
+  // Update cycle select value
+  var sw = document.getElementById('cycle-switcher');
+  if (sw) sw.value = cycle;
 
   // Show skeleton in race-context while /elections/ fetch is in-flight
   var raceCtx = document.getElementById('race-context');
@@ -1575,12 +1578,11 @@ async function init() {
     document.getElementById('candidate-name').textContent = displayName;
     document.title = displayName + ' — ledger.fec';
 
-    // Tags
+    // Tags — race tag first, party tag second
     document.getElementById('meta-row').innerHTML =
-      '<span class="tag '+partyClass(cand.party)+'">'+partyLabel(cand.party)+'</span> '+
       '<span class="tag tag-neutral">'+(cand.office_full||'')+' · '+
       (cand.state||'')+(cand.district&&cand.district!=='00'?'-'+cand.district:'')+'</span> '+
-      '<span id="race-context"></span>';
+      '<span class="tag '+partyClass(cand.party)+'">'+partyLabel(cand.party)+'</span>';
 
     // Cycle switcher: default to most recent active cycle, or hash override
     var now = new Date().getFullYear();
@@ -1597,22 +1599,28 @@ async function init() {
 
     var sw = document.getElementById('cycle-switcher');
     ALL_CYCLES.forEach(function(cy) {
-      var btn = document.createElement('button');
-      btn.className = 'cycle-btn'+(cy===activeCycle?' active':'');
-      btn.dataset.cycle = cy;
-      btn.textContent = cy;
-      btn.onclick = function(){ amplitude.track('Cycle Switched', { cycle: cy, candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME }); loadCycle(cy); };
-      sw.appendChild(btn);
+      var opt = document.createElement('option');
+      opt.value = cy;
+      opt.textContent = cy;
+      sw.appendChild(opt);
     });
+    sw.value = activeCycle;
+    sw.onchange = function() {
+      var cy = parseInt(sw.value);
+      amplitude.track('Cycle Switched', { cycle: cy, candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME });
+      loadCycle(cy);
+    };
 
     // Reveal UI
-    document.getElementById('state-msg').style.display    = 'none';
-    document.getElementById('profile-header').style.display = 'block';
-    document.getElementById('tabs-bar').style.display     = 'flex';
-    document.getElementById('content').style.display      = 'block';
+    document.getElementById('state-msg').style.display       = 'none';
+    document.getElementById('profile-header').style.display  = 'block';
+    document.getElementById('tabs-bar').style.display        = 'flex';
+    document.getElementById('race-context-bar').style.display = 'block';
+    document.getElementById('content').style.display         = 'block';
     requestAnimationFrame(function() {
       document.getElementById('profile-header').classList.add('visible');
       document.getElementById('tabs-bar').classList.add('visible');
+      document.getElementById('race-context-bar').classList.add('visible');
       document.getElementById('content').classList.add('visible');
     });
 

@@ -74,12 +74,12 @@ test.describe('candidate.html — profile header', () => {
     expect(href).toMatch(/year=\d{4}/);
   });
 
-  test('cycle switcher renders with cycle buttons', async ({ page }) => {
+  test('cycle switcher renders as select with options', async ({ page }) => {
     await setup(page);
-    const switcher = page.locator('#cycle-switcher');
+    const switcher = page.locator('select#cycle-switcher');
     await expect(switcher).toBeVisible();
-    const buttons = switcher.locator('.cycle-btn');
-    await expect(buttons).not.toHaveCount(0);
+    const options = switcher.locator('option');
+    await expect(options).not.toHaveCount(0);
   });
 
   test('committees trigger shows count immediately', async ({ page }) => {
