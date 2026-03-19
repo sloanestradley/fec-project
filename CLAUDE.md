@@ -53,6 +53,12 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **CSS consolidation principle:** Component CSS lives in `styles.css`. Inline `<style>` blocks in individual pages are for page-specific overrides only (layout grid, page-specific spacing, page-specific components). `design-system.html` imports the same `styles.css` as production — no component CSS is duplicated between pages.
 
+**Flush list item border pattern:** List items that stack flush in a column (`.candidate-card`, `.committee-row`, `.committee-result-row`) use the adjacent sibling selector to suppress the doubled border: `component + component { border-top:none }`. The container (`.results-list`, `.race-list`) is a plain `flex-direction:column` with no border, no background, no gap. Do not use inset `box-shadow` as an alternative — two touching inset shadows still render as a doubled line on retina displays.
+
+**`.candidate-card-office` — deprecated:** Replaced by `<span class="tag tag-neutral">` with `formatRaceName()` output on candidates.html, search.html, and race.html. The rule remains in `styles.css` with a deprecation comment. One remaining call site: `committee.html`'s candidate mini-cards. Remove the rule after committee.html is updated.
+
+**Office/race display in candidate cards:** Use `formatRaceName(c.office, c.state, c.district)` + `<span class="tag tag-neutral" style="font-size:0.62rem">` to render the race/seat label in candidate card meta rows. This is the canonical pattern on all three browse pages.
+
 **Shared form controls:** `.form-input`, `.form-select`, `.form-search-btn` (and their focus/disabled variants) are defined in `styles.css` and used across search.html, candidates.html, and committees.html. Page-specific extensions stay inline: `.search-combo .form-input` (flex + border-right), `.state-combo .form-input` (fixed width), `.form-select.wide` (committees only), `.search-bar .form-input` (search.html flex + border-right).
 
 **Typeahead container:** `.typeahead-dropdown` is the canonical class, defined in `styles.css` (position, sizing, shadow, `display:none` default, `max-height:240px`, `overflow-y:auto`). `.typeahead-dd` is retired — do not use. All three search pages (search.html, candidates.html, committees.html) use `.typeahead-dropdown`. Toggle mechanism differs by page: browse pages use `classList.add/remove('open')` with `.typeahead-dropdown.open { display:block }`; search.html uses `style.display` directly.

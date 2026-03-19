@@ -223,6 +223,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .committee-row { display:grid; grid-template-columns:1fr auto auto;
   align-items:center; gap:1rem; padding:0.85rem 1rem;
   background:var(--surface); border:1px solid var(--border); transition:border-color 0.15s; }
+.committee-row + .committee-row { border-top:none; }
 .committee-row:hover { border-color:var(--border-strong); }
 .committee-name { font-size:0.78rem; }
 .committee-type { font-size:0.6rem; color:var(--muted); text-align:right; }
@@ -336,6 +337,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .candidate-card { display:block; text-decoration:none;
   background:var(--surface); border:1px solid var(--border);
   padding:1rem 1.25rem; transition:border-color 0.15s; }
+.candidate-card + .candidate-card { border-top:none; }
 .candidate-card:hover { border-color:var(--border-strong); }
 .candidate-card-name { font-family:'DM Sans',sans-serif; font-weight:500; color:var(--text);
   margin-bottom:0.4rem; font-size:0.88rem; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
@@ -458,6 +460,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   border:1px solid var(--border);
   text-decoration:none; transition:border-color 0.15s;
   color:inherit; }
+.committee-result-row + .committee-result-row { border-top:none; }
 .committee-result-row:hover { border-color:var(--border-strong); }
 .committee-result-name {
   font-size:0.82rem; color:var(--text); font-weight:500;

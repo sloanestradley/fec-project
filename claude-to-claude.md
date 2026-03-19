@@ -1203,3 +1203,49 @@ The through-line: Sloane consistently brings the diagnosis alongside the prescri
 – With .main-inner capping at 1600px on all pages, ultra-wide centering is now consistent across the whole app. Worth viewing on a large monitor to confirm the centering reads as intentional rather than stranded — particularly browse pages where the filter bar and results list have their own internal max-widths.
 
 – The claude-to-claude.md log has a gap: sessions covering the candidate header IA overhaul, skeleton loading, and dynamic cycle dropdown (commits 0f14d6d through 1fa6829) have no log entries. Worth a retroactive note if any of those sessions produced decisions worth preserving, or just acknowledging the gap is expected given how the sessions went.
+
+---
+2026-03-19 — Visual consistency pass across browse and race pages
+
+## Process log draft
+Title: The gap was two pixels. The fix was four characters.
+
+This session was a focused visual consistency pass across the browse pages and race page. The work unified list item appearances — committee rows now match candidate cards with full borders and surface backgrounds — fixed an office label inconsistency (plain mono text promoted to tag tag-neutral across all three browse pages), and resolved a double-border rendering problem that appeared on retina displays. The final fix: adjacent sibling selector, one rule per component, three components.
+
+Changelog:
+– styles.css: .results-list moved to shared CSS as plain flex-column; inline override removed from candidates.html (was carrying border/background/gap)
+– styles.css: .committee-row upgraded to full border:1px solid var(--border) + background:var(--surface) + hover state — now visually matches .candidate-card
+– styles.css: .committee-result-row — removed border-radius:0.5rem and margin-bottom:0.5rem; rows now sharp-cornered and flush
+– styles.css: Adjacent sibling border fix on all three flush-stacking components — .candidate-card + .candidate-card, .committee-row + .committee-row, .committee-result-row + .committee-result-row each suppress border-top; retina-safe (inset box-shadow was tried first and rejected — still doubled on retina)
+– candidates.html: buildCard() office display switched from .candidate-card-office mono text to tag tag-neutral via formatRaceName()
+– search.html: renderCandidateGroup() same change — formatRaceName() + tag tag-neutral
+– committees.html: buildRow() column order corrected to name → treasurer → type → status
+– race.html: .race-list inline rule stripped of old double-border pattern (border/background/gap); now plain flex-column — inherits sibling fix from styles.css automatically
+– design-system.html: comp-candidate-card and comp-committee-result-row added as stable; comp-committee-rows classes + demo updated for new column order and full-border style
+
+Field notes:
+The inset box-shadow approach was the obvious first move — it's a common technique for making borders visually collapse. It worked on a standard display. But two inset shadows touching at a pixel boundary don't merge the same way two borders do with a suppressed border-top: the rendering engine draws them independently, and on a retina screen that doubled boundary is visible. The adjacent sibling selector is what the platform actually provides for this problem. The fix was four characters (` + `) and a one-liner per component. The lesson isn't CSS trivia — it's that some browser rendering behaviors only surface on specific display types, and the correct fix is the one that works at the rendering level, not the one that looks right in a screenshot.
+
+Stack tags: none
+
+## How Sloane steered the work
+**Catching the retina failure before it shipped**
+The inset box-shadow approach was implemented and passing tests before Sloane flagged that it still doubled on retina. That's the right moment to catch it — before the commit, not after it's live on a MacBook. A screenshot wouldn't have shown the problem; knowing how retina rendering works did.
+
+**Specifying the correct fix, not just the rejection**
+Not just "that doesn't work" — but the specific technique: adjacent sibling selector, suppress border-top, one rule per component. That made the fix a one-pass edit with no ambiguity about approach.
+
+**Catching .race-list as a follow-on**
+After the main pass, noticing that .race-list on race.html still used the old double-border pattern (border/background/gap on the container) was a clean scoped add-on. Same problem, different container, handled in one more instruction.
+
+**Sequencing rituals deliberately**
+"Let's commit and deploy after end-of-session rituals" rather than skipping straight to the push. Keeps the deploy tied to a complete, documented state.
+
+The through-line: Sloane brought the diagnosis and the correct tool at each step — not just a flag but a direction. That pattern cuts iteration loops down to one pass each time.
+
+## What to bring to Claude Chat
+– committee.html candidate mini-cards still use .candidate-card-office for office display — the one remaining call site. Now that candidates.html, search.html, and race.html all use tag tag-neutral via formatRaceName(), committee.html is the last inconsistency. Worth deciding when to unify, since it's tied to however much committee.html work remains in Phase 3.
+
+– .committee-row is used in both the candidate profile's committee modal and the committees.html browse list. The new full-border + surface-bg style was designed for the browse list context. Worth a visual check in the modal to confirm it still reads well in that narrower/denser layout.
+
+– Phase 3 remaining work: committee filing history, associated candidates on committee.html, and ad hoc race mode. Worth a quick alignment on sequencing before the next session.

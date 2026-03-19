@@ -332,6 +332,7 @@
 - [ ] Clicking a card navigates to `candidate.html?id={id}#{year}#summary` (cycle-anchored — verify the hash in the URL after clicking)
 - [ ] Incumbent candidate shows "Incumbent" tag (tag-neutral style) next to party tag
 - [ ] Challenger candidates show no incumbency tag (party tag only)
+- [ ] Between adjacent candidate cards: gap reads as a single 1px line (not doubled)
 
 ---
 
@@ -367,7 +368,7 @@
 ### Results
 - [ ] ✅ Candidate cards render on load (not blank)
 - [ ] ✅ Candidate card links to `/candidate/{id}` (clean URL — all modes, not just search)
-- [ ] Cards show name (title case), party tag, office · state · district
+- [ ] Cards show name (title case), party tag (`tag tag-dem`/`tag-rep`/etc.), and race as `tag tag-neutral` via `formatRaceName()` (e.g. "House • WA-03")
 - [ ] Results header shows count (e.g. "1 candidate")
 - [ ] No-results state renders if filters return nothing (not blank/crash)
 
@@ -424,7 +425,9 @@
 - [ ] ✅ Committee rows render on load
 - [ ] ✅ Committee row links to `/committee/{id}` (clean URL — all modes)
 - [ ] Treasurer name always shown in each row (not only in search mode)
-- [ ] Rows show committee name, type, Active/Terminated status
+- [ ] Committee rows show name → treasurer → type → status (tag + dot); column order matches spec
+- [ ] Committee rows have `var(--surface)` background and full border (not just a bottom rule)
+- [ ] Between adjacent committee rows: gap reads as a single 1px line (not doubled)
 - [ ] No-results state renders if filters return nothing
 
 ### Typeahead (search field)
@@ -589,3 +592,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-19 | Dynamic cycle dropdown + Senate class indicator + URL param validation on race.html | race.html, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | None | 234/234 Track 1 passing |
 | 2026-03-19 | Candidate header IA overhaul — tags inline in candidate-row, committees button right-aligned, cycle select in tabs bar, race context bar, profile header top border, .main-inner max-width wrapper | candidate.html, styles.css, design-system.html, tests/candidate.spec.js, tests/smoke.spec.js (automated) | None | 234/234 Track 1 passing |
 | 2026-03-19 | .main-inner centering — add to all 7 pages, add margin:auto, update max-width to 1600px; remove profile header top border + page-header-title bottom margin | all pages, styles.css, candidate.html (automated) | None | 234/234 Track 1 passing |
+| 2026-03-19 | Visual consistency pass — list item borders, column order, race tag unification, adjacent sibling border fix, .race-list old pattern removed | styles.css, candidates.html, committees.html, search.html, race.html, design-system.html (automated) | None | 234/234 Track 1 passing |
