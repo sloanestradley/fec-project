@@ -158,6 +158,16 @@ const SEARCH_RESULTS = {
   pagination: { count: 1, pages: 1, per_page: 20, page: 1 },
 };
 
+// Candidates with totals (/candidates/totals/ endpoint — used by races.html)
+const CANDIDATES_TOTALS = {
+  results: [
+    { candidate_id: 'H2WA03217', name: 'GLUESENKAMP PEREZ, MARIE', office: 'H', state: 'WA', district: '03', party: 'DEM', party_full: 'DEMOCRATIC PARTY', receipts: 3500000, disbursements: 3100000, election_year: 2026 },
+    { candidate_id: 'H2WA03218', name: 'KENT, JOE', office: 'H', state: 'WA', district: '03', party: 'REP', party_full: 'REPUBLICAN PARTY', receipts: 2200000, disbursements: 1800000, election_year: 2026 },
+    { candidate_id: 'S6WA00000', name: 'MURRAY, PATTY', office: 'S', state: 'WA', district: '00', party: 'DEM', party_full: 'DEMOCRATIC PARTY', receipts: 5000000, disbursements: 4200000, election_year: 2026 },
+  ],
+  pagination: { count: 3, pages: 1, per_page: 100, page: 1 },
+};
+
 // Available election cycles (/elections/search/ endpoint)
 const ELECTIONS_SEARCH = {
   results: [
@@ -296,6 +306,9 @@ function resolveFixture(path, params) {
 
   // elections/ (race candidates)
   if (/\/elections\//.test(path)) return ELECTIONS;
+
+  // candidates/totals/ (races browse page — aggregated financial data)
+  if (/\/candidates\/totals\//.test(path)) return CANDIDATES_TOTALS;
 
   // candidates/search/
   if (/\/candidates\/search\//.test(path)) return SEARCH_RESULTS;

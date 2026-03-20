@@ -1417,3 +1417,48 @@ The through-line: Sloane scopes work to clean boundaries (structure vs. data), s
 - races.html data fetching design: The follow-up prompt needs to decide which FEC API endpoint to use for browsing races. /elections/search/ returns cycle/office/state/district but no financial data. /elections/ returns candidates with financials but is scoped to a single race. The browse page likely needs /elections/search/ for discovery, then links to /race?... for detail. Worth aligning on the card format and what data to show in browse results before building.
 - Overflow-x:hidden on .main globally: This caused the dropdown clipping on races.html and was fixed with a page-level override. candidates.html and committees.html have the same risk if they're ever rendered with no results and the state combo is open. Worth deciding whether to remove the global rule or keep the per-page overrides.
 - races.html replaces the curated form entry point: The old races.html had a curated form that navigated to race.html. That entry point is now gone — users will browse and click into a race instead. Is that the right flow, or should the curated form (direct state/office/year/district entry) be preserved somewhere?
+
+---
+2026-03-20 — Races browse data fetching: progressive enrichment from /elections/
+
+## Process log draft
+Title: The data that lies to you, and the data that makes you wait
+
+The races browse page went from static scaffold to live data — but getting there meant discovering that not all FEC endpoints tell the same story. /candidates/totals/ looked perfect until we noticed it overcounts (anyone who filed, not just real candidates). /elections/ is accurate but requires one API call per race — 475 for a single cycle. The solution: show the race list instantly, then progressively fill in candidate counts and dollar figures as hundreds of small requests resolve. Skeleton loaders do the waiting for you.
+
+Changelog:
+– races.html: full data fetching — cycle dropdown populated from /elections/search/, race list rendered instantly, progressive enrichment from /elections/ with skeleton→real data transition
+– Race rows show "N candidates" and "Total raised: $X" sourced from the authoritative /elections/ endpoint
+– Client-side filtering for office and state (no re-fetch); only cycle changes trigger new API calls
+– fetchGeneration guard prevents stale enrichment responses from writing into a new cycle's data
+– requestAnimationFrame batching prevents DOM thrashing during progressive enrichment
+– Removed #load-more-spinner and #end-of-results (no pagination — all results at once)
+– utils.js: formatRaceName now suppresses district "00" for at-large House seats (WY, AK, MT)
+– tests/helpers/api-mock.js: added CANDIDATES_TOTALS fixture and /candidates/totals/ route
+– tests/shared.spec.js: races.html needsApiMock set to true (was false — caused flaky failures)
+– All documentation updated: CLAUDE.md, test-cases.md, TESTING.md, ia.md
+
+Field notes:
+The session was a lesson in data source trust. The first instinct — /elections/search/ for the list, /candidates/totals/ for the numbers — looked clean until we checked the actual counts. /candidates/totals/ returns anyone who filed paperwork, including candidates who lost primaries and people who registered but never raised a dollar. The gold standard is /elections/, the same endpoint race.html uses, but it demands state+office+district per call. The progressive loading pattern was born from that constraint: you can't make 475 API calls feel instant, but you can make the page useful while they resolve. The skeleton→data transition is honest — it shows you what's loading and what's loaded, rather than pretending everything arrived at once.
+
+Stack tags: progressive loading · skeleton UI · FEC /elections/ endpoint
+
+## How Sloane steered the work
+**"Inaccurate data is unacceptable" — the line that redirected the architecture**
+When I proposed accepting /candidates/totals/ counts as "close enough," Sloane drew a hard line. That single sentence redirected the entire data strategy from a simple two-endpoint join to a progressive loading pattern with 475 individual /elections/ calls. The instinct was right: for a tool that political strategists will rely on, approximate data undermines trust. The technical cost of accuracy was real (progressive loading, skeleton UI, generation guards), but the product cost of inaccuracy would have been worse.
+
+**"Is there a loading strategy approach we could layer in?"**
+Rather than accepting either extreme (inaccurate data vs. slow page), Sloane asked whether there was a middle path. That question produced the skeleton loading pattern — instant render of the race list, then progressive enrichment. This is a UX pattern Sloane clearly had in mind before the technical constraints were fully spelled out, and it turned a performance problem into a design feature.
+
+**Catching the presidential data anomaly**
+Sloane spotted presidential results appearing for 2026 — a non-presidential year — within minutes of the first render. That observation led to discovering the deeper issue: /candidates/totals/ doesn't respect cycle boundaries the way /elections/search/ does. The bug report was the domino that toppled the entire /candidates/totals/ approach.
+
+**Catching the Senate overcounting risk**
+After the presidential fix, Sloane asked whether the same problem affected Senate data. It did — and for the same reason. That pattern recognition (if one office type is wrong, check all of them) prevented shipping a half-fix.
+
+The through-line: Sloane treats data accuracy as a product requirement, not a nice-to-have. Every time a shortcut was proposed, the response was to find the architecturally honest solution — even when it meant more complexity. The progressive loading pattern exists because Sloane refused to choose between fast and accurate.
+
+## What to bring to Claude Chat
+- Races browse page performance: 475 /elections/ calls is a lot. The progressive loading makes it usable, but a Netlify Function that aggregates server-side could reduce it to a single cached call. Worth discussing as a pre-launch priority alongside the API key proxy.
+- Race row content density: Now showing name + candidate count + total raised. Is this enough to be compelling for the browse page, or should we add more (e.g. incumbent name, top-raised candidate, party breakdown)? Each addition potentially means more data in the enrichment step.
+- Missing session logs: claude-to-claude.md is missing entries for the 2026-03-19 sessions (5 commits: party labels, nav refactor, Amplitude source attribution, search polish, races scaffold). Worth backfilling from git log + commit messages in Claude Chat.

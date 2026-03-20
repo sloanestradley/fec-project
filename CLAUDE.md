@@ -49,7 +49,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **Tag context:** `.tag-context` (in `styles.css`) is a filled-background tag variant for contextual prose inline with the tag row. No border, no uppercase — distinct from `.tag`. Used for the race context sentence on the candidate profile. Promote from `candidate-only` to `stable` in `design-system.html` when used on a second page.
 
-**Shared files:** `styles.css` contains the CSS reset, token `:root`, shared layout (sidebar, mobile nav, header), utility classes, and all shared component CSS — including `.page-header` (layout-only: padding, border-bottom — no animation), `.page-header-reveal` (animation modifier: `opacity:0` fade-in; add this alongside `.page-header` on elements that JS reveals via `.visible`; profile pages use both, browse/static pages use `.page-header` only), `.page-header-title` (Barlow Condensed 800, clamp 1.6–2.4rem, uppercase — used as the page title on candidate, committee, and race pages), and `.breadcrumb` (breadcrumb typography and link styles; `text-transform:uppercase` applied — all items render uppercase including entity names). `main.js` contains Amplitude init + Session Replay, mobile scroll-aware header, and hamburger nav (all null-guarded). `utils.js` contains shared JS utilities: `BASE`, `API_KEY`, `apiFetch` (concurrency-limited to MAX_CONCURRENT=4 — see tech stack note), `fmt`, `fmtDate`, `toTitleCase`, `formatCandidateName` (semantic alias for `toTitleCase` — use this when rendering candidate names at call sites), `partyClass`, `partyLabel` (returns human label: "Democrat", "Republican", "Libertarian", "Green Party", "Independent", or "Party N/A" for unmapped codes — N/A bucket: NNE/NON/UNK/OTH/NPA/UN/W/O), `partyTooltip(p, party_full)` (returns title attribute text: title-cased `party_full` if available, fallback map for known codes, "No party affiliation on file" for N/A bucket), `committeeTypeLabel`, `formatRaceName` (returns e.g. `'House • WA-03'` from office/state/district — used by candidate breadcrumb, race title, and race breadcrumb). Every page links all three (main.js → utils.js → inline script block).
+**Shared files:** `styles.css` contains the CSS reset, token `:root`, shared layout (sidebar, mobile nav, header), utility classes, and all shared component CSS — including `.page-header` (layout-only: padding, border-bottom — no animation), `.page-header-reveal` (animation modifier: `opacity:0` fade-in; add this alongside `.page-header` on elements that JS reveals via `.visible`; profile pages use both, browse/static pages use `.page-header` only), `.page-header-title` (Barlow Condensed 800, clamp 1.6–2.4rem, uppercase — used as the page title on candidate, committee, and race pages), and `.breadcrumb` (breadcrumb typography and link styles; `text-transform:uppercase` applied — all items render uppercase including entity names). `main.js` contains Amplitude init + Session Replay, mobile scroll-aware header, and hamburger nav (all null-guarded). `utils.js` contains shared JS utilities: `BASE`, `API_KEY`, `apiFetch` (concurrency-limited to MAX_CONCURRENT=4 — see tech stack note), `fmt`, `fmtDate`, `toTitleCase`, `formatCandidateName` (semantic alias for `toTitleCase` — use this when rendering candidate names at call sites), `partyClass`, `partyLabel` (returns human label: "Democrat", "Republican", "Libertarian", "Green Party", "Independent", or "Party N/A" for unmapped codes — N/A bucket: NNE/NON/UNK/OTH/NPA/UN/W/O), `partyTooltip(p, party_full)` (returns title attribute text: title-cased `party_full` if available, fallback map for known codes, "No party affiliation on file" for N/A bucket), `committeeTypeLabel`, `formatRaceName` (returns e.g. `'House • WA-03'` from office/state/district — suppresses district suffix when district is `'00'` for at-large seats; used by candidate breadcrumb, race title, race breadcrumb, and races browse page). Every page links all three (main.js → utils.js → inline script block).
 
 **CSS consolidation principle:** Component CSS lives in `styles.css`. Inline `<style>` blocks in individual pages are for page-specific overrides only (layout grid, page-specific spacing, page-specific components). `design-system.html` imports the same `styles.css` as production — no component CSS is duplicated between pages.
 
@@ -140,7 +140,7 @@ candidates.html   — Unified browse+search (live): auto-load, inline search + t
 candidate.html    — Single candidate profile (live, primary active file)
 committees.html   — Unified browse+search (live): auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state
 committee.html    — Single committee profile (scaffold)
-races.html        — Browse races by year, office, state (active — data fetching in follow-up)
+races.html        — Browse races by year, office, state (live — progressive enrichment from /elections/)
 race.html         — Single race view — all candidates in a contest (scaffold)
 process-log.html  — Living case study / dev diary
 design-system.html — Token and component reference (live)
@@ -276,9 +276,9 @@ See `project-brief.md` for the full phased roadmap. Short version:
 **Phase 3 (scaffold):** Committee and race pages.
 - ~~committee.html~~ ✅ scaffold — header with financials, back-link to candidate
 - ~~committees.html~~ ✅ unified browse+search — auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state, treasurer always shown
-- ~~races.html~~ ✅ browse page — filter bar (Year/Office/State), results area, state combo, filter chips, all UI states; data fetching + result rendering in follow-up
+- ~~races.html~~ ✅ browse page — filter bar (Year/Office/State), results area, state combo, filter chips, all UI states; data fetching with progressive enrichment via /elections/
 - ~~race.html~~ ✅ scaffold — single race view, candidate cards with financials, cycle-anchored links, dynamic cycle dropdown from `/elections/search/`, Senate class indicator, URL param validation
-- Remaining: filing history on committee.html, associated candidates on committee.html, races.html data fetching + result rendering
+- Remaining: filing history on committee.html, associated candidates on committee.html
 
 **Phase 4:** Early signal data (48/24hr reports), AI insights, transaction-level search.
 
@@ -325,6 +325,18 @@ Both browse pages use a single unified state machine — no separate browse/sear
 - **All result links are clean URLs** — `/candidate/{id}` and `/committee/{id}` in all modes (browse and search).
 - **Error state** — `#state-error` shown on API failure; `.retry-btn` calls `lastFetch()`.
 - **`needsApiMock: true`** in `shared.spec.js` for both pages — they make API calls on load.
+
+## Races browse architecture (races.html)
+
+Progressive loading pattern — instant race list, then enrichment:
+
+- **Step 1 (instant render):** `/elections/search/?cycle=X` returns the authoritative race list (`{cycle, district, office, state}` per result). Rendered immediately with skeleton placeholders for candidate count and total raised.
+- **Step 2 (progressive enrichment):** One `/elections/` call per race (~475 for 2026) fired through the `MAX_CONCURRENT=4` concurrency queue. As each resolves, the race object is updated in-place and a `requestAnimationFrame`-batched re-render swaps skeletons for real data.
+- **Why not `/candidates/totals/`:** That endpoint includes anyone who *filed* for a cycle, not just candidates in the actual race. Counts and totals are inflated. `/elections/` is the gold standard — same source race.html uses.
+- **Why per-race, not per-state:** `/elections/` requires both `office` and `state`, and House races additionally require `district`. The endpoint doesn't return a `district` field on results — district is implicit from the query params.
+- **Client-side filtering:** Office and state filter changes call `applyFilters()` directly — no API re-fetch. Only cycle changes trigger a new fetch.
+- **Stale response guard:** `fetchGeneration` counter increments on each `fetchAllRaces()` call. Enrichment callbacks check the generation before writing data or re-rendering.
+- **`needsApiMock: true`** in `shared.spec.js` — makes API calls on load.
 
 ## Navigation and IA architecture
 

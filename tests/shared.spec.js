@@ -56,7 +56,7 @@ const PAGES = [
     name: 'races.html',
     url: '/races.html',
     activeNavText: 'Races',
-    needsApiMock: false,
+    needsApiMock: true,
   },
   {
     name: 'race.html',

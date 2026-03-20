@@ -131,7 +131,7 @@ function partyTooltip(p, party_full) {
 function formatRaceName(office, state, district) {
   var officeNames = { H: 'House', S: 'Senate', P: 'President' };
   var officeName  = officeNames[office] || office || '';
-  var districtStr = (office === 'H' && district) ? '-' + district : '';
+  var districtStr = (office === 'H' && district && district !== '00') ? '-' + district : '';
   return officeName + ' \u2022 ' + (state || '') + districtStr;
 }
 

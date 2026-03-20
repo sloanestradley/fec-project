@@ -258,23 +258,31 @@
 - [ ] No `.page-desc` paragraph
 
 ### Filter bar
-- [ ] Year `<select>` present (empty — populated by JS in follow-up) ✅
+- [ ] Year `<select>` populated with cycles from API, default to current cycle ✅
 - [ ] Office `<select>` with All offices / House / Senate / President ✅
 - [ ] State combo with text filter input and listbox dropdown ✅
-- [ ] State dropdown not clipped when open (overflow fix applied)
+- [ ] State dropdown not clipped when open (overflow:visible on .main)
 - [ ] Filter chips area present and hidden by default ✅
+
+### Data fetching & rendering
+- [ ] Default load shows races grouped by office (President → Senate → House) with correct header count
+- [ ] Race rows show race name (e.g. "House • WA-03") linking to /race?... with correct params
+- [ ] Race rows show skeleton placeholders for candidate count and total raised while enrichment loads
+- [ ] Skeletons progressively replaced with "N candidates" and "Total raised: $X" as /elections/ calls resolve
+- [ ] Candidate counts and total raised match the /elections/ endpoint (gold standard, not /candidates/totals/)
+- [ ] At-large House seats (WY, AK, MT) display without district suffix (e.g. "House • WY" not "House • WY-00")
+- [ ] Changing office or state filter updates results instantly with no API call
+- [ ] Changing cycle triggers new API fetch and full re-render with skeletons
+- [ ] Filter chips appear for active office and state filters (not cycle)
+- [ ] Clearing a chip resets that filter and re-renders
+- [ ] "Clear all" button appears when 2+ chips active
+- [ ] No-results state shown when filters match zero races
+- [ ] Error state shown on API failure; retry button re-fetches
+- [ ] Races sorted by state then district within each office group
 
 ### Results area
 - [ ] `#state-results`, `#state-loading`, `#state-no-results`, `#state-error` all present ✅
-- [ ] `#load-more-spinner` and `#end-of-results` present inside results area ✅
 - [ ] Retry button present in error state ✅
-
-### Pending (follow-up prompt)
-- [ ] Data fetching wired to filter changes
-- [ ] Results rendering with race cards
-- [ ] Filter chips render and clear correctly
-- [ ] URL sync on filter changes
-- [ ] Infinite scroll / load more
 
 ---
 
@@ -572,7 +580,7 @@ Expected failures — not bugs to fix now. Remove a row when the issue is resolv
 |-------|------|-------|
 | Filing history not yet built | committee.html | 2026-03-10 |
 | Associated candidates section not yet built | committee.html | 2026-03-10 |
-| Ad hoc mode is stub/planned only | races.html | 2026-03-10 |
+| Ad hoc race comparison mode not yet built | race.html | 2026-03-10 |
 | Schedule B 422s — Schedule B fetch failed: FEC 422 — /schedules/schedule_b/ — Fires 3–7 times per candidate page load. Predates the browse/search overhaul. FEC's /schedules/schedule_b/ endpoint requires committee_id as a mandatory param; at least some calls are firing without it. Contained to the Spent tab. Silently handled (console warning, no user-facing error). Non-blocking — fix before any work that touches the Spent tab. | candidate.html | 2026-03-12 |
 
 ---
@@ -613,3 +621,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-19 | Sidebar → fixed top nav refactor — remove sidebar/layout grid/mobile-header; add .top-nav, .mobile-nav drop-down, .top-nav-mobile-search expand panel; update all 9 pages, styles.css, main.js; update shared.spec.js, pages.spec.js, candidate.spec.js, search.spec.js; update design-system comp-nav-item card + token table | All pages, styles.css, main.js, all test files (automated) | 14 stale test references in pages.spec.js, candidate.spec.js, search.spec.js (fixed) | 234/234 Track 1 passing |
 | 2026-03-19 | Visual + copy polish — search button SVG icons, placeholder text updates, filter bar background removal, .page-desc removal, .committee-name font-weight, aria-label fixes, nav search input width | All 9 pages, styles.css (automated) | None | 234/234 Track 1 passing |
 | 2026-03-19 | races.html browse page — replace mode selector with browse template (page header, filter bar, results area, state combo); fix state dropdown clipping (overflow:visible on .main); update 5 Playwright tests | races.html, tests/pages.spec.js, ia.md (automated) | 5 stale mode-selector tests (replaced with browse page structure tests) | 234/234 Track 1 passing |
+| 2026-03-20 | races.html data fetching — cycle dropdown, /elections/search/ race list, progressive /elections/ enrichment with skeleton loading, filter chips, formatRaceName at-large fix, needsApiMock + CANDIDATES_TOTALS mock | races.html, utils.js, tests/helpers/api-mock.js, tests/shared.spec.js (automated) | races.html needsApiMock was false (live API calls caused flaky networkidle timeouts — fixed to true) | 234/234 Track 1 passing |

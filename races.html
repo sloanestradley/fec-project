@@ -56,6 +56,14 @@
     .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
       text-transform:uppercase; letter-spacing:0; color:var(--muted);
       margin-bottom:1rem; }
+    .section-title { font-family:'Barlow Condensed',sans-serif; font-weight:700;
+      font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em;
+      color:var(--subtle); margin:1.5rem 0 0.5rem; }
+    .section-title:first-child { margin-top:0; }
+    .results-list { display:flex; flex-direction:column; }
+    .results-list .candidate-card + .candidate-card { border-top:none; }
+    .race-row-meta { display:flex; gap:1rem; font-family:'IBM Plex Mono',monospace;
+      font-size:0.62rem; color:var(--muted); margin-top:0.2rem; }
 
     /* No results / error */
     .no-results { padding:2.5rem var(--page-gutter); color:var(--muted); font-size:0.8rem; }
@@ -231,12 +239,6 @@
       <div class="results-area">
         <div class="results-header" id="results-header"></div>
         <div id="results-list"></div>
-        <div id="load-more-spinner" class="state-msg" style="display:none;padding:1.5rem var(--page-gutter);justify-content:center">
-          <div class="loader"></div>
-        </div>
-        <div id="end-of-results" style="display:none;padding:1.25rem var(--page-gutter);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0;border-top:1px solid var(--border);text-align:center">
-          End of results
-        </div>
       </div>
     </div>
 
@@ -266,7 +268,14 @@
 <script>
 amplitude.track('Page Viewed', { page: 'races' });
 
-var activeFilters = { cycle: '', office: '', state: '' };
+var now = new Date().getFullYear();
+var currentCycle = (now % 2 === 0) ? now : now + 1;
+var maxCycle = currentCycle + 4;
+
+var activeFilters = { cycle: String(currentCycle), office: '', state: '' };
+var allRaces = [];
+
+var OFFICE_LABELS = { H: 'House', S: 'Senate', P: 'President' };
 
 function showState(name) {
   document.getElementById('state-loading').style.display    = name === 'loading'    ? 'block' : 'none';
@@ -275,7 +284,234 @@ function showState(name) {
   document.getElementById('state-error').style.display      = name === 'error'      ? 'block' : 'none';
 }
 
-// ── State combo (copied from candidates.html) ─────────────────────────────────
+// ── Cycle dropdown ────────────────────────────────────────────────────────────
+
+async function populateCycles() {
+  var data = await apiFetch('/elections/search/', { per_page: 100 });
+  var results = data.results || [];
+  var seen = {};
+  var cycles = [];
+  results.forEach(function(r) {
+    if (!seen[r.cycle] && r.cycle <= maxCycle) {
+      seen[r.cycle] = true;
+      cycles.push(r.cycle);
+    }
+  });
+  cycles.sort(function(a, b) { return b - a; });
+
+  var sel = document.getElementById('f-cycle');
+  sel.innerHTML = cycles.map(function(c) {
+    return '<option value="' + c + '"' + (c === currentCycle ? ' selected' : '') + '>' + c + '</option>';
+  }).join('');
+  activeFilters.cycle = String(currentCycle);
+}
+
+// ── Data fetching ─────────────────────────────────────────────────────────────
+
+// /elections/ requires office as lowercase word
+function officeApiParam(o) {
+  return { H:'house', S:'senate', P:'president' }[o] || o.toLowerCase();
+}
+
+// Fetch all pages from a paginated FEC endpoint
+async function fetchAllPages(endpoint, params) {
+  var first = await apiFetch(endpoint, Object.assign({}, params, { per_page: 100 }));
+  var results = first.results || [];
+  var totalPages = (first.pagination && first.pagination.pages) || 1;
+  if (totalPages > 1) {
+    var pages = [];
+    for (var p = 2; p <= totalPages; p++) pages.push(p);
+    var rest = await Promise.all(pages.map(function(p) {
+      return apiFetch(endpoint, Object.assign({}, params, { per_page: 100, page: p }));
+    }));
+    rest.forEach(function(d) { results = results.concat(d.results || []); });
+  }
+  return results;
+}
+
+// Track the current fetch generation so stale enrichment calls don't write to a new cycle's data
+var fetchGeneration = 0;
+
+async function fetchAllRaces(cycle) {
+  var gen = ++fetchGeneration;
+  showState('loading');
+  try {
+    // Step 1: race list from /elections/search/ — render immediately with skeletons
+    var raceResults = await fetchAllPages('/elections/search/', { cycle: cycle });
+    if (gen !== fetchGeneration) return;
+    allRaces = raceResults.map(function(r) {
+      return { office: r.office, state: r.state, district: r.district || '',
+               candidateCount: null, totalRaised: null };
+    });
+    applyFilters();
+
+    // Step 2: enrich progressively via /elections/ per race
+    // Build a lookup from allRaces for fast updates
+    var raceLookup = {};
+    allRaces.forEach(function(r) {
+      raceLookup[r.office + '|' + r.state + '|' + r.district] = r;
+    });
+
+    // Fire /elections/ calls — one per race, concurrency queue handles pacing
+    // Batch re-renders to avoid thrashing the DOM on every single response
+    var pendingRender = false;
+    function scheduleRender() {
+      if (pendingRender) return;
+      pendingRender = true;
+      requestAnimationFrame(function() {
+        pendingRender = false;
+        if (gen === fetchGeneration) applyFilters();
+      });
+    }
+
+    var promises = allRaces.map(function(race) {
+      var params = {
+        cycle: cycle,
+        office: officeApiParam(race.office),
+        state: race.state,
+        per_page: 100
+      };
+      if (race.office === 'H') params.district = race.district;
+      return apiFetch('/elections/', params).then(function(data) {
+        if (gen !== fetchGeneration) return;
+        var candidates = data.results || [];
+        race.candidateCount = candidates.length;
+        race.totalRaised = 0;
+        candidates.forEach(function(c) {
+          race.totalRaised += (c.total_receipts || 0);
+        });
+        scheduleRender();
+      }).catch(function(err) {
+        console.warn('enrich failed for', race.office, race.state, race.district, err);
+      });
+    });
+    await Promise.all(promises);
+  } catch(err) {
+    if (gen !== fetchGeneration) return;
+    showState('error');
+    console.error('races fetch error:', err);
+  }
+}
+
+// ── Filtering & rendering ─────────────────────────────────────────────────────
+
+function applyFilters() {
+  var filtered = allRaces.filter(function(r) {
+    if (activeFilters.office && r.office !== activeFilters.office) return false;
+    if (activeFilters.state  && r.state  !== activeFilters.state)  return false;
+    return true;
+  });
+  renderResults(filtered);
+  renderChips();
+}
+
+function renderResults(races) {
+  if (!races.length) { showState('no-results'); return; }
+  var groups = { P: [], S: [], H: [] };
+  races.forEach(function(r) {
+    if (groups[r.office]) groups[r.office].push(r);
+  });
+  // Sort each group by state then district
+  ['P', 'S', 'H'].forEach(function(office) {
+    groups[office].sort(function(a, b) {
+      var s = (a.state || '').localeCompare(b.state || '');
+      if (s !== 0) return s;
+      return (a.district || '').localeCompare(b.district || '');
+    });
+  });
+  var html = '';
+  ['P', 'S', 'H'].forEach(function(office) {
+    if (!groups[office].length) return;
+    html += '<div class="section-title">' + OFFICE_LABELS[office] + '</div>';
+    html += '<div class="results-list">';
+    html += groups[office].map(buildRaceRow).join('');
+    html += '</div>';
+  });
+  document.getElementById('results-list').innerHTML = html;
+  updateResultsHeader(races);
+  showState('results');
+}
+
+function buildRaceRow(r) {
+  var label = formatRaceName(r.office, r.state, r.district);
+  var url = '/race?office=' + r.office
+          + '&state=' + r.state
+          + '&cycle=' + activeFilters.cycle
+          + (r.office === 'H' ? '&district=' + r.district : '');
+  var metaHtml;
+  if (r.candidateCount === null) {
+    // Still loading — show skeleton placeholders
+    metaHtml = '<div class="race-row-meta">'
+      + '<span class="skeleton" style="width:70px;height:12px;display:inline-block"></span>'
+      + '<span class="skeleton" style="width:100px;height:12px;display:inline-block"></span>'
+      + '</div>';
+  } else {
+    var meta = r.candidateCount + ' candidate' + (r.candidateCount !== 1 ? 's' : '');
+    var raised = r.totalRaised ? 'Total raised: ' + fmt(r.totalRaised) : '';
+    metaHtml = '<div class="race-row-meta">'
+      + '<span>' + meta + '</span>'
+      + (raised ? '<span>' + raised + '</span>' : '')
+      + '</div>';
+  }
+  return '<a class="candidate-card" href="' + url + '">'
+    + '<div class="candidate-card-name">' + label + '</div>'
+    + metaHtml
+    + '</a>';
+}
+
+function updateResultsHeader(races) {
+  var n = races.length;
+  var officeNames = { H: 'House', S: 'Senate', P: 'Presidential' };
+  var txt = n + ' race' + (n !== 1 ? 's' : '');
+  if (activeFilters.office && officeNames[activeFilters.office]) {
+    txt = n + ' ' + officeNames[activeFilters.office] + ' race' + (n !== 1 ? 's' : '');
+  }
+  if (activeFilters.state) txt += ' in ' + activeFilters.state;
+  document.getElementById('results-header').textContent = txt;
+}
+
+// ── Filter chips ──────────────────────────────────────────────────────────────
+
+function renderChips() {
+  var chips = [];
+  if (activeFilters.office) chips.push({ key: 'office', label: OFFICE_LABELS[activeFilters.office] || activeFilters.office });
+  if (activeFilters.state)  chips.push({ key: 'state',  label: 'State: ' + activeFilters.state });
+
+  var wrap = document.getElementById('filter-chips');
+  if (!chips.length) { wrap.style.display = 'none'; return; }
+
+  var html = chips.map(function(chip) {
+    return '<span class="filter-chip">' + chip.label
+      + '<button class="chip-x" onclick="clearFilter(\'' + chip.key + '\')" aria-label="Remove filter">\u00d7</button>'
+      + '</span>';
+  }).join('');
+  if (chips.length >= 2) {
+    html += '<button class="chip-clear-all" onclick="clearAllFilters()">Clear all</button>';
+  }
+  wrap.innerHTML = html;
+  wrap.style.display = 'flex';
+}
+
+function clearFilter(key) {
+  activeFilters[key] = '';
+  if (key === 'office') document.getElementById('f-office').value = '';
+  if (key === 'state') {
+    document.getElementById('f-state').value = '';
+    document.getElementById('f-state-filter').value = '';
+  }
+  applyFilters();
+}
+
+function clearAllFilters() {
+  activeFilters.office = '';
+  activeFilters.state = '';
+  document.getElementById('f-office').value = '';
+  document.getElementById('f-state').value = '';
+  document.getElementById('f-state-filter').value = '';
+  applyFilters();
+}
+
+// ── State combo ───────────────────────────────────────────────────────────────
 
 document.getElementById('f-state-filter').addEventListener('input', function() {
   var val = this.value.toLowerCase();
@@ -285,7 +521,7 @@ document.getElementById('f-state-filter').addEventListener('input', function() {
   if (!val && activeFilters.state) {
     activeFilters.state = '';
     document.getElementById('f-state').value = '';
-    // doFetch() — wired in follow-up
+    applyFilters();
   }
 });
 
@@ -296,21 +532,29 @@ document.getElementById('f-state').addEventListener('change', function() {
   this.blur();
   document.getElementById('f-state-filter').blur();
   Array.from(this.options).forEach(function(opt) { opt.style.display = ''; });
-  // doFetch() — wired in follow-up
+  applyFilters();
 });
 
 document.getElementById('f-office').addEventListener('change', function() {
   activeFilters.office = this.value;
-  // doFetch() — wired in follow-up
+  applyFilters();
 });
 
 document.getElementById('f-cycle').addEventListener('change', function() {
   activeFilters.cycle = this.value;
-  // doFetch() — wired in follow-up
+  fetchAllRaces(this.value);
 });
 
+// ── Init ──────────────────────────────────────────────────────────────────────
+
 (function init() {
-  // Cycle default and population handled in follow-up prompt
+  populateCycles().then(function() {
+    fetchAllRaces(activeFilters.cycle);
+  });
+
+  document.querySelector('.retry-btn').addEventListener('click', function() {
+    fetchAllRaces(activeFilters.cycle);
+  });
 })();
 </script>
 
