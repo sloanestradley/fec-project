@@ -3,32 +3,17 @@
 amplitude.init('62280d38083601e001bf153dbcf38a9b', { defaultTracking: false });
 amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
 
-// ── Mobile scroll-aware header ───────────────────────
-(function() {
-  var hdr = document.getElementById('mobile-header');
-  if (!hdr) return;
-  var lastY = 0, ticking = false;
-  window.addEventListener('scroll', function() {
-    if (!ticking) {
-      requestAnimationFrame(function() {
-        var y = window.scrollY;
-        hdr.classList.toggle('hidden', y > lastY && y > 80);
-        lastY = y; ticking = false;
-      });
-      ticking = true;
-    }
-  }, { passive: true });
-})();
-
-// ── Hamburger nav ────────────────────────────────────
+// ── Hamburger nav (drawer drops down from top) ───────
 (function() {
   var btn = document.getElementById('hamburger');
   if (!btn) return;
   var nav = document.getElementById('mobile-nav');
+  var searchPanel = document.getElementById('top-nav-mobile-search');
   btn.addEventListener('click', function() {
     var open = nav.classList.toggle('open');
     btn.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', String(open));
+    if (open && searchPanel) searchPanel.classList.remove('open');
   });
   nav.querySelectorAll('.nav-item').forEach(function(el) {
     el.addEventListener('click', function() {
@@ -37,4 +22,40 @@ amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
       btn.setAttribute('aria-expanded', 'false');
     });
   });
+})();
+
+// ── Search icon toggle (mobile) ──────────────────────
+(function() {
+  var toggle = document.getElementById('top-nav-search-toggle');
+  if (!toggle) return;
+  var panel = document.getElementById('top-nav-mobile-search');
+  var nav = document.getElementById('mobile-nav');
+  var hamburger = document.getElementById('hamburger');
+  toggle.addEventListener('click', function() {
+    var open = panel.classList.toggle('open');
+    if (open && nav) {
+      nav.classList.remove('open');
+      if (hamburger) { hamburger.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); }
+    }
+    if (open) {
+      var inp = document.getElementById('top-nav-mobile-search-input');
+      if (inp) inp.focus();
+    }
+  });
+})();
+
+// ── Global search form submit ─────────────────────────
+(function() {
+  function bindSearchForm(formId) {
+    var form = document.getElementById(formId);
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var inp = form.querySelector('input[type="search"]');
+      var q = inp ? inp.value.trim() : '';
+      if (q) window.location.href = '/search?q=' + encodeURIComponent(q);
+    });
+  }
+  bindSearchForm('top-nav-search-form');
+  bindSearchForm('top-nav-mobile-search-form');
 })();

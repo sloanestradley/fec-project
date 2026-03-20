@@ -32,10 +32,9 @@ test.describe('search.html — initial state (no query)', () => {
     expect(event.args[1]).toMatchObject({ page: 'search' });
   });
 
-  test('"Search" nav item is active', async ({ page }) => {
-    const activeItem = page.locator('.sidebar .nav-item.active');
-    const text = await activeItem.first().textContent();
-    expect(text?.trim()).toContain('Search');
+  test('no nav link is active (search is not in top nav)', async ({ page }) => {
+    const activeLinks = page.locator('.top-nav .nav-link.active');
+    await expect(activeLinks).toHaveCount(0);
   });
 });
 

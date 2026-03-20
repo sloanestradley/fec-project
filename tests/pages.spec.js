@@ -22,7 +22,7 @@ test.describe('committee.html', () => {
   });
 
   test('"Committees" nav item is active (profile activates parent)', async ({ page }) => {
-    const active = page.locator('.sidebar .nav-item.active');
+    const active = page.locator('.top-nav .nav-link.active');
     const text = await active.first().textContent();
     expect(text?.trim()).toContain('Committees');
   });
@@ -80,7 +80,7 @@ test.describe('races.html', () => {
   });
 
   test('"Races" nav item is active', async ({ page }) => {
-    const active = page.locator('.sidebar .nav-item.active');
+    const active = page.locator('.top-nav .nav-link.active');
     const text = await active.first().textContent();
     expect(text?.trim()).toContain('Races');
   });
@@ -142,7 +142,7 @@ test.describe('race.html', () => {
   });
 
   test('"Races" nav item is active (profile activates parent)', async ({ page }) => {
-    const active = page.locator('.sidebar .nav-item.active');
+    const active = page.locator('.top-nav .nav-link.active');
     const text = await active.first().textContent();
     expect(text?.trim()).toContain('Races');
   });
@@ -281,7 +281,7 @@ test.describe('candidates.html', () => {
   });
 
   test('"Candidates" nav item is active', async ({ page }) => {
-    const active = page.locator('.sidebar .nav-item.active');
+    const active = page.locator('.top-nav .nav-link.active');
     const text = await active.first().textContent();
     expect(text?.trim()).toContain('Candidates');
   });
@@ -358,7 +358,7 @@ test.describe('committees.html', () => {
   });
 
   test('"Committees" nav item is active', async ({ page }) => {
-    const active = page.locator('.sidebar .nav-item.active');
+    const active = page.locator('.top-nav .nav-link.active');
     const text = await active.first().textContent();
     expect(text?.trim()).toContain('Committees');
   });
@@ -532,10 +532,9 @@ test.describe('process-log.html', () => {
     await page.goto('/process-log.html');
   });
 
-  test('"Process Log" nav item is active', async ({ page }) => {
-    const active = page.locator('.sidebar .nav-item.active');
-    const text = await active.first().textContent();
-    expect(text?.trim()).toContain('Process Log');
+  test('no nav link is active (process-log not in top nav)', async ({ page }) => {
+    const activeLinks = page.locator('.top-nav .nav-link.active');
+    await expect(activeLinks).toHaveCount(0);
   });
 
   test('Page Viewed fires', async ({ page }) => {
@@ -558,8 +557,7 @@ test.describe('process-log.html', () => {
 
   test('no broken layout at mobile width (390px)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.locator('.sidebar')).not.toBeVisible();
-    await expect(page.locator('.mobile-header')).toBeVisible();
+    await expect(page.locator('.top-nav')).toBeVisible();
   });
 });
 
@@ -571,10 +569,9 @@ test.describe('design-system.html', () => {
     await page.goto('/design-system.html');
   });
 
-  test('"Design System" nav item is active', async ({ page }) => {
-    const active = page.locator('.sidebar .nav-item.active');
-    const text = await active.first().textContent();
-    expect(text?.trim()).toContain('Design System');
+  test('no nav link is active (design-system not in top nav)', async ({ page }) => {
+    const activeLinks = page.locator('.top-nav .nav-link.active');
+    await expect(activeLinks).toHaveCount(0);
   });
 
   test('Page Viewed fires', async ({ page }) => {
@@ -659,29 +656,29 @@ test.describe('mobile layout — sidebar hidden, header visible', () => {
   ];
 
   for (const { url, needsMock } of MOBILE_PAGES) {
-    test(`${url} hides sidebar at 390px`, async ({ page }) => {
+    test(`${url} shows top nav at 390px`, async ({ page }) => {
       await mockAmplitude(page);
       if (needsMock) await mockFecApi(page);
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(url);
       await page.waitForLoadState('networkidle');
-      await expect(page.locator('.sidebar')).not.toBeVisible();
+      await expect(page.locator('.top-nav')).toBeVisible();
     });
 
-    test(`${url} shows mobile search icon at 390px`, async ({ page }) => {
+    test(`${url} shows search toggle at 390px`, async ({ page }) => {
       await mockAmplitude(page);
       if (needsMock) await mockFecApi(page);
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(url);
-      await expect(page.locator('.mobile-search-icon')).toBeVisible();
+      await expect(page.locator('.top-nav-search-toggle')).toBeVisible();
     });
 
-    test(`${url} hides mobile search icon at desktop (1280px)`, async ({ page }) => {
+    test(`${url} hides search toggle at desktop (1280px)`, async ({ page }) => {
       await mockAmplitude(page);
       if (needsMock) await mockFecApi(page);
       await page.setViewportSize({ width: 1280, height: 800 });
       await page.goto(url);
-      await expect(page.locator('.mobile-search-icon')).not.toBeVisible();
+      await expect(page.locator('.top-nav-search-toggle')).not.toBeVisible();
     });
   }
 });

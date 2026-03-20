@@ -35,7 +35,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 - Netlify Functions for any server-side API proxying needed
 - No build step — files are served directly
 - **Clean URLs:** `_redirects` defines Netlify 200 rewrites for all pages. Profile pages with path-segment URLs (`/candidate/:id`, `/committee/:id`) **must use absolute paths** for every local resource and nav link — `href="/styles.css"`, `src="/main.js"`, `href="/candidates"`, etc. Relative paths break because the browser treats the path segment as a subdirectory (e.g. from `/candidate/H2WA03217`, relative `utils.js` resolves to `/candidate/utils.js`, which also matches the rewrite rule and returns HTML served as JS). Browse pages (`/candidates`, `/committees`, `/races`, `/race`, `/search`) use single-level paths so relative links still resolve to root — but any new page with a deeper path must follow the absolute-path rule.
-- **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 228 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
+- **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 234 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
 - **apiFetch concurrency queue:** `utils.js` implements a `MAX_CONCURRENT = 4` request queue to avoid 429 rate-limit errors when pages fire many parallel API calls (candidate page fires 15–20 on load). All calls still execute — they just pace to ≤4 in-flight at a time. No call-site changes needed; `apiFetch(path, params)` signature is identical.
 - **FEC API field verification:** Before writing logic that depends on a specific field name or value from any FEC endpoint, verify the actual response shape first. Navigate directly to the endpoint in a browser (or use `apiFetch` in the console) and confirm field names, value formats, and null behavior. Do not infer from the FEC docs alone — the docs and actual responses diverge in practice (e.g. `/elections/` returns `incumbent_challenge_full` as `"Incumbent"/"Challenger"/"Open seat"`, not the single-letter `incumbent_challenge` code). Document any verified field behavior in the relevant section below.
 
@@ -122,12 +122,9 @@ Light "broadsheet" theme. Key CSS variables:
 Layout tokens:
 --page-gutter: 3rem       (horizontal content padding — 1rem at mobile ≤860px)
 
-Sidebar-scoped tokens (avoid using outside sidebar):
---sidebar-bg: #e8e2d8
---sidebar-border: #cdc7bc
---sidebar-text: #1a1510
---sidebar-muted: #625b52
---sidebar-active-bg: #d4cdc3
+Nav tokens:
+--nav-bg: #e8e2d8         (top nav + mobile nav background)
+--nav-active-bg: #d4cdc3  (nav active state background — currently unused, reserved)
 ```
 
 Typography: Barlow Condensed 700–900 for display/headings (uppercase), DM Sans 300–500 for body/nav, IBM Plex Mono 400–500 for labels and data.
@@ -341,9 +338,14 @@ Nav link targets (all pages must use these — absolute paths, no stubs):
 - Candidates → `/candidates`
 - Committees → `/committees`
 - Races → `/races`
-- Search → `/search`
 
-The `.mobile-search-icon` (search icon SVG in `.mobile-header`) must appear on every page. It links to `search.html` and is `display:none` at desktop, `display:block` at ≤860px via `styles.css`.
+Search, Process Log, and Design System are **not** in the top nav. No active link on those pages.
+
+**Top nav structure (`.top-nav`):** Fixed below the global banner (`top:var(--banner-h)`), full-width, `z-index:200`. Inner: logo left → nav links (`Candidates`, `Committees`, `Races`) → search bar (desktop, `margin-left:auto`) → mobile controls (hidden at desktop: search toggle icon + hamburger). Mobile nav drawer (`.mobile-nav`) drops down from below the nav bar (not from the side). Search toggle expands `.top-nav-mobile-search` panel inline below the nav bar. No `.sidebar`, no `.layout` grid wrapper — `.main` is a direct child of `<body>`.
+
+**Active state:** `.nav-link.active` on the correct `<a>` in `.top-nav-links`, plus `.nav-item` with active class in `.mobile-nav` for browse pages. Profile pages activate their parent browse page's link.
+
+**`.main` padding:** Global rule `padding-top:var(--header-h)` in `styles.css` handles the fixed nav offset. No per-page media query override needed.
 
 Cycle-anchored links from race view: `candidate.html?id={id}#{year}#summary` — the `#{year}#summary` hash pre-selects the correct election cycle on the candidate page. Use this pattern whenever linking to a candidate from a race context.
 

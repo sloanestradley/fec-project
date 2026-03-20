@@ -323,7 +323,7 @@ test.describe('candidate.html — Amplitude events', () => {
 test.describe('candidate.html — nav active state', () => {
   test('"Candidates" nav item is active (profile activates parent browse)', async ({ page }) => {
     await setup(page);
-    const activeItem = page.locator('.sidebar .nav-item.active');
+    const activeItem = page.locator('.top-nav .nav-link.active');
     const text = await activeItem.first().textContent();
     expect(text?.trim()).toContain('Candidates');
   });

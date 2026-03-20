@@ -1292,3 +1292,48 @@ The through-line: Sloane consistently distinguishes between "fix this now" and "
 – Party N/A label: "Party N/A" is the chosen label for unmapped codes (NNE, NON, UNK, OTH, etc.). Is that the right framing for the audience (strategists, journalists)? An alternative like "No party" or "Unaffiliated" might read more clearly. Worth a quick gut-check.
 
 – committee.html remaining Phase 3 work: filing history and associated candidates are still unbuilt. Now that the committee row interaction is at parity with search.html, is committee.html the next priority, or does Phase 4 work (early signal data, AI insights) take precedence?
+
+---
+2026-03-19 18:00
+
+## Process log draft
+
+**Tearing out the sidebar — a layout decision that was already made**
+
+The sidebar had been a reliable anchor from day one — a fixed 220px column, a list of nav items with dots, a structure that felt stable. Replacing it was never really about aesthetics. It was about recovering horizontal space and reducing layout complexity as the content got denser. The decision had been made; this session was about execution.
+
+Changelog:
+- Removed sidebar nav, .layout grid, .mobile-header, and all --sidebar-* CSS tokens across all 9 pages
+- Added fixed .top-nav bar: logo left, Candidates/Committees/Races links, global search bar right (desktop); mobile controls right (search toggle + hamburger)
+- Mobile nav drawer now drops down from below the top nav (not slides in from the left)
+- Mobile search expands inline as a panel below the nav bar; mutually exclusive with the drawer
+- Global search form submits to /search?q= from both desktop bar and mobile expand panel
+- Renamed --sidebar-bg/--sidebar-active-bg to --nav-bg/--nav-active-bg; removed --sidebar-border/--sidebar-text/--sidebar-muted (values covered by global tokens)
+- Updated design-system.html: comp-nav-item card documents new .top-nav/.nav-link classes; token table updated
+- Updated all Playwright tests: shared.spec.js, pages.spec.js, candidate.spec.js, search.spec.js — all stale .sidebar, .mobile-header, .mobile-search-icon references replaced
+- 234/234 tests passing
+
+Field notes:
+The sidebar was doing a lot of invisible work — every page had a .layout grid wrapper, per-page mobile padding-top overrides, and a separate .mobile-header block. Removing it didn't just change the nav; it simplified the entire layout model. That kind of cascading cleanup is rare. The test suite found 14 stale references in three files after the first run — a normal amount for a refactor this wide. The mechanical part of updating tests is actually useful: it forces a pass over every assertion that assumed the old structure, which is a good audit of what the tests were actually measuring.
+
+Stack tags: CSS, HTML, Layout
+
+## How Sloane steered the work
+
+**The full spec before the first line of code**
+Sloane wrote a detailed spec covering desktop layout, mobile behavior, search wiring, implementation scope (all 9 pages), and verification steps — before any code was touched. This is the pattern: full clarity on what's being built, then execution. The plan was reviewed and approved before implementation began, which meant the refactor went in one direction with no mid-stream pivots.
+
+**Three specific corrections to the plan before approving it**
+When the initial plan was presented, Sloane identified three specific gaps and asked for them to be addressed before proceeding: (1) the design-system.html comp-nav-item risk needed a better mitigation — not "keep sidebar as deprecated block" but "update the component card to document the new classes"; (2) a risk for --sidebar-* inline references in HTML files was missing; (3) design-system.html should be last in the file edit order to reduce risk. These are exactly the kind of detail that saves debug time later — a plan with wrong mitigation is worse than no plan.
+
+**Search removed from the top nav**
+The original sidebar had a Search nav item with an active state. Sloane's spec was explicit: top nav has three links only — Candidates, Committees, Races. Search, Process Log, and Design System don't appear. This required updating the PAGES array in shared.spec.js and changing the search.spec.js nav assertion to verify the absence of an active link rather than the presence of one.
+
+The through-line: Sloane plans at the spec level, not the implementation level — detailed enough to guide the work, not so detailed as to make it inflexible. The corrections to the plan show a sharp eye for risk surface, not just feature coverage.
+
+## What to bring to Claude Chat
+
+- Now that the layout is full-width, is there appetite to revisit the candidate page layout — wider stats row, wider chart, possibly a two-column layout for the Raised tab on desktop?
+- The global search bar in the top nav submits to /search?q=. Should it search candidates only (current behavior) or open to committees + candidates (like the search.html two-group results)?
+- Process Log and Design System are now orphaned from the nav — intentional for production but worth confirming: are they linked anywhere, or discoverable only by direct URL?
+- Next phase priority check: filing history on committee.html vs. ad hoc mode on races.html — which has more demo value for the portfolio?

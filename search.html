@@ -35,7 +35,6 @@
       letter-spacing:0; margin-bottom:0.4rem; }
 
     @media (max-width:860px) {
-      .main { padding-top:calc(var(--banner-h) + var(--header-h)); }
       .search-bar-wrap { padding:var(--page-gutter); }
       .search-hero { padding:3rem var(--page-gutter) 2rem; }
       .results-area { padding:1.5rem var(--page-gutter); }
@@ -45,47 +44,46 @@
 </head>
 <body>
 
-<div class="layout">
-
-  <!-- Desktop sidebar -->
-  <nav class="sidebar">
-    <div class="sidebar-logo"><a href="index.html">ledger<em>.fec</em></a></div>
-    <div class="nav-section">
-      <div class="nav-label">Pages</div>
-      <a class="nav-item" href="/candidates"><span class="nav-dot"></span>Candidates</a>
-      <a class="nav-item" href="/committees"><span class="nav-dot"></span>Committees</a>
-      <a class="nav-item" href="/races"><span class="nav-dot"></span>Races</a>
-      <a class="nav-item active" href="/search"><span class="nav-dot"></span>Search</a>
+<!-- Top nav -->
+<nav class="top-nav" id="top-nav">
+  <div class="top-nav-inner">
+    <a class="top-nav-logo" href="/">ledger<em>.fec</em></a>
+    <div class="top-nav-links">
+      <a class="nav-link" href="/candidates">Candidates</a>
+      <a class="nav-link" href="/committees">Committees</a>
+      <a class="nav-link" href="/races">Races</a>
     </div>
-    <div class="nav-section" style="margin-top:auto;padding-top:1.25rem;border-top:1px solid var(--sidebar-border)">
-      <div class="nav-label">Documentation</div>
-      <a class="nav-item" href="process-log.html"><span class="nav-dot"></span>Process Log</a>
-      <a class="nav-item" href="design-system.html"><span class="nav-dot"></span>Design System</a>
+    <div class="top-nav-search">
+      <form class="top-nav-search-form" id="top-nav-search-form">
+        <input class="form-input" type="search" placeholder="Search candidates…" id="top-nav-search-input" aria-label="Search candidates">
+        <button class="form-search-btn" type="submit" aria-label="Search">→</button>
+      </form>
     </div>
-  </nav>
+    <div class="top-nav-mobile-controls">
+      <button class="top-nav-search-toggle" id="top-nav-search-toggle" aria-label="Toggle search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="top-nav-mobile-search" id="top-nav-mobile-search">
+    <form class="top-nav-mobile-search-form" id="top-nav-mobile-search-form">
+      <input class="form-input" type="search" placeholder="Search candidates…" id="top-nav-mobile-search-input" aria-label="Search candidates">
+      <button class="form-search-btn" type="submit">Search</button>
+    </form>
+  </div>
+</nav>
 
-  <!-- Mobile header -->
-  <header class="mobile-header" id="mobile-header">
-    <a class="mobile-logo" href="index.html">ledger<em>.fec</em></a>
-    <a href="/search" class="mobile-search-icon" aria-label="Search">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    </a>
-    <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
-  </header>
+<!-- Mobile nav drawer -->
+<nav class="mobile-nav" id="mobile-nav">
+  <a class="nav-item" href="/candidates">Candidates</a>
+  <a class="nav-item" href="/committees">Committees</a>
+  <a class="nav-item" href="/races">Races</a>
+</nav>
 
-  <!-- Mobile nav -->
-  <nav class="mobile-nav" id="mobile-nav">
-    <a class="nav-item" href="/candidates"><span class="nav-dot"></span>Candidates</a>
-    <a class="nav-item" href="/committees"><span class="nav-dot"></span>Committees</a>
-    <a class="nav-item" href="/races"><span class="nav-dot"></span>Races</a>
-    <a class="nav-item active" href="/search"><span class="nav-dot"></span>Search</a>
-    <a class="nav-item" href="process-log.html" style="border-top:1px solid var(--sidebar-border);padding-top:0.85rem"><span class="nav-dot"></span>Process Log</a>
-    <a class="nav-item" href="design-system.html"><span class="nav-dot"></span>Design System</a>
-  </nav>
-
-  <!-- Main -->
+<!-- Main -->
   <div class="main">
   <div class="main-inner">
 
@@ -143,7 +141,6 @@
 
   </div><!-- /.main-inner -->
   </div><!-- /.main -->
-</div><!-- /.layout -->
 
 <div class="global-banner">
   <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>

@@ -29,8 +29,8 @@
 *Items marked ✅ are covered by automated tests (`npx playwright test`). Run manual checks for the rest.*
 
 - [ ] ✅ `styles.css` and `main.js` both linked
-- [ ] ✅ Sidebar nav present with all 4 main nav links
-- [ ] ✅ Mobile search icon present, links to search.html
+- [ ] ✅ Top nav present with 3 main nav links (Candidates, Committees, Races)
+- [ ] ✅ Mobile search toggle present
 - [ ] ✅ Nav active state is correct for this page
 - [ ] ✅ Page background is warm parchment (not dark or white)
 - [ ] ✅ Amplitude `Page Viewed` fires on load
@@ -40,11 +40,12 @@
 - [ ] Barlow Condensed used for headings and display text
 - [ ] DM Sans used for body and nav text
 - [ ] IBM Plex Mono used for data labels and monospaced values
-- [ ] Sidebar nav visible at desktop width (≥861px)
-- [ ] Hamburger menu icon visible at ≤860px; sidebar hidden
-- [ ] Mobile search icon (magnifying glass SVG) visible at ≤860px, links to search.html
-- [ ] Mobile search icon hidden at desktop width
-- [ ] Nav links resolve: Candidates → candidates.html, Committees → committees.html, Races → races.html, Search → search.html
+- [ ] Top nav visible and fixed at both desktop and mobile widths
+- [ ] At ≤860px: nav links hidden, hamburger and search toggle visible; mobile nav drawer drops down on hamburger click
+- [ ] At ≤860px: search toggle expands inline search panel below nav; closes when hamburger drawer opens and vice versa
+- [ ] At ≥861px: full nav links and search bar visible; mobile controls hidden
+- [ ] Nav links resolve: Candidates → /candidates, Committees → /committees, Races → /races
+- [ ] Global search bar (desktop): submits to /search?q=…
 - [ ] Amplitude: `Page Viewed` fires within 2 seconds of load (verify via Network tab → api2.amplitude.com)
 
 ---
@@ -598,3 +599,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-19 | .main-inner centering — add to all 7 pages, add margin:auto, update max-width to 1600px; remove profile header top border + page-header-title bottom margin | all pages, styles.css, candidate.html (automated) | None | 234/234 Track 1 passing |
 | 2026-03-19 | Visual consistency pass — list item borders, column order, race tag unification, adjacent sibling border fix, .race-list old pattern removed | styles.css, candidates.html, committees.html, search.html, race.html, design-system.html (automated) | None | 234/234 Track 1 passing |
 | 2026-03-19 | Party label/tooltip refactor (partyLabel, partyTooltip, partyNaTooltip in utils.js); search.html results-group-header restructure (count+label+query); race-before-party tag order on candidates.html + search.html; committees.html full-row <a> (was name-link only); .committee-name-link deprecated; padding-bottom tweaks on section labels | utils.js, candidates.html, committees.html, search.html, candidate.html, styles.css, tests/pages.spec.js (automated) | 3 tests targeting .committee-name-link (fixed to .committee-row / .committee-name) | 234/234 Track 1 passing |
+| 2026-03-19 | Sidebar → fixed top nav refactor — remove sidebar/layout grid/mobile-header; add .top-nav, .mobile-nav drop-down, .top-nav-mobile-search expand panel; update all 9 pages, styles.css, main.js; update shared.spec.js, pages.spec.js, candidate.spec.js, search.spec.js; update design-system comp-nav-item card + token table | All pages, styles.css, main.js, all test files (automated) | 14 stale test references in pages.spec.js, candidate.spec.js, search.spec.js (fixed) | 234/234 Track 1 passing |

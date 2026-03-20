@@ -25,7 +25,7 @@ const PAGES = [
   {
     name: 'search.html',
     url: '/search.html',
-    activeNavText: 'Search',
+    activeNavText: null,
     needsApiMock: false,
   },
   {
@@ -67,13 +67,13 @@ const PAGES = [
   {
     name: 'process-log.html',
     url: '/process-log.html',
-    activeNavText: 'Process Log',
+    activeNavText: null,
     needsApiMock: false,
   },
   {
     name: 'design-system.html',
     url: '/design-system.html',
-    activeNavText: 'Design System',
+    activeNavText: null,
     needsApiMock: false,
   },
 ];
@@ -100,31 +100,29 @@ for (const pageConfig of PAGES) {
       await expect(script).toHaveCount(1);
     });
 
-    test('sidebar nav has all four main nav links', async ({ page }) => {
-      const sidebar = page.locator('.sidebar');
-      await expect(sidebar).toBeVisible();
-      // Accept both relative (candidates.html) and absolute (/candidates) URL formats
-      await expect(sidebar.locator('a[href*="candidates"]')).toHaveCount(1);
-      await expect(sidebar.locator('a[href*="committees"]')).toHaveCount(1);
-      await expect(sidebar.locator('a[href*="races"]')).toHaveCount(1);
-      await expect(sidebar.locator('a[href*="search"]')).toHaveCount(1);
+    test('top nav has three main nav links', async ({ page }) => {
+      const topNav = page.locator('.top-nav');
+      await expect(topNav).toBeVisible();
+      await expect(topNav.locator('a[href*="candidates"]')).toHaveCount(1);
+      await expect(topNav.locator('a[href*="committees"]')).toHaveCount(1);
+      await expect(topNav.locator('a[href*="races"]')).toHaveCount(1);
     });
 
-    test('mobile header is present in DOM', async ({ page }) => {
-      await expect(page.locator('.mobile-header')).toBeAttached();
+    test('top nav is present in DOM', async ({ page }) => {
+      await expect(page.locator('.top-nav')).toBeAttached();
     });
 
-    test('mobile search icon links to search.html', async ({ page }) => {
-      const icon = page.locator('.mobile-search-icon');
-      await expect(icon).toBeAttached();
-      await expect(icon).toHaveAttribute('href', /search/);
+    test('mobile search toggle is present in DOM', async ({ page }) => {
+      const toggle = page.locator('.top-nav-search-toggle');
+      await expect(toggle).toBeAttached();
     });
 
-    test(`correct nav item is active: "${pageConfig.activeNavText}"`, async ({ page }) => {
-      const activeItem = page.locator('.sidebar .nav-item.active');
-      const count = await activeItem.count();
+    test(`correct nav link is active: "${pageConfig.activeNavText}"`, async ({ page }) => {
+      if (!pageConfig.activeNavText) return; // process-log and design-system have no active link
+      const activeLink = page.locator('.top-nav .nav-link.active');
+      const count = await activeLink.count();
       expect(count).toBeGreaterThanOrEqual(1);
-      const activeText = await activeItem.first().textContent();
+      const activeText = await activeLink.first().textContent();
       expect(activeText?.trim()).toContain(pageConfig.activeNavText);
     });
 
