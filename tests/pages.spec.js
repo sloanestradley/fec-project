@@ -69,6 +69,71 @@ test.describe('committee.html', () => {
     const content = page.locator('.committee-content');
     await expect(content).toBeAttached();
   });
+
+  test('tabs bar is present and visible after load', async ({ page }) => {
+    await expect(page.locator('#tabs-bar')).toBeVisible();
+  });
+
+  test('three tabs are present: Summary, Raised, Spent', async ({ page }) => {
+    const tabs = page.locator('.tabs-bar .tab');
+    await expect(tabs).toHaveCount(3);
+  });
+
+  test('Summary tab is active by default', async ({ page }) => {
+    await expect(page.locator('.tab').filter({ hasText: 'Summary' })).toHaveClass(/active/);
+  });
+
+  test('clicking Raised tab activates it and shows #tab-raised', async ({ page }) => {
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('.tab').filter({ hasText: 'Raised' })).toHaveClass(/active/);
+    await expect(page.locator('#tab-raised')).toBeVisible();
+    await expect(page.locator('#tab-summary')).toBeHidden();
+  });
+
+  test('clicking Spent tab activates it and shows #tab-spent', async ({ page }) => {
+    await page.locator('.tab').filter({ hasText: 'Spent' }).click();
+    await expect(page.locator('#tab-spent')).toBeVisible();
+    await expect(page.locator('#tab-summary')).toBeHidden();
+  });
+
+  test('cycle switcher is present inside .tabs-bar', async ({ page }) => {
+    await expect(page.locator('.tabs-bar #cycle-switcher')).toBeAttached();
+  });
+
+  test('cycle switcher has an "All time" option with value "all"', async ({ page }) => {
+    await expect(page.locator('#cycle-switcher option[value="all"]')).toHaveText('All time');
+  });
+
+  test('cycle switcher has at least one numeric cycle option', async ({ page }) => {
+    await expect(page.locator('#cycle-switcher option:not([value="all"])')).not.toHaveCount(0);
+  });
+
+  test('#committee-name text is title-cased, not ALL CAPS', async ({ page }) => {
+    const text = await page.locator('#committee-name').textContent();
+    expect(text?.trim()).not.toBe(text?.trim().toUpperCase());
+  });
+
+  test('.candidate-card-office is not present on page (deprecated class removed)', async ({ page }) => {
+    await expect(page.locator('.candidate-card-office')).toHaveCount(0);
+  });
+
+  test('filing history stub is not present', async ({ page }) => {
+    await expect(page.locator('.section-title').filter({ hasText: 'Filing History' })).toHaveCount(0);
+  });
+
+  test('hash all#summary present on default load', async ({ page }) => {
+    await expect(page).toHaveURL(/#all#summary/);
+  });
+
+  test('URL hash updates when cycle switcher changes', async ({ page }) => {
+    await page.locator('#cycle-switcher').selectOption('2024');
+    await expect(page).toHaveURL(/#2024#summary/);
+  });
+
+  test('URL hash updates when tab changes', async ({ page }) => {
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await expect(page).toHaveURL(/#(all|\d{4})#raised/);
+  });
 });
 
 // ── races.html ────────────────────────────────────────────────────────────────

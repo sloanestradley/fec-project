@@ -1,6 +1,6 @@
 # ledger.fec — Information Architecture
 
-*Last updated: 2026-03-19. Update this file whenever pages are added, renamed, or promoted in phase.*
+*Last updated: 2026-03-20. Update this file whenever pages are added, renamed, or promoted in phase.*
 
 ---
 
@@ -13,8 +13,8 @@
 | `candidates.html` | Browse candidates by filter, or search by name via `?q=` | `/candidates?state=WA&office=H&party=DEM&cycle=2026` or `/candidates?q={query}` | Scaffold + search | 2 |
 | `candidate.html` | Single candidate profile | `/candidate/{fec_candidate_id}#{cycle}#{tab}` | Live | 1 |
 | `committees.html` | Browse committees by type/state, or search by name via `?q=` | `/committees?state=WA&type=P` or `/committees?q={query}` | Scaffold + search | 3 |
-| `committee.html` | Single committee profile | `/committee/{fec_committee_id}` | Scaffold | 3 |
-| `races.html` | Browse races by year, office, state | `/races?cycle=2026&office=H&state=WA` | Live | 3 |
+| `committee.html` | Single committee profile | `/committee/{fec_committee_id}` | Scaffold+ (tabs + cycle switcher live; Raised/Spent stubs) | 3 |
+| `races.html` | Browse races by year, office, state | `/races` | Live | 3 |
 | `race.html` | Single race view — all candidates in a contest | `/race?state=WA&district=03&year=2026&office=H` | Scaffold | 3 |
 | `process-log.html` | Living case study / dev diary | `/process-log.html` | Live | 1 |
 | `design-system.html` | Design token and component reference | `/design-system.html` | Live | 1 |
@@ -27,28 +27,37 @@
 
 ## Navigation Structure
 
-The global sidebar nav has two sections: **Pages** (user-facing) and **Documentation** (meta).
+The global nav is a fixed top nav (`.top-nav`) — not a sidebar. It was refactored from a sidebar layout in 2026-03-19.
 
 ```
-ledger.fec (logo → index.html)
+ledger.fec (logo → /)        [top-nav-logo]
 
-Pages
-├── Candidates  → candidates.html   (browse landing)
-├── Committees  → committees.html   (browse landing)
-├── Races       → races.html        (browse/mode selector)
-└── Search      → search.html       (name-based search)
+Nav links (desktop, always visible)
+├── Candidates  → /candidates   (browse landing)
+├── Committees  → /committees   (browse landing)
+└── Races       → /races        (browse landing)
 
-Documentation
-├── Process Log   → process-log.html
-└── Design System → design-system.html
+Search bar (desktop, inline right of nav links)
+└── text input → submits to /search?q=
+
+Mobile controls (hidden at desktop)
+├── Search toggle icon → expands inline search panel
+└── Hamburger → opens .mobile-nav drawer
+
+Mobile nav drawer (.mobile-nav)
+├── Candidates
+├── Committees
+└── Races
 ```
+
+Search, Process Log, and Design System are **not** nav link items. Search is accessible via the inline search bar (desktop) or search toggle (mobile). Process Log and Design System have no nav presence.
 
 **Active state logic:**
 - Browse landing pages (`candidates.html`, `committees.html`, `races.html`) activate their own nav item
-- Profile pages (`candidate.html`, `committee.html`, `race.html`) also activate their parent section's nav item (Candidates, Committees, Races respectively) — they are subsections, not top-level destinations
-- `search.html`, `process-log.html`, `design-system.html` each activate their own item
+- Profile pages (`candidate.html`, `committee.html`, `race.html`) activate their parent section's nav item (Candidates, Committees, Races respectively)
+- `search.html`, `process-log.html`, `design-system.html` have no active nav link
 
-**Mobile nav:** Same four main items + separator before Documentation items. Search icon in mobile header (`.mobile-search-icon`) always links to `search.html`.
+**Mobile nav:** Three main items (Candidates, Committees, Races) in the drawer. Search toggle icon always visible left of the hamburger in the mobile header — search does not collapse into the drawer.
 
 ---
 
@@ -75,7 +84,7 @@ Documentation
 ### Race flow
 
 ```
-races.html  →  (curated form submit)  →  race.html?state=WA&district=03&year=2026&office=H
+races.html  →  (race row click)       →  race.html?state=WA&district=03&year=2026&office=H
 race.html   →  (candidate card click) →  candidate.html?id=H2WA03217#2026#summary
 race.html   →  (back link)            →  races.html
 ```
@@ -97,7 +106,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 | `candidate.html` | `/candidate/{id}` | `id` (path segment) | hash: `#{cycle}#{tab}` | Default fallback: MGP (`H2WA03217`). Tab options: summary, raised, spent |
 | `committee.html` | `/committee/{id}` | `id` (path segment) | — | No ID → error state |
 | `race.html` | `/race` | `state`, `year`, `office` | `district` (required for House) | No params → error state |
-| `races.html` | `/races` | — | — | Mode selector only; no data params |
+| `races.html` | `/races` | — | — | No URL param sync — cycle/office/state filters are client-side state only. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). Filter changes do not update the URL. |
 | `candidates.html` | `/candidates` | — | `state`, `office`, `party`, `cycle`, `q` | All params are unified — filter bar always visible, results auto-load on page visit. `?q=` populates the inline search field and pre-fires search. All result cards link to `/candidate/{id}`. Filter chips + URL sync on every change. |
 | `committees.html` | `/committees` | — | `state`, `type`, `q` | Same unified control surface as candidates. Filter bar always visible; `?q=` populates search field. All rows link to `/committee/{id}`. Treasurer always shown. |
 | `search.html` | `/search` | — | `q` | If `q` present, auto-fires search on load |
@@ -126,7 +135,7 @@ Phase assignments follow `project-brief.md`. Pages listed here by first-built ph
 ### Phase 3 — Committee and race pages
 - `committee.html` — committee profile with financials
 - `committees.html` — browse committees
-- `races.html` — race mode selector
+- `races.html` — browse races by year/office/state with progressive enrichment
 - `race.html` — single race view with candidate financial cards
 
 ### Phase 4 — Early signal data, AI insights

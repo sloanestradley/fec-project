@@ -1510,3 +1510,48 @@ The through-line: you consistently ask whether a solution fits the actual produc
 – races.html long-term traffic model: the IntersectionObserver buys meaningful headroom, but a high-traffic day (election night, a viral link) would still exhaust even an upgraded key if many first-time visitors hit the page. Is a Netlify Function proxy worth planning for Phase 4, or is the current audience size such that it's not needed yet?
 
 – Typeahead on the top nav search bar: currently the nav search bar on all pages just submits to /search?q= on Enter. Should it have a typeahead dropdown too? It's a different surface (global, always visible) and could be high-value for fast navigation. Worth discussing before building it.
+
+---
+2026-03-20 — committee.html structural parity + URL hash + polish
+
+## Process log draft
+Title: The scaffold grows up — committee.html gets tabs, cycles, and a shareable URL
+
+committee.html went from a single financial summary page to a real profile with structural parity with candidate.html: tabs, a cycle switcher with an "All time" aggregate default, URL hash encoding so any state is bookmarkable, and an Amplitude event every time a user intentionally switches tabs or cycles. Along the way: the last remaining use of the deprecated .candidate-card-office class was removed, the shared .callout style replaced a one-off override, the overspend note was suppressed on aggregate views and reworded into a neutral past tense, and the double border on the associated candidate card was fixed.
+
+Changelog:
+– committee.html: tabs bar (Summary/Raised/Spent) + cycle switcher (All time + per-cycle from c.cycles)
+– renderStats() rewritten: All time sums all cycle records; per-cycle finds matching record, shows — when absent; overspend suppressed on All time
+– renderHeader(): title-cases committee name, populates cycle switcher, fires Amplitude Cycle Switched
+– fetchAndRenderBackLink(): relType param, dynamic section title, shared utils, tag-neutral + formatRaceName replacing .candidate-card-office
+– URL hash encoding: #cycleOrAll#tab — reads on load (after ALL_CYCLES populated), writes on every cycle/tab change; invalid hash falls back silently
+– Amplitude: Tab Switched fires on user tab click (guarded by event param — hash-restore does not fire it)
+– .callout inline override removed; shared styles.css amber callout takes over
+– Overspend copy: past-tense "spent beyond" / "prior-cycle" on committee.html, candidate.html, and design-system.html demo
+– .candidate-card-office rule removed from styles.css (last call site was committee.html)
+– .assoc-list double border fixed: removed border/background/gap from container
+– COMMITTEE_TOTALS mock updated to 2 records; cycles field added to COMMITTEE fixture
+– tests/pages.spec.js: 14 new tests; 242 → 256
+– All documentation updated
+
+Field notes:
+The URL hash felt like a small addition but it's the thing that makes the page actually shareable. Without it, switching to the 2022 cycle and the Raised tab and then sending someone the link lands them on All time / Summary — not what you saw, not what you meant to share. The if (e) guard on Tab Switched was the right call from candidate.html's pattern — the hash-restore on load shouldn't look like a user action in Amplitude. The double border fix was caught on visual inspection after tests passed — a reminder that 256/256 doesn't mean visually correct.
+
+Stack tags: URL hash · cycle switcher · Amplitude Tab Switched
+
+## How Sloane steered the work
+**Removing the double border — caught on visual inspection**
+After the structural work was done, Sloane spotted the double border on the associated candidate card immediately. It wasn't in the plan and wasn't a regression — the .assoc-list container border had always been there, just became visible once rendered with real data. Quick fix, but it shows the habit of checking visual output against the design system rather than declaring the work done when tests pass.
+
+**Amplitude Tab Switched — asking rather than assuming**
+Sloane prompted the Amplitude audit rather than assuming tracking was complete. The question surfaced the missing Tab Switched event — genuinely useful data for understanding which tabs drive engagement, especially once Raised and Spent are built. One line, right pattern from candidate.html.
+
+**End of session rituals — held to the process**
+Sloane flagged the URL hash feature, got it built, then asked about Amplitude, then called end of session rituals — in the right order. That discipline means the session ends with 256/256 tests passing, documentation current, and a clean commit.
+
+The through-line: Sloane treats the session-end ritual as part of the work. The process log, documentation updates, and commit are what make the next session start cleanly.
+
+## What to bring to Claude Chat
+- committee.html Raised/Spent tabs: both are stubs. Raised could mirror candidate.html's chart + geography + contributor table. How much of that pattern makes sense at committee level vs. something simpler?
+- Filing history on committee.html: still not built. Is this Phase 3 remaining work or deprioritized in favor of Phase 4? The /committee/{id}/reports/ endpoint is already in use for candidate charts.
+- .committee-name-link CSS rule: still in styles.css with a deprecation comment. Last call site already removed — safe to delete next time styles.css is touched.

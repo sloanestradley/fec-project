@@ -23,14 +23,23 @@
       text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
     .back-link-area a:hover { color:var(--accent); text-decoration-color:var(--accent); }
 
+    /* Tabs bar — committee-specific overrides */
+    .tabs-bar { padding:0 var(--page-gutter); opacity:0; transition:opacity 0.4s ease; }
+    .tabs-bar.visible { opacity:1; }
+
+    /* Cycle switcher inside tabs bar */
+    .cycle-select { align-self:stretch; border:none; border-radius:0;
+      font-size:0.72rem; padding:0 0.75rem; min-width:5.5rem; margin-right:1rem;
+      background:var(--bg); color:var(--subtle); cursor:pointer; }
+    .cycle-select:focus { outline:none; color:var(--text); }
+
     /* Content area */
     .committee-content { padding:2.5rem var(--page-gutter);
       opacity:0; transition:opacity 0.3s ease; }
     .committee-content.visible { opacity:1; }
 
     /* Associated candidates */
-    .assoc-list { display:flex; flex-direction:column; gap:1px;
-      background:var(--border); border:1px solid var(--border); }
+    .assoc-list { display:flex; flex-direction:column; }
 
     @media (max-width:860px) {
       .committee-content { padding:1.5rem var(--page-gutter); }
@@ -97,48 +106,65 @@
       <div class="back-link-area" id="back-link-area" style="display:none"></div>
     </div>
 
+    <!-- Tabs bar — revealed after load -->
+    <div class="tabs-bar" id="tabs-bar" style="display:none">
+      <select id="cycle-switcher" class="form-select cycle-select"></select>
+      <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
+      <a class="tab"        href="#raised"  onclick="showTab('raised',event)">Raised</a>
+      <a class="tab"        href="#spent"   onclick="showTab('spent',event)">Spent</a>
+    </div>
+
     <!-- Committee content — revealed after load -->
     <div class="committee-content" id="committee-content" style="display:none">
 
-      <!-- Financial summary -->
-      <div class="section-title">Financial Summary</div>
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Total Raised</div>
-          <div class="stat-value" id="stat-raised">—</div>
-          <div class="stat-sub" id="stat-raised-sub"></div>
+      <div id="tab-summary">
+        <!-- Financial summary -->
+        <div class="section-title">Financial Summary</div>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Raised</div>
+            <div class="stat-value" id="stat-raised">—</div>
+            <div class="stat-sub" id="stat-raised-sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Spent</div>
+            <div class="stat-value" id="stat-spent">—</div>
+            <div class="stat-sub" id="stat-spent-sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cash on Hand</div>
+            <div class="stat-value" id="stat-coh">—</div>
+            <div class="stat-sub" id="stat-coh-sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Coverage Through</div>
+            <div class="stat-value" id="stat-coverage" style="font-size:1.1rem;padding-top:0.4rem">—</div>
+            <div class="stat-sub">Most recent report</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Total Spent</div>
-          <div class="stat-value" id="stat-spent">—</div>
-          <div class="stat-sub"></div>
+
+        <!-- Overspend note -->
+        <div id="overspend-note" style="display:none" class="callout">
+          ⚠ Disbursements exceed receipts this cycle — this committee spent beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Cash on Hand</div>
-          <div class="stat-value" id="stat-coh">—</div>
-          <div class="stat-sub" id="stat-coh-sub"></div>
+
+        <!-- Associated candidates -->
+        <div id="assoc-section" style="display:none">
+          <div class="section-title" style="margin-top:2rem">Associated Candidate</div>
+          <div class="assoc-list" id="assoc-list"></div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Coverage Through</div>
-          <div class="stat-value" id="stat-coverage" style="font-size:1.1rem;padding-top:0.4rem">—</div>
-          <div class="stat-sub">Most recent report</div>
-        </div>
+
+        <!-- Committee ID reference -->
+        <div class="data-note" id="committee-meta-note" style="margin-top:1.5rem"></div>
       </div>
 
-      <!-- Associated candidates -->
-      <div id="assoc-section" style="display:none">
-        <div class="section-title" style="margin-top:2rem">Associated Candidate</div>
-        <div class="assoc-list" id="assoc-list"></div>
+      <div id="tab-raised" style="display:none">
+        <div class="data-note">Raised breakdown coming soon.</div>
       </div>
 
-      <!-- Filing history stub -->
-      <div style="margin-top:2rem">
-        <div class="section-title">Filing History</div>
-        <div class="data-note">Full filing history and report-level data coming in Phase 3.</div>
+      <div id="tab-spent" style="display:none">
+        <div class="data-note">Spend breakdown coming soon.</div>
       </div>
-
-      <!-- Committee ID reference -->
-      <div class="data-note" id="committee-meta-note" style="margin-top:1.5rem"></div>
 
     </div>
 
@@ -156,10 +182,26 @@ var urlParams    = new URLSearchParams(window.location.search);
 var _pathId      = window.location.pathname.split('/').pop();
 var COMMITTEE_ID = urlParams.get('id') || (_pathId && _pathId !== 'committee.html' ? _pathId : null);
 
+var ALL_TOTALS  = [];    // all cycle records from /totals/
+var ALL_CYCLES  = [];    // sorted desc cycle years from committee metadata
+var activeCycle = 'all'; // 'all' or integer cycle year
+
 function designationLabel(d) {
   var map = { P:'Principal Committee', A:'Authorized', J:'Joint Fundraising',
     U:'Unauthorized', B:'Lobbyist/Registrant PAC', D:'Leadership PAC' };
   return map[d] || d;
+}
+
+function showTab(name, e) {
+  if (e) e.preventDefault();
+  ['summary','raised','spent'].forEach(function(t) {
+    document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('href') === '#'+name);
+  });
+  history.replaceState(null, '', '#' + activeCycle + '#' + name);
+  if (e) amplitude.track('Tab Switched', { tab: name, committee_id: COMMITTEE_ID });
 }
 
 async function init() {
@@ -173,35 +215,53 @@ async function init() {
   }
 
   try {
-    // Parallel fetch: metadata + most recent totals
+    // Parallel fetch: metadata + all cycle totals
     var [metaRes, totalsRes] = await Promise.all([
       apiFetch('/committee/' + COMMITTEE_ID + '/'),
-      apiFetch('/committee/' + COMMITTEE_ID + '/totals/', { per_page: 1, sort: '-coverage_end_date' })
+      apiFetch('/committee/' + COMMITTEE_ID + '/totals/', { per_page: 20, sort: '-coverage_end_date' })
     ]);
 
     var committee = (metaRes.results || [])[0];
     if (!committee) throw new Error('Committee not found');
-    var totals = (totalsRes.results || [])[0];
+    ALL_TOTALS = totalsRes.results || [];
 
     renderHeader(committee);
-    renderStats(totals);
 
-    // Fetch associated candidate name if linked
-    var candidateIds = [].concat(committee.sponsor_candidate_ids || [], committee.candidate_ids || [])
-      .filter(function(id){ return id; });
-    if (candidateIds.length) {
-      fetchAndRenderBackLink(candidateIds[0]);
+    // Read hash: #cycleOrAll#tab — must happen after renderHeader() populates ALL_CYCLES
+    var hashParts = window.location.hash.replace(/^#/, '').split('#');
+    var hashCycle = hashParts[0];
+    var hashTab   = hashParts[1];
+    if (hashCycle === 'all') {
+      activeCycle = 'all';
+    } else {
+      var parsedCycle = parseInt(hashCycle, 10);
+      if (ALL_CYCLES.indexOf(parsedCycle) !== -1) activeCycle = parsedCycle;
+    }
+    document.getElementById('cycle-switcher').value = activeCycle;
+
+    renderStats(activeCycle);
+
+    // Relationship type detection
+    var sponsorIds    = committee.sponsor_candidate_ids || [];
+    var authorizedIds = committee.candidate_ids || [];
+    var allCandIds    = [].concat(sponsorIds, authorizedIds).filter(Boolean);
+    if (allCandIds.length) {
+      var relType = sponsorIds.indexOf(allCandIds[0]) !== -1 ? 'sponsor' : 'authorized';
+      fetchAndRenderBackLink(allCandIds[0], relType);
     }
 
-    document.getElementById('state-msg').style.display = 'none';
-    var headerEl  = document.getElementById('committee-header');
-    var contentEl = document.getElementById('committee-content');
-    headerEl.style.display = 'block';
-    contentEl.style.display = 'block';
-    requestAnimationFrame(function(){
-      headerEl.classList.add('visible');
-      contentEl.classList.add('visible');
+    document.getElementById('state-msg').style.display       = 'none';
+    document.getElementById('committee-header').style.display = 'block';
+    document.getElementById('tabs-bar').style.display         = 'flex';
+    document.getElementById('committee-content').style.display = 'block';
+    requestAnimationFrame(function() {
+      document.getElementById('committee-header').classList.add('visible');
+      document.getElementById('tabs-bar').classList.add('visible');
+      document.getElementById('committee-content').classList.add('visible');
     });
+
+    // Restore tab from hash after reveal
+    if (['summary', 'raised', 'spent'].indexOf(hashTab) !== -1) showTab(hashTab);
 
   } catch(err) {
     var el = document.getElementById('state-msg');
@@ -215,8 +275,8 @@ function renderHeader(c) {
   // Breadcrumb
   document.getElementById('breadcrumb-name').textContent = toTitleCase(c.name) || committeeTypeLabel(c.committee_type);
 
-  // Name
-  document.getElementById('committee-name').textContent = c.name || '—';
+  // Name — title-cased
+  document.getElementById('committee-name').textContent = toTitleCase(c.name) || '—';
 
   // Meta row: type tag, status tag, designation
   var dotCls  = filingFrequencyDotClass(c.filing_frequency);
@@ -233,29 +293,81 @@ function renderHeader(c) {
   }
   document.getElementById('meta-row').innerHTML = metaHtml;
 
-  // Meta note
-  document.getElementById('committee-meta-note').textContent = 'Committee ID: ' + c.committee_id
-    + (c.treasurer_name ? ' · Treasurer: ' + toTitleCase(c.treasurer_name) : '');
-
   // Page title
   if (c.name) document.title = toTitleCase(c.name) + ' — ledger.fec';
+
+  // Populate cycle switcher from c.cycles
+  ALL_CYCLES = (c.cycles || []).slice().sort(function(a,b){ return b - a; });
+  var sw = document.getElementById('cycle-switcher');
+  sw.innerHTML = '<option value="all">All time</option>';
+  ALL_CYCLES.forEach(function(cy) {
+    var opt = document.createElement('option');
+    opt.value = cy;
+    opt.textContent = cy;
+    sw.appendChild(opt);
+  });
+  sw.value = 'all';
+  sw.onchange = function() {
+    activeCycle = sw.value === 'all' ? 'all' : parseInt(sw.value, 10);
+    amplitude.track('Cycle Switched', { cycle: activeCycle, committee_id: COMMITTEE_ID });
+    renderStats(activeCycle);
+  };
 }
 
-function renderStats(totals) {
-  if (!totals) return;
-  document.getElementById('stat-raised').textContent = fmt(totals.receipts);
-  document.getElementById('stat-spent').textContent  = fmt(totals.disbursements);
-  document.getElementById('stat-coh').textContent    = fmt(totals.last_cash_on_hand_end_period);
-  document.getElementById('stat-coverage').textContent = fmtDate(totals.coverage_end_date);
-  if (totals.cycle) {
-    document.getElementById('stat-raised-sub').textContent = totals.cycle + ' cycle';
+function renderStats(cycleOrAll) {
+  var receipts, disbursements, coh, coverageDate;
+
+  if (cycleOrAll === 'all') {
+    receipts      = ALL_TOTALS.reduce(function(s, r){ return s + (r.receipts || 0); }, 0);
+    disbursements = ALL_TOTALS.reduce(function(s, r){ return s + (r.disbursements || 0); }, 0);
+    var recent    = ALL_TOTALS[0] || {};
+    coh           = recent.last_cash_on_hand_end_period;
+    coverageDate  = recent.coverage_end_date;
+    document.getElementById('stat-raised-sub').textContent = 'All cycles';
+    document.getElementById('stat-spent-sub').textContent  = 'All cycles';
+  } else {
+    var rec = null;
+    for (var i = 0; i < ALL_TOTALS.length; i++) {
+      if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
+    }
+    receipts      = rec ? rec.receipts : null;
+    disbursements = rec ? rec.disbursements : null;
+    coh           = rec ? rec.last_cash_on_hand_end_period : null;
+    coverageDate  = rec ? rec.coverage_end_date : null;
+    var startYear = cycleOrAll - 1;
+    document.getElementById('stat-raised-sub').textContent = startYear + '–' + cycleOrAll + ' cycle';
+    document.getElementById('stat-spent-sub').textContent  = startYear + '–' + cycleOrAll + ' cycle';
   }
-  if (totals.coverage_end_date) {
-    document.getElementById('stat-coh-sub').textContent = 'As of ' + fmtDate(totals.coverage_end_date);
+
+  document.getElementById('stat-raised').textContent   = receipts != null ? fmt(receipts) : '—';
+  document.getElementById('stat-spent').textContent    = disbursements != null ? fmt(disbursements) : '—';
+  document.getElementById('stat-coh').textContent      = coh != null ? fmt(coh) : '—';
+  document.getElementById('stat-coverage').textContent = coverageDate ? fmtDate(coverageDate) : '—';
+  document.getElementById('stat-coh-sub').textContent  = coverageDate ? 'As of ' + fmtDate(coverageDate) : '';
+
+  // Overspend note
+  var overspendEl = document.getElementById('overspend-note');
+  overspendEl.style.display = (cycleOrAll !== 'all' && receipts > 0 && disbursements > receipts) ? 'block' : 'none';
+
+  // Data note
+  var noteEl = document.getElementById('committee-meta-note');
+  if (cycleOrAll === 'all') {
+    noteEl.textContent = 'Source: FEC — Committee ID ' + COMMITTEE_ID + '. All-cycle aggregate. Data updated nightly by FEC.';
+  } else {
+    var cy = cycleOrAll;
+    noteEl.textContent = 'Source: FEC — Committee ID ' + COMMITTEE_ID + '. '
+      + (cy - 1) + '–' + cy + ' cycle.'
+      + (coverageDate ? ' Coverage through ' + fmtDate(coverageDate) + '.' : '')
+      + ' Data updated nightly by FEC.';
   }
+
+  // Sync URL hash
+  var tabEl = document.querySelector('.tab.active');
+  var tabName = tabEl ? tabEl.getAttribute('href').replace('#', '') : 'summary';
+  history.replaceState(null, '', '#' + cycleOrAll + '#' + tabName);
 }
 
-async function fetchAndRenderBackLink(candidateId) {
+async function fetchAndRenderBackLink(candidateId, relType) {
   try {
     var res  = await apiFetch('/candidate/' + candidateId + '/');
     var cand = (res.results || [])[0];
@@ -268,16 +380,18 @@ async function fetchAndRenderBackLink(candidateId) {
     // Also show in associated section
     var assocSection = document.getElementById('assoc-section');
     var assocList    = document.getElementById('assoc-list');
-    var office  = cand.office_full || '';
-    var state   = cand.state || '';
-    var party   = cand.party || '';
-    var pcls    = party === 'DEM' ? 'tag-dem' : (party === 'REP' ? 'tag-rep' : 'tag-ind');
-    var plbl    = party === 'DEM' ? 'Democrat' : (party === 'REP' ? 'Republican' : party);
+    var pcls = partyClass(cand.party);
+    var plbl = partyLabel(cand.party);
+    var ptt  = partyTooltip(cand.party, cand.party_full);
+    var sectionTitle = relType === 'sponsor' ? 'Sponsored Candidate' : 'Principal Committee For';
+    assocSection.querySelector('.section-title').textContent = sectionTitle;
     assocList.innerHTML = '<a class="candidate-card" href="/candidate/' + candidateId + '">'
       + '<div class="candidate-card-name">' + displayName + '</div>'
       + '<div class="candidate-card-meta">'
-      + '<span class="tag ' + pcls + '">' + plbl + '</span>'
-      + (office ? '<span class="candidate-card-office">' + office + (state ? ' · ' + state : '') + '</span>' : '')
+      + '<span class="tag tag-neutral" style="font-size:0.62rem">'
+        + formatRaceName(cand.office, cand.state, cand.district)
+        + '</span>'
+      + '<span class="tag ' + pcls + '" title="' + ptt + '">' + plbl + '</span>'
       + '</div></a>';
     assocSection.style.display = 'block';
   } catch(e) {

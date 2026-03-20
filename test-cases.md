@@ -5,7 +5,7 @@
 
 ## How to use this file
 
-**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 242 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
+**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 256 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
 
 **Smoke tests (Track 2):** Run `npm run test:smoke` before deploys. Hits the live FEC API — 5 key checks. Requires the dev server to be running.
 
@@ -230,15 +230,50 @@
 ### Back-link
 - [ ] Back-link to candidates.html (or to candidate if navigated via `?from=`) is present and functional
 
+### Tabs bar + cycle switcher
+- [ ] ✅ Tabs bar is present and visible after load
+- [ ] ✅ Three tabs: Summary, Raised, Spent
+- [ ] ✅ Summary tab is active by default
+- [ ] ✅ Clicking Raised tab activates it and shows #tab-raised; #tab-summary hidden
+- [ ] ✅ Clicking Spent tab activates it and shows #tab-spent; #tab-summary hidden
+- [ ] ✅ Cycle switcher is present inside .tabs-bar
+- [ ] ✅ Cycle switcher has an "All time" option with value "all"
+- [ ] ✅ Cycle switcher has at least one numeric cycle option
+- [ ] Cycle switcher defaults to "All time" on load
+- [ ] Selecting a cycle re-renders stats for that cycle
+- [ ] Selecting 2026 (no totals record) shows `—` in all stat fields
+- [ ] Amplitude `Cycle Switched` fires with `{ cycle, committee_id }` — no `committee_name` property
+- [ ] Amplitude `Tab Switched` fires on user tab click with `{ tab, committee_id }` — does NOT fire on hash-restore load
+
 ### Stats grid
-- [ ] Total Raised shows a formatted dollar amount (not $0 or blank)
+- [ ] ✅ Stats grid shows financial figures (not $0 or blank)
+- [ ] Total Raised shows a formatted dollar amount (not $0 or blank) — "All time" default sums all cycles
 - [ ] Total Spent shows a formatted dollar amount
 - [ ] Cash on Hand shows a formatted dollar amount
-- [ ] Last Filing / Coverage date shows a real date
+- [ ] Coverage date shows a real date
+- [ ] Raised and Spent sub-labels show "All cycles" in All time mode; "{year–year} cycle" in per-cycle mode
+- [ ] Overspend note hidden in "All time" mode even when disbursements > receipts
+- [ ] Overspend note hidden when disbursements ≤ receipts for a selected cycle
+- [ ] Overspend note visible when disbursements > receipts for a selected cycle
 
-### Scaffold sections (verify present, not that they have full data)
-- [ ] Filing history section renders (stub content is acceptable)
-- [ ] Associated candidates section renders (stub content is acceptable)
+### Associated candidate section
+- [ ] Back-link to associated candidate appears in header (if linked via candidate_ids or sponsor_candidate_ids)
+- [ ] Associated candidate card shows race tag + party tag (not deprecated .candidate-card-office)
+- [ ] Section title is "Sponsored Candidate" for leadership PACs, "Principal Committee For" for authorized committees
+- [ ] ✅ .candidate-card-office class not present anywhere on page (deprecated class fully removed)
+
+### URL hash
+- [ ] ✅ Default load: URL hash updates to `#all#summary` after page renders
+- [ ] ✅ Switching cycle: URL hash updates to `#2024#summary` (or selected cycle)
+- [ ] ✅ Switching tab: URL hash updates cycle + tab (e.g. `#2024#raised`)
+- [ ] Refresh with `#2024#raised` in URL: page loads with 2024 cycle selected and Raised tab active
+- [ ] Invalid cycle in hash (e.g. `#9999`): falls back to `#all#summary`
+- [ ] Invalid tab in hash (e.g. `#all#foo`): falls back to summary tab
+
+### Stub tabs
+- [ ] Raised tab shows "Raised breakdown coming soon." placeholder
+- [ ] Spent tab shows "Spend breakdown coming soon." placeholder
+- [ ] ✅ Filing history stub is NOT present (removed)
 
 ---
 
@@ -586,8 +621,6 @@ Expected failures — not bugs to fix now. Remove a row when the issue is resolv
 
 | Issue | Page | Added |
 |-------|------|-------|
-| Filing history not yet built | committee.html | 2026-03-10 |
-| Associated candidates section not yet built | committee.html | 2026-03-10 |
 | Ad hoc race comparison mode not yet built | race.html | 2026-03-10 |
 | Schedule B 422s — Schedule B fetch failed: FEC 422 — /schedules/schedule_b/ — Fires 3–7 times per candidate page load. Predates the browse/search overhaul. FEC's /schedules/schedule_b/ endpoint requires committee_id as a mandatory param; at least some calls are firing without it. Contained to the Spent tab. Silently handled (console warning, no user-facing error). Non-blocking — fix before any work that touches the Spent tab. | candidate.html | 2026-03-12 |
 
@@ -631,3 +664,5 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-19 | races.html browse page — replace mode selector with browse template (page header, filter bar, results area, state combo); fix state dropdown clipping (overflow:visible on .main); update 5 Playwright tests | races.html, tests/pages.spec.js, ia.md (automated) | 5 stale mode-selector tests (replaced with browse page structure tests) | 234/234 Track 1 passing |
 | 2026-03-20 | races.html data fetching — cycle dropdown, /elections/search/ race list, progressive /elections/ enrichment with skeleton loading, filter chips, formatRaceName at-large fix, needsApiMock + CANDIDATES_TOTALS mock | races.html, utils.js, tests/helpers/api-mock.js, tests/shared.spec.js (automated) | races.html needsApiMock was false (live API calls caused flaky networkidle timeouts — fixed to true) | 234/234 Track 1 passing |
 | 2026-03-20 | Typeahead bug fix (candidates.html + committees.html) — missing `i` index in .map() callback caused silent ReferenceError; added Escape key handling; added 8 Playwright typeahead tests; diagnosed shared API key rate limit; refactored races.html enrichment from fire-all to IntersectionObserver + localStorage caching (24h TTL, aggregate stats only) | candidates.html, committees.html, races.html, tests/pages.spec.js (automated) | None | 242/242 Track 1 passing |
+| 2026-03-20 | committee.html structural parity — tabs bar + cycle switcher, cycle-aware renderStats (All time / per-cycle), overspend callout using shared .callout, renderHeader title-cases name, fetchAndRenderBackLink relType param + shared utils, .candidate-card-office removed from styles.css and last call site; COMMITTEE_TOTALS mock updated to 2 records with cycles field; 11 new Playwright tests | committee.html, styles.css, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | None | 253/253 Track 1 passing |
+| 2026-03-20 | committee.html follow-up — URL hash encoding (#cycleOrAll#tab, mirrors candidate.html), Tab Switched Amplitude event, overspend suppressed on All time, overspend copy past-tense across 3 files, .callout inline override removed, double border on assoc-list removed; 3 new hash Playwright tests | committee.html, candidate.html, design-system.html, tests/pages.spec.js (automated) | None | 256/256 Track 1 passing |

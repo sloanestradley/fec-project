@@ -73,19 +73,18 @@ const COMMITTEE = {
     filing_frequency: 'Q',
     state: 'WA',
     organization_type_full: null,
+    cycles: [2022, 2024, 2026],
   }],
   pagination: { count: 1 },
 };
 
-// Committee financial totals
+// Committee financial totals — 2 records only; 2026 intentionally absent to exercise "no record → show —" path
 const COMMITTEE_TOTALS = {
-  results: [{
-    receipts: 3500000,
-    disbursements: 3100000,
-    last_cash_on_hand_end_period: 450000,
-    coverage_end_date: '2024-12-31T00:00:00',
-  }],
-  pagination: { count: 1 },
+  results: [
+    { cycle: 2024, receipts: 3500000, disbursements: 3100000, last_cash_on_hand_end_period: 450000, coverage_end_date: '2024-12-31T00:00:00' },
+    { cycle: 2022, receipts: 2100000, disbursements: 1950000, last_cash_on_hand_end_period: 170000, coverage_end_date: '2022-12-31T00:00:00' },
+  ],
+  pagination: { count: 2 },
 };
 
 // Per-period filing reports (used for chart data)

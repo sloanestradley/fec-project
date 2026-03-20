@@ -205,6 +205,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - **Early signal data** — 48/24-hour reports surfaced on candidate pages; strongest repeat-usage driver
 - **AI insights** — 2–3 sentence plain-language narrative on candidate and race pages, generated on load
 - **Transactions search** — FEC-style linked data; useful but not differentiating; lower priority than above
+- **Browse receipts** - Filing history and transaction-level browsing are deferred — the intended solution is a 'Browse receipts' affordance (button in profile header) that links to a filtered transaction browse page, applicable to both candidate and committee profiles. Not a tab or inline table.
 
 ---
 
@@ -243,6 +244,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - **JFA participant gap via F2:** For JFA committees where the candidate is a participant (not the organizer), the FEC API has no queryable relationship — these committees have no `candidate_ids` or `sponsor_candidate_ids`. The only source of truth is the candidate's most recent F2 filing. Is F2 parsing a reliable approach at scale? What are the edge cases? *(Validate with John before building)*
 - ~~**Associated committees — leadership PAC identification:**~~ ✅ Resolved. Use the `leadership_pac` boolean field on committee records, combined with a parallel call to `/committees/?sponsor_candidate_id={candidate_id}`. The `sponsor_candidate_id` relationship surfaces PACs the candidate sponsors — not indexed through the standard authorized-committee endpoint. `committee_type === 'D'` is unreliable (some leadership PACs have `committee_type: 'N'`).
 - **Raised tab — "Transfers In" category:** John flagged confusion between "Transfers In" and "PAC / Other Committees" — they appear to overlap because JFA contributions are categorized as "Transfers In" by the FEC rather than under "Individual" or "PAC." Total raised figures match campaign-confirmed numbers so double-counting is not occurring. Two actions needed: (1) confirm `receipt_type` values behind "Transfers In" via Schedule A in Claude Code; (2) add plain-language tooltip or footnote explaining the category to users. *(FEC note: contributions received as part of a joint fundraising transfer are included in "Transfers In" rather than "Individual contributions" in some data files)*
+- **Committee profile:** For a leadership PAC profile, which section do strategists care about more — the sponsor relationship, or the list of candidates receiving money? *(Validate with John)*
 
 ---
 

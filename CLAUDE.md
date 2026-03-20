@@ -56,7 +56,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **Flush list item border pattern:** List items that stack flush in a column (`.candidate-card`, `.committee-row`, `.committee-result-row`) use the adjacent sibling selector to suppress the doubled border: `component + component { border-top:none }`. The container (`.results-list`, `.race-list`) is a plain `flex-direction:column` with no border, no background, no gap. Do not use inset `box-shadow` as an alternative — two touching inset shadows still render as a doubled line on retina displays.
 
-**`.candidate-card-office` — deprecated:** Replaced by `<span class="tag tag-neutral">` with `formatRaceName()` output on candidates.html, search.html, and race.html. The rule remains in `styles.css` with a deprecation comment. One remaining call site: `committee.html`'s candidate mini-cards. Remove the rule after committee.html is updated.
+**`.candidate-card-office` — removed:** Replaced by `<span class="tag tag-neutral">` with `formatRaceName()` output on all pages. CSS rule and last call site (committee.html) both removed 2026-03-20.
 
 **`.committee-name-link` — deprecated:** The `.committee-row` in committees.html is now a full `<a>` tag (href + Amplitude onclick on the outer element). The inner `.committee-name-link` anchor is gone; name text is a plain `<div class="committee-name">`. The CSS rule remains in `styles.css` with a deprecation comment. Remove after confirming no other call sites.
 
@@ -140,7 +140,7 @@ search.html       — Candidate name search (live)
 candidates.html   — Unified browse+search (live): auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state
 candidate.html    — Single candidate profile (live, primary active file)
 committees.html   — Unified browse+search (live): auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state
-committee.html    — Single committee profile (scaffold)
+committee.html    — Single committee profile (tabs bar + cycle switcher live; Raised/Spent tabs are stubs)
 races.html        — Browse races by year, office, state (live — progressive enrichment from /elections/)
 race.html         — Single race view — all candidates in a contest (scaffold)
 process-log.html  — Living case study / dev diary
@@ -275,11 +275,11 @@ See `project-brief.md` for the full phased roadmap. Short version:
 **Phase 2 (complete):** Search + navigation — search.html, candidates.html, committees.html, index redirect.
 
 **Phase 3 (scaffold):** Committee and race pages.
-- ~~committee.html~~ ✅ scaffold — header with financials, back-link to candidate
+- ~~committee.html~~ ✅ structural parity — tabs bar (Summary/Raised/Spent) + cycle switcher, cycle-aware stats (All time / per-cycle), overspend callout, title-cased name, relType-aware associated candidate section, .candidate-card-office removed, URL hash encoding (`#cycleOrAll#tab`), `Tab Switched` Amplitude event
 - ~~committees.html~~ ✅ unified browse+search — auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state, treasurer always shown
 - ~~races.html~~ ✅ browse page — filter bar (Year/Office/State), results area, state combo, filter chips, all UI states; data fetching with progressive enrichment via /elections/
 - ~~race.html~~ ✅ scaffold — single race view, candidate cards with financials, cycle-anchored links, dynamic cycle dropdown from `/elections/search/`, Senate class indicator, URL param validation
-- Remaining: filing history on committee.html, associated candidates on committee.html
+- Remaining on committee.html: Raised/Spent tab content (currently "coming soon" stubs); filing history
 
 **Phase 4:** Early signal data (48/24hr reports), AI insights, transaction-level search.
 

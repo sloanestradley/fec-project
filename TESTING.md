@@ -28,7 +28,7 @@ npm run test:report
 
 **Command:** `npx playwright test` or `npm test`
 **When to run:** Every session, before and after making changes.
-**Speed:** ~1 minute for all 242 tests.
+**Speed:** ~1 minute for all 256 tests.
 
 ### What they test
 
@@ -39,7 +39,7 @@ All tests mock the FEC API (instant responses, no network) and the Amplitude SDK
 | `tests/shared.spec.js` | Shared checks for every page: `styles.css` linked, `main.js` linked, top nav present with 3 links (Candidates/Committees/Races), correct active nav link, mobile search toggle present, warm parchment background, `Page Viewed` Amplitude event fires |
 | `tests/candidate.spec.js` | Profile header (including `#race-context` DOM presence in `#race-context-bar`), cycle switcher as `select#cycle-switcher` with options, stats row (non-$0 financials), health banner, chart canvas, tab navigation, committees modal, Amplitude events, URL hash pre-selection, API correctness (no 422 errors) |
 | `tests/search.spec.js` | Hero state, typeahead dropdown (2-char trigger, two groups, keyboard/click behavior), two-group results (candidates + committees), `?q=` auto-search, View all links, Amplitude events, no-results state |
-| `tests/pages.spec.js` | committee.html, races.html (page header, filter bar fields, office options, state combo, results area containers; `needsApiMock: true` — makes API calls on load), race.html (candidate cards, financial figures, cycle-anchored links), candidates.html (auto-load, search input, clean URLs, filter chips, URL sync, error state, ?q= search mode, typeahead: 2-char trigger / result links / Escape key, #load-more-spinner and #end-of-results DOM presence), committees.html (same as candidates, typeahead: 2-char trigger / result links / Escape key), process-log.html, design-system.html (token tables, color swatches, component card attributes), index.html redirect, mobile layout at 390px (top-nav visible, search toggle visible) and 1280px (search toggle hidden) |
+| `tests/pages.spec.js` | committee.html (nav active state, stats grid, tabs bar visible, 3 tabs present, Summary active by default, tab switching, cycle switcher present + "All time" option + numeric options, committee-name title-cased, .candidate-card-office absent, filing history stub absent), races.html (page header, filter bar fields, office options, state combo, results area containers; `needsApiMock: true` — makes API calls on load), race.html (candidate cards, financial figures, cycle-anchored links), candidates.html (auto-load, search input, clean URLs, filter chips, URL sync, error state, ?q= search mode, typeahead: 2-char trigger / result links / Escape key, #load-more-spinner and #end-of-results DOM presence), committees.html (same as candidates, typeahead: 2-char trigger / result links / Escape key), process-log.html, design-system.html (token tables, color swatches, component card attributes), index.html redirect, mobile layout at 390px (top-nav visible, search toggle visible) and 1280px (search toggle hidden) |
 
 ### How mocking works
 
@@ -78,8 +78,7 @@ Tests are written around known-incomplete features. These are not failures — t
 | Feature | Status |
 |---------|--------|
 | Spent tab on candidate.html | Not yet built — spent-loading state will show |
-| Filing history on committee.html | Scaffold only |
-| Associated candidates on committee.html | Scaffold only |
+| Raised/Spent tabs on committee.html | Stub placeholder only — "coming soon" text |
 | IntersectionObserver enrichment on races.html | Observer fires in Playwright (Chromium has full IO support), but enrichment calls are intercepted by the API mock — cache population path is not exercised in automated tests. Manual verification required (DevTools → Network + localStorage). |
 
 ---
