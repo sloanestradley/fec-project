@@ -1337,3 +1337,43 @@ The through-line: Sloane plans at the spec level, not the implementation level �
 - The global search bar in the top nav submits to /search?q=. Should it search candidates only (current behavior) or open to committees + candidates (like the search.html two-group results)?
 - Process Log and Design System are now orphaned from the nav — intentional for production but worth confirming: are they linked anywhere, or discoverable only by direct URL?
 - Next phase priority check: filing history on committee.html vs. ad hoc mode on races.html — which has more demo value for the portfolio?
+
+---
+2026-03-19 20:00 — Visual + copy polish pass
+
+## Process log draft
+Title: The details that make a tool feel designed
+
+The site had been functionally complete for a while, but the surface details — button labels, placeholder copy, background layers, font weights — were still in their first-draft state. This session was a cleanup pass: replacing text search buttons with SVG icons, tightening placeholder copy to say exactly what each field does, stripping visual noise from the filter bars, and matching font weights across related components. Small changes, but the kind that separate "built" from "finished."
+
+Changelog:
+– All search submit buttons (20 instances across 9 pages) replaced with inline SVG search icon — consistent with mobile search toggle
+– Placeholder text updated globally: nav search bars say "Search candidates and committees"; candidates.html filter says "Candidate name or ID"; committees.html filter says "Committee name or ID"
+– Ellipsis removed from all placeholder text across the site
+– background:var(--surface) removed from .filter-bar-wrap and .filter-chips-wrap on candidates.html and committees.html — filter bar now sits flush with page background
+– .page-desc paragraph + CSS removed from candidates.html and committees.html — the title and filter bar are self-explanatory
+– .committee-name font-weight set to 500 in styles.css to match .committee-result-name
+– aria-label on all 18 nav search inputs updated to "Search candidates and committees"
+– Nav search input width increased from 200px to 240px
+
+Field notes:
+The most telling edit was the ellipsis removal. Placeholder text with trailing dots implies the user needs to complete a thought — "Search candidates…" reads as "Search candidates [what? where? how?]". Without the dots, "Candidate name or ID" is a direct instruction. It's a one-character change that shifts the tone from uncertain to confident. The same instinct drove the .page-desc removal: the browse pages had a subtitle explaining what the filter bar does, which is like putting a label on a light switch. If the controls need a paragraph to explain themselves, the controls are wrong. These didn't.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+**Specifying every change with surgical precision**
+The opening prompt was a numbered list with exact CSS properties to change, exact placeholder strings, exact files. No ambiguity, no room for interpretation. That level of specification meant zero back-and-forth on scope — every edit was a direct execution of a clear instruction.
+
+**Catching the placeholder text progression across two prompts**
+The first prompt set placeholder text, the second refined it — removing ellipses, changing "or" to "and" in the nav, and making the filter bar placeholders describe the input format ("Candidate name or ID") rather than the action ("Search candidates"). That's iterating on copy the way a designer iterates on spacing: small adjustments that compound into a different feel.
+
+**"Flag anything I may have missed"**
+Explicitly inviting the flag surfaced the stale aria-labels — a real accessibility gap that would have shipped silently. The question wasn't "did I get everything right?" — it was "what's connected to these changes that I might not have thought about?" That's systems thinking applied to a copy pass.
+
+The through-line: Sloane is treating placeholder text, button labels, and background colors as design decisions with the same weight as layout and typography. These aren't afterthoughts — they're the layer between "works" and "feels right."
+
+## What to bring to Claude Chat
+- The filter bar on candidates.html and committees.html now has no background — it blends with the page. Worth a visual check on the deployed site to confirm this reads well, especially at the boundary between page header and filter bar where two border-bottom rules stack.
+- The nav search input is now 240px — does it feel wide enough for "Search candidates and committees" as placeholder text, or should it grow further? Worth checking at the 861px breakpoint where it first appears.
+- Process-log.html and design-system.html still have .page-desc — these are documentation pages, not browse pages, so the subtitle pattern may still be appropriate. Worth confirming this is intentional rather than an oversight.

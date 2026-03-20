@@ -92,7 +92,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .nav-link.active { color:var(--text); box-shadow:inset 0 -2px 0 var(--accent); }
 .top-nav-search { margin-left:auto; display:flex; align-items:center; }
 .top-nav-search-form { display:flex; }
-.top-nav-search .form-input { width:200px; font-size:0.75rem;
+.top-nav-search .form-input { width:240px; font-size:0.75rem;
   padding:0.3rem 0.55rem; border-right:none; }
 .top-nav-search .form-search-btn { padding:0.3rem 0.65rem; font-size:0.82rem; }
 .top-nav-mobile-controls { display:none; align-items:center; gap:0.5rem; margin-left:auto; }
@@ -237,7 +237,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   text-decoration:none; color:inherit; }
 .committee-row + .committee-row { border-top:none; }
 .committee-row:hover { border-color:var(--border-strong); }
-.committee-name { font-size:0.78rem; }
+.committee-name { font-size:0.78rem; font-weight:500; }
 .committee-type { font-size:0.6rem; color:var(--muted); text-align:right; }
 .committee-id { font-size:0.6rem; color:var(--muted); }
 

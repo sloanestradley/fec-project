@@ -19,11 +19,9 @@
       text-transform:uppercase; margin-bottom:0.75rem; }
     .page-title { font-family:'Barlow Condensed',sans-serif; font-size:clamp(1.8rem,3.5vw,2.8rem);
       font-weight:800; text-transform:uppercase; letter-spacing:0; line-height:1; margin-bottom:0.5rem; }
-    .page-desc { font-size:0.8rem; color:var(--muted); max-width:460px; line-height:1.6; }
 
     /* Filter bar */
-    .filter-bar-wrap { padding:1.5rem var(--page-gutter); border-bottom:1px solid var(--border);
-      background:var(--surface); }
+    .filter-bar-wrap { padding:1.5rem var(--page-gutter); border-bottom:1px solid var(--border); }
     .filter-bar { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end; max-width:860px; }
     .form-field { display:flex; flex-direction:column; gap:0.3rem; }
     .form-label { font-family:'IBM Plex Mono',monospace; font-size:0.58rem;
@@ -46,7 +44,7 @@
 
     /* Filter chips */
     .filter-chips-wrap { padding:0.55rem var(--page-gutter); border-bottom:1px solid var(--border);
-      background:var(--surface); display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; }
+      display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; }
     .filter-chip { display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.5rem;
       background:var(--bg); border:1px solid var(--border-strong);
       font-family:'IBM Plex Mono',monospace; font-size:0.62rem; color:var(--subtle); }
@@ -100,8 +98,8 @@
     </div>
     <div class="top-nav-search">
       <form class="top-nav-search-form" id="top-nav-search-form">
-        <input class="form-input" type="search" placeholder="Search candidates…" id="top-nav-search-input" aria-label="Search candidates">
-        <button class="form-search-btn" type="submit" aria-label="Search">→</button>
+        <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-search-input" aria-label="Search candidates and committees">
+        <button class="form-search-btn" type="submit" aria-label="Search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
       </form>
     </div>
     <div class="top-nav-mobile-controls">
@@ -115,8 +113,8 @@
   </div>
   <div class="top-nav-mobile-search" id="top-nav-mobile-search">
     <form class="top-nav-mobile-search-form" id="top-nav-mobile-search-form">
-      <input class="form-input" type="search" placeholder="Search candidates…" id="top-nav-mobile-search-input" aria-label="Search candidates">
-      <button class="form-search-btn" type="submit">Search</button>
+      <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-mobile-search-input" aria-label="Search candidates and committees">
+      <button class="form-search-btn" type="submit" aria-label="Search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
     </form>
   </div>
 </nav>
@@ -135,7 +133,6 @@
     <div class="page-header">
       <div class="page-eyebrow">Committees</div>
       <div class="page-title">Browse Committees</div>
-      <p class="page-desc">Search by name or filter by state and committee type. Results load automatically.</p>
     </div>
 
     <!-- Filter bar -->
@@ -146,8 +143,8 @@
         <div class="form-field">
           <label class="form-label" for="f-search">Search</label>
           <div class="search-combo">
-            <input class="form-input" type="text" id="f-search" placeholder="Committee name…" autocomplete="off"/>
-            <button type="button" class="form-search-btn" id="search-btn">Search</button>
+            <input class="form-input" type="text" id="f-search" placeholder="Committee name or ID" autocomplete="off"/>
+            <button type="button" class="form-search-btn" id="search-btn" aria-label="Search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
             <div id="search-typeahead" class="typeahead-dropdown"></div>
           </div>
         </div>
