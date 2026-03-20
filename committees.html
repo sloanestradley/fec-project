@@ -462,6 +462,7 @@ function submitSearch() {
 
 document.getElementById('f-search').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { submitSearch(); }
+  if (e.key === 'Escape') { closeTypeahead(); }
 });
 document.getElementById('search-btn').addEventListener('click', submitSearch);
 
@@ -486,7 +487,7 @@ async function fetchTypeahead(q) {
 function renderTypeahead(results) {
   var dd = document.getElementById('search-typeahead');
   if (!results.length) { closeTypeahead(); return; }
-  dd.innerHTML = results.map(function(c) {
+  dd.innerHTML = results.map(function(c, i) {
     var dotCls = filingFrequencyDotClass(c.filing_frequency);
     return '<a class="typeahead-row" href="/committee/' + c.committee_id + '?from=typeahead"'
       + ' onclick="amplitude.track(\'Typeahead Result Clicked\',{result_type:\'committee\',committee_id:'

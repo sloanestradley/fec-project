@@ -5,7 +5,7 @@
 
 ## How to use this file
 
-**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 234 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
+**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 242 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
 
 **Smoke tests (Track 2):** Run `npm run test:smoke` before deploys. Hits the live FEC API — 5 key checks. Requires the dev server to be running.
 
@@ -267,12 +267,15 @@
 ### Data fetching & rendering
 - [ ] Default load shows races grouped by office (President → Senate → House) with correct header count
 - [ ] Race rows show race name (e.g. "House • WA-03") linking to /race?... with correct params
-- [ ] Race rows show skeleton placeholders for candidate count and total raised while enrichment loads
-- [ ] Skeletons progressively replaced with "N candidates" and "Total raised: $X" as /elections/ calls resolve
+- [ ] Race rows show skeleton placeholders for candidate count and total raised on initial load
+- [ ] Skeletons replace with "N candidates" and "Total raised: $X" as races scroll into viewport (IntersectionObserver — only visible rows fire enrichment calls on load)
+- [ ] Scrolling down progressively enriches new rows as they enter the viewport
 - [ ] Candidate counts and total raised match the /elections/ endpoint (gold standard, not /candidates/totals/)
+- [ ] Second visit within 24h: no /elections/ network calls fire for previously-seen races (verify in DevTools Network tab — served from localStorage cache)
+- [ ] localStorage keys prefixed `lf:race:{cycle}:{office}:{state}:{district}` visible in DevTools → Application → localStorage
 - [ ] At-large House seats (WY, AK, MT) display without district suffix (e.g. "House • WY" not "House • WY-00")
-- [ ] Changing office or state filter updates results instantly with no API call
-- [ ] Changing cycle triggers new API fetch and full re-render with skeletons
+- [ ] Changing office or state filter updates results instantly with no API call; observer re-fires for newly visible rows
+- [ ] Changing cycle triggers new API fetch, full re-render with skeletons, and observer re-wires
 - [ ] Filter chips appear for active office and state filters (not cycle)
 - [ ] Clearing a chip resets that filter and re-renders
 - [ ] "Clear all" button appears when 2+ chips active
@@ -396,9 +399,11 @@
 - [ ] No-results state renders if filters return nothing (not blank/crash)
 
 ### Typeahead (search field)
-- [ ] Typing 1 character → no dropdown
-- [ ] Typing 2+ characters → typeahead dropdown appears within ~350ms, flush below the input (no gap)
+- [ ] ✅ Typing 1 character → no dropdown
+- [ ] ✅ Typing 2+ characters → typeahead dropdown appears within ~350ms, flush below the input (no gap)
+- [ ] ✅ Each typeahead item links to `/candidate/{id}` (clean URL)
 - [ ] Each typeahead item: candidate name + `(ID)` on the left, office (`House`/`Senate`/`President`) on the right — no state, no bullet separator
+- [ ] ✅ Pressing Escape closes the typeahead
 - [ ] Clicking a typeahead result navigates directly to `/candidate/{id}`
 - [ ] Clicking outside the dropdown closes it
 
@@ -455,8 +460,11 @@
 - [ ] No-results state renders if filters return nothing
 
 ### Typeahead (search field)
-- [ ] Typing 2+ characters → typeahead dropdown appears, flush below the input (no gap)
+- [ ] ✅ Typing 1 character → no dropdown
+- [ ] ✅ Typing 2+ characters → typeahead dropdown appears, flush below the input (no gap)
+- [ ] ✅ Each typeahead item links to `/committee/{id}` (clean URL)
 - [ ] Each typeahead item: committee name + `(ID)` on the left, colored status dot only on the right — no state, no type label
+- [ ] ✅ Pressing Escape closes the typeahead
 - [ ] Clicking a typeahead result navigates to `/committee/{id}`
 - [ ] Clicking outside closes dropdown
 
@@ -622,3 +630,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-19 | Visual + copy polish — search button SVG icons, placeholder text updates, filter bar background removal, .page-desc removal, .committee-name font-weight, aria-label fixes, nav search input width | All 9 pages, styles.css (automated) | None | 234/234 Track 1 passing |
 | 2026-03-19 | races.html browse page — replace mode selector with browse template (page header, filter bar, results area, state combo); fix state dropdown clipping (overflow:visible on .main); update 5 Playwright tests | races.html, tests/pages.spec.js, ia.md (automated) | 5 stale mode-selector tests (replaced with browse page structure tests) | 234/234 Track 1 passing |
 | 2026-03-20 | races.html data fetching — cycle dropdown, /elections/search/ race list, progressive /elections/ enrichment with skeleton loading, filter chips, formatRaceName at-large fix, needsApiMock + CANDIDATES_TOTALS mock | races.html, utils.js, tests/helpers/api-mock.js, tests/shared.spec.js (automated) | races.html needsApiMock was false (live API calls caused flaky networkidle timeouts — fixed to true) | 234/234 Track 1 passing |
+| 2026-03-20 | Typeahead bug fix (candidates.html + committees.html) — missing `i` index in .map() callback caused silent ReferenceError; added Escape key handling; added 8 Playwright typeahead tests; diagnosed shared API key rate limit; refactored races.html enrichment from fire-all to IntersectionObserver + localStorage caching (24h TTL, aggregate stats only) | candidates.html, committees.html, races.html, tests/pages.spec.js (automated) | None | 242/242 Track 1 passing |

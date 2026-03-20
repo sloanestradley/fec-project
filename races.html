@@ -274,6 +274,11 @@ var maxCycle = currentCycle + 4;
 
 var activeFilters = { cycle: String(currentCycle), office: '', state: '' };
 var allRaces = [];
+var raceLookup = {};
+var pendingRender = false;
+
+var RACE_CACHE_PREFIX = 'lf:race:';
+var RACE_CACHE_TTL = 24 * 60 * 60 * 1000; // 24h — aggregate stats, safe to cache longer
 
 var OFFICE_LABELS = { H: 'House', S: 'Senate', P: 'President' };
 
@@ -305,6 +310,63 @@ async function populateCycles() {
   }).join('');
   activeFilters.cycle = String(currentCycle);
 }
+
+// ── Enrichment ────────────────────────────────────────────────────────────────
+
+function scheduleRender() {
+  if (pendingRender) return;
+  pendingRender = true;
+  requestAnimationFrame(function() { pendingRender = false; applyFilters(); });
+}
+
+function enrichRace(race) {
+  if (race.candidateCount !== null || race._enriching) return;
+  race._enriching = true;
+  var gen = fetchGeneration;
+  var cycle = activeFilters.cycle;
+
+  // Check localStorage cache first
+  var cacheKey = RACE_CACHE_PREFIX + cycle + ':' + race.office + ':' + race.state + ':' + race.district;
+  try {
+    var cached = JSON.parse(localStorage.getItem(cacheKey));
+    if (cached && cached.expires > Date.now()) {
+      race.candidateCount = cached.data.candidateCount;
+      race.totalRaised    = cached.data.totalRaised;
+      race._enriching     = false;
+      scheduleRender();
+      return;
+    }
+  } catch(e) {}
+
+  var params = { cycle: cycle, office: officeApiParam(race.office), state: race.state, per_page: 100 };
+  if (race.office === 'H') params.district = race.district;
+
+  apiFetch('/elections/', params).then(function(data) {
+    if (gen !== fetchGeneration) return;
+    var candidates = data.results || [];
+    race.candidateCount = candidates.length;
+    race.totalRaised    = candidates.reduce(function(sum, c) { return sum + (c.total_receipts || 0); }, 0);
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data:    { candidateCount: race.candidateCount, totalRaised: race.totalRaised },
+        expires: Date.now() + RACE_CACHE_TTL,
+      }));
+    } catch(e) {}
+    scheduleRender();
+  }).catch(function(err) {
+    race._enriching = false; // allow retry on scroll
+    console.warn('enrich failed for', race.office, race.state, race.district, err);
+  });
+}
+
+var raceObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (!entry.isIntersecting) return;
+    var race = raceLookup[entry.target.dataset.raceKey];
+    if (race) enrichRace(race);
+    raceObserver.unobserve(entry.target);
+  });
+}, { rootMargin: '100px' }); // start fetching 100px before row enters viewport
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
 
@@ -343,49 +405,14 @@ async function fetchAllRaces(cycle) {
       return { office: r.office, state: r.state, district: r.district || '',
                candidateCount: null, totalRaised: null };
     });
-    applyFilters();
-
-    // Step 2: enrich progressively via /elections/ per race
-    // Build a lookup from allRaces for fast updates
-    var raceLookup = {};
+    // Rebuild lookup so enrichRace and the observer can find races by key
+    raceLookup = {};
     allRaces.forEach(function(r) {
       raceLookup[r.office + '|' + r.state + '|' + r.district] = r;
     });
-
-    // Fire /elections/ calls — one per race, concurrency queue handles pacing
-    // Batch re-renders to avoid thrashing the DOM on every single response
-    var pendingRender = false;
-    function scheduleRender() {
-      if (pendingRender) return;
-      pendingRender = true;
-      requestAnimationFrame(function() {
-        pendingRender = false;
-        if (gen === fetchGeneration) applyFilters();
-      });
-    }
-
-    var promises = allRaces.map(function(race) {
-      var params = {
-        cycle: cycle,
-        office: officeApiParam(race.office),
-        state: race.state,
-        per_page: 100
-      };
-      if (race.office === 'H') params.district = race.district;
-      return apiFetch('/elections/', params).then(function(data) {
-        if (gen !== fetchGeneration) return;
-        var candidates = data.results || [];
-        race.candidateCount = candidates.length;
-        race.totalRaised = 0;
-        candidates.forEach(function(c) {
-          race.totalRaised += (c.total_receipts || 0);
-        });
-        scheduleRender();
-      }).catch(function(err) {
-        console.warn('enrich failed for', race.office, race.state, race.district, err);
-      });
-    });
-    await Promise.all(promises);
+    applyFilters();
+    // Step 2 (enrichment) now happens via IntersectionObserver in renderResults —
+    // only races that scroll into the viewport get enriched.
   } catch(err) {
     if (gen !== fetchGeneration) return;
     showState('error');
@@ -428,6 +455,16 @@ function renderResults(races) {
     html += '</div>';
   });
   document.getElementById('results-list').innerHTML = html;
+
+  // Re-observe unenriched rows — disconnect first to clear any stale observations
+  raceObserver.disconnect();
+  document.querySelectorAll('#results-list [data-race-key]').forEach(function(el) {
+    var race = raceLookup[el.dataset.raceKey];
+    if (race && race.candidateCount === null && !race._enriching) {
+      raceObserver.observe(el);
+    }
+  });
+
   updateResultsHeader(races);
   showState('results');
 }
@@ -438,6 +475,7 @@ function buildRaceRow(r) {
           + '&state=' + r.state
           + '&cycle=' + activeFilters.cycle
           + (r.office === 'H' ? '&district=' + r.district : '');
+  var raceKey = r.office + '|' + r.state + '|' + r.district;
   var metaHtml;
   if (r.candidateCount === null) {
     // Still loading — show skeleton placeholders
@@ -453,7 +491,7 @@ function buildRaceRow(r) {
       + (raised ? '<span>' + raised + '</span>' : '')
       + '</div>';
   }
-  return '<a class="candidate-card" href="' + url + '">'
+  return '<a class="candidate-card" href="' + url + '" data-race-key="' + raceKey + '">'
     + '<div class="candidate-card-name">' + label + '</div>'
     + metaHtml
     + '</a>';

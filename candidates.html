@@ -502,6 +502,7 @@ function submitSearch() {
 
 document.getElementById('f-search').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { submitSearch(); }
+  if (e.key === 'Escape') { closeTypeahead(); }
 });
 document.getElementById('search-btn').addEventListener('click', submitSearch);
 
@@ -526,7 +527,7 @@ async function fetchTypeahead(q) {
 function renderTypeahead(results) {
   var dd = document.getElementById('search-typeahead');
   if (!results.length) { closeTypeahead(); return; }
-  dd.innerHTML = results.map(function(c) {
+  dd.innerHTML = results.map(function(c, i) {
     var right = c.office_full || c.office || '';
     return '<a class="typeahead-row" href="/candidate/' + c.candidate_id + '?from=typeahead"'
       + ' onclick="amplitude.track(\'Typeahead Result Clicked\',{result_type:\'candidate\',candidate_id:'

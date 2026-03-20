@@ -1462,3 +1462,51 @@ The through-line: Sloane treats data accuracy as a product requirement, not a ni
 - Races browse page performance: 475 /elections/ calls is a lot. The progressive loading makes it usable, but a Netlify Function that aggregates server-side could reduce it to a single cached call. Worth discussing as a pre-launch priority alongside the API key proxy.
 - Race row content density: Now showing name + candidate count + total raised. Is this enough to be compelling for the browse page, or should we add more (e.g. incumbent name, top-raised candidate, party breakdown)? Each addition potentially means more data in the enrichment step.
 - Missing session logs: claude-to-claude.md is missing entries for the 2026-03-19 sessions (5 commits: party labels, nav refactor, Amplitude source attribution, search polish, races scaffold). Worth backfilling from git log + commit messages in Claude Chat.
+
+---
+2026-03-20 — Typeahead fix, API rate limit diagnosis, races.html IntersectionObserver
+
+## Process log draft
+Title: The invisible bug, the shared key, and the lazy observer
+
+Three things that looked like one: the typeahead dropdown on the browse pages had never worked in production. The fix was four characters — adding `, i` to two `.map()` callbacks — but the failure mode was almost impossible to see: a ReferenceError inside a try/catch that silently called closeTypeahead(), with no trace in the console and no indication anything had gone wrong. Finding it required reading the error path backward from the symptom.
+
+The bigger finding that day was the rate limit. Diagnosing why search didn't work in production led to confirming that the API key is shared across all users and was exhausted — mostly by races.html, which fired ~475 API calls every single page load. That conversation opened into a broader architectural question: what's the right way to fix this, and does the races page's data model match the long-term UX direction?
+
+The answer was an IntersectionObserver. Instead of firing enrichment for all 475 races at once, the observer fires calls only for rows that scroll into the viewport — 15–20 on load, more as you scroll, scoped automatically to whatever filtered subset is visible. Combined with localStorage caching of the processed aggregate stats (24h TTL, ~50 bytes per race), repeat visitors fire zero API calls for races they've already seen. More importantly, the architecture is aligned with where the page is going: when editorial curation or location-based filtering narrows the initial view, the observer just works correctly with whatever small subset is shown.
+
+Changelog:
+– candidates.html, committees.html: fixed renderTypeahead() — .map(function(c) → .map(function(c, i) — missing index caused ReferenceError on every typeahead render; silently swallowed by try/catch
+– candidates.html, committees.html: added Escape key handling to close typeahead (parity with search.html)
+– tests/pages.spec.js: 8 new typeahead tests across candidates.html and committees.html describe blocks (2-char trigger, result links, Escape key) — 234 → 242
+– API key rate limit: diagnosed as shared-per-key (not per-IP), exhausted primarily by races.html; upgraded key requested from FEC
+– races.html: refactored enrichment from fire-all (475 calls/load) to IntersectionObserver + localStorage cache; enrichRace() fires per visible row, caches { candidateCount, totalRaised } with 24h TTL; repeat visitors serve from cache; observer re-wires on every filter re-render
+
+Field notes:
+The typeahead bug is the kind of failure that doesn't announce itself. The code looked right on first read — the try/catch looked like defensive programming, not a silencer. The only way to find it was to notice that the catch handler's only action was to hide the dropdown, then ask: what could be throwing in the function above it? It's a reminder that error handling that swallows exceptions can make bugs harder to find than no error handling at all. The fix took thirty seconds; finding it took reading the code as if it had already failed.
+
+The races page conversation was more interesting. The fire-all architecture wasn't accidental — it was a deliberate data accuracy call documented in CLAUDE.md. The question was whether that accuracy requirement had been applied to the right layer. The browse page doesn't need all 475 races enriched immediately; users filter and scan. The race detail page is where accuracy matters most, and it already uses /elections/. The IntersectionObserver is a better fit not just because it reduces API calls, but because it matches how users actually move through the page — and because it already knows how to handle the future filtered state the page is moving toward.
+
+Stack tags: IntersectionObserver, localStorage
+
+## How Sloane steered the work
+**"Is there a more global solution?" — pulling back before building**
+The initial ask was localStorage caching for races.html. Before a single line was written, you pushed for a broader audit — how many calls are happening across all pages, and is there a more systematic fix? That audit revealed the full picture (476 calls/visit on races.html vs. 1–3 everywhere else), which led to a much more targeted solution. Skipping the audit would have shipped a page-specific fix that missed the real scope of the problem.
+
+**Rejecting the global apiFetchCached plan as "unmanageable"**
+The audit produced a plan for a site-wide caching utility in utils.js touching four files. You called it: too much surface area, and it still wouldn't support real traffic volume at scale. The instinct was right — the plan was architecturally tidy but solved the wrong problem. Pulling back to "what does races.html actually need" led to a simpler, more appropriate solution.
+
+**"How did we get here" — naming your own direction as a factor**
+When the conversation got tangled, you explicitly named that the current architecture reflected your own prior decisions, not just code drift. That kind of ownership opened the door to revisiting those decisions honestly without relitigating them defensively.
+
+**#2 + #4: the right combination, and why**
+When presented with four options, you converged on combining intersection observer with filter-scoped enrichment. The reasoning you added — that the page is heading toward a forced filter anyway — is what made the IntersectionObserver the right permanent architecture, not just a band-aid. Without that frame, it might have read as an optimization. With it, it reads as alignment with where the page is going.
+
+The through-line: you consistently ask whether a solution fits the actual product direction, not just whether it solves the immediate problem. The global caching plan would have solved the rate limit today but created maintenance overhead that doesn't match a portfolio project at this stage. The IntersectionObserver solves the rate limit and is the right architecture for a page that will have editorial curation.
+
+## What to bring to Claude Chat
+– Forced filter / editorial curation direction for races.html: what does that look like in practice? Location-based (detect or prompt for state)? A curated "featured races" set? Both? Worth aligning on the UX before the page's scaffold state makes it feel permanent.
+
+– races.html long-term traffic model: the IntersectionObserver buys meaningful headroom, but a high-traffic day (election night, a viral link) would still exhaust even an upgraded key if many first-time visitors hit the page. Is a Netlify Function proxy worth planning for Phase 4, or is the current audience size such that it's not needed yet?
+
+– Typeahead on the top nav search bar: currently the nav search bar on all pages just submits to /search?q= on Enter. Should it have a typeahead dropdown too? It's a different surface (global, always visible) and could be high-value for fast navigation. Worth discussing before building it.

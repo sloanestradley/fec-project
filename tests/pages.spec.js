@@ -471,6 +471,43 @@ test.describe('candidates.html — search mode (?q=)', () => {
   });
 });
 
+// ── candidates.html — typeahead ───────────────────────────────────────────────
+
+test.describe('candidates.html — typeahead', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidates.html');
+  });
+
+  test('fewer than 2 chars does not show typeahead', async ({ page }) => {
+    await page.locator('#f-search').fill('g');
+    await page.waitForTimeout(400);
+    await expect(page.locator('#search-typeahead')).not.toHaveClass(/open/);
+  });
+
+  test('2+ chars shows typeahead dropdown', async ({ page }) => {
+    await page.locator('#f-search').fill('gl');
+    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
+  });
+
+  test('typeahead row links to /candidate/{id}', async ({ page }) => {
+    await page.locator('#f-search').fill('gl');
+    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
+    const link = page.locator('#search-typeahead .typeahead-row').first();
+    await expect(link).toBeVisible();
+    const href = await link.getAttribute('href');
+    expect(href).toMatch(/\/candidate\/[A-Z0-9]+/);
+  });
+
+  test('Escape key closes the typeahead', async ({ page }) => {
+    await page.locator('#f-search').fill('gl');
+    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
+    await page.locator('#f-search').press('Escape');
+    await expect(page.locator('#search-typeahead')).not.toHaveClass(/open/);
+  });
+});
+
 // ── committees.html — search mode (?q=) ──────────────────────────────────────
 
 test.describe('committees.html — search mode (?q=)', () => {
@@ -521,6 +558,43 @@ test.describe('committees.html — search mode (?q=)', () => {
     const event = await findTrackEvent(page, 'Committees Searched');
     expect(event).toBeDefined();
     expect(event.args[1]).toMatchObject({ query: 'marie' });
+  });
+});
+
+// ── committees.html — typeahead ───────────────────────────────────────────────
+
+test.describe('committees.html — typeahead', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/committees.html');
+  });
+
+  test('fewer than 2 chars does not show typeahead', async ({ page }) => {
+    await page.locator('#f-search').fill('g');
+    await page.waitForTimeout(400);
+    await expect(page.locator('#search-typeahead')).not.toHaveClass(/open/);
+  });
+
+  test('2+ chars shows typeahead dropdown', async ({ page }) => {
+    await page.locator('#f-search').fill('gl');
+    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
+  });
+
+  test('typeahead row links to /committee/{id}', async ({ page }) => {
+    await page.locator('#f-search').fill('gl');
+    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
+    const link = page.locator('#search-typeahead .typeahead-row').first();
+    await expect(link).toBeVisible();
+    const href = await link.getAttribute('href');
+    expect(href).toMatch(/\/committee\/[A-Z0-9]+/);
+  });
+
+  test('Escape key closes the typeahead', async ({ page }) => {
+    await page.locator('#f-search').fill('gl');
+    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
+    await page.locator('#f-search').press('Escape');
+    await expect(page.locator('#search-typeahead')).not.toHaveClass(/open/);
   });
 });
 
