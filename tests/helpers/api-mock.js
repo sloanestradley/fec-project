@@ -230,24 +230,38 @@ const DISBURSEMENTS = {
 
 // Schedule A — by_state aggregation (/schedules/schedule_a/by_state/)
 // Returns state-level totals, NOT individual contributions.
-// Fields: state, state_full, total, count (not contributor_state / contribution_receipt_amount)
+// Fields: state, state_full, total, count, cycle
 const SCHEDULE_A_BY_STATE = {
   results: [
     { committee_id: 'C00775668', cycle: 2024, state: 'WA', state_full: 'Washington', total: 500000, count: 1200 },
     { committee_id: 'C00775668', cycle: 2024, state: 'CA', state_full: 'California',  total: 200000, count:  480 },
+    { committee_id: 'C00775668', cycle: 2024, state: 'OR', state_full: 'Oregon',      total:  85000, count:  210 },
+  ],
+  pagination: { count: 3 },
+};
+
+// Schedule A — individual contributors (is_individual=true)
+// Fields: contributor_name, contribution_receipt_amount, contributor_city, contributor_state
+const SCHEDULE_A_INDIVIDUALS = {
+  results: [
+    { contributor_name: 'SMITH, JOHN',  contribution_receipt_amount: 2900, contributor_state: 'WA', contributor_city: 'OLYMPIA', contributor_zip: '98501', contributor_employer: 'SELF',  contributor_occupation: 'ENGINEER', entity_type: 'IND' },
+    { contributor_name: 'DOE, JANE',    contribution_receipt_amount: 1500, contributor_state: 'CA', contributor_city: 'OAKLAND',  contributor_zip: '94601', contributor_employer: 'ACME',  contributor_occupation: 'TEACHER',  entity_type: 'IND' },
   ],
   pagination: { count: 2 },
 };
 
-// Schedule A — individual contributions (/schedules/schedule_a/)
-// Fields: contributor_name, contribution_receipt_amount, contributor_state, etc.
-const SCHEDULE_A = {
+// Schedule A — committee contributors (is_individual=false)
+// Fields: contributor_name, contribution_receipt_amount, entity_type, contributor_committee_id
+const SCHEDULE_A_COMMITTEES = {
   results: [
-    { contributor_name: 'SMITH, JOHN', contribution_receipt_amount: 2900, contributor_state: 'WA', contributor_city: 'OLYMPIA', contributor_employer: 'SELF', contributor_occupation: 'ENGINEER' },
-    { contributor_name: 'DOE, JANE',  contribution_receipt_amount: 1500, contributor_state: 'CA', contributor_city: 'OAKLAND',  contributor_employer: 'ACME',  contributor_occupation: 'TEACHER' },
+    { contributor_name: 'SEIU POLITICAL EDUCATION ACTION FUND', contribution_receipt_amount: 10000, contributor_committee_id: 'C00004036', entity_type: 'PAC' },
+    { contributor_name: 'WASHINGTON STATE DEMOCRATIC CENTRAL COMMITTEE', contribution_receipt_amount: 5000, contributor_committee_id: 'C00106500', entity_type: 'PTY' },
   ],
   pagination: { count: 2 },
 };
+
+// Schedule A — legacy alias (used when no is_individual param; keeps candidate.html tests working)
+const SCHEDULE_A = SCHEDULE_A_COMMITTEES;
 
 // Schedule B (itemized disbursements — same as DISBURSEMENTS shape above)
 const SCHEDULE_B = DISBURSEMENTS;
@@ -328,8 +342,12 @@ function resolveFixture(path, params) {
   // Schedule A — by_state aggregation (must come before plain schedule_a check)
   if (/\/schedules\/schedule_a\/by_state\//.test(path)) return SCHEDULE_A_BY_STATE;
 
-  // Schedule A — individual contributions
-  if (/\/schedules\/schedule_a\//.test(path)) return SCHEDULE_A;
+  // Schedule A — route by is_individual param
+  if (/\/schedules\/schedule_a\//.test(path)) {
+    if (params.get('is_individual') === 'true')  return SCHEDULE_A_INDIVIDUALS;
+    if (params.get('is_individual') === 'false') return SCHEDULE_A_COMMITTEES;
+    return SCHEDULE_A; // no param — legacy/candidate page path
+  }
 
   // Schedule B (disbursements)
   if (/\/schedules\/schedule_b\//.test(path)) return SCHEDULE_B;

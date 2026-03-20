@@ -5,7 +5,7 @@
 
 ## How to use this file
 
-**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 256 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
+**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 260 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
 
 **Smoke tests (Track 2):** Run `npm run test:smoke` before deploys. Hits the live FEC API — 5 key checks. Requires the dev server to be running.
 
@@ -270,9 +270,32 @@
 - [ ] Invalid cycle in hash (e.g. `#9999`): falls back to `#all#summary`
 - [ ] Invalid tab in hash (e.g. `#all#foo`): falls back to summary tab
 
-### Stub tabs
-- [ ] Raised tab shows "Raised breakdown coming soon." placeholder
+### Raised tab
+- [ ] ✅ Clicking Raised tab shows #tab-raised, hides #tab-summary
+- [ ] ✅ Donut canvas (#chart-donut) renders inside raised tab
+- [ ] ✅ Map container (#map-container) is present in raised tab
+- [ ] ✅ Committee donors tbody has at least one row
+- [ ] ✅ Individual donors tbody has at least one row
+- [ ] Loading spinner visible while contributor data is fetching
+- [ ] Contributor Types donut renders with legend rows and percentage labels
+- [ ] Donut center shows total raised amount (formatted dollar)
+- [ ] Choropleth map SVG renders; WA state is filled (not grey) for Marie for Congress
+- [ ] State hover tooltip shows state name and formatted contribution total
+- [ ] Map legend bar (Less → More gradient) visible below the map
+- [ ] "Top Committee Contributors" table appears above "Top Individual Contributors" (committee donors first)
+- [ ] Table headers dynamically reflect the cycle: "2023–2024" for specific cycle, "Most recent cycle" for All time
+- [ ] Committee table shows name, type label, and amount columns
+- [ ] Individual table shows name, city/state location, and amount columns
+- [ ] Data note at bottom includes amendment processing caveat
+- [ ] Switching cycles resets and re-fetches raised data; donut and map re-render for new cycle
+- [ ] Navigating to Raised tab on a page where data is already fetched renders immediately (no re-fetch)
+- [ ] State tooltip value for WA should not exceed total raised shown on Summary tab for the same cycle selection
+- [ ] Timber PAC (C00833574): map uses neutral/purple color (no party affiliation)
+- [ ] DEM committee (C00806174): map uses blue color
+
+### Spent tab
 - [ ] Spent tab shows "Spend breakdown coming soon." placeholder
+
 - [ ] ✅ Filing history stub is NOT present (removed)
 
 ---
@@ -666,3 +689,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-20 | Typeahead bug fix (candidates.html + committees.html) — missing `i` index in .map() callback caused silent ReferenceError; added Escape key handling; added 8 Playwright typeahead tests; diagnosed shared API key rate limit; refactored races.html enrichment from fire-all to IntersectionObserver + localStorage caching (24h TTL, aggregate stats only) | candidates.html, committees.html, races.html, tests/pages.spec.js (automated) | None | 242/242 Track 1 passing |
 | 2026-03-20 | committee.html structural parity — tabs bar + cycle switcher, cycle-aware renderStats (All time / per-cycle), overspend callout using shared .callout, renderHeader title-cases name, fetchAndRenderBackLink relType param + shared utils, .candidate-card-office removed from styles.css and last call site; COMMITTEE_TOTALS mock updated to 2 records with cycles field; 11 new Playwright tests | committee.html, styles.css, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | None | 253/253 Track 1 passing |
 | 2026-03-20 | committee.html follow-up — URL hash encoding (#cycleOrAll#tab, mirrors candidate.html), Tab Switched Amplitude event, overspend suppressed on All time, overspend copy past-tense across 3 files, .callout inline override removed, double border on assoc-list removed; 3 new hash Playwright tests | committee.html, candidate.html, design-system.html, tests/pages.spec.js (automated) | None | 256/256 Track 1 passing |
+| 2026-03-20 | committee.html Raised tab — donut chart (contributor types), choropleth map, two donor tables (committee contributors first, then individual); String(activeCycle) coercion fix; CHART_COLORS + ENTITY_TYPE_LABELS moved to utils.js; ALL_CYCLES sort descending on candidate.html; by_state single-call pattern (filters by d.cycle client-side); dynamic table headers; 4 new Playwright raised tab tests | committee.html, candidate.html, utils.js, styles.css, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | None | 260/260 Track 1 passing |

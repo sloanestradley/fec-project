@@ -310,30 +310,6 @@
 <script src="/main.js"></script>
 <script src="/utils.js"></script>
 <script>
-// ── Chart color palette ─────────────────────────────
-var CHART_COLORS = {
-  raised:           'rgba(74,144,217,0.9)',
-  raisedSolid:      'rgba(74,144,217,1)',
-  spent:            'rgba(217,74,74,0.85)',
-  spentSolid:       'rgba(217,74,74,1)',
-  coh:              'rgba(61,191,122,0.85)',
-  cohSolid:         'rgba(61,191,122,1)',
-  spentBar:         'rgba(217,74,74,0.72)',
-  overlayDeadline:  'rgba(90,96,112,0.4)',
-  overlayElection:  'rgba(232,160,32,0.75)',
-  overlayToday:     'rgba(136,144,160,0.18)',
-  tooltipBg:        '#f7f4ef',
-  tooltipTitle:     '#625b52',
-  tooltipBody:      '#1a1510',
-  tooltipBorder:    '#cdc7bc',
-  axisGrid:         'rgba(205,199,188,0.6)',
-  axisTick:         '#625b52',
-  axisBorder:       '#cdc7bc',
-  donutBorder:      '#f7f4ef',
-  donutBorderHover: '#f7f4ef',
-  pointBorder:      '#ede8e0'
-};
-
 // ── Config ─────────────────────────────────────────
 var urlParams    = new URLSearchParams(window.location.search);
 var _pathId      = window.location.pathname.split('/').pop();
@@ -978,11 +954,6 @@ async function renderChoropleth(byStateData) {
 }
 
 // ── Raised tab: top committee contributors table ─────
-var ENTITY_TYPE_LABELS = {
-  'PAC': 'PAC', 'PTY': 'Party committee', 'COM': 'Committee',
-  'CCM': 'Candidate committee', 'ORG': 'Organization', 'CAN': 'Candidate (self)'
-};
-
 function renderTopDonors(donors) {
   var tbody = document.getElementById('donors-tbody');
   if (!donors.length) {
@@ -1561,7 +1532,7 @@ async function init() {
     CAND_DIST   = cand.district || '';
     CAND_OFFICE = cand.office   || 'H';
     CAND_PARTY  = cand.party    || '';
-    ALL_CYCLES  = (cand.election_years || []).slice().sort(function(a,b){ return a-b; });
+    ALL_CYCLES  = (cand.election_years || []).slice().sort(function(a,b){ return b-a; });
     if (!ALL_CYCLES.length) throw new Error('No election years found for this candidate');
 
     // Avatar initials

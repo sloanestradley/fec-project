@@ -136,6 +136,44 @@ test.describe('committee.html', () => {
   });
 });
 
+// ── committee.html — Raised tab sections ──────────────────────────────────────
+
+test.describe('committee.html — Raised tab sections', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/committee.html?id=C00775668');
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    // Wait for raised-content to appear (API calls resolve + render)
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById('raised-content');
+        return el && el.style.display !== 'none';
+      },
+      { timeout: 15000 }
+    );
+  });
+
+  test('donut canvas is present in raised tab', async ({ page }) => {
+    await expect(page.locator('#chart-donut')).toBeVisible();
+  });
+
+  test('map container is present in raised tab', async ({ page }) => {
+    await expect(page.locator('#map-container')).toBeAttached();
+  });
+
+  test('individual donors tbody is present and has at least one row', async ({ page }) => {
+    const rows = page.locator('#individual-donors-tbody tr');
+    await expect(rows).not.toHaveCount(0);
+  });
+
+  test('committee donors tbody is present and has at least one row', async ({ page }) => {
+    const rows = page.locator('#committee-donors-tbody tr');
+    await expect(rows).not.toHaveCount(0);
+  });
+});
+
 // ── races.html ────────────────────────────────────────────────────────────────
 
 test.describe('races.html', () => {

@@ -8,6 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-array@3/dist/d3-array.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-geo@3/dist/d3-geo.min.js"></script>
   <!-- Amplitude Analytics -->
   <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
@@ -159,7 +164,60 @@
       </div>
 
       <div id="tab-raised" style="display:none">
-        <div class="data-note">Raised breakdown coming soon.</div>
+        <div id="raised-loading" style="display:flex;align-items:center;gap:1rem;padding:3rem 0;color:var(--muted);font-size:.75rem">
+          <div class="loader"></div><span>Loading contributor data…</span>
+        </div>
+        <div id="raised-content" style="display:none">
+          <div class="raised-grid">
+            <div class="raised-cell">
+              <div class="raised-cell-title">Contributor Types</div>
+              <div class="donut-wrap">
+                <div class="donut-chart-wrap">
+                  <canvas id="chart-donut"></canvas>
+                  <div class="donut-center">
+                    <div class="donut-center-val" id="donut-center-val">—</div>
+                    <div class="donut-center-lbl">Total Raised</div>
+                  </div>
+                </div>
+                <div class="donut-legend" id="donut-legend"></div>
+              </div>
+            </div>
+            <div class="raised-cell">
+              <div class="raised-cell-title">Where Individual Contributions Come From</div>
+              <div class="map-svg-wrap" id="map-container"></div>
+              <div class="map-legend" id="map-legend" style="display:none">
+                <span class="map-legend-lbl">Less</span>
+                <div class="map-legend-bar" id="map-legend-bar"></div>
+                <span class="map-legend-lbl">More</span>
+              </div>
+            </div>
+          </div>
+          <div class="donors-card">
+            <div class="donors-head">Top Committee Contributors · Most recent cycle</div>
+            <table class="donors-table">
+              <thead><tr>
+                <th style="width:2rem">#</th>
+                <th>Committee</th>
+                <th>Type</th>
+                <th class="r">Total</th>
+              </tr></thead>
+              <tbody id="committee-donors-tbody"></tbody>
+            </table>
+          </div>
+          <div class="donors-card">
+            <div class="donors-head">Top Individual Contributors · Most recent cycle</div>
+            <table class="donors-table">
+              <thead><tr>
+                <th style="width:2rem">#</th>
+                <th>Contributor</th>
+                <th>Location</th>
+                <th class="r">Amount</th>
+              </tr></thead>
+              <tbody id="individual-donors-tbody"></tbody>
+            </table>
+          </div>
+          <div class="data-note" id="raised-data-note"></div>
+        </div>
       </div>
 
       <div id="tab-spent" style="display:none">
@@ -175,6 +233,12 @@
   <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
 </div>
 
+<!-- Map tooltip — outside layout so it's not clipped -->
+<div class="map-tt" id="map-tt">
+  <div class="map-tt-name" id="map-tt-name"></div>
+  <div class="map-tt-val"  id="map-tt-val"></div>
+</div>
+
 <script src="/main.js"></script>
 <script src="/utils.js"></script>
 <script>
@@ -185,6 +249,24 @@ var COMMITTEE_ID = urlParams.get('id') || (_pathId && _pathId !== 'committee.htm
 var ALL_TOTALS  = [];    // all cycle records from /totals/
 var ALL_CYCLES  = [];    // sorted desc cycle years from committee metadata
 var activeCycle = 'all'; // 'all' or integer cycle year
+
+var COMM_PARTY        = null;
+var donutInstance     = null;
+var usTopoCache       = null;
+var raisedDataPromise = null;
+var raisedRendered    = false;
+
+var FIPS_TO_ABBR = {
+  '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+  '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
+  '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+  '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
+  '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
+  '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
+  '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
+  '55':'WI','56':'WY'
+};
+
 
 function designationLabel(d) {
   var map = { P:'Principal Committee', A:'Authorized', J:'Joint Fundraising',
@@ -202,6 +284,7 @@ function showTab(name, e) {
   });
   history.replaceState(null, '', '#' + activeCycle + '#' + name);
   if (e) amplitude.track('Tab Switched', { tab: name, committee_id: COMMITTEE_ID });
+  if (name === 'raised') renderRaisedIfReady();
 }
 
 async function init() {
@@ -237,7 +320,7 @@ async function init() {
       var parsedCycle = parseInt(hashCycle, 10);
       if (ALL_CYCLES.indexOf(parsedCycle) !== -1) activeCycle = parsedCycle;
     }
-    document.getElementById('cycle-switcher').value = activeCycle;
+    document.getElementById('cycle-switcher').value = String(activeCycle);
 
     renderStats(activeCycle);
 
@@ -295,6 +378,9 @@ function renderHeader(c) {
 
   // Page title
   if (c.name) document.title = toTitleCase(c.name) + ' — ledger.fec';
+
+  // Party for choropleth color
+  COMM_PARTY = c.party || null;
 
   // Populate cycle switcher from c.cycles
   ALL_CYCLES = (c.cycles || []).slice().sort(function(a,b){ return b - a; });
@@ -365,6 +451,397 @@ function renderStats(cycleOrAll) {
   var tabEl = document.querySelector('.tab.active');
   var tabName = tabEl ? tabEl.getAttribute('href').replace('#', '') : 'summary';
   history.replaceState(null, '', '#' + cycleOrAll + '#' + tabName);
+
+  // Reset and kick off raised tab data fetch
+  raisedRendered = false;
+  raisedDataPromise = null;
+  if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
+  var mapEl = document.getElementById('map-container');
+  if (mapEl) mapEl.innerHTML = '';
+  var mapLegEl = document.getElementById('map-legend');
+  if (mapLegEl) mapLegEl.style.display = 'none';
+  var mapTtEl = document.getElementById('map-tt');
+  if (mapTtEl) mapTtEl.style.display = 'none';
+  var raisedLoadEl = document.getElementById('raised-loading');
+  if (raisedLoadEl) raisedLoadEl.style.display = 'flex';
+  var raisedContentEl = document.getElementById('raised-content');
+  if (raisedContentEl) raisedContentEl.style.display = 'none';
+
+  raisedDataPromise = fetchRaisedData(cycleOrAll);
+  var curTabEl = document.querySelector('.tab.active');
+  if (curTabEl && curTabEl.getAttribute('href') === '#raised') renderRaisedIfReady();
+}
+
+// ── Raised tab utilities ─────────────────────────────
+function fmtFull(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '$' + Math.round(n).toLocaleString();
+}
+
+function makeStripePattern(color, bg) {
+  var sz = 8;
+  var c = document.createElement('canvas');
+  c.width = sz; c.height = sz;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, sz, sz);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, sz); ctx.lineTo(sz, 0);
+  ctx.stroke();
+  return c;
+}
+
+// ── Raised tab: data fetch ───────────────────────────
+async function fetchRaisedData(cycleOrAll) {
+  // Build breakdown from ALL_TOTALS (no extra fetch needed)
+  var breakdown = {
+    individual_itemized_contributions: 0,
+    individual_unitemized_contributions: 0,
+    other_political_committee_contributions: 0,
+    political_party_committee_contributions: 0,
+    transfers_from_other_authorized_committee: 0,
+    candidate_contribution: 0,
+    other_receipts: 0
+  };
+  var totalRaised = 0;
+  var covDate = null;
+
+  if (cycleOrAll === 'all') {
+    ALL_TOTALS.forEach(function(t) {
+      Object.keys(breakdown).forEach(function(k){ breakdown[k] += t[k] || 0; });
+      totalRaised += t.receipts || 0;
+    });
+    var recent = ALL_TOTALS[0] || {};
+    covDate = recent.coverage_end_date ? recent.coverage_end_date.split('T')[0] : null;
+  } else {
+    var rec = null;
+    for (var i = 0; i < ALL_TOTALS.length; i++) {
+      if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
+    }
+    if (rec) {
+      Object.keys(breakdown).forEach(function(k){ breakdown[k] = rec[k] || 0; });
+      totalRaised = rec.receipts || 0;
+      covDate = rec.coverage_end_date ? rec.coverage_end_date.split('T')[0] : null;
+    }
+  }
+
+  // by_state: one call, filter client-side by d.cycle
+  // two_year_transaction_period is silently ignored on this endpoint — all cycles are
+  // always returned; the cycle field on each result record is the reliable filter.
+  var byState = [];
+  try {
+    var stateRes = await apiFetch('/schedules/schedule_a/by_state/', {
+      committee_id: COMMITTEE_ID, per_page: 100, sort: '-total'
+    });
+    var stateMap = {};
+    (stateRes.results || []).forEach(function(d) {
+      if (cycleOrAll === 'all') {
+        if (ALL_CYCLES.indexOf(d.cycle) === -1) return;
+      } else {
+        if (d.cycle !== cycleOrAll) return;
+      }
+      var k = d.state;
+      if (!k) return;
+      if (!stateMap[k]) stateMap[k] = { state: d.state, state_full: d.state_full, total: 0, count: 0 };
+      stateMap[k].total += d.total  || 0;
+      stateMap[k].count += d.count  || 0;
+    });
+    byState = Object.values(stateMap).sort(function(a,b){ return b.total - a.total; });
+  } catch(e) { console.warn('by_state fetch failed:', e.message); }
+
+  // Contributor tables: use most recent cycle for 'all' (aggregating individual
+  // contributions across all cycles isn't meaningful and would be expensive)
+  var period = cycleOrAll === 'all' ? ALL_CYCLES[0] : cycleOrAll;
+
+  var topIndividuals = [];
+  try {
+    var indivRes = await apiFetch('/schedules/schedule_a/', {
+      committee_id: COMMITTEE_ID,
+      two_year_transaction_period: period,
+      is_individual: true,
+      sort: '-contribution_receipt_amount',
+      per_page: 100
+    });
+    var seenIndiv = {};
+    (indivRes.results || []).forEach(function(d) {
+      var key = ((d.contributor_name || '').trim().toUpperCase() + '|' + (d.contributor_zip || d.contributor_city || ''));
+      if (!key || key === '|') return;
+      if (!seenIndiv[key]) seenIndiv[key] = {
+        name: d.contributor_name || '—',
+        city: d.contributor_city || '',
+        state: d.contributor_state || '',
+        total: 0
+      };
+      seenIndiv[key].total += d.contribution_receipt_amount || 0;
+    });
+    topIndividuals = Object.values(seenIndiv)
+      .sort(function(a,b){ return b.total - a.total; })
+      .slice(0, 10);
+  } catch(e) { console.warn('Top individual contributors fetch failed:', e.message); }
+
+  var topCommittees = [];
+  try {
+    var commRes = await apiFetch('/schedules/schedule_a/', {
+      committee_id: COMMITTEE_ID,
+      two_year_transaction_period: period,
+      is_individual: false,
+      sort: '-contribution_receipt_amount',
+      per_page: 100
+    });
+    var seenComm = {};
+    (commRes.results || []).forEach(function(d) {
+      var key = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
+      if (!key) return;
+      if (!seenComm[key]) seenComm[key] = {
+        name: d.contributor_name || '—',
+        entity_type: d.entity_type || '',
+        total: 0
+      };
+      seenComm[key].total += d.contribution_receipt_amount || 0;
+    });
+    topCommittees = Object.values(seenComm)
+      .sort(function(a,b){ return b.total - a.total; })
+      .slice(0, 10);
+  } catch(e) { console.warn('Top committee contributors fetch failed:', e.message); }
+
+  return { byState: byState, breakdown: breakdown, totalRaised: totalRaised,
+           covDate: covDate, topIndividuals: topIndividuals, topCommittees: topCommittees,
+           cycleOrAll: cycleOrAll };
+}
+
+// ── Raised tab: donut chart ──────────────────────────
+function renderContributorDonut(breakdown, totalRaised) {
+  if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
+
+  var unitemizedPattern = document.getElementById('chart-donut')
+    .getContext('2d')
+    .createPattern(makeStripePattern('rgba(74,144,217,0.7)', 'rgba(74,144,217,0.12)'), 'repeat');
+
+  var cats = [
+    { label:'Individual (itemized)',    key:'individual_itemized_contributions',          color:'rgba(74,144,217,1)' },
+    { label:'Individual (unitemized)',  key:'individual_unitemized_contributions',         color: unitemizedPattern, legendColor:'rgba(74,144,217,0.65)' },
+    { label:'PAC / Other committees',  key:'other_political_committee_contributions',     color:'rgba(232,160,32,0.9)' },
+    { label:'Party committees',        key:'political_party_committee_contributions',     color:'rgba(61,191,122,0.85)' },
+    { label:'Transfers in',            key:'transfers_from_other_authorized_committee',   color:'rgba(155,142,212,0.85)' },
+    { label:'Candidate self-funding',  key:'candidate_contribution',                     color:'rgba(90,96,112,0.8)' },
+    { label:'Other',                   key:'other_receipts',                             color:'rgba(90,96,112,0.4)' },
+  ];
+
+  var vals   = cats.map(function(c){ return Math.max(0, breakdown[c.key] || 0); });
+  var total  = vals.reduce(function(s,v){ return s+v; }, 0) || totalRaised || 1;
+  var active = cats.filter(function(_,i){ return vals[i] > 0; });
+  var aVals  = vals.filter(function(v){ return v > 0; });
+
+  document.getElementById('donut-center-val').textContent = fmt(totalRaised);
+
+  var ctx = document.getElementById('chart-donut').getContext('2d');
+  donutInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: active.map(function(c){ return c.label; }),
+      datasets: [{ data: aVals,
+        backgroundColor: active.map(function(c){ return c.color; }),
+        borderColor: CHART_COLORS.donutBorder, borderWidth: 2,
+        hoverBorderColor: CHART_COLORS.donutBorderHover, hoverOffset: 4 }]
+    },
+    options: {
+      cutout: '68%', responsive: true, maintainAspectRatio: true,
+      animation: { duration: 600, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: CHART_COLORS.tooltipBg, titleColor: CHART_COLORS.tooltipTitle,
+          bodyColor: CHART_COLORS.tooltipBody, borderColor: CHART_COLORS.tooltipBorder,
+          borderWidth: 1, padding: 10,
+          titleFont: { family:'IBM Plex Mono', size:10 },
+          bodyFont:  { family:'IBM Plex Mono', size:11 },
+          callbacks: {
+            label: function(item) {
+              var pct = total > 0 ? (item.raw / total * 100).toFixed(1) : '0.0';
+              return ' ' + fmtFull(item.raw) + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+
+  var legendEl = document.getElementById('donut-legend');
+  legendEl.innerHTML = active.map(function(c, i) {
+    var pct = total > 0 ? (aVals[i]/total*100).toFixed(1) : '0';
+    return '<div class="donut-row">' +
+      '<div class="donut-sw" style="background:'+(c.legendColor || c.color)+'"></div>' +
+      '<div class="donut-lbl">'+c.label+'</div>' +
+      '<div class="donut-pct">'+pct+'%</div>' +
+      '<div class="donut-val">'+fmt(aVals[i])+'</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Raised tab: choropleth ───────────────────────────
+async function renderChoropleth(byStateData) {
+  var container = document.getElementById('map-container');
+  container.innerHTML = '<div style="padding:1rem 0;color:var(--muted);font-size:.63rem">Loading map…</div>';
+  try {
+    if (!usTopoCache) {
+      usTopoCache = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
+        .then(function(r){ return r.json(); });
+    }
+    var states = topojson.feature(usTopoCache, usTopoCache.objects.states);
+    var stateMap = {};
+    byStateData.forEach(function(d){ stateMap[d.state] = d; });
+    var maxTotal = byStateData.length ? byStateData[0].total : 0;
+
+    var rgb = COMM_PARTY === 'REP' ? '217,74,74'
+            : COMM_PARTY === 'DEM' ? '74,144,217'
+            : '155,142,212';
+
+    var projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305]);
+    var pathGen    = d3.geoPath().projection(projection);
+    var ns = 'http://www.w3.org/2000/svg';
+
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 960 600');
+    svg.setAttribute('aria-label', 'Map of individual contributions by state');
+
+    states.features.forEach(function(feature) {
+      var fips  = String(feature.id).padStart(2, '0');
+      var abbr  = FIPS_TO_ABBR[fips];
+      var rec   = abbr ? stateMap[abbr] : null;
+      var total = rec ? rec.total : 0;
+      var pct   = maxTotal > 0 && total > 0 ? total / maxTotal : 0;
+      var alpha = total > 0 ? (0.1 + pct * 0.82).toFixed(3) : '0';
+      var fill  = total > 0 ? 'rgba('+rgb+','+alpha+')' : 'rgba(205,199,188,0.4)';
+
+      var path = document.createElementNS(ns, 'path');
+      var dAttr = pathGen(feature);
+      if (!dAttr) return;
+      path.setAttribute('d', dAttr);
+      path.setAttribute('fill', fill);
+      path.setAttribute('stroke', '#ede8e0');
+      path.setAttribute('stroke-width', '0.75');
+
+      if (abbr) {
+        path.setAttribute('data-full', rec ? rec.state_full : abbr);
+        path.setAttribute('data-total', total);
+        path.addEventListener('mouseenter', function(e) {
+          document.getElementById('map-tt-name').textContent = this.getAttribute('data-full');
+          document.getElementById('map-tt-val').textContent  =
+            parseFloat(this.getAttribute('data-total')) > 0
+              ? fmtFull(parseFloat(this.getAttribute('data-total')))
+              : 'No individual contributions on record';
+          var tt = document.getElementById('map-tt');
+          tt.style.display = 'block';
+          tt.style.left = (e.clientX + 14) + 'px';
+          tt.style.top  = (e.clientY - 40) + 'px';
+        });
+        path.addEventListener('mousemove', function(e) {
+          var tt = document.getElementById('map-tt');
+          tt.style.left = (e.clientX + 14) + 'px';
+          tt.style.top  = (e.clientY - 40) + 'px';
+        });
+        path.addEventListener('mouseleave', function() {
+          document.getElementById('map-tt').style.display = 'none';
+        });
+      }
+      svg.appendChild(path);
+    });
+
+    container.innerHTML = '';
+    container.appendChild(svg);
+
+    var bar = document.getElementById('map-legend-bar');
+    bar.style.background = 'linear-gradient(to right, rgba('+rgb+',0.1), rgba('+rgb+',0.92))';
+    document.getElementById('map-legend').style.display = 'flex';
+
+  } catch(e) {
+    container.innerHTML = '<div style="padding:1rem 0;color:var(--muted);font-size:.63rem">Map unavailable.</div>';
+    console.warn('Choropleth render failed:', e.message);
+  }
+}
+
+// ── Raised tab: individual contributor table ─────────
+function renderIndividualDonors(donors) {
+  var tbody = document.getElementById('individual-donors-tbody');
+  if (!donors.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">No individual contribution data available.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = donors.map(function(d, i) {
+    var name = d.name
+      ? d.name.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
+      : '—';
+    var loc = [d.city ? toTitleCase(d.city) : '', d.state].filter(Boolean).join(', ');
+    return '<tr>' +
+      '<td style="color:var(--muted);font-size:.6rem">' + (i+1) + '</td>' +
+      '<td><div class="dn">' + name + '</div></td>' +
+      '<td style="font-size:.61rem;color:var(--muted)">' + (loc || '—') + '</td>' +
+      '<td class="da">' + fmtFull(d.total) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Raised tab: committee contributor table ──────────
+function renderCommitteeDonors(donors) {
+  var tbody = document.getElementById('committee-donors-tbody');
+  if (!donors.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">No committee contribution data available.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = donors.map(function(d, i) {
+    var name = d.name
+      ? d.name.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
+      : '—';
+    var label = ENTITY_TYPE_LABELS[d.entity_type] || 'Committee';
+    return '<tr>' +
+      '<td style="color:var(--muted);font-size:.6rem">' + (i+1) + '</td>' +
+      '<td><div class="dn">' + name + '</div></td>' +
+      '<td style="font-size:.61rem;color:var(--muted)">' + label + '</td>' +
+      '<td class="da">' + fmtFull(d.total) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Raised tab: orchestrate render ──────────────────
+async function renderRaisedIfReady() {
+  if (raisedRendered) return;
+  if (!raisedDataPromise) return;
+  var loadEl    = document.getElementById('raised-loading');
+  var contentEl = document.getElementById('raised-content');
+  loadEl.style.display    = 'flex';
+  contentEl.style.display = 'none';
+  try {
+    var data = await raisedDataPromise;
+    renderContributorDonut(data.breakdown, data.totalRaised);
+    await renderChoropleth(data.byState);
+    renderIndividualDonors(data.topIndividuals);
+    renderCommitteeDonors(data.topCommittees);
+
+    var cycleLabel = data.cycleOrAll === 'all'
+      ? 'Most recent cycle'
+      : (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
+    document.querySelector('#committee-donors-tbody').closest('.donors-card').querySelector('.donors-head')
+      .textContent = 'Top Committee Contributors · ' + cycleLabel;
+    document.querySelector('#individual-donors-tbody').closest('.donors-card').querySelector('.donors-head')
+      .textContent = 'Top Individual Contributors · ' + cycleLabel;
+
+    var note = 'Contributor type breakdown from FEC totals endpoint. ' +
+      'Geography reflects itemized individual contributions by state (Schedule A). ' +
+      'State totals may differ from summary figures due to FEC amendment processing. ' +
+      'Contributor tables: ' + cycleLabel + '.';
+    if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
+    note += ' Small-dollar contributions ≤$200 are not itemized.';
+    document.getElementById('raised-data-note').innerHTML = note;
+
+    loadEl.style.display    = 'none';
+    contentEl.style.display = 'block';
+    raisedRendered = true;
+  } catch(e) {
+    loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading contributor data: ' + e.message + '</span>';
+    console.error('renderRaisedIfReady:', e);
+  }
 }
 
 async function fetchAndRenderBackLink(candidateId, relType) {

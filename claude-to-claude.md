@@ -1555,3 +1555,52 @@ The through-line: Sloane treats the session-end ritual as part of the work. The 
 - committee.html Raised/Spent tabs: both are stubs. Raised could mirror candidate.html's chart + geography + contributor table. How much of that pattern makes sense at committee level vs. something simpler?
 - Filing history on committee.html: still not built. Is this Phase 3 remaining work or deprioritized in favor of Phase 4? The /committee/{id}/reports/ endpoint is already in use for candidate charts.
 - .committee-name-link CSS rule: still in styles.css with a deprecation comment. Last call site already removed — safe to delete next time styles.css is touched.
+
+---
+2026-03-20 [end of session]
+
+## Process log draft
+Title: The committee page gets its first real data tab
+
+Two sessions of structural scaffolding paid off this session — the committee.html Raised tab went from a "coming soon" stub to a fully functional page with a contributor type donut, a choropleth map, and two contributor tables. The wiring pattern mirrored candidate.html closely, with deliberate adaptations for the committee data model: breakdown built from ALL_TOTALS instead of sub-cycle fetch results, separate tables for individual and committee contributors, and a single by_state API call with client-side cycle filtering. A round of four cleanup fixes tightened things up before shipping.
+
+Changelog:
+– String(activeCycle) coercion fix in init() — integer 2022 wasn't matching <option value="2022"> string
+– committee.html Raised tab: donut chart (contributor types with stripe pattern for unitemized), choropleth map with party-colored fill, top committee contributors table, top individual contributors table
+– Table order: committee contributors above individual contributors
+– by_state bug fix: replaced parallel multi-call pattern with single call + d.cycle client-side filter; parallel calls were summing state totals multiple times (two_year_transaction_period silently ignored by endpoint)
+– candidate.html ALL_CYCLES sort: changed a-b to b-a (descending, most recent first) to match committee.html and race.html
+– CHART_COLORS and ENTITY_TYPE_LABELS moved from candidate.html and committee.html inline scripts to utils.js; both pages now use shared definitions
+– Dynamic table headers in renderRaisedIfReady: "2023–2024" for specific cycle, "Most recent cycle" for All time
+– api-mock.js: SCHEDULE_A_BY_STATE updated to 3 records; SCHEDULE_A_INDIVIDUALS and SCHEDULE_A_COMMITTEES added; resolveFixture routes by is_individual param
+– styles.css: .raised-grid, .raised-cell, .raised-cell-title added as shared component CSS (K1 section); @media column collapse added
+– 4 new Playwright tests: donut canvas present, map container present, both donor tbodys non-empty
+– 260/260 tests passing
+
+Field notes:
+The by_state bug was a good catch before it hit the live API. The parallel-call pattern looked correct on paper — one call per cycle, filter by request index — but fell apart because the endpoint ignores the cycle param entirely. Every parallel call returns the same full-history dataset, and filtering by request index means the same state totals get counted once per matching cycle. One call, filter by d.cycle on the results, done. The fix also made the code simpler.
+
+Moving CHART_COLORS and ENTITY_TYPE_LABELS to utils.js was the right call the moment committee.html needed them. Two files with divergent copies of the same constants is a maintenance trap — one would inevitably drift. The consolidation was small but permanent.
+
+Stack tags: Chart.js · D3 · TopoJSON · Schedule A
+
+## How Sloane steered the work
+**Specifying the bug before touching the code**
+Rather than just flagging the cycle switcher as broken, Sloane arrived with the exact diagnosis: String(activeCycle) coercion, the specific line in init(), and why renderHeader()'s sw.value = 'all' didn't need the same fix. That level of precision means zero debugging overhead — the fix was one targeted edit and done.
+
+**Four cleanup fixes as a pre-flight ritual**
+Sloane structured the session with a cleanup pass before opening new scope. The four fixes weren't cosmetic — the by_state bug would have produced incorrect state totals in production, the cycle sort order was inconsistent across pages, and the duplicate CHART_COLORS would have silently drifted. Shipping them before the Raised tab meant the feature launched on a cleaner foundation.
+
+**Committee contributors above individual contributors**
+After the initial implementation, Sloane immediately swapped the table order — committee contributors first, then individual. That's a deliberate editorial hierarchy: for most committees, PAC and party inflows are the structurally interesting signal; individual donors are context. One line to reorder, but it reflects domain thinking about what data matters most.
+
+**Specifying the by_state fix with the correct replacement code**
+Sloane didn't just flag the bug — the fix brief included the exact replacement block, the reasoning (parallel calls produce duplicate state totals), and the note about what to update in the mock. That's the pattern across this session: arrive with the diagnosis and the prescription, not just the symptom.
+
+The through-line: Sloane comes to coding sessions with prepared specs, not vague requests. The briefs include exact line numbers, verified reasoning, and explicit "don't change this other thing" boundaries. That precision is what makes four separate fixes across three files completable in a single session without introducing new issues.
+
+## What to bring to Claude Chat
+- Raised tab on committee.html vs. candidate.html — design divergence point. The committee Raised tab has two separate donor tables (committee + individual) where candidate.html has one. Now that both are live, worth a visual comparison pass: does the two-table layout feel right for all committee types, or should PAC-heavy committees (where committee donors dominate) collapse the individual table?
+- Spent tab scope. Committee.html Spent tab is still a stub. Is the right approach to mirror candidate.html's spend-by-category donut + vendor table, or is there a committee-specific angle (e.g. disbursements to candidates, coordinated expenditures) that would serve journalists/strategists better?
+- Filing history on committee.html. Still unbuilt. The /committee/{id}/reports/ endpoint is already in use for candidate charts. A filing history table (report type, coverage period, receipts, disbursements) might be more useful than the Spent tab stub for committees. Worth deciding before starting the Spent tab.
+- CHART_COLORS in utils.js — timing. Now that it's shared, any page that links utils.js gets the full palette. Design system documentation should reflect this. Worth a quick design-system.html token table update to note which tokens are JS constants (not CSS vars).

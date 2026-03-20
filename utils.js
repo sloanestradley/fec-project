@@ -164,3 +164,34 @@ function committeeTypeLabel(t) {
   };
   return map[t] || ('Type ' + t);
 }
+
+// ── Shared chart color palette ────────────────────────────────────────────────
+// Used by any page with Chart.js charts (candidate.html, committee.html, etc.)
+var CHART_COLORS = {
+  raised:           'rgba(74,144,217,0.9)',
+  raisedSolid:      'rgba(74,144,217,1)',
+  spent:            'rgba(217,74,74,0.85)',
+  spentSolid:       'rgba(217,74,74,1)',
+  coh:              'rgba(61,191,122,0.85)',
+  cohSolid:         'rgba(61,191,122,1)',
+  spentBar:         'rgba(217,74,74,0.72)',
+  overlayDeadline:  'rgba(90,96,112,0.4)',
+  overlayElection:  'rgba(232,160,32,0.75)',
+  overlayToday:     'rgba(136,144,160,0.18)',
+  tooltipBg:        '#f7f4ef',
+  tooltipTitle:     '#625b52',
+  tooltipBody:      '#1a1510',
+  tooltipBorder:    '#cdc7bc',
+  axisGrid:         'rgba(205,199,188,0.6)',
+  axisTick:         '#625b52',
+  axisBorder:       '#cdc7bc',
+  donutBorder:      '#f7f4ef',
+  donutBorderHover: '#f7f4ef',
+  pointBorder:      '#ede8e0'
+};
+
+// ── Shared entity type labels (Schedule A/B contributor and recipient types) ──
+var ENTITY_TYPE_LABELS = {
+  'PAC': 'PAC', 'PTY': 'Party committee', 'COM': 'Committee',
+  'CCM': 'Candidate committee', 'ORG': 'Organization', 'CAN': 'Candidate (self)', 'IND': 'Individual'
+};

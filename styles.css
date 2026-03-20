@@ -324,6 +324,12 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .map-tt-name { font-size:0.7rem; color:var(--text); font-weight:500; }
 .map-tt-val  { font-size:0.6rem; color:var(--muted); margin-top:0.1rem; }
 
+/* ── K1: Raised tab grid layout (candidate + committee) ── */
+.raised-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
+.raised-cell { background:var(--surface); border:1px solid var(--border); padding:1.75rem; min-width:0; }
+.raised-cell-title { font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--subtle); margin-bottom:1.25rem; }
+
 /* ── K: Stats grid ── */
 .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
   gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:1.5rem; }
@@ -489,6 +495,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   .committee-row { grid-template-columns:1fr; gap:0.2rem; }
   .committee-type,.committee-id { text-align:left; }
   .donors-table th:nth-child(3), .donors-table td:nth-child(3) { display:none; }
+  .raised-grid { grid-template-columns:1fr; }
   .stats-grid { grid-template-columns:repeat(2,1fr); }
   .typeahead-dropdown { max-width:100%; }
 }
