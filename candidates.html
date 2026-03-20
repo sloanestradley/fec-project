@@ -333,7 +333,7 @@ function buildCard(c, i, fromPage) {
   var latestCycle = c.election_years && c.election_years.length
     ? Math.max.apply(null, c.election_years) : '';
 
-  return '<a class="candidate-card" href="/candidate/' + c.candidate_id + '"'
+  return '<a class="candidate-card" href="/candidate/' + c.candidate_id + '?from=' + (fromPage || 'candidates') + '"'
     + ' onclick="amplitude.track(\'Candidate Result Clicked\',{candidate_id:'
     + JSON.stringify(c.candidate_id) + ',from_page:' + JSON.stringify(fromPage || 'candidates')
     + ',result_position:' + i + '})">'
@@ -531,7 +531,10 @@ function renderTypeahead(results) {
   if (!results.length) { closeTypeahead(); return; }
   dd.innerHTML = results.map(function(c) {
     var right = c.office_full || c.office || '';
-    return '<a class="typeahead-row" href="/candidate/' + c.candidate_id + '">'
+    return '<a class="typeahead-row" href="/candidate/' + c.candidate_id + '?from=typeahead"'
+      + ' onclick="amplitude.track(\'Typeahead Result Clicked\',{result_type:\'candidate\',candidate_id:'
+      + JSON.stringify(c.candidate_id) + ',candidate_name:' + JSON.stringify(formatCandidateName(c.name))
+      + ',result_position:' + i + ',from_page:\'candidates\'})">'
       + '<span class="typeahead-row-left">' + formatCandidateName(c.name)
       + ' <span class="typeahead-row-id">(' + c.candidate_id + ')</span></span>'
       + (right ? '<span class="typeahead-row-right">' + right + '</span>' : '')

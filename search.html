@@ -241,7 +241,7 @@ function renderCandidateGroup(candidates, total, query) {
     var pcls  = partyClass(c.party || c.party_full);
     var plbl  = partyLabel(c.party || c.party_full);
     var office = formatRaceName(c.office, c.state, c.district);
-    return '<a class="candidate-card" href="/candidate/' + c.candidate_id + '"'
+    return '<a class="candidate-card" href="/candidate/' + c.candidate_id + '?from=search"'
       + ' onclick="amplitude.track(\'Candidate Result Clicked\',{'
       + 'candidate_id:' + JSON.stringify(c.candidate_id) + ','
       + 'candidate_name:' + JSON.stringify(name) + ','
@@ -280,7 +280,7 @@ function renderCommitteeGroup(committees, total, query) {
     var dotCls  = filingFrequencyDotClass(c.filing_frequency);
     var freqLbl = filingFrequencyLabel(c.filing_frequency);
     var typeLbl = committeeTypeLabel(c.committee_type);
-    return '<a class="committee-result-row" href="/committee/' + c.committee_id + '"'
+    return '<a class="committee-result-row" href="/committee/' + c.committee_id + '?from=search"'
       + ' onclick="amplitude.track(\'Committee Result Clicked\',{'
       + 'committee_id:' + JSON.stringify(c.committee_id) + ','
       + 'query:' + JSON.stringify(query) + ','

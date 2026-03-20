@@ -1592,7 +1592,7 @@ async function init() {
     activeCycle = defaultCycle;
     CAND_NAME = displayName;
     updateBreadcrumb();
-    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle });
+    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null });
 
     var sw = document.getElementById('cycle-switcher');
     ALL_CYCLES.forEach(function(cy) {

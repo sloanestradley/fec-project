@@ -163,7 +163,7 @@ function designationLabel(d) {
 }
 
 async function init() {
-  amplitude.track('Page Viewed', { page: 'committee', committee_id: COMMITTEE_ID || null });
+  amplitude.track('Page Viewed', { page: 'committee', committee_id: COMMITTEE_ID || null, source: urlParams.get('from') || null });
 
   if (!COMMITTEE_ID) {
     var el = document.getElementById('state-msg');

@@ -199,7 +199,7 @@ function buildCandidateCard(c) {
   var plbl  = partyLabel(party);
 
   // Link directly to the race's cycle year so the candidate page opens at the right cycle
-  var href = id ? '/candidate/' + id + '#' + yearParam + '#summary' : '#';
+  var href = id ? '/candidate/' + id + '?from=race#' + yearParam + '#summary' : '#';
 
   var statsHtml = '';
   if (c.total_receipts != null || c.total_disbursements != null) {
@@ -229,7 +229,8 @@ async function init() {
   var fallbackCycles = [2026, 2024, 2022, 2020, 2018];
 
   amplitude.track('Page Viewed', {
-    page: 'race', state: stateParam, year: yearParam, office: officeParam, district: districtParam
+    page: 'race', state: stateParam, year: yearParam, office: officeParam, district: districtParam,
+    source: urlParams.get('from') || null
   });
 
   var validationError = validateParams();

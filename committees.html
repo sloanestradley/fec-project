@@ -304,7 +304,7 @@ function buildRow(c, i, fromPage) {
   var dotCls  = filingFrequencyDotClass(c.filing_frequency);
   var freqLbl = filingFrequencyLabel(c.filing_frequency);
 
-  return '<a class="committee-row" href="/committee/' + c.committee_id + '"'
+  return '<a class="committee-row" href="/committee/' + c.committee_id + '?from=' + (fromPage || 'committees') + '"'
     + ' onclick="amplitude.track(\'Committee Result Clicked\',{committee_id:'
     + JSON.stringify(c.committee_id) + ',from_page:' + JSON.stringify(fromPage || 'committees')
     + ',result_position:' + i + '})">'
@@ -491,7 +491,10 @@ function renderTypeahead(results) {
   if (!results.length) { closeTypeahead(); return; }
   dd.innerHTML = results.map(function(c) {
     var dotCls = filingFrequencyDotClass(c.filing_frequency);
-    return '<a class="typeahead-row" href="/committee/' + c.committee_id + '">'
+    return '<a class="typeahead-row" href="/committee/' + c.committee_id + '?from=typeahead"'
+      + ' onclick="amplitude.track(\'Typeahead Result Clicked\',{result_type:\'committee\',committee_id:'
+      + JSON.stringify(c.committee_id) + ',committee_name:' + JSON.stringify(c.name || '')
+      + ',result_position:' + i + ',from_page:\'committees\'})">'
       + '<span class="typeahead-row-left">' + (c.name || '—')
       + ' <span class="typeahead-row-id">(' + c.committee_id + ')</span></span>'
       + '<span class="typeahead-row-right">'
