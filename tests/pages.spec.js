@@ -91,32 +91,32 @@ test.describe('races.html', () => {
     expect(event.args[1]).toMatchObject({ page: 'races' });
   });
 
-  test('two mode cards render (Curated and Ad Hoc)', async ({ page }) => {
-    const cards = page.locator('.mode-card');
-    await expect(cards).toHaveCount(2);
+  test('page header renders with title "Browse Races"', async ({ page }) => {
+    const title = page.locator('.page-title');
+    await expect(title).toHaveText('Browse Races');
   });
 
-  test('Ad Hoc card shows a planned badge', async ({ page }) => {
-    const planned = page.locator('.planned-badge, .mode-card-disabled .planned-badge');
-    await expect(planned).toBeVisible();
+  test('filter bar has Year, Office, and State fields', async ({ page }) => {
+    await expect(page.locator('#f-cycle')).toBeAttached();
+    await expect(page.locator('#f-office')).toBeAttached();
+    await expect(page.locator('#f-state')).toBeAttached();
   });
 
-  test('clicking Curated card reveals the curated form', async ({ page }) => {
-    await page.locator('#curated-card').click();
-    await expect(page.locator('#curated-form')).toBeVisible({ timeout: 3000 });
+  test('office select has All offices, House, Senate, President', async ({ page }) => {
+    const options = page.locator('#f-office option');
+    await expect(options).toHaveCount(4);
+    await expect(options.nth(0)).toHaveText('All offices');
   });
 
-  test('curated form has office and state fields', async ({ page }) => {
-    await page.locator('#curated-card').click();
-    await expect(page.locator('#form-office')).toBeVisible({ timeout: 3000 });
-    await expect(page.locator('#form-state')).toBeVisible({ timeout: 3000 });
+  test('state combo filter input is present', async ({ page }) => {
+    await expect(page.locator('#f-state-filter')).toBeAttached();
   });
 
-  test('district field is visible when House is selected', async ({ page }) => {
-    await page.locator('#curated-card').click();
-    // House should be selected by default (or select it)
-    await page.locator('#form-office').selectOption('H');
-    await expect(page.locator('#district-wrap')).toBeVisible({ timeout: 2000 });
+  test('results area and state containers exist', async ({ page }) => {
+    await expect(page.locator('#state-results')).toBeAttached();
+    await expect(page.locator('#state-loading')).toBeAttached();
+    await expect(page.locator('#state-no-results')).toBeAttached();
+    await expect(page.locator('#state-error')).toBeAttached();
   });
 });
 

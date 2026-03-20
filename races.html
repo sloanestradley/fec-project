@@ -11,53 +11,71 @@
   <!-- Amplitude Analytics -->
   <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
-    .main { overflow-x:hidden; min-width:0; }
+    .main { overflow:visible; min-width:0; }
 
-    /* ── Mode selector ── */
-    .mode-selector { padding:2.5rem var(--page-gutter); }
-    .mode-selector-title { font-family:'Barlow Condensed',sans-serif; font-size:0.75rem;
-      font-weight:600; letter-spacing:0; text-transform:uppercase; color:var(--muted);
-      margin-bottom:1.5rem; }
-    .mode-cards { display:grid; grid-template-columns:1fr 1fr; gap:1px;
-      background:var(--border); border:1px solid var(--border); max-width:700px; }
-    .mode-card { background:var(--surface); padding:2rem 1.75rem; cursor:pointer;
-      transition:background 0.15s; }
-    .mode-card:hover:not(.mode-card-disabled) { background:var(--surface2); }
-    .mode-card-disabled { opacity:0.45; cursor:default; }
-    .mode-card-label { font-family:'Barlow Condensed',sans-serif; font-size:1.3rem;
-      font-weight:800; text-transform:uppercase; letter-spacing:0; color:var(--text);
-      margin-bottom:0.5rem; display:flex; align-items:center; gap:0.6rem; }
-    .mode-card-desc { font-size:0.78rem; color:var(--muted); line-height:1.55; margin-bottom:1.25rem; }
-    .planned-badge { font-family:'IBM Plex Mono',monospace; font-size:0.54rem;
-      text-transform:uppercase; letter-spacing:0; border:1px solid var(--border-strong);
-      color:var(--muted); padding:0.1rem 0.4rem; }
+    /* Page header */
+    .page-header { padding:2.5rem var(--page-gutter) 2rem; border-bottom:1px solid var(--border); }
+    .page-eyebrow { font-size:0.62rem; color:var(--muted); letter-spacing:0.1em;
+      text-transform:uppercase; margin-bottom:0.75rem; }
+    .page-title { font-family:'Barlow Condensed',sans-serif; font-size:clamp(1.8rem,3.5vw,2.8rem);
+      font-weight:800; text-transform:uppercase; letter-spacing:0; line-height:1; margin-bottom:0.5rem; }
 
-    /* Curated form */
-    .curated-form { display:none; border-top:1px solid var(--border); padding-top:1.25rem; margin-top:0.25rem; }
-    .curated-form.open { display:block; }
-    .form-row { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:0.75rem; }
+    /* Filter bar */
+    .filter-bar-wrap { padding:1.5rem var(--page-gutter); border-bottom:1px solid var(--border); position:relative; z-index:10; }
+    .filter-bar { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end; max-width:860px; }
     .form-field { display:flex; flex-direction:column; gap:0.3rem; }
     .form-label { font-family:'IBM Plex Mono',monospace; font-size:0.58rem;
       text-transform:uppercase; letter-spacing:0; color:var(--muted); }
-    .form-select, .form-input { padding:0.45rem 0.6rem; font-family:'DM Sans',sans-serif;
-      font-size:0.8rem; background:var(--bg); border:1px solid var(--border-strong);
-      color:var(--text); outline:none; transition:border-color 0.15s; border-radius:0; }
-    .form-select:focus, .form-input:focus { border-color:var(--accent); }
-    .form-input { width:80px; }
-    .form-input.wide { width:130px; }
-    .form-go-btn { padding:0.45rem 1rem; background:var(--text); color:var(--bg);
-      border:1px solid var(--text); font-family:'Barlow Condensed',sans-serif;
-      font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:0;
-      cursor:pointer; transition:opacity 0.15s; white-space:nowrap; }
-    .form-go-btn:hover { opacity:0.85; }
-    #district-wrap { display:none; }
+
+    /* State combo */
+    .state-combo { position:relative; }
+    .state-combo .form-input { width:120px; }
+    .state-select-wrap { position:absolute; top:100%; left:0; min-width:200px; z-index:50;
+      display:none; background:var(--bg); border:1px solid var(--border-strong); border-top:none; }
+    .state-combo:focus-within .state-select-wrap { display:block; }
+    .state-listbox { width:100%; max-height:200px; overflow-y:auto; background:var(--bg);
+      font-family:'DM Sans',sans-serif; font-size:0.78rem; color:var(--text);
+      border:none; outline:none; cursor:pointer; }
+
+    /* Filter chips */
+    .filter-chips-wrap { padding:0.55rem var(--page-gutter); border-bottom:1px solid var(--border);
+      display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; }
+    .filter-chip { display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.5rem;
+      background:var(--bg); border:1px solid var(--border-strong);
+      font-family:'IBM Plex Mono',monospace; font-size:0.62rem; color:var(--subtle); }
+    .chip-x { background:none; border:none; cursor:pointer; font-size:0.85rem;
+      color:var(--muted); padding:0 0.1rem; line-height:1; display:flex; align-items:center; }
+    .chip-x:hover { color:var(--text); }
+    .chip-clear-all { background:none; border:1px solid var(--border-strong); cursor:pointer;
+      font-family:'IBM Plex Mono',monospace; font-size:0.6rem; color:var(--muted);
+      padding:0.2rem 0.5rem; text-transform:uppercase; letter-spacing:0; }
+    .chip-clear-all:hover { color:var(--text); border-color:var(--text); }
+
+    /* Results area */
+    .results-area { padding:2rem var(--page-gutter); }
+    .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
+      text-transform:uppercase; letter-spacing:0; color:var(--muted);
+      margin-bottom:1rem; }
+
+    /* No results / error */
+    .no-results { padding:2.5rem var(--page-gutter); color:var(--muted); font-size:0.8rem; }
+    .error-prompt { padding:3rem var(--page-gutter); color:var(--muted); font-size:0.8rem; }
+    .error-prompt strong { display:block; font-family:'Barlow Condensed',sans-serif;
+      font-size:1.2rem; font-weight:700; text-transform:uppercase; letter-spacing:0;
+      color:var(--subtle); margin-bottom:0.4rem; }
+    .retry-btn { margin-top:0.75rem; padding:0.4rem 0.9rem; background:none;
+      border:1px solid var(--border-strong); font-family:'Barlow Condensed',sans-serif;
+      font-size:0.8rem; font-weight:700; text-transform:uppercase; cursor:pointer;
+      color:var(--subtle); transition:border-color 0.15s, color 0.15s; }
+    .retry-btn:hover { border-color:var(--text); color:var(--text); }
 
     @media (max-width:860px) {
-      .mode-selector { padding:1.5rem var(--page-gutter); }
-      .mode-cards { grid-template-columns:1fr; }
-      .state-msg { padding:2rem var(--page-gutter); }
+      .main { padding-top:calc(var(--banner-h) + var(--header-h)); }
+      .filter-bar-wrap { padding:var(--page-gutter); }
+      .results-area { padding:1.5rem var(--page-gutter); }
+      .no-results, .error-prompt { padding:2rem var(--page-gutter); }
     }
-    @media (max-width:480px) { .form-row { flex-direction:column; } }
+    @media (max-width:480px) { .filter-bar { flex-direction:column; align-items:flex-start; } }
   </style>
 </head>
 <body>
@@ -104,52 +122,138 @@
 <!-- Main -->
   <div class="main">
   <div class="main-inner">
-    <div class="mode-selector">
-      <div class="mode-selector-title">Select a mode</div>
-      <div class="mode-cards">
 
-        <!-- Curated mode -->
-        <div class="mode-card" id="curated-card" onclick="toggleCuratedForm()">
-          <div class="mode-card-label">Curated Race</div>
-          <div class="mode-card-desc">Browse all declared candidates in a specific contest. Select state, office, and election year.</div>
-          <div class="curated-form" id="curated-form" onclick="event.stopPropagation()">
-            <div class="form-row">
-              <div class="form-field">
-                <label class="form-label" for="form-office">Office</label>
-                <select class="form-select" id="form-office" onchange="handleOfficeChange()">
-                  <option value="H">House</option>
-                  <option value="S">Senate</option>
-                  <option value="P">President</option>
-                </select>
-              </div>
-              <div class="form-field">
-                <label class="form-label" for="form-state">State</label>
-                <input class="form-input wide" type="text" id="form-state" placeholder="e.g. WA" maxlength="2"/>
-              </div>
-              <div class="form-field" id="district-wrap">
-                <label class="form-label" for="form-district">District</label>
-                <input class="form-input" type="text" id="form-district" placeholder="e.g. 03" maxlength="2"/>
-              </div>
-              <div class="form-field">
-                <label class="form-label" for="form-year">Year</label>
-                <input class="form-input" type="text" id="form-year" placeholder="e.g. 2026" maxlength="4"/>
-              </div>
-              <button class="form-go-btn" onclick="goToCuratedRace()">View Race →</button>
+    <div class="page-header">
+      <div class="page-eyebrow">Races</div>
+      <div class="page-title">Browse Races</div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar-wrap">
+      <form class="filter-bar" id="filter-form" onsubmit="return false">
+
+        <!-- Year -->
+        <div class="form-field">
+          <label class="form-label" for="f-cycle">Year</label>
+          <select class="form-select" id="f-cycle">
+            <!-- Options populated dynamically by JS -->
+          </select>
+        </div>
+
+        <!-- Office -->
+        <div class="form-field">
+          <label class="form-label" for="f-office">Office</label>
+          <select class="form-select" id="f-office">
+            <option value="">All offices</option>
+            <option value="H">House</option>
+            <option value="S">Senate</option>
+            <option value="P">President</option>
+          </select>
+        </div>
+
+        <!-- State combo -->
+        <div class="form-field">
+          <label class="form-label" for="f-state-filter">State</label>
+          <div class="state-combo" id="state-combo">
+            <input class="form-input" type="text" id="f-state-filter" placeholder="All states" autocomplete="off"/>
+            <div class="state-select-wrap">
+              <select id="f-state" size="6" class="state-listbox">
+                <option value="">All states</option>
+                <option value="AK">AK — Alaska</option>
+                <option value="AL">AL — Alabama</option>
+                <option value="AR">AR — Arkansas</option>
+                <option value="AZ">AZ — Arizona</option>
+                <option value="CA">CA — California</option>
+                <option value="CO">CO — Colorado</option>
+                <option value="CT">CT — Connecticut</option>
+                <option value="DC">DC — D.C.</option>
+                <option value="DE">DE — Delaware</option>
+                <option value="FL">FL — Florida</option>
+                <option value="GA">GA — Georgia</option>
+                <option value="HI">HI — Hawaii</option>
+                <option value="IA">IA — Iowa</option>
+                <option value="ID">ID — Idaho</option>
+                <option value="IL">IL — Illinois</option>
+                <option value="IN">IN — Indiana</option>
+                <option value="KS">KS — Kansas</option>
+                <option value="KY">KY — Kentucky</option>
+                <option value="LA">LA — Louisiana</option>
+                <option value="MA">MA — Massachusetts</option>
+                <option value="MD">MD — Maryland</option>
+                <option value="ME">ME — Maine</option>
+                <option value="MI">MI — Michigan</option>
+                <option value="MN">MN — Minnesota</option>
+                <option value="MO">MO — Missouri</option>
+                <option value="MS">MS — Mississippi</option>
+                <option value="MT">MT — Montana</option>
+                <option value="NC">NC — North Carolina</option>
+                <option value="ND">ND — North Dakota</option>
+                <option value="NE">NE — Nebraska</option>
+                <option value="NH">NH — New Hampshire</option>
+                <option value="NJ">NJ — New Jersey</option>
+                <option value="NM">NM — New Mexico</option>
+                <option value="NV">NV — Nevada</option>
+                <option value="NY">NY — New York</option>
+                <option value="OH">OH — Ohio</option>
+                <option value="OK">OK — Oklahoma</option>
+                <option value="OR">OR — Oregon</option>
+                <option value="PA">PA — Pennsylvania</option>
+                <option value="RI">RI — Rhode Island</option>
+                <option value="SC">SC — South Carolina</option>
+                <option value="SD">SD — South Dakota</option>
+                <option value="TN">TN — Tennessee</option>
+                <option value="TX">TX — Texas</option>
+                <option value="UT">UT — Utah</option>
+                <option value="VA">VA — Virginia</option>
+                <option value="VT">VT — Vermont</option>
+                <option value="WA">WA — Washington</option>
+                <option value="WI">WI — Wisconsin</option>
+                <option value="WV">WV — West Virginia</option>
+                <option value="WY">WY — Wyoming</option>
+              </select>
             </div>
           </div>
         </div>
 
-        <!-- Ad hoc mode — planned -->
-        <div class="mode-card mode-card-disabled">
-          <div class="mode-card-label">
-            Ad Hoc Compare
-            <span class="planned-badge">Planned</span>
-          </div>
-          <div class="mode-card-desc">Compare any candidates across races. Build a custom field — useful for tracking multiple frontline races at once.</div>
-        </div>
+      </form>
+    </div>
 
+    <!-- Filter chips -->
+    <div id="filter-chips" class="filter-chips-wrap" style="display:none"></div>
+
+    <!-- State: loading -->
+    <div id="state-loading" style="display:none">
+      <div class="state-msg"><div class="loader"></div><span>Fetching races from FEC…</span></div>
+    </div>
+
+    <!-- State: results -->
+    <div id="state-results" style="display:none">
+      <div class="results-area">
+        <div class="results-header" id="results-header"></div>
+        <div id="results-list"></div>
+        <div id="load-more-spinner" class="state-msg" style="display:none;padding:1.5rem var(--page-gutter);justify-content:center">
+          <div class="loader"></div>
+        </div>
+        <div id="end-of-results" style="display:none;padding:1.25rem var(--page-gutter);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0;border-top:1px solid var(--border);text-align:center">
+          End of results
+        </div>
       </div>
     </div>
+
+    <!-- State: no results -->
+    <div id="state-no-results" style="display:none">
+      <div class="no-results">No races found matching those filters. Try broadening your search.</div>
+    </div>
+
+    <!-- State: error -->
+    <div id="state-error" style="display:none">
+      <div class="error-prompt">
+        <strong>Couldn't load races</strong>
+        There was a problem fetching data from the FEC API.
+        <div><button class="retry-btn">Retry</button></div>
+      </div>
+    </div>
+
   </div><!-- /.main-inner -->
   </div><!-- /.main -->
 
@@ -158,32 +262,56 @@
 </div>
 
 <script src="main.js"></script>
+<script src="utils.js"></script>
 <script>
 amplitude.track('Page Viewed', { page: 'races' });
 
-function toggleCuratedForm() {
-  var form = document.getElementById('curated-form');
-  form.classList.toggle('open');
+var activeFilters = { cycle: '', office: '', state: '' };
+
+function showState(name) {
+  document.getElementById('state-loading').style.display    = name === 'loading'    ? 'block' : 'none';
+  document.getElementById('state-results').style.display    = name === 'results'    ? 'block' : 'none';
+  document.getElementById('state-no-results').style.display = name === 'no-results' ? 'block' : 'none';
+  document.getElementById('state-error').style.display      = name === 'error'      ? 'block' : 'none';
 }
 
-function handleOfficeChange() {
-  var office = document.getElementById('form-office').value;
-  document.getElementById('district-wrap').style.display = office === 'H' ? 'block' : 'none';
-}
+// ── State combo (copied from candidates.html) ─────────────────────────────────
 
-function goToCuratedRace() {
-  var office   = document.getElementById('form-office').value;
-  var state    = document.getElementById('form-state').value.trim().toUpperCase();
-  var district = document.getElementById('form-district').value.trim();
-  var year     = document.getElementById('form-year').value.trim();
-  if (!state || !year) { alert('Please enter state and year.'); return; }
-  var url = '/race?office=' + office + '&state=' + state + '&year=' + year;
-  if (office === 'H' && district) url += '&district=' + district;
-  window.location.href = url;
-}
+document.getElementById('f-state-filter').addEventListener('input', function() {
+  var val = this.value.toLowerCase();
+  Array.from(document.getElementById('f-state').options).forEach(function(opt) {
+    opt.style.display = (!val || opt.text.toLowerCase().includes(val)) ? '' : 'none';
+  });
+  if (!val && activeFilters.state) {
+    activeFilters.state = '';
+    document.getElementById('f-state').value = '';
+    // doFetch() — wired in follow-up
+  }
+});
 
-// Show district field for House (default)
-document.getElementById('district-wrap').style.display = 'block';
+document.getElementById('f-state').addEventListener('change', function() {
+  var code = this.value;
+  document.getElementById('f-state-filter').value = code;
+  activeFilters.state = code;
+  this.blur();
+  document.getElementById('f-state-filter').blur();
+  Array.from(this.options).forEach(function(opt) { opt.style.display = ''; });
+  // doFetch() — wired in follow-up
+});
+
+document.getElementById('f-office').addEventListener('change', function() {
+  activeFilters.office = this.value;
+  // doFetch() — wired in follow-up
+});
+
+document.getElementById('f-cycle').addEventListener('change', function() {
+  activeFilters.cycle = this.value;
+  // doFetch() — wired in follow-up
+});
+
+(function init() {
+  // Cycle default and population handled in follow-up prompt
+})();
 </script>
 
 </body>

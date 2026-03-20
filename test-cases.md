@@ -247,23 +247,34 @@
 **Test URL:** `localhost:8080/races.html`
 
 ### Nav active state
-- [ ] "Races" nav item is active
+- [ ] "Races" nav item is active ✅
 
 ### Amplitude events
-- [ ] `Page Viewed` fires with `page: 'races'`
+- [ ] `Page Viewed` fires with `page: 'races'` ✅
 
-### Mode selector
-- [ ] Two mode cards render: Curated and Ad Hoc
-- [ ] Ad Hoc card shows a "planned" or disabled badge
-- [ ] Clicking Curated reveals the curated form
+### Page header
+- [ ] Page eyebrow reads "Races" ✅
+- [ ] Page title reads "Browse Races" ✅
+- [ ] No `.page-desc` paragraph
 
-### Curated form
-- [ ] State dropdown populates
-- [ ] Office dropdown populates (House, Senate, President)
-- [ ] Year/cycle input or dropdown present
-- [ ] District field appears when House is selected; hidden for Senate/President
-- [ ] Submitting the form navigates to `race.html?state=...&office=...&year=...`
-- [ ] If URL params are present on load, form pre-fills and auto-fetches
+### Filter bar
+- [ ] Year `<select>` present (empty — populated by JS in follow-up) ✅
+- [ ] Office `<select>` with All offices / House / Senate / President ✅
+- [ ] State combo with text filter input and listbox dropdown ✅
+- [ ] State dropdown not clipped when open (overflow fix applied)
+- [ ] Filter chips area present and hidden by default ✅
+
+### Results area
+- [ ] `#state-results`, `#state-loading`, `#state-no-results`, `#state-error` all present ✅
+- [ ] `#load-more-spinner` and `#end-of-results` present inside results area ✅
+- [ ] Retry button present in error state ✅
+
+### Pending (follow-up prompt)
+- [ ] Data fetching wired to filter changes
+- [ ] Results rendering with race cards
+- [ ] Filter chips render and clear correctly
+- [ ] URL sync on filter changes
+- [ ] Infinite scroll / load more
 
 ---
 
@@ -601,3 +612,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-19 | Party label/tooltip refactor (partyLabel, partyTooltip, partyNaTooltip in utils.js); search.html results-group-header restructure (count+label+query); race-before-party tag order on candidates.html + search.html; committees.html full-row <a> (was name-link only); .committee-name-link deprecated; padding-bottom tweaks on section labels | utils.js, candidates.html, committees.html, search.html, candidate.html, styles.css, tests/pages.spec.js (automated) | 3 tests targeting .committee-name-link (fixed to .committee-row / .committee-name) | 234/234 Track 1 passing |
 | 2026-03-19 | Sidebar → fixed top nav refactor — remove sidebar/layout grid/mobile-header; add .top-nav, .mobile-nav drop-down, .top-nav-mobile-search expand panel; update all 9 pages, styles.css, main.js; update shared.spec.js, pages.spec.js, candidate.spec.js, search.spec.js; update design-system comp-nav-item card + token table | All pages, styles.css, main.js, all test files (automated) | 14 stale test references in pages.spec.js, candidate.spec.js, search.spec.js (fixed) | 234/234 Track 1 passing |
 | 2026-03-19 | Visual + copy polish — search button SVG icons, placeholder text updates, filter bar background removal, .page-desc removal, .committee-name font-weight, aria-label fixes, nav search input width | All 9 pages, styles.css (automated) | None | 234/234 Track 1 passing |
+| 2026-03-19 | races.html browse page — replace mode selector with browse template (page header, filter bar, results area, state combo); fix state dropdown clipping (overflow:visible on .main); update 5 Playwright tests | races.html, tests/pages.spec.js, ia.md (automated) | 5 stale mode-selector tests (replaced with browse page structure tests) | 234/234 Track 1 passing |

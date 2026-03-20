@@ -140,7 +140,7 @@ candidates.html   — Unified browse+search (live): auto-load, inline search + t
 candidate.html    — Single candidate profile (live, primary active file)
 committees.html   — Unified browse+search (live): auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state
 committee.html    — Single committee profile (scaffold)
-races.html        — Race mode selector — curated form + ad hoc stub (scaffold)
+races.html        — Browse races by year, office, state (active — data fetching in follow-up)
 race.html         — Single race view — all candidates in a contest (scaffold)
 process-log.html  — Living case study / dev diary
 design-system.html — Token and component reference (live)
@@ -276,9 +276,9 @@ See `project-brief.md` for the full phased roadmap. Short version:
 **Phase 3 (scaffold):** Committee and race pages.
 - ~~committee.html~~ ✅ scaffold — header with financials, back-link to candidate
 - ~~committees.html~~ ✅ unified browse+search — auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state, treasurer always shown
-- ~~races.html~~ ✅ scaffold — mode selector (curated form live; ad hoc stub)
+- ~~races.html~~ ✅ browse page — filter bar (Year/Office/State), results area, state combo, filter chips, all UI states; data fetching + result rendering in follow-up
 - ~~race.html~~ ✅ scaffold — single race view, candidate cards with financials, cycle-anchored links, dynamic cycle dropdown from `/elections/search/`, Senate class indicator, URL param validation
-- Remaining: filing history on committee.html, associated candidates on committee.html, ad hoc mode on races.html
+- Remaining: filing history on committee.html, associated candidates on committee.html, races.html data fetching + result rendering
 
 **Phase 4:** Early signal data (48/24hr reports), AI insights, transaction-level search.
 

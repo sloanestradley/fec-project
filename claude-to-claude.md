@@ -1377,3 +1377,43 @@ The through-line: Sloane is treating placeholder text, button labels, and backgr
 - The filter bar on candidates.html and committees.html now has no background — it blends with the page. Worth a visual check on the deployed site to confirm this reads well, especially at the boundary between page header and filter bar where two border-bottom rules stack.
 - The nav search input is now 240px — does it feel wide enough for "Search candidates and committees" as placeholder text, or should it grow further? Worth checking at the 861px breakpoint where it first appears.
 - Process-log.html and design-system.html still have .page-desc — these are documentation pages, not browse pages, so the subtitle pattern may still be appropriate. Worth confirming this is intentional rather than an oversight.
+
+---
+2026-03-19 21:30 — races.html browse page conversion
+
+## Process log draft
+Title: Mode selector out, browse page in
+
+The races page had been a mode selector — two cards, one form, a placeholder for a feature that wasn't built yet. This session replaced it entirely with a browse page that matches the candidates and committees pattern: page header, filter bar (Year, Office, State), filter chips, and a full results area with loading/error/empty states. The data fetching is next, but the structure is ready.
+
+Changelog:
+– races.html rewritten as a browse page matching candidates.html/committees.html template pattern
+– Mode selector UI (curated form, ad hoc stub, mode cards) removed entirely
+– Filter bar: Year <select> (empty, JS-populated in follow-up), Office <select>, State combo with typeahead filtering
+– Results area: results header, results list, load-more spinner, end-of-results, loading/no-results/error states
+– Fixed state dropdown clipping: overflow:visible on .main overrides the global overflow-x:hidden that was creating a scroll container and clipping absolutely-positioned dropdowns when .main was short
+– 5 stale Playwright tests replaced with 5 browse page structure tests; 234/234 passing
+– ia.md: races.html promoted from Scaffold to Active
+
+Field notes:
+The dropdown clipping bug was a good reminder of a CSS spec quirk: setting overflow-x:hidden on an element forces overflow-y to auto, creating a scroll container that clips absolutely positioned children in both directions. On candidates.html and committees.html, this never surfaced because loaded results make .main tall enough to contain the dropdown. On races.html with no results, .main was short and the dropdown extended past its bottom edge. The fix — overflow:visible — is the right call for a page whose content won't cause horizontal overflow. The bug only existed because the page was empty; once results load it would have been masked again. Better to fix the root cause.
+
+Stack tags: CSS, HTML
+
+## How Sloane steered the work
+
+**Full spec as the opening prompt — structure, fields, CSS, JS, everything**
+The prompt specified every element: field order (Year, Office, State), exact option values, which patterns to copy from candidates.html, which CSS to include, which CSS to remove, the JS scaffold with exact function bodies, and the ia.md update. No ambiguity, no room for drift. The result was a single write with no mid-stream corrections.
+
+**"Data fetching and results rendering are in a follow-up prompt"**
+Explicitly scoping this session to structure-only prevented the temptation to wire up doFetch(), result cards, URL sync, and infinite scroll in the same pass. That's a clean boundary: get the DOM right first, then make it live. The JS scaffold has `// doFetch() — wired in follow-up` comments as placeholders — the separation is visible in the code itself.
+
+**Catching the dropdown clipping in browser testing**
+Sloane flagged the state dropdown clipping after the first implementation, and pushed back when the initial fix didn't work ("Hmm...still appearing as clipped"). That forced a deeper investigation into the CSS overflow spec behavior rather than accepting a surface-level z-index fix.
+
+The through-line: Sloane scopes work to clean boundaries (structure vs. data), specifies at the field level, and tests in the browser before moving on.
+
+## What to bring to Claude Chat
+- races.html data fetching design: The follow-up prompt needs to decide which FEC API endpoint to use for browsing races. /elections/search/ returns cycle/office/state/district but no financial data. /elections/ returns candidates with financials but is scoped to a single race. The browse page likely needs /elections/search/ for discovery, then links to /race?... for detail. Worth aligning on the card format and what data to show in browse results before building.
+- Overflow-x:hidden on .main globally: This caused the dropdown clipping on races.html and was fixed with a page-level override. candidates.html and committees.html have the same risk if they're ever rendered with no results and the state combo is open. Worth deciding whether to remove the global rule or keep the per-page overrides.
+- races.html replaces the curated form entry point: The old races.html had a curated form that navigated to race.html. That entry point is now gone — users will browse and click into a race instead. Is that the right flow, or should the curated form (direct state/office/year/district entry) be preserved somewhere?

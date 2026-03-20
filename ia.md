@@ -1,6 +1,6 @@
 # ledger.fec — Information Architecture
 
-*Last updated: 2026-03-10. Update this file whenever pages are added, renamed, or promoted in phase.*
+*Last updated: 2026-03-19. Update this file whenever pages are added, renamed, or promoted in phase.*
 
 ---
 
@@ -14,7 +14,7 @@
 | `candidate.html` | Single candidate profile | `/candidate/{fec_candidate_id}#{cycle}#{tab}` | Live | 1 |
 | `committees.html` | Browse committees by type/state, or search by name via `?q=` | `/committees?state=WA&type=P` or `/committees?q={query}` | Scaffold + search | 3 |
 | `committee.html` | Single committee profile | `/committee/{fec_committee_id}` | Scaffold | 3 |
-| `races.html` | Race mode selector (curated / ad hoc) | `/races` | Scaffold | 3 |
+| `races.html` | Browse races by year, office, state | `/races?cycle=2026&office=H&state=WA` | Active | 3 |
 | `race.html` | Single race view — all candidates in a contest | `/race?state=WA&district=03&year=2026&office=H` | Scaffold | 3 |
 | `process-log.html` | Living case study / dev diary | `/process-log.html` | Live | 1 |
 | `design-system.html` | Design token and component reference | `/design-system.html` | Live | 1 |
