@@ -79,10 +79,47 @@ const COMMITTEE = {
 };
 
 // Committee financial totals — 2 records only; 2026 intentionally absent to exercise "no record → show —" path
+// Breakdown fields added for Raised and Spent tab donuts.
 const COMMITTEE_TOTALS = {
   results: [
-    { cycle: 2024, receipts: 3500000, disbursements: 3100000, last_cash_on_hand_end_period: 450000, coverage_end_date: '2024-12-31T00:00:00' },
-    { cycle: 2022, receipts: 2100000, disbursements: 1950000, last_cash_on_hand_end_period: 170000, coverage_end_date: '2022-12-31T00:00:00' },
+    {
+      cycle: 2024,
+      receipts: 3500000, disbursements: 3100000,
+      last_cash_on_hand_end_period: 450000, coverage_end_date: '2024-12-31T00:00:00',
+      // Raised breakdown
+      individual_itemized_contributions: 2000000,
+      individual_unitemized_contributions: 500000,
+      other_political_committee_contributions: 750000,
+      political_party_committee_contributions: 100000,
+      transfers_from_other_authorized_committee: 100000,
+      candidate_contribution: 0,
+      other_receipts: 50000,
+      // Spent breakdown
+      operating_expenditures: 2500000,
+      transfers_to_other_authorized_committee: 200000,
+      loan_repayments_made: 150000,
+      contribution_refunds: 50000,
+      other_disbursements: 200000,
+    },
+    {
+      cycle: 2022,
+      receipts: 2100000, disbursements: 1950000,
+      last_cash_on_hand_end_period: 170000, coverage_end_date: '2022-12-31T00:00:00',
+      // Raised breakdown
+      individual_itemized_contributions: 1200000,
+      individual_unitemized_contributions: 300000,
+      other_political_committee_contributions: 500000,
+      political_party_committee_contributions: 75000,
+      transfers_from_other_authorized_committee: 25000,
+      candidate_contribution: 0,
+      other_receipts: 0,
+      // Spent breakdown
+      operating_expenditures: 1600000,
+      transfers_to_other_authorized_committee: 100000,
+      loan_repayments_made: 100000,
+      contribution_refunds: 50000,
+      other_disbursements: 100000,
+    },
   ],
   pagination: { count: 2 },
 };
@@ -219,13 +256,31 @@ const COMMITTEE_SEARCH_RESULTS = {
   pagination: { count: 1, pages: 1, per_page: 5, page: 1 },
 };
 
-// Disbursements by category (for Spent tab)
+// Disbursements — Schedule B general fetch (opex records for purpose bars + vendor table)
 const DISBURSEMENTS = {
   results: [
-    { disbursement_description: 'DIGITAL ADVERTISING', disbursement_amount: 150000, recipient_name: 'DIGITAL VENDOR LLC', committee_id: 'C00775668' },
-    { disbursement_description: 'PAYROLL', disbursement_amount: 80000, recipient_name: 'STAFF', committee_id: 'C00775668' },
+    { disbursement_description: 'DIGITAL ADVERTISING', disbursement_amount: 150000,
+      recipient_name: 'DIGITAL VENDOR LLC', entity_type: 'VEN',
+      disbursement_purpose_category: 'OTHER', recipient_committee_id: null },
+    { disbursement_description: 'PAYROLL', disbursement_amount: 80000,
+      recipient_name: 'CAMPAIGN STAFF', entity_type: 'EMP',
+      disbursement_purpose_category: 'OTHER', recipient_committee_id: null },
+    { disbursement_description: 'CONSULTING', disbursement_amount: 35000,
+      recipient_name: 'CAMPAIGN STRATEGY GROUP', entity_type: 'VEN',
+      disbursement_purpose_category: 'OTHER', recipient_committee_id: null },
   ],
-  pagination: { count: 2 },
+  pagination: { count: 3, pages: 1 },
+};
+
+// Schedule B contributions — returned when entity_type=CCM is passed (dedicated contributions fetch)
+const SCHEDULE_B_CONTRIBUTIONS = {
+  results: [
+    { disbursement_description: 'CONTRIBUTION', disbursement_amount: 5000,
+      recipient_name: 'FRIEND FOR CONGRESS', recipient_committee_id: 'C00123456',
+      candidate_name: 'FRIEND, JOHN', candidate_office: 'H', candidate_office_state: 'WA',
+      entity_type: 'CCM', disbursement_purpose_category: 'CONTRIBUTIONS' },
+  ],
+  pagination: { count: 1, pages: 1 },
 };
 
 // Schedule A — by_state aggregation (/schedules/schedule_a/by_state/)
@@ -263,7 +318,7 @@ const SCHEDULE_A_COMMITTEES = {
 // Schedule A — legacy alias (used when no is_individual param; keeps candidate.html tests working)
 const SCHEDULE_A = SCHEDULE_A_COMMITTEES;
 
-// Schedule B (itemized disbursements — same as DISBURSEMENTS shape above)
+// Schedule B alias — general opex fixture (routed when no entity_type param)
 const SCHEDULE_B = DISBURSEMENTS;
 
 // ── Route handler ─────────────────────────────────────────────────────────────
@@ -349,8 +404,11 @@ function resolveFixture(path, params) {
     return SCHEDULE_A; // no param — legacy/candidate page path
   }
 
-  // Schedule B (disbursements)
-  if (/\/schedules\/schedule_b\//.test(path)) return SCHEDULE_B;
+  // Schedule B — route by entity_type param
+  if (/\/schedules\/schedule_b\//.test(path)) {
+    if (params.get('entity_type') === 'CCM') return SCHEDULE_B_CONTRIBUTIONS;
+    return SCHEDULE_B;
+  }
 
   // Fallback
   return { results: [], pagination: { count: 0 } };

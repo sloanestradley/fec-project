@@ -221,7 +221,63 @@
       </div>
 
       <div id="tab-spent" style="display:none">
-        <div class="data-note">Spend breakdown coming soon.</div>
+        <div id="spent-loading" style="display:flex;align-items:center;gap:1rem;padding:3rem 0;color:var(--muted);font-size:.75rem">
+          <div class="loader"></div><span>Loading spending data…</span>
+        </div>
+        <div id="spent-content" style="display:none">
+          <div class="raised-grid">
+            <!-- Left: Spending by Category donut -->
+            <div class="raised-cell">
+              <div class="raised-cell-title">Spending by Category</div>
+              <div class="donut-wrap">
+                <div class="donut-chart-wrap">
+                  <canvas id="chart-spent-donut"></canvas>
+                  <div class="donut-center">
+                    <div class="donut-center-val" id="spent-donut-center-val">—</div>
+                    <div class="donut-center-lbl">Total Spent</div>
+                  </div>
+                </div>
+                <div class="donut-legend" id="spent-donut-legend"></div>
+              </div>
+            </div>
+            <!-- Right: Spending by Purpose breakdown bars -->
+            <div class="raised-cell">
+              <div class="raised-cell-title">Spending by Purpose</div>
+              <div class="data-note" style="margin-bottom:.75rem">Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized.</div>
+              <div id="spend-detail-bars"></div>
+            </div>
+          </div>
+
+          <!-- Top Vendors table -->
+          <div class="donors-card">
+            <div class="donors-head" id="vendors-head">Top Vendors</div>
+            <table class="donors-table">
+              <thead><tr>
+                <th style="width:2rem">#</th>
+                <th>Vendor</th>
+                <th>Purpose</th>
+                <th class="r">Total</th>
+              </tr></thead>
+              <tbody id="vendors-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Contributions to Candidates & Committees (conditional — hidden when empty) -->
+          <div class="donors-card" id="contributions-section" style="display:none">
+            <div class="donors-head">Contributions to Candidates &amp; Committees</div>
+            <p class="data-note" style="margin-bottom:.75rem">Direct contributions to other federal candidates and committees.</p>
+            <table class="donors-table">
+              <thead><tr>
+                <th>Recipient</th>
+                <th>Candidate</th>
+                <th class="r">Amount</th>
+              </tr></thead>
+              <tbody id="contributions-tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="data-note" id="spent-data-note"></div>
+        </div>
       </div>
 
     </div>
@@ -251,10 +307,13 @@ var ALL_CYCLES  = [];    // sorted desc cycle years from committee metadata
 var activeCycle = 'all'; // 'all' or integer cycle year
 
 var COMM_PARTY        = null;
-var donutInstance     = null;
-var usTopoCache       = null;
-var raisedDataPromise = null;
-var raisedRendered    = false;
+var donutInstance      = null;
+var usTopoCache        = null;
+var raisedDataPromise  = null;
+var raisedRendered     = false;
+var spentDonutInstance = null;
+var spentDataPromise   = null;
+var spentRendered      = false;
 
 var FIPS_TO_ABBR = {
   '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
@@ -285,6 +344,7 @@ function showTab(name, e) {
   history.replaceState(null, '', '#' + activeCycle + '#' + name);
   if (e) amplitude.track('Tab Switched', { tab: name, committee_id: COMMITTEE_ID });
   if (name === 'raised') renderRaisedIfReady();
+  if (name === 'spent')  renderSpentIfReady();
 }
 
 async function init() {
@@ -470,6 +530,17 @@ function renderStats(cycleOrAll) {
   raisedDataPromise = fetchRaisedData(cycleOrAll);
   var curTabEl = document.querySelector('.tab.active');
   if (curTabEl && curTabEl.getAttribute('href') === '#raised') renderRaisedIfReady();
+
+  // Reset and kick off spent tab data fetch
+  spentRendered = false;
+  spentDataPromise = null;
+  if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
+  var spentLoadEl = document.getElementById('spent-loading');
+  if (spentLoadEl) spentLoadEl.style.display = 'flex';
+  var spentContentEl = document.getElementById('spent-content');
+  if (spentContentEl) spentContentEl.style.display = 'none';
+  spentDataPromise = fetchSpentData(cycleOrAll);
+  if (curTabEl && curTabEl.getAttribute('href') === '#spent') renderSpentIfReady();
 }
 
 // ── Raised tab utilities ─────────────────────────────
@@ -841,6 +912,365 @@ async function renderRaisedIfReady() {
   } catch(e) {
     loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading contributor data: ' + e.message + '</span>';
     console.error('renderRaisedIfReady:', e);
+  }
+}
+
+// ── Spent tab: data fetch ────────────────────────────
+async function fetchSpentData(cycleOrAll) {
+  // Build breakdown from ALL_TOTALS (no extra fetch needed)
+  var breakdown = {
+    operating_expenditures: 0,
+    transfers_to_other_authorized_committee: 0,
+    loan_repayments_made: 0,
+    contribution_refunds: 0,
+    other_disbursements: 0
+  };
+  var totalSpent = 0;
+  var covDate = null;
+
+  if (cycleOrAll === 'all') {
+    ALL_TOTALS.forEach(function(t) {
+      Object.keys(breakdown).forEach(function(k){ breakdown[k] += t[k] || 0; });
+      totalSpent += t.disbursements || 0;
+    });
+    var recent = ALL_TOTALS[0] || {};
+    covDate = recent.coverage_end_date ? recent.coverage_end_date.split('T')[0] : null;
+  } else {
+    var rec = null;
+    for (var i = 0; i < ALL_TOTALS.length; i++) {
+      if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
+    }
+    if (rec) {
+      Object.keys(breakdown).forEach(function(k){ breakdown[k] = rec[k] || 0; });
+      totalSpent = rec.disbursements || 0;
+      covDate = rec.coverage_end_date ? rec.coverage_end_date.split('T')[0] : null;
+    }
+  }
+
+  // Schedule B: use most recent cycle for 'all' (same rationale as Raised tab).
+  // Two parallel fetches: main opex fetch (for purpose bars + vendor table)
+  // and a dedicated contributions fetch (entity_type=CCM, paginated fully,
+  // deduped by recipient). Separate fetches prevent opex volume from crowding
+  // out contributions in the 500-transaction cap.
+  var period = cycleOrAll === 'all' ? ALL_CYCLES[0] : cycleOrAll;
+  var allTransactions = [];
+  var capped = false;
+  var contributions = [];
+
+  await Promise.all([
+    // Main opex fetch — for purpose bars + vendor table
+    (async function() {
+      try {
+        var MAX_PAGES = 5;
+        var params = {
+          committee_id: COMMITTEE_ID,
+          two_year_transaction_period: period,
+          sort: '-disbursement_amount',
+          per_page: 100
+        };
+        for (var page = 0; page < MAX_PAGES; page++) {
+          var res = await apiFetch('/schedules/schedule_b/', params);
+          var results = res.results || [];
+          allTransactions = allTransactions.concat(results);
+          var pagination = res.pagination || {};
+          if (page + 1 >= (pagination.pages || 1)) break;
+          if (page + 1 >= MAX_PAGES) { capped = true; break; }
+          var idx = pagination.last_indexes || {};
+          if (!idx.last_index) break;
+          params = Object.assign({}, params, {
+            last_index: idx.last_index,
+            last_disbursement_date: idx.last_disbursement_date
+          });
+        }
+      } catch(e) { console.warn('Schedule B fetch failed:', e.message); }
+    })(),
+
+    // Dedicated contributions fetch — entity_type=CCM, paginated independently
+    (async function() {
+      try {
+        var MAX_PAGES_C = 3;
+        var params = {
+          committee_id: COMMITTEE_ID,
+          two_year_transaction_period: period,
+          entity_type: 'CCM',
+          sort: '-disbursement_amount',
+          per_page: 100
+        };
+        var rawContribs = [];
+        for (var page = 0; page < MAX_PAGES_C; page++) {
+          var res = await apiFetch('/schedules/schedule_b/', params);
+          var results = res.results || [];
+          rawContribs = rawContribs.concat(results);
+          var pagination = res.pagination || {};
+          if (page + 1 >= (pagination.pages || 1)) break;
+          if (page + 1 >= MAX_PAGES_C) break;
+          var idx = pagination.last_indexes || {};
+          if (!idx.last_index) break;
+          params = Object.assign({}, params, {
+            last_index: idx.last_index,
+            last_disbursement_date: idx.last_disbursement_date
+          });
+        }
+        // Filter to political contributions only, then deduplicate by recipient
+        rawContribs = rawContribs.filter(function(d) {
+          return d.entity_type === 'CCM' || d.disbursement_purpose_category === 'CONTRIBUTIONS';
+        });
+        var seen = {};
+        rawContribs.forEach(function(d) {
+          var key = d.recipient_committee_id || (d.recipient_name || '').trim().toUpperCase();
+          if (!key) return;
+          if (!seen[key]) seen[key] = {
+            name: d.recipient_name || '—',
+            recipient_committee_id: d.recipient_committee_id || null,
+            candidate_name: d.candidate_name || null,
+            candidate_office: d.candidate_office || null,
+            candidate_office_state: d.candidate_office_state || null,
+            total: 0
+          };
+          seen[key].total += (d.disbursement_amount || 0);
+        });
+        contributions = Object.values(seen).sort(function(a,b){ return b.total - a.total; });
+      } catch(e) { console.warn('Contributions fetch failed:', e.message); }
+    })()
+  ]);
+
+  // Top vendors — exclude political contributions (shown in contributions section)
+  // and refunds (money returned to donors, not a vendor payment)
+  var seen = {};
+  allTransactions.forEach(function(d) {
+    var cat = d.disbursement_purpose_category;
+    if (d.entity_type === 'CCM') return;
+    if (cat === 'CONTRIBUTIONS' || cat === 'REFUNDS') return;
+    var key = (d.recipient_committee_id || (d.recipient_name || '').trim().toUpperCase());
+    if (!key) return;
+    if (!seen[key]) seen[key] = { name: d.recipient_name || '—', purpose: d.disbursement_description || '—', total: 0 };
+    seen[key].total += (d.disbursement_amount || 0);
+  });
+  var topVendors = Object.values(seen).sort(function(a,b){ return b.total - a.total; }).slice(0, 10);
+
+  return { breakdown: breakdown, totalSpent: totalSpent, topVendors: topVendors,
+           contributions: contributions, allTransactions: allTransactions,
+           capped: capped, covDate: covDate, cycleOrAll: cycleOrAll };
+}
+
+// ── Spent tab: donut chart ───────────────────────────
+function renderSpentDonut(breakdown, totalSpent) {
+  if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
+
+  var SPEND_CATEGORIES = [
+    { key: 'operating_expenditures',                  label: 'Operating Expenditures',  color: 'rgba(217,74,74,0.85)' },
+    { key: 'transfers_to_other_authorized_committee', label: 'Transfers Out',            color: 'rgba(232,160,32,0.85)' },
+    { key: 'loan_repayments_made',                    label: 'Loan Repayments',          color: 'rgba(88,100,140,0.85)' },
+    { key: 'contribution_refunds',                    label: 'Contribution Refunds',     color: 'rgba(61,191,122,0.65)' },
+    { key: 'other_disbursements',                     label: 'Other Disbursements',      color: 'rgba(90,96,112,0.7)' }
+  ];
+
+  var vals   = SPEND_CATEGORIES.map(function(c){ return breakdown[c.key] || 0; });
+  var active = SPEND_CATEGORIES.filter(function(c, i){ return vals[i] > 0; });
+  var aVals  = vals.filter(function(v){ return v > 0; });
+
+  document.getElementById('spent-donut-center-val').textContent = fmt(totalSpent);
+
+  var ctx = document.getElementById('chart-spent-donut').getContext('2d');
+  spentDonutInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: aVals,
+        backgroundColor: active.map(function(c){ return c.color; }),
+        borderColor: CHART_COLORS.donutBorder,
+        borderWidth: 2,
+        hoverBorderColor: CHART_COLORS.donutBorderHover,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      cutout: '68%',
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: { duration: 600, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: CHART_COLORS.tooltipBg,
+          titleColor: CHART_COLORS.tooltipTitle,
+          bodyColor: CHART_COLORS.tooltipBody,
+          borderColor: CHART_COLORS.tooltipBorder,
+          borderWidth: 1,
+          padding: 10,
+          titleFont: { family: 'IBM Plex Mono', size: 10 },
+          bodyFont: { family: 'IBM Plex Mono', size: 11 },
+          callbacks: { label: function(ctx) {
+            var total = ctx.dataset.data.reduce(function(a,b){ return a+b; }, 0);
+            var pct = total > 0 ? (ctx.raw/total*100).toFixed(1) : '0';
+            return ' ' + fmtFull(ctx.raw) + '  (' + pct + '%)';
+          }}
+        }
+      }
+    }
+  });
+
+  var total = aVals.reduce(function(a,b){ return a+b; }, 0);
+  var legendEl = document.getElementById('spent-donut-legend');
+  legendEl.innerHTML = active.map(function(c, i) {
+    var pct = total > 0 ? (aVals[i]/total*100).toFixed(1) : '0';
+    return '<div class="donut-row">' +
+      '<div class="donut-sw" style="background:'+c.color+'"></div>' +
+      '<div class="donut-lbl">'+c.label+'</div>' +
+      '<div class="donut-pct">'+pct+'%</div>' +
+      '<div class="donut-val">'+fmt(aVals[i])+'</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Spent tab: top vendors table ─────────────────────
+function renderTopVendors(vendors) {
+  var tbody = document.getElementById('vendors-tbody');
+  if (!vendors.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">No vendor data available.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = vendors.map(function(v, i) {
+    var name = v.name
+      ? v.name.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
+      : '—';
+    var purpose = v.purpose && v.purpose !== '—'
+      ? v.purpose.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
+      : '—';
+    return '<tr>' +
+      '<td style="color:var(--muted);font-size:.6rem">' + (i+1) + '</td>' +
+      '<td><div class="dn">' + name + '</div></td>' +
+      '<td style="font-size:.61rem;color:var(--muted)">' + purpose + '</td>' +
+      '<td class="da">' + fmtFull(v.total) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Spent tab: contributions to candidates & committees ───
+function renderContributions(contributions) {
+  var section = document.getElementById('contributions-section');
+  var tbody   = document.getElementById('contributions-tbody');
+  if (!contributions || !contributions.length) {
+    if (section) section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  tbody.innerHTML = contributions.map(function(c) {
+    var name = c.name
+      ? c.name.toLowerCase().replace(/\b([a-z])/g, function(x){ return x.toUpperCase(); })
+      : '—';
+    var nameCell = c.recipient_committee_id
+      ? '<a href="/committee/' + c.recipient_committee_id + '">' + name + '</a>'
+      : name;
+    var candidateInfo = '';
+    if (c.candidate_name) {
+      var candName = formatCandidateName(c.candidate_name);
+      var officeInfo = [c.candidate_office, c.candidate_office_state].filter(Boolean).join('-');
+      candidateInfo = candName + (officeInfo ? '<span style="font-size:.61rem;color:var(--muted)"> · ' + officeInfo + '</span>' : '');
+    }
+    return '<tr>' +
+      '<td><div class="dn">' + nameCell + '</div></td>' +
+      '<td style="font-size:.61rem;color:var(--muted)">' + candidateInfo + '</td>' +
+      '<td class="da">' + fmtFull(c.total) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Spent tab: keyword-mapped purpose breakdown ────────
+// Patterns ordered so more-specific descriptions match before broad ones.
+var PURPOSE_MAP = [
+  { label: 'TV & Radio',         patterns: ['TELEVISION','RADIO','BROADCAST','MEDIA ADVERTISING','MEDIA PRODUCTION'] },
+  { label: 'Digital & Online',   patterns: ['DIGITAL','ONLINE ADVERTISING','EMAIL','TEXT MESSAGING','INTERNET'] },
+  { label: 'Direct Mail',        patterns: ['DIRECT MAIL','POSTAGE','MAILING'] },
+  { label: 'Printing',           patterns: ['PRINTING'] },
+  { label: 'Staff & Payroll',    patterns: ['SALARY','PAYROLL','WAGES','PERSONNEL'] },
+  { label: 'Legal & Compliance', patterns: ['LEGAL','COMPLIANCE','ACCOUNTING'] },
+  { label: 'Events & Travel',    patterns: ['CATERING','LODGING','AIR TRAVEL','TRAVEL','EVENT SUPPLIES','SITE RENTAL','VENUE','HOTEL'] },
+  { label: 'Consulting',         patterns: ['CONSULTING','STRATEGY','ADVISOR','POLLING','RESEARCH'] }
+];
+
+function purposeBucket(desc) {
+  if (!desc) return 'Other';
+  var u = desc.toUpperCase();
+  for (var i = 0; i < PURPOSE_MAP.length; i++) {
+    var cat = PURPOSE_MAP[i];
+    for (var j = 0; j < cat.patterns.length; j++) {
+      if (u.indexOf(cat.patterns[j]) !== -1) return cat.label;
+    }
+  }
+  return 'Other';
+}
+
+function renderSpendDetail(transactions) {
+  var totals = {};
+  transactions.forEach(function(d) {
+    // disbursement_purpose_description is always null in FEC data; use disbursement_description
+    var bucket = purposeBucket(d.disbursement_description);
+    totals[bucket] = (totals[bucket] || 0) + (d.disbursement_amount || 0);
+  });
+
+  var other = totals['Other'] || 0;
+  var rows = PURPOSE_MAP
+    .map(function(c){ return { label: c.label, amt: totals[c.label] || 0 }; })
+    .filter(function(r){ return r.amt > 0; })
+    .sort(function(a,b){ return b.amt - a.amt; });
+  if (other > 0) rows.push({ label: 'Other', amt: other });
+
+  var grandTotal = rows.reduce(function(s, r){ return s + r.amt; }, 0);
+
+  var el = document.getElementById('spend-detail-bars');
+  if (!rows.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:.63rem;padding:.5rem 0">No purpose data available for this cycle.</div>';
+    return;
+  }
+
+  el.innerHTML = rows.map(function(r) {
+    var pct = grandTotal > 0 ? (r.amt / grandTotal * 100) : 0;
+    return '<div class="spend-bar-item">' +
+      '<div class="spend-bar-row">' +
+        '<span class="spend-bar-lbl">' + r.label + '</span>' +
+        '<span class="spend-bar-amt">' + fmt(r.amt) + '</span>' +
+        '<span class="spend-bar-pct">' + pct.toFixed(1) + '%</span>' +
+      '</div>' +
+      '<div class="spend-bar-track">' +
+        '<div class="spend-bar-fill" style="width:' + pct.toFixed(1) + '%"></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Spent tab: orchestrate render ────────────────────
+async function renderSpentIfReady() {
+  if (spentRendered) return;
+  if (!spentDataPromise) return;
+  var loadEl    = document.getElementById('spent-loading');
+  var contentEl = document.getElementById('spent-content');
+  loadEl.style.display    = 'flex';
+  contentEl.style.display = 'none';
+  try {
+    var data = await spentDataPromise;
+    renderSpentDonut(data.breakdown, data.totalSpent);
+    renderSpendDetail(data.allTransactions || []);
+    renderTopVendors(data.topVendors || []);
+    renderContributions(data.contributions || []);
+
+    var periodLabel = data.cycleOrAll === 'all' ? 'All time'
+      : (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
+    var vendorsHead = document.getElementById('vendors-head');
+    if (vendorsHead) vendorsHead.textContent = 'Top Vendors · ' + periodLabel;
+
+    var note = 'Spending by Purpose: keyword mapping of FEC disbursement descriptions '
+      + 'from Schedule B' + (data.capped ? ' (capped at 500 transactions)' : '') + '. '
+      + 'Spending by Category: FEC totals. Top vendors deduplicated by recipient.';
+    if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
+    document.getElementById('spent-data-note').innerHTML = note;
+
+    loadEl.style.display    = 'none';
+    contentEl.style.display = 'block';
+    spentRendered = true;
+  } catch(e) {
+    loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading spending data: ' + e.message + '</span>';
+    console.error('renderSpentIfReady:', e);
   }
 }
 

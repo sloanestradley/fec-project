@@ -257,6 +257,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - **Hybrid PAC (Super PAC):** Allowed to have an unlimited IE side (soft side); there's a hard side also, with a wall between soft and hard
 - **Spend-down rate:** The pace at which a campaign is depleting its cash reserves, particularly relevant in the final weeks before an election
 - **Raised-to-spent ratio:** Total receipts divided by total disbursements for a cycle; a signal of financial efficiency and health (preferred framing over "burn rate" per John)
+- **Contributions to Candidates & Committees:** Outbound political giving from a committee to other federal candidates and committees, reported on Schedule B (`entity_type: CCM`). Particularly relevant for leadership PACs and party committees, which exist partly to funnel money to allied candidates. Surfaced as a dedicated section on the committee Spent tab — distinct from operating expenditures (vendors/staff/media).
 
 ---
 

@@ -174,6 +174,44 @@ test.describe('committee.html — Raised tab sections', () => {
   });
 });
 
+// ── committee.html — Spent tab sections ───────────────────────────────────────
+
+test.describe('committee.html — Spent tab sections', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/committee.html?id=C00775668');
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Spent' }).click();
+    await page.waitForFunction(
+      () => { const el = document.getElementById('spent-content'); return el && el.style.display !== 'none'; },
+      { timeout: 15000 }
+    );
+  });
+
+  test('spent donut canvas is present in spent tab', async ({ page }) => {
+    await expect(page.locator('#chart-spent-donut')).toBeVisible();
+  });
+
+  test('spend-detail-bars is present in spent tab', async ({ page }) => {
+    await expect(page.locator('#spend-detail-bars')).toBeAttached();
+  });
+
+  test('vendors tbody is present and has at least one row', async ({ page }) => {
+    const rows = page.locator('#vendors-tbody tr');
+    await expect(rows).not.toHaveCount(0);
+  });
+
+  test('contributions-section is visible (mock has CCM record)', async ({ page }) => {
+    await expect(page.locator('#contributions-section')).toBeVisible();
+  });
+
+  test('contributions-tbody has at least one row', async ({ page }) => {
+    const rows = page.locator('#contributions-tbody tr');
+    await expect(rows).not.toHaveCount(0);
+  });
+});
+
 // ── races.html ────────────────────────────────────────────────────────────────
 
 test.describe('races.html', () => {

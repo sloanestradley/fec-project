@@ -294,7 +294,24 @@
 - [ ] DEM committee (C00806174): map uses blue color
 
 ### Spent tab
-- [ ] Spent tab shows "Spend breakdown coming soon." placeholder
+- [ ] ✅ Clicking Spent tab shows #tab-spent, hides #tab-summary
+- [ ] ✅ Spent donut canvas (#chart-spent-donut) renders inside spent tab
+- [ ] ✅ Spending by Purpose bars (#spend-detail-bars) present in spent tab
+- [ ] ✅ Vendors tbody has at least one row
+- [ ] ✅ Contributions section visible when CCM records exist
+- [ ] ✅ Contributions tbody has at least one row
+- [ ] Loading spinner visible while spending data is fetching
+- [ ] Spending by Category donut renders with legend rows and percentage labels
+- [ ] Donut center shows total spent amount (formatted dollar)
+- [ ] Purpose breakdown bars show category labels, amounts, and percentages
+- [ ] Vendor table header dynamically reflects the cycle: "2023–2024" for specific cycle, "All time" for all-time view
+- [ ] Vendor table shows vendor name, purpose, and total columns
+- [ ] Contributions section hidden when no CCM/CONTRIBUTIONS records exist (e.g. principal committee C00806174)
+- [ ] Contributions section visible for leadership PAC (C00833574 — Timber PAC): shows candidate recipients with office/state
+- [ ] Contributions table shows recipient name (linked to /committee/ if committee_id present), candidate column, amount
+- [ ] Switching cycles resets and re-fetches spent data; donut and purpose bars re-render for new cycle
+- [ ] Data note at bottom includes Schedule B and FEC totals source attribution
+- [ ] Navigating to Spent tab on a page where data is already fetched renders immediately (no re-fetch)
 
 - [ ] ✅ Filing history stub is NOT present (removed)
 
@@ -690,3 +707,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-20 | committee.html structural parity — tabs bar + cycle switcher, cycle-aware renderStats (All time / per-cycle), overspend callout using shared .callout, renderHeader title-cases name, fetchAndRenderBackLink relType param + shared utils, .candidate-card-office removed from styles.css and last call site; COMMITTEE_TOTALS mock updated to 2 records with cycles field; 11 new Playwright tests | committee.html, styles.css, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | None | 253/253 Track 1 passing |
 | 2026-03-20 | committee.html follow-up — URL hash encoding (#cycleOrAll#tab, mirrors candidate.html), Tab Switched Amplitude event, overspend suppressed on All time, overspend copy past-tense across 3 files, .callout inline override removed, double border on assoc-list removed; 3 new hash Playwright tests | committee.html, candidate.html, design-system.html, tests/pages.spec.js (automated) | None | 256/256 Track 1 passing |
 | 2026-03-20 | committee.html Raised tab — donut chart (contributor types), choropleth map, two donor tables (committee contributors first, then individual); String(activeCycle) coercion fix; CHART_COLORS + ENTITY_TYPE_LABELS moved to utils.js; ALL_CYCLES sort descending on candidate.html; by_state single-call pattern (filters by d.cycle client-side); dynamic table headers; 4 new Playwright raised tab tests | committee.html, candidate.html, utils.js, styles.css, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | None | 260/260 Track 1 passing |
+| 2026-03-20 | committee.html Spent tab — donut by category, purpose breakdown bars (PURPOSE_MAP keyword matching), top vendors table (dynamic header), contributions to candidates & committees section (CCM-filtered, conditionally shown); fetchSpentData from ALL_TOTALS + Schedule B pagination; COMMITTEE_TOTALS mock updated with breakdown fields; DISBURSEMENTS enhanced with 3 opex + 1 CCM record; 5 new Playwright spent tab tests | committee.html, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | 2 pre-existing races.html mobile networkidle flaky failures (unrelated to this session — races.html not touched) | 263/265 Track 1 passing (260+5 new; 2 pre-existing flaky) |

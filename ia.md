@@ -13,7 +13,7 @@
 | `candidates.html` | Browse candidates by filter, or search by name via `?q=` | `/candidates?state=WA&office=H&party=DEM&cycle=2026` or `/candidates?q={query}` | Scaffold + search | 2 |
 | `candidate.html` | Single candidate profile | `/candidate/{fec_candidate_id}#{cycle}#{tab}` | Live | 1 |
 | `committees.html` | Browse committees by type/state, or search by name via `?q=` | `/committees?state=WA&type=P` or `/committees?q={query}` | Scaffold + search | 3 |
-| `committee.html` | Single committee profile | `/committee/{fec_committee_id}` | Scaffold+ (tabs + cycle switcher live; Raised tab live; Spent stub) | 3 |
+| `committee.html` | Single committee profile | `/committee/{fec_committee_id}` | Scaffold+ (tabs + cycle switcher live; Raised tab live; Spent tab live; filing history stub) | 3 |
 | `races.html` | Browse races by year, office, state | `/races` | Live | 3 |
 | `race.html` | Single race view — all candidates in a contest | `/race?state=WA&district=03&year=2026&office=H` | Scaffold | 3 |
 | `process-log.html` | Living case study / dev diary | `/process-log.html` | Live | 1 |

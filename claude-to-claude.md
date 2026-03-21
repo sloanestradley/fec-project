@@ -1604,3 +1604,44 @@ The through-line: Sloane comes to coding sessions with prepared specs, not vague
 - Spent tab scope. Committee.html Spent tab is still a stub. Is the right approach to mirror candidate.html's spend-by-category donut + vendor table, or is there a committee-specific angle (e.g. disbursements to candidates, coordinated expenditures) that would serve journalists/strategists better?
 - Filing history on committee.html. Still unbuilt. The /committee/{id}/reports/ endpoint is already in use for candidate charts. A filing history table (report type, coverage period, receipts, disbursements) might be more useful than the Spent tab stub for committees. Worth deciding before starting the Spent tab.
 - CHART_COLORS in utils.js — timing. Now that it's shared, any page that links utils.js gets the full palette. Design system documentation should reflect this. Worth a quick design-system.html token table update to note which tokens are JS constants (not CSS vars).
+
+---
+2026-03-20 17:00
+
+## Process log draft
+Title: The spent tab ships — and the vendor table learned to say no
+
+The last scaffold stub on committee.html is gone. The Spent tab now matches the Raised tab in depth, with one addition that doesn't exist anywhere else in the tool: a "Contributions to Candidates & Committees" section that surfaces outbound political giving. What looked like a copy-paste job turned into a real data-fidelity exercise once live API testing revealed that the FEC's entity_type filter is silently ignored, that contribution refunds were polluting the vendor table, and that a single shared transaction fetch would let opex volume crowd out political contributions in the pagination cap. The fix was a second parallel fetch — dedicated, separately paginated, deduped by recipient.
+
+Changelog:
+- Spent tab on committee.html: full implementation — donut by category, purpose bars by keyword, top vendors table, contributions to candidates & committees section
+- fetchSpentData(): pulls breakdown from ALL_TOTALS; runs two parallel Schedule B fetches — one for opex (purpose bars + vendors), one dedicated CCM contributions fetch with independent pagination
+- Contributions section: deduped by recipient_committee_id, sorted by total, links to /committee/{id}, shows candidate info (name, office, state) inline
+- Vendor table: filters out entity_type=CCM, disbursement_purpose_category=CONTRIBUTIONS, and REFUNDS before deduplication — confirmed field values from live API
+- PURPOSE_MAP, purposeBucket, renderSpendDetail copied from candidate.html; renderSpentDonut adapted (canvas ID: chart-spent-donut, not chart-donut)
+- api-mock.js: DISBURSEMENTS split into SCHEDULE_B (opex) and SCHEDULE_B_CONTRIBUTIONS (CCM); routed by entity_type param
+- Playwright tests: 5 new assertions in "committee.html — Spent tab sections" describe block; 265 total (263 pass, 2 pre-existing flaky races.html networkidle failures)
+- Documentation: CLAUDE.md Spent tab marked complete, TESTING.md and ia.md updated, test-cases.md test log row added
+
+Field notes:
+The "contributions section" decision forced an architectural question I hadn't anticipated: what does "contributions" actually mean in FEC data? It's not a type — it's a purpose category value that can appear on any disbursement record regardless of recipient type. The entity_type=CCM filter I was relying on turned out to be silently ignored by the API. That's a pattern that's come up before — the FEC API has a habit of accepting filters it doesn't apply. The rule is now explicit: always add a client-side filter as belt-and-suspenders.
+
+The parallel fetch architecture was Sloane's call. It was the right one — not just for correctness now, but because it makes the two data sources independently capped and debuggable.
+
+Stack tags: Schedule B, Promise.all, FEC entity_type filter quirk, cursor pagination
+
+## How Sloane steered the work
+Option 2 over Option 1 — separate fetch, cleaner guarantees: When the contributions section turned out to have a completeness problem (political contributions could be crowded out by 500 opex transactions in the shared fetch), two options were on the table. Sloane chose the dedicated second fetch plus deduplication by recipient. This mattered because the contributions section is specifically designed for leadership PACs — committees that exist to give money to candidates — where completeness is the whole point.
+
+Caught the 3-column/2-column thead mismatch before implementation: Before any code was written, Sloane reviewed the plan in Claude Chat and flagged that the contributions table HTML had a 2-column thead while the renderContributions function built 3-column rows. This caught a DOM mismatch that would have silently broken the table layout.
+
+Pushed back on vendor table pollution after seeing it in action: When the vendor table came back with contribution and refund rows alongside media buys and payroll, Sloane asked directly: "I'm just realizing contributions and contribution refunds are included?" The fix required confirming actual disbursement_purpose_category values from a live API call before filtering.
+
+Held the commit until review: After tests passed at 265/265, Sloane said "let's hold on committing until I've looked things over." That's a consistent pattern — shipping to the test suite is not the same as shipping to git.
+
+The through-line: Sloane's calls this session were all about data fidelity — what the section claims to show versus what it actually shows. The contributions section, the vendor filter, the thead mismatch. All three corrections came from reading the data surface critically, not the code.
+
+## What to bring to Claude Chat
+- Contributions section for candidate.html? The section exists only on committee.html. Should it also appear on candidate.html (for the candidate's principal committee giving), or does that belong on the committee page only?
+- Filing history tab: last scaffold stub on committee.html. Right scope — just a table of FEC report filings with links to documents, or something richer (trend lines, coverage gaps, amendment history)?
+- Phase 4 priority order: Spent tab is done. What comes next — 48/24hr reports (early signal data), AI insights panel, or transaction-level search? Very different complexity profiles and audience value.
