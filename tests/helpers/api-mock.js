@@ -96,7 +96,7 @@ const COMMITTEE_TOTALS = {
       other_receipts: 50000,
       // Spent breakdown
       operating_expenditures: 2500000,
-      transfers_to_other_authorized_committee: 200000,
+      transfers_to_affiliated_committee: 200000,
       loan_repayments_made: 150000,
       contribution_refunds: 50000,
       other_disbursements: 200000,
@@ -115,7 +115,7 @@ const COMMITTEE_TOTALS = {
       other_receipts: 0,
       // Spent breakdown
       operating_expenditures: 1600000,
-      transfers_to_other_authorized_committee: 100000,
+      transfers_to_affiliated_committee: 100000,
       loan_repayments_made: 100000,
       contribution_refunds: 50000,
       other_disbursements: 100000,

@@ -103,8 +103,6 @@
     /* ── Page header ── */
     .page-header { border-top:3px solid var(--text); border-bottom:1px solid var(--border);
       padding:1.5rem 0 1.5rem; margin-bottom:3.5rem; }
-    .page-eyebrow { font-size:0.6rem; letter-spacing:0.18em; text-transform:uppercase;
-      color:var(--accent); margin-bottom:0.4rem; }
     .page-title { font-family:'Barlow Condensed',sans-serif; font-size:clamp(1.6rem,3vw,2.4rem);
       font-weight:800; letter-spacing:0; text-transform:uppercase; line-height:1; margin-bottom:0.75rem; }
     .page-desc { font-size:0.75rem; color:var(--subtle); max-width:540px; line-height:1.7; }
@@ -250,7 +248,6 @@
 <main class="main">
 
     <header class="page-header">
-      <div class="page-eyebrow">Reference</div>
       <h1 class="page-title">Design System</h1>
       <p class="page-desc">A living reference for all tokens, type, spacing, and components in use across ledger.fec. Everything rendered live — no screenshots. Update this page when components are added or removed.</p>
     </header>
@@ -668,10 +665,10 @@
           <span class="ds-component-name">Page Header (Shared)</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.page-header · .page-header-title · .breadcrumb</div>
+        <div class="ds-component-classes">.page-header · .page-header-title · .breadcrumb (hidden)</div>
         <div class="ds-component-demo" style="padding:0">
           <div class="page-header" style="padding:2rem">
-            <div class="breadcrumb"><a href="#">Candidates</a> <span>/ <a href="#">House • WA-03</a> / Marie Gluesenkamp Perez</span></div>
+            <div class="breadcrumb" style="display:none"><a href="#">Candidates</a> <span>/ <a href="#">House • WA-03</a> / Marie Gluesenkamp Perez</span></div>
             <div class="page-header-title">Marie Gluesenkamp Perez</div>
             <div class="meta-row" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
               <span class="tag tag-dem">Democrat</span>
@@ -680,7 +677,7 @@
           </div>
         </div>
         <div class="ds-component-notes" style="padding:0.75rem 1rem;font-size:0.72rem;color:var(--muted);border-top:1px solid var(--border)">
-          Shared base for all profile page headers (candidate, committee, race). Add <code>.page-header</code> to the wrapper div and <code>.page-header-title</code> to the title element. Page-specific elements (avatar+row, cycle switcher, year select, back-link) stay in local styles.
+          Shared base for all profile page headers (candidate, committee, race). Add <code>.page-header</code> to the wrapper div and <code>.page-header-title</code> to the title element. Breadcrumbs are hidden (<code>display:none</code>) pending redesign — JS wiring preserved. No border-bottom. Page-specific elements (avatar+row, cycle switcher, year select, back-link) stay in local styles.
         </div>
       </div>
 
@@ -693,7 +690,7 @@
         <div class="ds-component-classes">extends .page-header · .candidate-row · .avatar · .candidate-name · .cycle-select · .committees-link</div>
         <div class="ds-component-demo" style="padding:0">
           <div class="profile-header page-header" style="padding:2rem">
-            <div class="breadcrumb"><a href="#">Candidates</a> <span>/ <a href="#">House • WA-03</a> / Marie Gluesenkamp Perez</span></div>
+            <div class="breadcrumb" style="display:none"><a href="#">Candidates</a> <span>/ <a href="#">House • WA-03</a> / Marie Gluesenkamp Perez</span></div>
             <div class="candidate-row" style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
               <div class="avatar">MGP</div>
               <div class="candidate-name page-header-title">Marie Gluesenkamp Perez</div>

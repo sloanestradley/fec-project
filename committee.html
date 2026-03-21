@@ -19,6 +19,7 @@
     .main { overflow-x:hidden; min-width:0; }
 
     /* Committee header — shared base via .page-header and .page-header-title in styles.css */
+    .committee-header-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap; }
     .meta-row { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
     .designation-label { font-family:'IBM Plex Mono',monospace; font-size:0.62rem;
       color:var(--muted); margin-left:0.25rem; }
@@ -105,9 +106,11 @@
 
     <!-- Committee header — revealed after load -->
     <div class="committee-header page-header page-header-reveal" id="committee-header" style="display:none">
-      <div class="breadcrumb"><a href="/committees">Committees</a> <span>/ <span id="breadcrumb-name"></span></span></div>
-      <div class="committee-name-display page-header-title" id="committee-name">—</div>
-      <div class="meta-row" id="meta-row"></div>
+      <div class="breadcrumb" style="display:none"><a href="/committees">Committees</a> <span>/ <span id="breadcrumb-name"></span></span></div>
+      <div class="committee-header-row">
+        <div class="committee-name-display page-header-title" id="committee-name">—</div>
+        <div class="meta-row" id="meta-row"></div>
+      </div>
       <div class="back-link-area" id="back-link-area" style="display:none"></div>
     </div>
 
@@ -243,8 +246,8 @@
             <!-- Right: Spending by Purpose breakdown bars -->
             <div class="raised-cell">
               <div class="raised-cell-title">Spending by Purpose</div>
-              <div class="data-note" style="margin-bottom:.75rem">Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized.</div>
               <div id="spend-detail-bars"></div>
+              <div class="data-note" style="margin-top:0.75rem">Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized.</div>
             </div>
           </div>
 
@@ -426,13 +429,13 @@ function renderHeader(c) {
   var freqLbl = filingFrequencyLabel(c.filing_frequency);
   var metaHtml = '';
   metaHtml += '<span class="tag tag-neutral">' + committeeTypeLabel(c.committee_type) + '</span>';
+  if (c.designation && c.designation !== c.committee_type) {
+    metaHtml += ' <span class="tag tag-neutral">' + designationLabel(c.designation) + '</span>';
+  }
   metaHtml += ' <span class="tag tag-neutral"><span class="status-dot ' + dotCls + '"></span>'
     + freqLbl + '</span>';
-  if (c.designation && c.designation !== c.committee_type) {
-    metaHtml += ' <span class="designation-label">· ' + designationLabel(c.designation) + '</span>';
-  }
   if (c.state) {
-    metaHtml += ' <span class="designation-label">· ' + c.state + '</span>';
+    metaHtml += ' <span class="tag tag-neutral">' + c.state + '</span>';
   }
   document.getElementById('meta-row').innerHTML = metaHtml;
 
@@ -885,6 +888,9 @@ async function renderRaisedIfReady() {
   contentEl.style.display = 'none';
   try {
     var data = await raisedDataPromise;
+    // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
+    loadEl.style.display    = 'none';
+    contentEl.style.display = 'block';
     renderContributorDonut(data.breakdown, data.totalRaised);
     await renderChoropleth(data.byState);
     renderIndividualDonors(data.topIndividuals);
@@ -906,8 +912,6 @@ async function renderRaisedIfReady() {
     note += ' Small-dollar contributions ≤$200 are not itemized.';
     document.getElementById('raised-data-note').innerHTML = note;
 
-    loadEl.style.display    = 'none';
-    contentEl.style.display = 'block';
     raisedRendered = true;
   } catch(e) {
     loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading contributor data: ' + e.message + '</span>';
@@ -918,19 +922,24 @@ async function renderRaisedIfReady() {
 // ── Spent tab: data fetch ────────────────────────────
 async function fetchSpentData(cycleOrAll) {
   // Build breakdown from ALL_TOTALS (no extra fetch needed)
-  var breakdown = {
-    operating_expenditures: 0,
-    transfers_to_other_authorized_committee: 0,
-    loan_repayments_made: 0,
-    contribution_refunds: 0,
-    other_disbursements: 0
-  };
+  // Named category keys must match FEC /committee/{id}/totals/ field names
+  var CATEGORY_KEYS = [
+    'operating_expenditures',
+    'shared_nonfed_operating_expenditures',
+    'transfers_to_affiliated_committee',
+    'fed_candidate_committee_contributions',
+    'independent_expenditures',
+    'loan_repayments_made',
+    'contribution_refunds'
+  ];
+  var breakdown = {};
+  CATEGORY_KEYS.forEach(function(k){ breakdown[k] = 0; });
   var totalSpent = 0;
   var covDate = null;
 
   if (cycleOrAll === 'all') {
     ALL_TOTALS.forEach(function(t) {
-      Object.keys(breakdown).forEach(function(k){ breakdown[k] += t[k] || 0; });
+      CATEGORY_KEYS.forEach(function(k){ breakdown[k] += t[k] || 0; });
       totalSpent += t.disbursements || 0;
     });
     var recent = ALL_TOTALS[0] || {};
@@ -941,11 +950,14 @@ async function fetchSpentData(cycleOrAll) {
       if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
     }
     if (rec) {
-      Object.keys(breakdown).forEach(function(k){ breakdown[k] = rec[k] || 0; });
+      CATEGORY_KEYS.forEach(function(k){ breakdown[k] = rec[k] || 0; });
       totalSpent = rec.disbursements || 0;
       covDate = rec.coverage_end_date ? rec.coverage_end_date.split('T')[0] : null;
     }
   }
+  // Compute "other" as remainder so donut always covers 100% of spending
+  var knownSum = CATEGORY_KEYS.reduce(function(s, k){ return s + breakdown[k]; }, 0);
+  breakdown.other_disbursements = Math.max(0, totalSpent - knownSum);
 
   // Schedule B: use most recent cycle for 'all' (same rationale as Raised tab).
   // Two parallel fetches: main opex fetch (for purpose bars + vendor table)
@@ -1058,11 +1070,14 @@ function renderSpentDonut(breakdown, totalSpent) {
   if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
 
   var SPEND_CATEGORIES = [
-    { key: 'operating_expenditures',                  label: 'Operating Expenditures',  color: 'rgba(217,74,74,0.85)' },
-    { key: 'transfers_to_other_authorized_committee', label: 'Transfers Out',            color: 'rgba(232,160,32,0.85)' },
-    { key: 'loan_repayments_made',                    label: 'Loan Repayments',          color: 'rgba(88,100,140,0.85)' },
-    { key: 'contribution_refunds',                    label: 'Contribution Refunds',     color: 'rgba(61,191,122,0.65)' },
-    { key: 'other_disbursements',                     label: 'Other Disbursements',      color: 'rgba(90,96,112,0.7)' }
+    { key: 'operating_expenditures',                  label: 'Operating Expenditures',       color: 'rgba(217,74,74,0.85)' },
+    { key: 'shared_nonfed_operating_expenditures',    label: 'Shared Non-Federal OpEx',      color: 'rgba(194,85,62,0.8)' },
+    { key: 'transfers_to_affiliated_committee',       label: 'Transfers Out',                color: 'rgba(232,160,32,0.85)' },
+    { key: 'fed_candidate_committee_contributions',   label: 'Candidate Contributions',      color: 'rgba(44,82,130,0.8)' },
+    { key: 'independent_expenditures',                label: 'Independent Expenditures',     color: 'rgba(90,74,122,0.8)' },
+    { key: 'loan_repayments_made',                    label: 'Loan Repayments',              color: 'rgba(88,100,140,0.85)' },
+    { key: 'contribution_refunds',                    label: 'Contribution Refunds',         color: 'rgba(61,191,122,0.65)' },
+    { key: 'other_disbursements',                     label: 'Other Disbursements',          color: 'rgba(90,96,112,0.7)' }
   ];
 
   var vals   = SPEND_CATEGORIES.map(function(c){ return breakdown[c.key] || 0; });
@@ -1249,6 +1264,9 @@ async function renderSpentIfReady() {
   contentEl.style.display = 'none';
   try {
     var data = await spentDataPromise;
+    // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
+    loadEl.style.display    = 'none';
+    contentEl.style.display = 'block';
     renderSpentDonut(data.breakdown, data.totalSpent);
     renderSpendDetail(data.allTransactions || []);
     renderTopVendors(data.topVendors || []);
@@ -1265,8 +1283,6 @@ async function renderSpentIfReady() {
     if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
     document.getElementById('spent-data-note').innerHTML = note;
 
-    loadEl.style.display    = 'none';
-    contentEl.style.display = 'block';
     spentRendered = true;
   } catch(e) {
     loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading spending data: ' + e.message + '</span>';

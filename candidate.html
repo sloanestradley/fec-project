@@ -38,17 +38,16 @@
     .cycle-select:focus { outline:none; color:var(--text); }
 
     /* Race context bar */
-    #race-context-bar { padding:0.55rem var(--page-gutter); border-bottom:1px solid var(--border);
+    #race-context-bar { padding:1rem var(--page-gutter) 0;
       opacity:0; transition:opacity 0.4s ease; min-height:2rem; }
     #race-context-bar.visible { opacity:1; }
 
     /* Content */
-    .content { padding:2.5rem var(--page-gutter); opacity:0; transition:opacity 0.3s ease; min-width:0; }
+    .content { padding:1.5rem var(--page-gutter); opacity:0; transition:opacity 0.3s ease; min-width:0; }
     .content.visible { opacity:1; }
 
     /* Responsive */
     @media (max-width:860px) {
-      .content { padding:1.5rem var(--page-gutter); }
       .state-msg { padding:2rem var(--page-gutter); }
     }
     @media (max-width:480px) { .stat-value { font-size:1.2rem; } }
@@ -114,7 +113,7 @@
     </div>
 
     <div class="profile-header page-header page-header-reveal" id="profile-header" style="display:none">
-      <div class="breadcrumb" id="breadcrumb"><a href="/candidates">Candidates</a></div>
+      <div class="breadcrumb" id="breadcrumb" style="display:none"><a href="/candidates">Candidates</a></div>
       <div class="candidate-row">
         <div class="avatar" id="avatar">—</div>
         <div class="candidate-name page-header-title" id="candidate-name">—</div>
@@ -258,8 +257,8 @@
             </div>
             <div class="raised-cell">
               <div class="raised-cell-title">Spending by Purpose</div>
-              <div class="spend-note">Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle.</div>
               <div id="spend-detail-bars"></div>
+              <div class="data-note" style="margin-top:0.75rem">Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle.</div>
             </div>
           </div>
           <div class="donors-card">
@@ -984,6 +983,9 @@ async function renderRaisedIfReady() {
   contentEl.style.display = 'none';
   try {
     var data = await raisedDataPromise;
+    // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
+    loadEl.style.display    = 'none';
+    contentEl.style.display = 'block';
     renderContributorDonut(data.breakdown, data.totalRaised);
     await renderChoropleth(data.byState);
     renderTopDonors(data.topDonors);
@@ -998,8 +1000,6 @@ async function renderRaisedIfReady() {
     note += ' Small-dollar contributions ≤$200 are not itemized.';
     document.getElementById('raised-data-note').innerHTML = note;
 
-    loadEl.style.display    = 'none';
-    contentEl.style.display = 'block';
     raisedRendered = true;
   } catch(e) {
     loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading contributor data: ' + e.message + '</span>';
@@ -1227,6 +1227,9 @@ async function renderSpentIfReady() {
   contentEl.style.display = 'none';
   try {
     var data = await spentDataPromise;
+    // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
+    loadEl.style.display    = 'none';
+    contentEl.style.display = 'block';
     renderSpendDetail(data.allTransactions || []);
     renderSpentDonut(data.breakdown, data.totalSpent);
     renderTopVendors(data.topVendors);
@@ -1242,8 +1245,6 @@ async function renderSpentIfReady() {
     if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
     document.getElementById('spent-data-note').innerHTML = note;
 
-    loadEl.style.display    = 'none';
-    contentEl.style.display = 'block';
     spentRendered = true;
   } catch(e) {
     loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading spending data: ' + e.message + '</span>';

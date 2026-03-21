@@ -1645,3 +1645,57 @@ The through-line: Sloane's calls this session were all about data fidelity — w
 - Contributions section for candidate.html? The section exists only on committee.html. Should it also appear on candidate.html (for the candidate's principal committee giving), or does that belong on the committee page only?
 - Filing history tab: last scaffold stub on committee.html. Right scope — just a table of FEC report filings with links to documents, or something richer (trend lines, coverage gaps, amendment history)?
 - Phase 4 priority order: Spent tab is done. What comes next — 48/24hr reports (early signal data), AI insights panel, or transaction-level search? Very different complexity profiles and audience value.
+
+---
+2026-03-20 Session 2
+
+## Process log draft
+### Cleaning the glass — removing visual noise to let the data breathe
+
+A design cleanup session focused on removing accumulated visual friction — redundant borders, eyebrow labels, oversized titles, and a broken donut chart. The kind of work that doesn't add features but makes everything feel more intentional.
+
+#### Changelog
+- Fixed committee.html Spending by Category donut — chart was invisible because FEC API field names didn't match (transfers_to_other_authorized_committee → transfers_to_affiliated_committee), and PAC-specific spending categories were missing
+- Fixed Chart.js rendering bug on both candidate.html and committee.html — donuts rendered at 0×0 when canvas parent was display:none; moved container visibility swap before chart initialization
+- Moved "Spending by Purpose" data notes to bottom of module on both pages
+- Committee header redesign: designation and state labels promoted to tag styling, placed inline with committee name
+- Removed border-bottom from .page-header globally
+- Removed redundant .page-header CSS redeclarations from three browse pages
+- Removed page eyebrows from all five pages
+- Hidden breadcrumbs on all three profile pages (display:none — JS stays wired for future redesign)
+- Unified page title size across browse and profile pages to clamp(1.6rem,3vw,2.4rem)
+- Tightened vertical rhythm on candidate.html: race-context-bar border removed, content padding reduced to 1.5rem, race-context-bar padding tuned to 1rem top / 0 bottom
+- Reduced .page-header bottom padding globally from 2rem to 1rem
+
+#### Field notes
+This session was about subtraction. Every border removed, every eyebrow deleted, every padding value tightened made the pages feel more like a finished product and less like a wireframe wearing a skin. The donut bug was a good reminder that the FEC API field names can't be trusted from docs alone — the live response for committee totals uses transfers_to_affiliated_committee, not transfers_to_other_authorized_committee, and PACs distribute spending across entirely different fields than candidate committees. The "Other" bucket as a computed remainder was the right call — it makes the donut resilient to whatever field mix the API returns.
+
+#### Stack
+Chart.js · FEC API field verification · CSS vertical rhythm
+
+## How Sloane steered the work
+**Data note placement — bottom, not top**
+Sloane noticed the Spending by Purpose data note was above the bars, creating visual noise before the user even sees the data. Moving it below lets the chart speak first. Small change, big signal about how Sloane thinks about information hierarchy.
+
+**Tag styling for committee metadata**
+Rather than accepting the faint designation-label text, Sloane pushed for full tag styling on designation and state, placed inline with the committee name. This is about visual parity across entity types — committees should feel as considered as candidates.
+
+**Breadcrumbs hidden, not removed**
+When Sloane said breadcrumbs weren't serving users well, the instinct wasn't to kill them — it was to acknowledge they might work in a different format. Hiding with display:none preserves optionality without the visual cost. Design restraint.
+
+**Eyebrows fully removed**
+In contrast to breadcrumbs, eyebrows got the full delete. Sloane saw them as pure redundancy — the page title already tells you where you are. The distinction between "hide" and "remove" was deliberate and revealed how Sloane categorizes design debt: salvageable vs. dead weight.
+
+**Title scale unification**
+Sloane traced the size discrepancy back to its root cause (eyebrows created a hierarchy pair that no longer exists) and chose the smaller scale. Tighter, more consistent, less "look at me."
+
+**Vertical rhythm by feel**
+The race-context-bar spacing conversation was surgical — Sloane identified the bottom padding as extra space, set the top padding to 1rem by feel, and reduced .page-header bottom padding to 1rem globally. Every value was tested visually, not calculated theoretically.
+
+**The through-line:** Sloane is editing toward restraint — removing visual elements that don't earn their space, tightening spacing to create density without clutter. The product is getting more confident by having less.
+
+## What to bring to Claude Chat
+- Breadcrumb redesign: hidden, not gone. What format would actually serve users? Back-link? Contextual subtitle? Something integrated into the page header?
+- Browse page headers feel bare now with eyebrows removed and titles downsized. Is just a title enough, or do they need a subtitle or contextual element?
+- Committee spent donut category labels are FEC jargon. Worth a pass with John to map to plain-language equivalents.
+- 1.5rem is emerging as the de facto section spacing value. Worth formalizing as a named token (--section-gap?) in the design system.
