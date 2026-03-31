@@ -75,7 +75,7 @@
 
 ### Header template (shared with committee.html and race.html)
 - [ ] Header uses `.page-header` wrapper — same padding and border-bottom as committee and race headers
-- [ ] Candidate name uses `.page-header-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase as other profile pages
+- [ ] Candidate name uses `.page-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase as other profile pages
 - [ ] Breadcrumb uses `.breadcrumb` shared class — same size, spacing, color as other profile pages
 
 ### Header animation
@@ -221,7 +221,7 @@
 
 ### Header template (shared with candidate.html and race.html)
 - [ ] Header uses `.page-header` wrapper — same padding and border-bottom as candidate and race headers
-- [ ] Committee name uses `.page-header-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase as other profile pages (accepts wrapping for long names)
+- [ ] Committee name uses `.page-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase as other profile pages (accepts wrapping for long names)
 - [ ] Header fades in on load (opacity transition via `.page-header-reveal`)
 
 ### Profile header
@@ -399,7 +399,7 @@
 
 ### Header template (shared with candidate.html and committee.html)
 - [ ] Header uses `.page-header` wrapper — same padding and border-bottom as candidate and committee headers
-- [ ] Race title uses `.page-header-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase
+- [ ] Race title uses `.page-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase
 - [ ] Header fades in on load (opacity transition via `.page-header-reveal`)
 
 ### Race header
@@ -635,7 +635,7 @@
 - [ ] Each card has a status badge (stable / candidate-only / log-only / planned / deprecated)
 - [ ] Live demos work: tab bar switches tabs, health banner cycles through Green/Amber/Red/Closed states, modal opens and closes
 - [ ] View page source: no `<style>` block in `<head>` containing component CSS (all CSS should be in styles.css)
-- [ ] Page Header component card present (`id="comp-page-header"`, status "stable") — documents `.page-header`, `.page-header-title`, `.breadcrumb`
+- [ ] Page Header component card present (`id="comp-page-header"`, status "stable") — documents `.page-header`, `.page-title`, `.breadcrumb`
 - [ ] Page Header and Candidate Header component demos are visible (not invisible — demos don't use `.page-header-reveal` so no JS required)
 - [ ] Breadcrumb demo text appears uppercase
 
@@ -736,3 +736,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-30 | Documentation + API research — verified FEC amendment fields against live API (C00806174), corrected MGP committee ID (was C00696948/Bernie Sanders), updated CLAUDE.md amendment findings, project-brief.md phase audit and roadmap cleanup, Phase 4 backlog additions (IE, refund spike, overhead ratio, dark money signals, comparison builder) | CLAUDE.md, project-brief.md (no code changes) | N/A | No tests run (documentation only) |
 | 2026-03-31 | Cleanup + system debt session — doc corrections (race.html paths false alarm, committee.html status sync, ia.md link patterns); incumbent tag on candidate.html profile header; races.html URL sync (cycle/office/state); candidates.html computed cycle dropdown (was hardcoded); PURPOSE_MAP + purposeBucket() moved to utils.js; .committee-name-link deprecation note corrected; --section-gap token formalized; flaky networkidle test fixed (networkidle → load); 2 new Playwright tests | candidate.html, committee.html (via utils.js), candidates.html, races.html, utils.js, styles.css, design-system.html, CLAUDE.md, ia.md, tests/candidate.spec.js, tests/pages.spec.js (automated) | Pre-existing races.html mobile networkidle flakiness resolved this session | 267/267 Track 1 passing |
 | 2026-03-31 | Presidential race fixes (VALID_STATES + 'US', formatRaceName → 'US President', cycle cap +2 for P office), races.html mobile networkidle fix (second instance), committees.html Show terminated toggle (filing_frequency array param, chip, URL sync), candidate.html modal 'Terminated' tab label, toggle-switch CSS component, design-system.html ds-component-notes class + note placement cleanup, CLAUDE.md office cycle rhythms note + API key update; 4 new Playwright assertions (toggle DOM, Terminated tab label, state=US valid, US President title) | race.html, utils.js, committees.html, candidate.html, styles.css, design-system.html, CLAUDE.md, tests/pages.spec.js, tests/candidate.spec.js (automated) | None | 271/271 Track 1 passing |
+| 2026-03-31 | Design system documentation pass — rename .page-header-title → .page-title globally (styles.css single source, all local overrides removed); modal-scoped committee row spacing (.modal-body .committee-row); comp-raised-grid/comp-map/comp-donut promoted stable; comp-typeahead added (three demo dropdowns); comp-status-dot added; comp-results-groups added; comp-candidate-card extended with stats row; comp-modal updated with tab bar + Pelosi live data; JFA organizer display gap documented in CLAUDE.md; .typeahead-dd retired note removed | styles.css, candidate.html, committee.html, race.html, candidates.html, committees.html, races.html, process-log.html, design-system.html, CLAUDE.md, test-cases.md (no new Playwright tests — documentation/CSS pass only) | None | 271/271 Track 1 passing |

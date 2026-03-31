@@ -1846,3 +1846,49 @@ The through-line: Sloane is editing toward precision — in language (chip label
 – Presidential race page UX: now that it loads, does the page need special treatment for presidential candidates? (No district, national scope, larger candidate count.) Worth a visual check.
 – Design system status taxonomy: "stable" still means "used on more than one page" which isn't what stable means in library semantics. A rename + audit of browse/committee/race components missing from design-system.html is overdue.
 – Phase 4 sequencing: cleanup is done. What's the first Phase 4 item — 48/24hr early signal data, AI insights, or something else? John validation queue should happen before any of those build.
+
+---
+2026-03-31 18:00
+
+## Process log draft
+
+**Title: The design system finally looks like the thing it documents**
+
+This was a documentation catch-up session — the design system had drifted from what was actually in production, and the goal was to bring it into honest alignment. No new features, just a thorough audit pass: renaming a class that had quietly grown two different names, documenting components that had been live on multiple pages for weeks without a card, and replacing a fictional modal demo with real candidate data.
+
+Changelog:
+- Renamed .page-header-title → .page-title globally (styles.css is now the single source; all local overrides removed from 6 pages)
+- Added margin-bottom:0.5rem to .page-title in styles.css — eliminated repeated local definitions
+- Added modal-scoped committee row spacing: .modal-body .committee-row margin-bottom + adjacent sibling margin-top, scoped to avoid side effects on flush-stacked browse lists
+- Promoted three component status badges from candidate-only to stable: comp-raised-grid, comp-map, comp-donut
+- Added comp-typeahead card with three-panel demo (results, empty state, loading skeleton)
+- Added comp-status-dot card (.status-dot + .typeahead-status-dot variants)
+- Added comp-results-groups card showing grouped search results layout
+- Extended comp-candidate-card with a stats row demo card (MGP, real figures)
+- Updated comp-modal class list and replaced fictional demo with Pelosi's real committee data (Active: Principal CC + Leadership PAC + Other; Terminated: 2 Other rows)
+- Documented JFA organizer display gap in CLAUDE.md (FEC assigns many JFAs committee_type 'N'/'Q' instead of 'J' — modal groups them as "Other")
+- Removed stale .typeahead-dd retired note from CLAUDE.md
+- Updated 4 stale .page-header-title references in test-cases.md
+
+Field notes:
+The Pelosi modal investigation was the most interesting moment in the session. I'd built a demo with a JFA group showing prominently in the middle, and the question was whether the live site actually shows that. Turned out no — Pelosi has 5 committees (3 active, 2 terminated), none of which appear in the "Joint Fundraising" group because the FEC filed them with committee_type 'N' or 'Q' instead of 'J'. The modal still works correctly; it just groups them as "Other" instead. The documentation now reflects what the system actually does, not what I assumed it would do.
+
+The class rename felt like a small thing but it had tentacles everywhere. Six pages each had their own copy of the same three-line CSS rule, all slightly different, all for a class that was supposed to be shared. When you only realize that after building the pages, the cleanup is worth doing — it's the kind of debt that silently multiplies.
+
+## How Sloane steered the work
+
+**Modal accuracy over demo convenience**
+When I updated the comp-modal demo, the first version used fictional candidate data with a JFA group prominently displayed. You pushed to use real data from the live site, which immediately surfaced that JFAs don't show up as "Joint Fundraising" in practice. That wasn't a small editorial preference — it caught a real documentation-vs-reality gap before it misled anyone reading the design system.
+
+**Scoped CSS over a global shortcut**
+When we needed spacing between committee groups in the modal, I proposed a global approach: add margin-bottom on .committee-row, cancel it with a negative margin on the adjacent sibling. You rejected it as "hacked together and not future-proof" — and you were right. The modal-scoped version (.modal-body .committee-row) is self-contained, doesn't affect the flush-stacking pattern elsewhere, and is much easier to reason about.
+
+**Documentation as a design artifact**
+The whole session was your call. You chose to spend a session on documentation and design system alignment rather than new features. That discipline — making the reference system honest before building more on top of it — is a product instinct, not a dev one.
+
+The through-line: you're holding the design system to the same standard as production — real data, scoped styles, honest component states. The rule is "document what it actually does," not "document what you wish it did."
+
+## What to bring to Claude Chat
+- JFA organizer gap — is it worth fixing? The "Joint Fundraising" group only appears when committee_type === 'J', but the FEC often assigns 'N' or 'Q' to real JFAs. Is showing all JFAs in their own group important enough to invest in a more reliable detection heuristic (e.g. designation === 'J')? Or is "Other" an acceptable fallback for now?
+- Design system completeness vs. build momentum: This session was pure documentation catch-up. Is there a threshold where the design system is "good enough to stop maintaining in parallel" and attention should shift fully to Phase 4 features?
+- Modal demo data philosophy: Using Pelosi's real data is accurate but will age. Should demos use real but frozen data (with a "as of" note), or is synthetic-but-realistic data more appropriate for a living reference?

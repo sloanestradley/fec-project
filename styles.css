@@ -310,6 +310,8 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .modal-tab-btn.active { color:var(--text); border-bottom-color:var(--accent); }
 .modal-tab-btn:hover:not(.active) { color:var(--subtle); }
 .modal-body { overflow-y:auto; padding:1.5rem; flex:1; }
+.modal-body .committee-row { margin-bottom:1.25rem; }
+.modal-body .committee-row + .committee-row { margin-top:-1.25rem; }
 
 /* ── J: Choropleth map ── */
 .map-svg-wrap { width:100%; line-height:0; }
@@ -389,9 +391,9 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .breadcrumb a { color:var(--muted); text-decoration:none; }
 .breadcrumb a:hover { color:var(--accent); }
 
-.page-header-title { font-family:'Barlow Condensed',sans-serif;
+.page-title { font-family:'Barlow Condensed',sans-serif;
   font-size:clamp(1.6rem,3vw,2.4rem); font-weight:800; line-height:1;
-  letter-spacing:0; text-transform:uppercase; }
+  letter-spacing:0; text-transform:uppercase; margin-bottom:0.5rem; }
 
 /* ── P: Form controls ── */
 .form-select, .form-input { padding:0.45rem 0.6rem; font-family:'DM Sans',sans-serif;

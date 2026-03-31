@@ -13,7 +13,7 @@
   <style>
     .main { overflow-x:hidden; min-width:0; }
 
-    /* Race header — shared base via .page-header and .page-header-title in styles.css */
+    /* Race header — shared base via .page-header and .page-title in styles.css */
     .race-meta-row { display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem; }
     .race-meta { font-family:'IBM Plex Mono',monospace; font-size:0.65rem; color:var(--muted); }
     .year-select { font-family:'IBM Plex Mono',monospace; font-size:0.65rem;
@@ -86,7 +86,7 @@
 
     <div class="race-header page-header page-header-reveal" id="race-header" style="display:none">
       <div class="breadcrumb" style="display:none"><a href="/races">Races</a> <span>/ <span id="breadcrumb-race"></span></span></div>
-      <div class="race-title page-header-title" id="race-title">—</div>
+      <div class="race-title page-title" id="race-title">—</div>
       <div class="race-meta-row">
         <select id="year-select" class="year-select" aria-label="Election cycle year"></select>
         <span class="race-meta" id="race-meta"></span>
