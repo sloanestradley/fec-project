@@ -1812,8 +1812,10 @@ Changelog:
 – candidate.html: committees modal "History" tab renamed to "Terminated" (display label only; data-tab, IDs, Amplitude values unchanged)
 – styles.css: .toggle-switch CSS component added — CSS-only pill toggle; .toggle-label uses DM Sans 0.8rem to match form input value text
 – design-system.html: .toggle-switch component card added (stable); .ds-component-notes formalized as a CSS class (was inline styles on 3 elements); notes pulled out of .ds-component-demo on Choropleth and Tab Bar components; inline style cleanup across 3 note elements
-– tests/pages.spec.js: second races.html mobile networkidle test fixed (networkidle → load)
+– tests/pages.spec.js: second races.html mobile networkidle test fixed (networkidle → load); 4 new assertions added after Sloane caught spec gap at commit time — toggle DOM presence, Terminated tab label, state=US valid, US President title
+– tests/candidate.spec.js: 1 new assertion — modal history tab labeled "Terminated" not "History"
 – CLAUDE.md: office cycle rhythms note added; API key confirmed at 7,200/hour; presidential race VALID_STATES note added; apiFetch array params documented; formatRaceName presidential behavior documented
+– Final test count: 271/271 Track 1 passing (was 267 at session start)
 
 Field notes:
 The "Show terminated" toggle made an interesting design question concrete: what does "active" mean as a default editorial stance? The FEC has two kinds of terminated committees — voluntarily closed and administratively closed by the FEC for unresolved debts. Both go in the same bucket for now. The toggle is opt-in rather than opt-out, which implicitly says: active committees are the default subject of interest. That's the right call for most users. The naming took a few iterations ("Including terminated" → "Includes terminated" → "Include terminated") before landing on the imperative form, which reads as a user action rather than a state description.
