@@ -29,7 +29,11 @@ function _drain() {
 function _execute(path, params, resolve, reject) {
   _inFlight++;
   var p  = Object.assign({ api_key: API_KEY }, params || {});
-  var qs = Object.keys(p).map(function(k) { return k + '=' + encodeURIComponent(p[k]); }).join('&');
+  var qs = Object.keys(p).map(function(k) {
+    var v = p[k];
+    if (Array.isArray(v)) return v.map(function(item) { return k + '=' + encodeURIComponent(item); }).join('&');
+    return k + '=' + encodeURIComponent(v);
+  }).join('&');
   fetch(BASE + path + '?' + qs).then(function(res) {
     if (!res.ok) throw new Error('FEC ' + res.status + ' — ' + path);
     return res.json();
@@ -127,9 +131,10 @@ function partyTooltip(p, party_full) {
 
 // ── Race utilities ───────────────────────────────────────────────────────────
 
-// Format a race name for display: 'House • WA-03', 'Senate • NY'
+// Format a race name for display: 'House • WA-03', 'Senate • NY', 'US President'
 function formatRaceName(office, state, district) {
-  var officeNames = { H: 'House', S: 'Senate', P: 'President' };
+  if (office === 'P') return 'US President';
+  var officeNames = { H: 'House', S: 'Senate' };
   var officeName  = officeNames[office] || office || '';
   var districtStr = (office === 'H' && district && district !== '00') ? '-' + district : '';
   return officeName + ' \u2022 ' + (state || '') + districtStr;

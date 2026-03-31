@@ -397,6 +397,22 @@ test.describe('race.html', () => {
     await expect(link).toBeAttached();
   });
 
+  test('state=US is valid for presidential races (no Invalid state error)', async ({ page }) => {
+    await page.goto('/race.html?state=US&office=P&year=2024');
+    await waitForRaceLoad(page);
+    const msg = page.locator('#state-msg');
+    const text = await msg.textContent();
+    expect(text).not.toContain('Invalid state');
+  });
+
+  test('presidential race title shows "US President"', async ({ page }) => {
+    await page.goto('/race.html?state=US&office=P&year=2024');
+    await waitForRaceLoad(page);
+    const title = page.locator('#race-title');
+    await expect(title).toBeVisible();
+    await expect(title).toContainText('US President');
+  });
+
   test('invalid office shows error', async ({ page }) => {
     await page.goto('/race.html?state=WA&office=X&district=03&year=2024');
     await waitForRaceLoad(page);
@@ -573,6 +589,12 @@ test.describe('committees.html', () => {
     const el = page.locator('#end-of-results');
     await expect(el).toBeAttached();
     await expect(el).toBeHidden();
+  });
+
+  test('Show terminated toggle is present and unchecked by default', async ({ page }) => {
+    const toggle = page.locator('#f-terminated');
+    await expect(toggle).toBeAttached();
+    await expect(toggle).not.toBeChecked();
   });
 });
 
@@ -887,7 +909,7 @@ test.describe('mobile layout — sidebar hidden, header visible', () => {
       if (needsMock) await mockFecApi(page);
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(url);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('load');
       await expect(page.locator('.top-nav')).toBeVisible();
     });
 

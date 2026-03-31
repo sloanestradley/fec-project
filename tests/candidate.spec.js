@@ -254,6 +254,14 @@ test.describe('candidate.html — committees modal', () => {
     await expect(activeTab).toBeVisible();
   });
 
+  test('modal history tab is labeled "Terminated" not "History"', async ({ page }) => {
+    const btn = page.locator('#modal-history-tab-btn');
+    await expect(btn).toBeAttached();
+    const text = await btn.textContent();
+    expect(text).toContain('Terminated');
+    expect(text).not.toContain('History');
+  });
+
   test('committee rows are present', async ({ page }) => {
     // Rows are rendered as .committee-row or inside the modal body
     const body = page.locator('.modal-body');

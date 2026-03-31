@@ -223,6 +223,13 @@
           </select>
         </div>
 
+        <!-- Show terminated toggle -->
+        <label class="toggle-switch">
+          <input type="checkbox" id="f-terminated">
+          <span class="toggle-track"><span class="toggle-knob"></span></span>
+          <span class="toggle-label">Show terminated</span>
+        </label>
+
       </form>
     </div>
 
@@ -276,7 +283,7 @@
 // ── State ────────────────────────────────────────────────────────────────────
 
 var activeQ       = '';
-var activeFilters = { state: '', type: '' };
+var activeFilters = { state: '', type: '', showTerminated: false };
 var currentPage   = 1;
 var totalPages    = 1;
 var loading       = false;
@@ -335,6 +342,7 @@ async function doFetch(isLoadMore) {
   }
   if (activeFilters.state) params.state          = activeFilters.state;
   if (activeFilters.type)  params.committee_type  = activeFilters.type;
+  if (!activeFilters.showTerminated) params.filing_frequency = ['-T', '-A'];
 
   try {
     var data       = await apiFetch('/committees/', params);
@@ -388,8 +396,9 @@ function updateURL() {
   var u = new URL(window.location.href);
   u.search = '';
   if (activeQ)             u.searchParams.set('q',     activeQ);
-  if (activeFilters.state) u.searchParams.set('state', activeFilters.state);
-  if (activeFilters.type)  u.searchParams.set('type',  activeFilters.type);
+  if (activeFilters.state)         u.searchParams.set('state',      activeFilters.state);
+  if (activeFilters.type)          u.searchParams.set('type',       activeFilters.type);
+  if (activeFilters.showTerminated) u.searchParams.set('terminated', '1');
   window.history.pushState({}, '', u.toString());
 }
 
@@ -404,7 +413,8 @@ function renderChips() {
   var chips = [];
   if (activeQ)             chips.push({ key: 'q',     label: '\u201c' + activeQ + '\u201d' });
   if (activeFilters.state) chips.push({ key: 'state', label: 'State: ' + activeFilters.state });
-  if (activeFilters.type)  chips.push({ key: 'type',  label: TYPE_LABELS[activeFilters.type] || activeFilters.type });
+  if (activeFilters.type)          chips.push({ key: 'type',          label: TYPE_LABELS[activeFilters.type] || activeFilters.type });
+  if (activeFilters.showTerminated) chips.push({ key: 'showTerminated', label: 'Include terminated' });
 
   var wrap = document.getElementById('filter-chips');
   if (!chips.length) { wrap.style.display = 'none'; return; }
@@ -430,6 +440,9 @@ function clearFilter(key) {
     document.getElementById('f-state-filter').value = '';
     document.getElementById('f-state').value = '';
     Array.from(document.getElementById('f-state').options).forEach(function(opt) { opt.style.display = ''; });
+  } else if (key === 'showTerminated') {
+    activeFilters.showTerminated = false;
+    document.getElementById('f-terminated').checked = false;
   } else {
     activeFilters[key] = '';
     document.getElementById('f-' + key).value = '';
@@ -439,11 +452,12 @@ function clearFilter(key) {
 
 function clearAllFilters() {
   activeQ = '';
-  activeFilters = { state: '', type: '' };
+  activeFilters = { state: '', type: '', showTerminated: false };
   document.getElementById('f-search').value = '';
   document.getElementById('f-state-filter').value = '';
   document.getElementById('f-state').value = '';
   document.getElementById('f-type').value = '';
+  document.getElementById('f-terminated').checked = false;
   Array.from(document.getElementById('f-state').options).forEach(function(opt) { opt.style.display = ''; });
   doFetch(false);
 }
@@ -538,6 +552,13 @@ document.getElementById('f-type').addEventListener('change', function() {
   doFetch(false);
 });
 
+// ── Show terminated toggle ────────────────────────────────────────────────────
+
+document.getElementById('f-terminated').addEventListener('change', function() {
+  activeFilters.showTerminated = this.checked;
+  doFetch(false);
+});
+
 // ── Infinite scroll ───────────────────────────────────────────────────────────
 
 window.addEventListener('scroll', function() {
@@ -566,6 +587,10 @@ window.addEventListener('scroll', function() {
   if (p.get('type')) {
     activeFilters.type = p.get('type');
     document.getElementById('f-type').value = activeFilters.type;
+  }
+  if (p.get('terminated') === '1') {
+    activeFilters.showTerminated = true;
+    document.getElementById('f-terminated').checked = true;
   }
 
   document.querySelector('.retry-btn').addEventListener('click', function() {

@@ -1794,3 +1794,53 @@ The through-line: Sloane consistently asks "is this actually right?" before acti
 - Design system status taxonomy: "stable" should probably be renamed "multi-page" — it tracks usage breadth, not maturity. A dedicated session to rename + audit which browse/committee/race page components are missing from design-system.html entirely.
 - Incumbent tag on past cycles: when viewing a past cycle where the candidate lost, the tag still shows "Incumbent" (they were the incumbent when they ran). Is that the right framing, or should past-cycle incumbency say "was incumbent" / "defended seat"? Needs a UX decision before it becomes a visible issue.
 - Phase 4 sequencing: cleanup is done. What's the first Phase 4 item — early signal data (48/24hr reports), AI insights panel, or something else? John validation queue (refund spike, overhead ratio, dark money, IE display) should probably happen before any of those build.
+---
+2026-03-31 Session 2
+
+## Process log draft
+
+Title: Smaller fixes, sharper language — the kind of session that makes the product feel finished
+
+A session without a headline feature — but the kind of cleanup that raises the overall quality floor. Presidential races now actually work. The committees browse page learned to hide terminated clutter by default. A few names got corrected. The design system got more consistent. None of it individually is a big deal; together it makes the tool feel more intentional.
+
+Changelog:
+– race.html: fixed "Invalid state: US" error for presidential races — added 'US' to VALID_STATES
+– race.html: presidential cycle cap changed from currentCycle to currentCycle + 2 — 2028 now appears in dropdown
+– utils.js: formatRaceName returns 'US President' for office='P' — no bullet, no state suffix; all six call sites updated
+– utils.js: _execute upgraded to handle array param values — { filing_frequency: ['-T', '-A'] } correctly serializes to repeated query params
+– committees.html: "Show terminated" toggle added to filter bar — off by default (excludes T/A committees), chip shows "Include terminated" when on, URL sync as ?terminated=1
+– candidate.html: committees modal "History" tab renamed to "Terminated" (display label only; data-tab, IDs, Amplitude values unchanged)
+– styles.css: .toggle-switch CSS component added — CSS-only pill toggle; .toggle-label uses DM Sans 0.8rem to match form input value text
+– design-system.html: .toggle-switch component card added (stable); .ds-component-notes formalized as a CSS class (was inline styles on 3 elements); notes pulled out of .ds-component-demo on Choropleth and Tab Bar components; inline style cleanup across 3 note elements
+– tests/pages.spec.js: second races.html mobile networkidle test fixed (networkidle → load)
+– CLAUDE.md: office cycle rhythms note added; API key confirmed at 7,200/hour; presidential race VALID_STATES note added; apiFetch array params documented; formatRaceName presidential behavior documented
+
+Field notes:
+The "Show terminated" toggle made an interesting design question concrete: what does "active" mean as a default editorial stance? The FEC has two kinds of terminated committees — voluntarily closed and administratively closed by the FEC for unresolved debts. Both go in the same bucket for now. The toggle is opt-in rather than opt-out, which implicitly says: active committees are the default subject of interest. That's the right call for most users. The naming took a few iterations ("Including terminated" → "Includes terminated" → "Include terminated") before landing on the imperative form, which reads as a user action rather than a state description.
+
+Stack tags: CSS toggle component · FEC filing_frequency filter · apiFetch array params
+
+## How Sloane steered the work
+
+**"US President" over "President" — geography-first is a pattern worth keeping**
+When the presidential race bug surfaced, the first fix proposed was simply suppressing the state suffix ("President" with nothing after it). Sloane immediately questioned whether "US President" would be better UX. It was — it fits the geography-first pattern established by "House • WA-03" and "Senate • NY", and it's more immediately scannable in context (race rows, candidate tags, page titles). A naming instinct, not a technical one.
+
+**Iterating the chip label three times until it felt right**
+"Including terminated" → "Includes terminated" → "Include terminated." The final form is an imperative that reads as a user action rather than a state descriptor. Each iteration was a judgment call about register and voice.
+
+**Toggle label should match input value text, not label text**
+The initial toggle styling used IBM Plex Mono uppercase to match the .form-label class. Sloane caught that the toggle label sits at the same visual weight as typed input value text, not a form label. Switching to DM Sans 0.8rem was the correct read.
+
+**Design system cleanup as you go, not deferred**
+The .ds-component-notes inconsistencies were caught and addressed in the same session they were introduced. The instinct to trace "this note looks different" back to a missing CSS class and misplaced markup is the right habit for keeping the design system trustworthy.
+
+**Architectural documentation as prevention**
+After the presidential cycle bug, Sloane asked: "How do we avoid this in the future?" Two words in a comment ("House/President: current cycle only") established a false grouping that caused the bug. A fixed comment + CLAUDE.md note is the right prevention.
+
+The through-line: Sloane is editing toward precision — in language (chip labels), in design (text styling references), and in architecture (documentation as prevention).
+
+## What to bring to Claude Chat
+– Terminated vs. administratively terminated: both go to the "Terminated" modal tab, but they're meaningfully different. Is there a session to surface that distinction in the UI, or is the current single bucket the right call?
+– Presidential race page UX: now that it loads, does the page need special treatment for presidential candidates? (No district, national scope, larger candidate count.) Worth a visual check.
+– Design system status taxonomy: "stable" still means "used on more than one page" which isn't what stable means in library semantics. A rename + audit of browse/committee/race components missing from design-system.html is overdue.
+– Phase 4 sequencing: cleanup is done. What's the first Phase 4 item — 48/24hr early signal data, AI insights, or something else? John validation queue should happen before any of those build.

@@ -30,6 +30,7 @@
       border-bottom:1px solid var(--border); background:var(--surface);
       font-family:'IBM Plex Mono',monospace; letter-spacing:0.02em; }
     .ds-component-demo { padding:1.5rem; overflow-x:auto; }
+    .ds-component-notes { padding:0.75rem 1rem; font-size:0.6rem; color:var(--muted); border-top:1px solid var(--border); }
 
     /* ── Status badges ── */
     .ds-status { font-size:0.52rem; letter-spacing:0.1em; text-transform:uppercase;
@@ -641,8 +642,8 @@
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Committees</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Races</a>
           </div>
-          <div class="ds-note" style="margin-top:0.5rem">Desktop: logo + nav links + search bar. Mobile ≤860px: logo + search icon + hamburger. Hamburger drawer uses .mobile-nav + .nav-item.</div>
         </div>
+        <div class="ds-component-notes">Desktop: logo + nav links + search bar. Mobile ≤860px: logo + search icon + hamburger. Hamburger drawer uses .mobile-nav + .nav-item.</div>
       </div>
 
       <!-- 5. Global banner -->
@@ -653,7 +654,7 @@
         </div>
         <div class="ds-component-classes">.global-banner · .global-banner-text — normally position:fixed top:0</div>
         <div class="ds-component-demo">
-          <div class="ds-note" style="margin-bottom:0.75rem">Rendered inline here; on live pages it is <code style="font-size:0.6rem">position:fixed</code> and sits above the top nav.</div>
+          <div class="ds-note">Rendered inline here; on live pages it is <code style="font-size:0.6rem">position:fixed</code> and sits above the top nav.</div>
           <div class="global-banner">
             <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
           </div>
@@ -677,7 +678,7 @@
             </div>
           </div>
         </div>
-        <div class="ds-component-notes" style="padding:0.75rem 1rem;font-size:0.72rem;color:var(--muted);border-top:1px solid var(--border)">
+        <div class="ds-component-notes">
           Shared base for all profile page headers (candidate, committee, race). Add <code>.page-header</code> to the wrapper div and <code>.page-header-title</code> to the title element. Breadcrumbs are hidden (<code>display:none</code>) pending redesign — JS wiring preserved. No border-bottom. Page-specific elements (avatar+row, cycle switcher, year select, back-link) stay in local styles.
         </div>
       </div>
@@ -798,8 +799,8 @@
             <div class="map-legend-bar" style="background:linear-gradient(to right,rgba(74,144,217,0.1),rgba(74,144,217,0.92))"></div>
             <div class="map-legend-lbl">$250K+</div>
           </div>
-          <div class="data-note">SVG paths generated via D3-style projection in <code style="font-size:0.55rem">renderChoropleth()</code>. State fill colors interpolate party-color rgba at 0.1–0.92 alpha based on contribution density. Tooltip (<code style="font-size:0.55rem">.map-tt</code>) is <code style="font-size:0.55rem">position:fixed</code>, follows cursor via mousemove.</div>
         </div>
+        <div class="ds-component-notes">SVG paths generated via D3-style projection in <code>renderChoropleth()</code>. State fill colors interpolate party-color rgba at 0.1–0.92 alpha based on contribution density. Tooltip (<code>.map-tt</code>) is <code>position:fixed</code>, follows cursor via mousemove.</div>
       </div>
 
       <!-- 10. Chart container (tab bar interactive) -->
@@ -833,10 +834,9 @@
               </div>
               <div class="ds-chart-placeholder">Chart renders here (Chart.js canvas)</div>
             </div>
-            <div class="data-note">Chart line/point colors use the <code style="font-size:0.55rem">CHART_COLORS</code> JS constant defined at the top of <code style="font-size:0.55rem">candidate.html</code>'s script block. HTML legend swatches use the corresponding <code style="font-size:0.55rem">--chart-*</code> CSS vars defined in <code style="font-size:0.55rem">styles.css :root</code>. Add new chart color vars there before using hardcoded rgba in chart configs.</div>
-            <div class="data-note" style="margin-top:0.5rem">The cycle <code style="font-size:0.55rem">&lt;select&gt;</code> uses <code style="font-size:0.55rem">.form-select</code> as base with <code style="font-size:0.55rem">.cycle-select</code> for tab-bar-specific sizing (no borders, <code style="font-size:0.55rem">margin-right:1rem</code>, <code style="font-size:0.55rem">align-self:stretch</code>). Scoped to <code style="font-size:0.55rem">candidate.html</code>'s inline style block.</div>
           </div>
         </div>
+        <div class="ds-component-notes">Chart line/point colors use the <code>CHART_COLORS</code> JS constant in <code>candidate.html</code>'s script block. HTML legend swatches use the corresponding <code>--chart-*</code> CSS vars in <code>styles.css :root</code>. Add new chart color vars there before using hardcoded rgba in chart configs. — The cycle <code>&lt;select&gt;</code> uses <code>.form-select</code> as base with <code>.cycle-select</code> for tab-bar sizing (no borders, <code>margin-right:1rem</code>, <code>align-self:stretch</code>); scoped to <code>candidate.html</code>'s inline style block.</div>
       </div>
 
       <!-- 10. Section title + committee rows -->
@@ -911,7 +911,37 @@
         </div>
       </div>
 
-      <!-- 11. Table -->
+      <!-- 11. Toggle switch -->
+      <div class="ds-component" id="comp-toggle-switch" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">toggle-switch</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.toggle-switch · .toggle-track · .toggle-knob · .toggle-label — CSS-only pill toggle; no JS required for visual state</div>
+        <div class="ds-component-demo">
+          <div style="display:flex;gap:2rem;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-start">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Off</span>
+              <label class="toggle-switch">
+                <input type="checkbox">
+                <span class="toggle-track"><span class="toggle-knob"></span></span>
+                <span class="toggle-label">Show terminated</span>
+              </label>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-start">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">On</span>
+              <label class="toggle-switch">
+                <input type="checkbox" checked>
+                <span class="toggle-track"><span class="toggle-knob"></span></span>
+                <span class="toggle-label">Show terminated</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="ds-component-notes">Used on <code>committees.html</code> filter bar. The <code>.toggle-switch</code> wrapper is a <code>&lt;label&gt;</code> containing the hidden checkbox — entire row is clickable. <code>.toggle-label</code> uses DM Sans 0.8rem to match form input value text. Track turns <code>var(--accent)</code> when checked; knob slides right via <code>translateX(14px)</code> and switches to <code>var(--surface)</code> for contrast.</div>
+      </div>
+
+      <!-- 12. Table -->
       <div class="ds-component" id="comp-table" data-status="stable">
         <div class="ds-component-header">
           <span class="ds-component-name">Data Table</span>
@@ -1108,7 +1138,7 @@
           <span class="skeleton" style="width:120px;height:0.62rem"></span>
           <span class="skeleton" style="width:80px;height:1.5rem"></span>
         </div>
-        <div class="ds-component-notes" style="padding:0.75rem 1rem;font-size:0.72rem;color:var(--muted);border-top:1px solid var(--border)">
+        <div class="ds-component-notes">
           Inline placeholder for async content. Set <code>width</code> and <code>height</code> inline to approximate the content being replaced. Animation and appearance are provided by the class; sizing is always caller-supplied.
         </div>
       </div>
@@ -1123,7 +1153,7 @@
         <div class="ds-component-demo" style="padding:1rem 1.5rem">
           <span class="tag-context">Smith is the incumbent with 2 challengers. <a href="#">View race →</a></span>
         </div>
-        <div class="ds-component-notes" style="padding:0.75rem 1rem;font-size:0.72rem;color:var(--muted);border-top:1px solid var(--border)">
+        <div class="ds-component-notes">
           Filled background variant of the tag family. No border, no uppercase. Lives inside <code>#race-context-bar</code> — a persistent strip between the tab bar and content, visible on all tabs. The bar wrapper uses a CSS rule in <code>candidate.html</code>'s inline style block (<code>padding</code>, <code>border-bottom</code>, opacity fade-in). The <code>.tag-context</code> span wraps on narrow viewports (<code>flex-wrap:wrap</code>, no <code>white-space:nowrap</code>) so the "View race →" link stays inline with the last line of text. Promote to <code>stable</code> when used on a second page.
         </div>
       </div>

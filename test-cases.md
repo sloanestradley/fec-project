@@ -5,7 +5,7 @@
 
 ## How to use this file
 
-**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 265 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
+**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 271 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
 
 **Smoke tests (Track 2):** Run `npm run test:smoke` before deploys. Hits the live FEC API — 5 key checks. Requires the dev server to be running.
 
@@ -63,7 +63,7 @@
 - [ ] `Tab Switched` fires on tab click (not on init) with `tab`, `candidate_id`, `candidate_name`
 - [ ] `Cycle Switched` fires on cycle button click with `cycle`, `candidate_id`, `candidate_name`
 - [ ] `Committees Modal Opened` fires on clicking the committees trigger
-- [ ] `Committees Tab Switched` fires on clicking Active/History tabs inside modal
+- [ ] `Committees Tab Switched` fires on clicking Active/Terminated tabs inside modal
 
 ### Breadcrumb
 - [ ] ✅ Breadcrumb shows "Candidates / House • WA-03 / Marie Gluesenkamp Perez" (mixed case, bullet separator)
@@ -145,7 +145,7 @@
 ### Committees modal
 - [ ] Opens on clicking "Committees (N) →"
 - [ ] Active tab shows authorized/principal committees
-- [ ] History tab visible if terminated committees exist (`filing_frequency === 'T'` or `'A'`; administratively terminated committees go here too)
+- [ ] "Terminated" tab visible (not "History") if terminated committees exist (`filing_frequency === 'T'` or `'A'`; administratively terminated committees go here too)
 - [ ] Each committee row shows name and type; name links to committee.html?id=...
 - [ ] JFA gap note visible at bottom of modal
 - [ ] Modal closes on Escape key
@@ -433,6 +433,13 @@
 - [ ] Garbage params (e.g. `state=ABCDEFG`) show error, not a loading spinner
 - [ ] Valid but no-data params (e.g. `state=WY&office=S&year=2024`) show "No candidates found" (not error)
 
+### Presidential race
+**Test URL:** `localhost:8080/race.html?office=P&state=US&cycle=2024`
+- [ ] Page loads without "Invalid state: US" error (state=US is valid for presidential races)
+- [ ] Page title reads "US President" (not "President • US")
+- [ ] Cycle dropdown includes 2028 (currentCycle + 2 cap applies)
+- [ ] `localhost:8080/race.html?office=P&state=US&cycle=2028` loads without error
+
 ### Candidate cards
 - [ ] At least 1 candidate card renders (not a blank list)
 - [ ] Each card shows candidate name
@@ -552,6 +559,13 @@
 - [ ] ✅ Pressing Escape closes the typeahead
 - [ ] Clicking a typeahead result navigates to `/committee/{id}`
 - [ ] Clicking outside closes dropdown
+
+### Show terminated toggle
+- [ ] Toggle is off by default; results exclude terminated committees (no `filing_frequency=T` or `A` rows)
+- [ ] Toggling on re-fetches and includes terminated committees; "Include terminated" chip appears
+- [ ] Clicking chip `×` turns toggle off, chip disappears, terminated excluded again
+- [ ] `?terminated=1` in URL pre-checks the toggle and loads with terminated included
+- [ ] Clear all filters resets toggle to off
 
 ### Infinite scroll
 - [ ] ✅ `#load-more-spinner` exists in DOM, hidden initially
@@ -721,3 +735,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-20 | Design cleanup — fix committee spent donut (wrong FEC field names + missing PAC categories), fix Chart.js hidden canvas bug, data note placement, committee header tag styling, remove page-header border-bottom globally, remove page eyebrows, hide breadcrumbs, unify page title sizes, tighten vertical rhythm | candidate.html, committee.html, candidates.html, committees.html, races.html, race.html, process-log.html, design-system.html, styles.css, tests/helpers/api-mock.js (automated) | None | 265/265 Track 1 passing |
 | 2026-03-30 | Documentation + API research — verified FEC amendment fields against live API (C00806174), corrected MGP committee ID (was C00696948/Bernie Sanders), updated CLAUDE.md amendment findings, project-brief.md phase audit and roadmap cleanup, Phase 4 backlog additions (IE, refund spike, overhead ratio, dark money signals, comparison builder) | CLAUDE.md, project-brief.md (no code changes) | N/A | No tests run (documentation only) |
 | 2026-03-31 | Cleanup + system debt session — doc corrections (race.html paths false alarm, committee.html status sync, ia.md link patterns); incumbent tag on candidate.html profile header; races.html URL sync (cycle/office/state); candidates.html computed cycle dropdown (was hardcoded); PURPOSE_MAP + purposeBucket() moved to utils.js; .committee-name-link deprecation note corrected; --section-gap token formalized; flaky networkidle test fixed (networkidle → load); 2 new Playwright tests | candidate.html, committee.html (via utils.js), candidates.html, races.html, utils.js, styles.css, design-system.html, CLAUDE.md, ia.md, tests/candidate.spec.js, tests/pages.spec.js (automated) | Pre-existing races.html mobile networkidle flakiness resolved this session | 267/267 Track 1 passing |
+| 2026-03-31 | Presidential race fixes (VALID_STATES + 'US', formatRaceName → 'US President', cycle cap +2 for P office), races.html mobile networkidle fix (second instance), committees.html Show terminated toggle (filing_frequency array param, chip, URL sync), candidate.html modal 'Terminated' tab label, toggle-switch CSS component, design-system.html ds-component-notes class + note placement cleanup, CLAUDE.md office cycle rhythms note + API key update; 4 new Playwright assertions (toggle DOM, Terminated tab label, state=US valid, US President title) | race.html, utils.js, committees.html, candidate.html, styles.css, design-system.html, CLAUDE.md, tests/pages.spec.js, tests/candidate.spec.js (automated) | None | 271/271 Track 1 passing |

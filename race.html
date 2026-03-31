@@ -120,7 +120,7 @@ var VALID_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
   'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS',
   'MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA',
   'RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY',
-  'DC','AS','GU','MP','PR','VI'];
+  'DC','AS','GU','MP','PR','VI','US'];
 var VALID_OFFICES = ['H','S','P'];
 
 function validateParams() {
@@ -160,11 +160,14 @@ async function fetchCycles() {
   var data = await apiFetch('/elections/search/', params);
   var results = data.results || [];
   // Cap cycles — the API returns projected cycles out to 2060+
-  // Senate: current cycle + 4 (covers both seats' next election in the state)
-  // House/President: current cycle only
+  // House: current cycle only (2-year terms)
+  // President: current cycle + 2 (4-year terms; next election is always 0–2 years out)
+  // Senate: current cycle + 4 (6-year terms; covers both seats' next election in the state)
   var now = new Date().getFullYear();
   var currentCycle = now % 2 === 0 ? now : now + 1;
-  var maxCycle = officeParam === 'S' ? currentCycle + 4 : currentCycle;
+  var maxCycle = officeParam === 'S' ? currentCycle + 4
+              : officeParam === 'P' ? currentCycle + 2
+              : currentCycle;
   var seen = {};
   var cycles = [];
   results.forEach(function(r) {

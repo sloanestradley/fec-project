@@ -405,6 +405,27 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   cursor:pointer; transition:opacity 0.15s; white-space:nowrap; flex-shrink:0; }
 .form-search-btn:hover { opacity:0.85; }
 
+/* ── P2: Toggle switch ── */
+.toggle-switch {
+  display:inline-flex; align-items:center; gap:0.5rem; cursor:pointer; user-select:none; }
+.toggle-switch input[type="checkbox"] { opacity:0; width:0; height:0; position:absolute; }
+.toggle-track {
+  position:relative; display:inline-block; flex-shrink:0;
+  width:32px; height:18px;
+  background:var(--surface); border:1px solid var(--border-strong);
+  border-radius:9px; transition:background 0.2s, border-color 0.2s; }
+.toggle-knob {
+  position:absolute; top:2px; left:2px;
+  width:12px; height:12px; border-radius:50%;
+  background:var(--text); transition:transform 0.2s, background 0.2s; }
+.toggle-switch input:checked ~ .toggle-track { background:var(--accent); border-color:var(--accent); }
+.toggle-switch input:checked ~ .toggle-track .toggle-knob { transform:translateX(14px); background:var(--surface); }
+.toggle-switch input:focus-visible ~ .toggle-track { outline:2px solid var(--accent); outline-offset:2px; }
+.toggle-label {
+  font-family:'DM Sans',sans-serif; font-size:0.8rem;
+  color:var(--text); white-space:nowrap; }
+.toggle-switch:hover .toggle-label { color:var(--subtle); }
+
 /* ── Q: Typeahead dropdown ── */
 .search-bar-wrap { position:static; }
 .search-bar { position:relative; }
