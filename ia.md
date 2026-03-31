@@ -77,7 +77,7 @@ Search, Process Log, and Design System are **not** nav link items. Search is acc
 
 | From | To | Trigger | Link pattern |
 |---|---|---|---|
-| `candidate.html` | `committee.html` | Committees modal — click committee name | `committee.html?id={committee_id}` |
+| `candidate.html` | `committee.html` | Committees modal — click committee name | `/committee/{committee_id}` |
 | `committee.html` | `candidate.html` | Back-link in header | `candidate.html?id={candidate_id}` |
 | `race.html` | `candidate.html` | Candidate card click | `candidate.html?id={id}#{race_year}#summary` |
 
@@ -93,7 +93,7 @@ The `#{year}#summary` anchor on candidate links from `race.html` pre-selects the
 
 ### Committee modal
 
-The committees modal on `candidate.html` is not a separate page — it's an overlay triggered from the profile header. Committee names within the modal are `<a>` links to `committee.html?id={id}`.
+The committees modal on `candidate.html` is not a separate page — it's an overlay triggered from the profile header. Committee names within the modal are `<a>` links to `/committee/{id}`.
 
 ---
 
@@ -106,7 +106,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 | `candidate.html` | `/candidate/{id}` | `id` (path segment) | hash: `#{cycle}#{tab}` | Default fallback: MGP (`H2WA03217`). Tab options: summary, raised, spent |
 | `committee.html` | `/committee/{id}` | `id` (path segment) | — | No ID → error state |
 | `race.html` | `/race` | `state`, `year`, `office` | `district` (required for House) | No params → error state |
-| `races.html` | `/races` | — | — | No URL param sync — cycle/office/state filters are client-side state only. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). Filter changes do not update the URL. |
+| `races.html` | `/races` | — | `cycle`, `office`, `state` | URL sync on all three filters — `pushState` on every filter change, params restored on init. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). |
 | `candidates.html` | `/candidates` | — | `state`, `office`, `party`, `cycle`, `q` | All params are unified — filter bar always visible, results auto-load on page visit. `?q=` populates the inline search field and pre-fires search. All result cards link to `/candidate/{id}`. Filter chips + URL sync on every change. |
 | `committees.html` | `/committees` | — | `state`, `type`, `q` | Same unified control surface as candidates. Filter bar always visible; `?q=` populates search field. All rows link to `/committee/{id}`. Treasurer always shown. |
 | `search.html` | `/search` | — | `q` | If `q` present, auto-fires search on load |

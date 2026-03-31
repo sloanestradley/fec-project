@@ -232,19 +232,6 @@
           <label class="form-label" for="f-cycle">Cycle</label>
           <select class="form-select" id="f-cycle">
             <option value="">All cycles</option>
-            <option value="2026">2026</option>
-            <option value="2024">2024</option>
-            <option value="2022">2022</option>
-            <option value="2020">2020</option>
-            <option value="2018">2018</option>
-            <option value="2016">2016</option>
-            <option value="2014">2014</option>
-            <option value="2012">2012</option>
-            <option value="2010">2010</option>
-            <option value="2008">2008</option>
-            <option value="2006">2006</option>
-            <option value="2004">2004</option>
-            <option value="2002">2002</option>
           </select>
         </div>
 
@@ -606,6 +593,20 @@ window.addEventListener('scroll', function() {
     doFetch(true);
   }
 });
+
+// ── Cycle dropdown ────────────────────────────────────────────────────────────
+
+(function() {
+  var now = new Date().getFullYear();
+  var currentCycle = (now % 2 === 0) ? now : now + 1;
+  var sel = document.getElementById('f-cycle');
+  for (var c = currentCycle; c >= 2002; c -= 2) {
+    var opt = document.createElement('option');
+    opt.value = String(c);
+    opt.textContent = String(c);
+    sel.appendChild(opt);
+  }
+})();
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 

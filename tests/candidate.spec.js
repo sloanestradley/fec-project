@@ -60,6 +60,13 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#race-context')).toBeAttached();
   });
 
+  test('incumbent tag shown for incumbent candidate', async ({ page }) => {
+    await setup(page);
+    const tag = page.locator('#meta-row .incumbent-tag');
+    await expect(tag).toBeVisible({ timeout: 5000 });
+    await expect(tag).toHaveText('Incumbent');
+  });
+
   test('breadcrumb contains link to /candidates', async ({ page }) => {
     await setup(page);
     const link = page.locator('.breadcrumb a[href="/candidates"]');

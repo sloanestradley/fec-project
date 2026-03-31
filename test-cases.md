@@ -103,6 +103,9 @@
 - [ ] Senate candidate: race link has no `-00` district segment; sentence renders correctly
 - [ ] `.tag-context` text wraps at narrow viewports (no overflow); "View race →" link stays inline with last line
 - [ ] Space between sentence period and "View race →" link is visible (non-breaking space)
+- [ ] ✅ Incumbent tag `.incumbent-tag` appears in `#meta-row` after party tag when candidate is the incumbent (automated)
+- [ ] Incumbent tag absent when candidate is a challenger or open-seat candidate
+- [ ] Incumbent tag clears and re-evaluates correctly on cycle switch (tag may appear in one cycle but not another)
 - [ ] "Committees (N) →" trigger shows a count immediately on load (not blank while loading)
 
 ### Cycle switcher
@@ -357,6 +360,13 @@
 - [ ] No-results state shown when filters match zero races
 - [ ] Error state shown on API failure; retry button re-fetches
 - [ ] Races sorted by state then district within each office group
+
+### URL sync
+- [ ] Applying Office or State filter updates the URL (e.g. `/races?cycle=2026&office=H&state=WA`)
+- [ ] Changing cycle updates URL with new cycle value
+- [ ] Loading `/races?cycle=2024&office=S` restores those filters on page load (cycle dropdown set, office select set, results filtered)
+- [ ] Loading `/races?state=WA` restores state filter (state combo input + listbox value set)
+- [ ] Clearing all filters resets URL to `/races?cycle=XXXX` (cycle always present)
 
 ### Results area
 - [ ] `#state-results`, `#state-loading`, `#state-no-results`, `#state-error` all present ✅
@@ -710,3 +720,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-20 | committee.html Spent tab — donut by category, purpose breakdown bars (PURPOSE_MAP keyword matching), top vendors table (dynamic header), contributions to candidates & committees section (CCM-filtered, conditionally shown); fetchSpentData from ALL_TOTALS + Schedule B pagination; COMMITTEE_TOTALS mock updated with breakdown fields; DISBURSEMENTS enhanced with 3 opex + 1 CCM record; 5 new Playwright spent tab tests | committee.html, tests/helpers/api-mock.js, tests/pages.spec.js (automated) | 2 pre-existing races.html mobile networkidle flaky failures (unrelated to this session — races.html not touched) | 263/265 Track 1 passing (260+5 new; 2 pre-existing flaky) |
 | 2026-03-20 | Design cleanup — fix committee spent donut (wrong FEC field names + missing PAC categories), fix Chart.js hidden canvas bug, data note placement, committee header tag styling, remove page-header border-bottom globally, remove page eyebrows, hide breadcrumbs, unify page title sizes, tighten vertical rhythm | candidate.html, committee.html, candidates.html, committees.html, races.html, race.html, process-log.html, design-system.html, styles.css, tests/helpers/api-mock.js (automated) | None | 265/265 Track 1 passing |
 | 2026-03-30 | Documentation + API research — verified FEC amendment fields against live API (C00806174), corrected MGP committee ID (was C00696948/Bernie Sanders), updated CLAUDE.md amendment findings, project-brief.md phase audit and roadmap cleanup, Phase 4 backlog additions (IE, refund spike, overhead ratio, dark money signals, comparison builder) | CLAUDE.md, project-brief.md (no code changes) | N/A | No tests run (documentation only) |
+| 2026-03-31 | Cleanup + system debt session — doc corrections (race.html paths false alarm, committee.html status sync, ia.md link patterns); incumbent tag on candidate.html profile header; races.html URL sync (cycle/office/state); candidates.html computed cycle dropdown (was hardcoded); PURPOSE_MAP + purposeBucket() moved to utils.js; .committee-name-link deprecation note corrected; --section-gap token formalized; flaky networkidle test fixed (networkidle → load); 2 new Playwright tests | candidate.html, committee.html (via utils.js), candidates.html, races.html, utils.js, styles.css, design-system.html, CLAUDE.md, ia.md, tests/candidate.spec.js, tests/pages.spec.js (automated) | Pre-existing races.html mobile networkidle flakiness resolved this session | 267/267 Track 1 passing |

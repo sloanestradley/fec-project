@@ -1744,3 +1744,53 @@ The through-line: Sloane is making decisions that protect the product from scope
 - Comparison builder product design: entry point, URL structure, save/share mechanics are undefined. Is this a logged-in feature? A shareable link? A scratch pad? Needs product thinking before it's ready to spec.
 - Candidate and committee filings: is there any scenario where surfacing FEC document links would be genuinely useful to a political strategist, or does this belong entirely to the FEC's own site? John's call.
 - Breadcrumbs: still hidden, JS wired. What form should they take in the redesign?
+---
+2026-03-31
+
+## Process log draft
+
+Title: Cleaning the map before moving forward
+
+A session without a single new feature — just the accumulated debt of a project that's been shipping fast. Stale docs corrected, shared logic extracted, a token formalized, a flaky test fixed. The site works the same as when we started. The codebase is a little more honest about itself.
+
+Changelog:
+– Validated Claude Chat's "correctness issues" audit: race.html relative paths are fine (query-param URL, not path-segment); .tag-context candidate-only status is correct by design; ENTITY_TYPE_LABELS already lives in utils.js
+– Fixed two stale ia.md entries: committee modal link pattern was using old committee.html?id= format (now /committee/{id}); committee.html status in CLAUDE.md Current Files said "Raised/Spent tabs are stubs" (both live)
+– .committee-name-link: corrected stale deprecation claim — rule is still active in candidate.html committees modal; updated CLAUDE.md and styles.css comment to reflect this
+– Incumbent tag added to candidate.html profile header — reads from electionsData already fetched in loadCycle(), appended to #meta-row after party tag, cleared and re-evaluated on cycle switch
+– races.html URL sync: cycle/office/state now sync to URL on every filter change; populateCycles() accepts preferred cycle from URL params; init() restores all three filters on load
+– candidates.html cycle dropdown: replaced hardcoded 2002–2026 option list with JS-generated even years from currentCycle down to 2002 — auto-updates when 2028 arrives
+– PURPOSE_MAP and purposeBucket() extracted from candidate.html and committee.html into utils.js — pure extraction, no behavior change
+– --section-gap: 1.5rem formalized as a CSS token in :root; applied to .banner, .chart-card, .donors-card, .stats-grid, .raised-grid; documented in design-system.html and CLAUDE.md
+– Flaky races.html mobile overflow test fixed: networkidle → load (IntersectionObserver enrichment calls were keeping the network active past the 15s timeout; layout test doesn't need data loaded)
+– 2 new Playwright tests: incumbent tag visible for MGP (mock fixture has candidate_id + incumbent_challenge_full); candidates.html cycle dropdown has computed even-year options
+– Test count: 265 → 267, all passing
+
+Field notes:
+The most clarifying moment was the .committee-name-link audit. Claude Chat called it "deprecated but still in styles.css" — technically accurate, but the deprecation note itself was wrong. The rule isn't unused; it's actively applied in candidate.html's committee modal. The doc was the bug, not the code. That's a different kind of maintenance than removing dead code, and it's easy to miss if you're not reading both the note and the source at the same time. The broader lesson from the session: documentation that's "almost right" creates more confusion than documentation that's clearly incomplete.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+
+**Bringing Claude Chat's audit to Claude Code for validation**
+Rather than acting on Claude Chat's list directly, Sloane brought it to Claude Code to verify each item against the actual source. This caught three false positives: race.html paths (correct by design), .tag-context status (correct by design), and ENTITY_TYPE_LABELS (already in utils.js). Two of the five items were real; three weren't. The validation step saved three unnecessary edits.
+
+**"What exactly is the definition of 'stable'?"**
+After the .tag-context non-issue was explained, Sloane asked the sharper question: is the status taxonomy itself right? The instinct that "multi-page" would be more self-describing than "stable" is correct — stable is borrowed convention from library lifecycle semantics, where it means production-ready, not used-in-multiple-places. That's a real design system improvement worth a dedicated session.
+
+**Noting the design system coverage gap**
+The observation that browse pages and committee.html may have components not documented in design-system.html was an architectural awareness call — the system was named from the candidate page's perspective and hasn't caught up with Phase 3. Flagged for a future audit session rather than addressed ad hoc.
+
+**Questioning the "30 minutes" estimate**
+Pushing back on the time estimate for races.html URL sync was the right instinct. It was 15–20 lines. The session confirmed it. The pattern is already well-established in this codebase; the only real wrinkle was the cycle dropdown sequencing.
+
+**Connecting races.html URL sync to candidates.html cycle dropdown**
+The question "should candidates.html also have a dynamic cycle dropdown?" reframed what could have been a narrow fix into a moment of architectural alignment. The answer (no API call needed — compute from current year) was the right one, and recognizing the distinction between the two pages' needs was sharp.
+
+The through-line: Sloane consistently asks "is this actually right?" before acting, and "what's the bigger pattern here?" when a local fix is proposed. Both instincts — skepticism and systems thinking — produced better outcomes than moving straight to implementation.
+
+## What to bring to Claude Chat
+- Design system status taxonomy: "stable" should probably be renamed "multi-page" — it tracks usage breadth, not maturity. A dedicated session to rename + audit which browse/committee/race page components are missing from design-system.html entirely.
+- Incumbent tag on past cycles: when viewing a past cycle where the candidate lost, the tag still shows "Incumbent" (they were the incumbent when they ran). Is that the right framing, or should past-cycle incumbency say "was incumbent" / "defended seat"? Needs a UX decision before it becomes a visible issue.
+- Phase 4 sequencing: cleanup is done. What's the first Phase 4 item — early signal data (48/24hr reports), AI insights panel, or something else? John validation queue (refund spike, overhead ratio, dark money, IE display) should probably happen before any of those build.

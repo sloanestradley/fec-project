@@ -195,3 +195,29 @@ var ENTITY_TYPE_LABELS = {
   'PAC': 'PAC', 'PTY': 'Party committee', 'COM': 'Committee',
   'CCM': 'Candidate committee', 'ORG': 'Organization', 'CAN': 'Candidate (self)', 'IND': 'Individual'
 };
+
+// ── Disbursement purpose bucketing (Spent tab — candidate and committee) ──
+// Patterns ordered so more-specific descriptions match before broad ones.
+// e.g. "DIGITAL CONSULTING" → Digital & Online (DIGITAL matches first)
+var PURPOSE_MAP = [
+  { label: 'TV & Radio',         patterns: ['TELEVISION','RADIO','BROADCAST','MEDIA ADVERTISING','MEDIA PRODUCTION'] },
+  { label: 'Digital & Online',   patterns: ['DIGITAL','ONLINE ADVERTISING','EMAIL','TEXT MESSAGING','INTERNET'] },
+  { label: 'Direct Mail',        patterns: ['DIRECT MAIL','POSTAGE','MAILING'] },
+  { label: 'Printing',           patterns: ['PRINTING'] },
+  { label: 'Staff & Payroll',    patterns: ['SALARY','PAYROLL','WAGES','PERSONNEL'] },
+  { label: 'Legal & Compliance', patterns: ['LEGAL','COMPLIANCE','ACCOUNTING'] },
+  { label: 'Events & Travel',    patterns: ['CATERING','LODGING','AIR TRAVEL','TRAVEL','EVENT SUPPLIES','SITE RENTAL','VENUE','HOTEL'] },
+  { label: 'Consulting',         patterns: ['CONSULTING','STRATEGY','ADVISOR','POLLING','RESEARCH'] }
+];
+
+function purposeBucket(desc) {
+  if (!desc) return 'Other';
+  var u = desc.toUpperCase();
+  for (var i = 0; i < PURPOSE_MAP.length; i++) {
+    var cat = PURPOSE_MAP[i];
+    for (var j = 0; j < cat.patterns.length; j++) {
+      if (u.indexOf(cat.patterns[j]) !== -1) return cat.label;
+    }
+  }
+  return 'Other';
+}

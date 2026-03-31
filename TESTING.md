@@ -28,7 +28,7 @@ npm run test:report
 
 **Command:** `npx playwright test` or `npm test`
 **When to run:** Every session, before and after making changes.
-**Speed:** ~1 minute for all 265 tests.
+**Speed:** ~1 minute for all 267 tests.
 
 ### What they test
 

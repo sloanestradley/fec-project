@@ -439,6 +439,17 @@ test.describe('candidates.html', () => {
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
+  test('cycle dropdown is populated with computed even-year options', async ({ page }) => {
+    const options = page.locator('#f-cycle option');
+    const count = await options.count();
+    expect(count).toBeGreaterThan(1); // "All cycles" + at least one computed year
+    const values = await options.evaluateAll(opts =>
+      opts.map(o => o.value).filter(v => v !== '')
+    );
+    expect(values.length).toBeGreaterThan(0);
+    values.forEach(v => expect(Number(v) % 2).toBe(0)); // all even years
+  });
+
   test('search input is visible in filter bar', async ({ page }) => {
     const searchInput = page.locator('#f-search');
     await expect(searchInput).toBeVisible();
@@ -919,7 +930,7 @@ test.describe('no horizontal overflow at 390px', () => {
       if (needsMock) await mockFecApi(page);
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(url);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('load');
       const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
       expect(scrollWidth).toBeLessThanOrEqual(390);
     });

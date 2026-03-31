@@ -287,7 +287,7 @@ function showState(name) {
 
 // ── Cycle dropdown ────────────────────────────────────────────────────────────
 
-async function populateCycles() {
+async function populateCycles(preferredCycle) {
   var data = await apiFetch('/elections/search/', { per_page: 100 });
   var results = data.results || [];
   var seen = {};
@@ -302,9 +302,13 @@ async function populateCycles() {
 
   var sel = document.getElementById('f-cycle');
   sel.innerHTML = cycles.map(function(c) {
-    return '<option value="' + c + '"' + (c === currentCycle ? ' selected' : '') + '>' + c + '</option>';
+    return '<option value="' + c + '">' + c + '</option>';
   }).join('');
-  activeFilters.cycle = String(currentCycle);
+
+  var targetCycle = (preferredCycle && cycles.indexOf(parseInt(preferredCycle)) !== -1)
+    ? parseInt(preferredCycle) : currentCycle;
+  sel.value = String(targetCycle);
+  activeFilters.cycle = String(targetCycle);
 }
 
 // ── Enrichment ────────────────────────────────────────────────────────────────
@@ -418,6 +422,15 @@ async function fetchAllRaces(cycle) {
 
 // ── Filtering & rendering ─────────────────────────────────────────────────────
 
+function updateURL() {
+  var u = new URL(window.location.href);
+  u.search = '';
+  u.searchParams.set('cycle', activeFilters.cycle);
+  if (activeFilters.office) u.searchParams.set('office', activeFilters.office);
+  if (activeFilters.state)  u.searchParams.set('state',  activeFilters.state);
+  window.history.pushState({}, '', u.toString());
+}
+
 function applyFilters() {
   var filtered = allRaces.filter(function(r) {
     if (activeFilters.office && r.office !== activeFilters.office) return false;
@@ -426,6 +439,7 @@ function applyFilters() {
   });
   renderResults(filtered);
   renderChips();
+  updateURL();
 }
 
 function renderResults(races) {
@@ -582,7 +596,22 @@ document.getElementById('f-cycle').addEventListener('change', function() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 (function init() {
-  populateCycles().then(function() {
+  var p = new URLSearchParams(window.location.search);
+  var urlCycle  = p.get('cycle');
+  var urlOffice = p.get('office');
+  var urlState  = p.get('state');
+
+  if (urlOffice && OFFICE_LABELS[urlOffice]) {
+    activeFilters.office = urlOffice;
+    document.getElementById('f-office').value = urlOffice;
+  }
+  if (urlState) {
+    activeFilters.state = urlState;
+    document.getElementById('f-state').value = urlState;
+    document.getElementById('f-state-filter').value = urlState;
+  }
+
+  populateCycles(urlCycle).then(function() {
     fetchAllRaces(activeFilters.cycle);
   });
 
