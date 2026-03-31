@@ -114,6 +114,7 @@
     .breadcrumb a:hover { color:var(--accent); }
     /* Override reveal animation in demos — demos don't run JS to add .visible */
     .ds-component-demo .page-header-reveal { opacity:1; transition:none; }
+    .ds-component-demo .tabs-bar { padding:0; opacity:1; transition:none; }
     .candidate-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; }
     .avatar { width:32px; height:32px; border-radius:2px; background:var(--text);
       display:flex; align-items:center; justify-content:center;
@@ -311,6 +312,14 @@
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--filing-terminated)"></span>--filing-terminated</td><td>warm-rule-dark</td><td class="ds-token-hex">#a8a099</td><td>Terminated filing status dot</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--accent)"></span>--accent</td><td>blue-mid</td><td class="ds-token-hex">#2c5282</td><td>Interactive accent, active indicators</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--accent-dim);border:1px solid var(--border)"></span>--accent-dim</td><td>blue-mid @ 10%</td><td class="ds-token-hex">rgba(44,82,130,0.1)</td><td>Accent tint for focus rings, hover fills</td></tr>
+            <tr>
+  <td class="ds-token-name">
+    <span class="ds-token-dot" style="background:var(--overlay-bg)"></span>--overlay-bg
+  </td>
+  <td>warm-ink @ 65%</td>
+  <td class="ds-token-hex">rgba(26,21,16,0.65)</td>
+  <td>Modal and drawer overlay scrim</td>
+</tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--nav-bg)"></span>--nav-bg</td><td>warm-sidebar</td><td class="ds-token-hex">#e8e2d8</td><td>Top nav + mobile nav background</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--nav-active-bg)"></span>--nav-active-bg</td><td>warm-active</td><td class="ds-token-hex">#d4cdc3</td><td>Active nav item background (mobile drawer)</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-raised)"></span>--chart-raised</td><td>--dem @ 90%</td><td class="ds-token-hex">rgba(74,144,217,0.9)</td><td>Raised money line in chart</td></tr>

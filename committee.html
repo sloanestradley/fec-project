@@ -16,11 +16,8 @@
   <!-- Amplitude Analytics -->
   <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
-    .main { overflow-x:hidden; min-width:0; }
-
-    /* Committee header — shared base via .page-header and .page-title in styles.css */
+    /* Committee header */
     .committee-header-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap; }
-    .meta-row { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
     .designation-label { font-family:'IBM Plex Mono',monospace; font-size:0.62rem;
       color:var(--muted); margin-left:0.25rem; }
     .back-link-area { margin-top:0.85rem; }
@@ -28,16 +25,6 @@
       color:var(--subtle); text-decoration:underline; text-decoration-color:transparent;
       text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
     .back-link-area a:hover { color:var(--accent); text-decoration-color:var(--accent); }
-
-    /* Tabs bar — committee-specific overrides */
-    .tabs-bar { padding:0 var(--page-gutter); opacity:0; transition:opacity 0.4s ease; }
-    .tabs-bar.visible { opacity:1; }
-
-    /* Cycle switcher inside tabs bar */
-    .cycle-select { align-self:stretch; border:none; border-radius:0;
-      font-size:0.72rem; padding:0 0.75rem; min-width:5.5rem; margin-right:1rem;
-      background:var(--bg); color:var(--subtle); cursor:pointer; }
-    .cycle-select:focus { outline:none; color:var(--text); }
 
     /* Content area */
     .committee-content { padding:2.5rem var(--page-gutter);
@@ -49,10 +36,7 @@
 
     @media (max-width:860px) {
       .committee-content { padding:1.5rem var(--page-gutter); }
-      .state-msg { padding:2rem var(--page-gutter); }
-      .stats-grid { grid-template-columns:repeat(2,1fr); }
     }
-    @media (max-width:480px) { .stat-value { font-size:1.2rem; } }
   </style>
 </head>
 <body>

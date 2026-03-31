@@ -12,70 +12,15 @@
   <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     .main { overflow-x:hidden; min-width:0; }
-
-    /* Filter bar */
-    .filter-bar-wrap { padding:1.5rem var(--page-gutter); border-bottom:1px solid var(--border); }
-    .filter-bar { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end; max-width:860px; }
-    .form-field { display:flex; flex-direction:column; gap:0.3rem; }
-    .form-label { font-family:'IBM Plex Mono',monospace; font-size:0.58rem;
-      text-transform:uppercase; letter-spacing:0; color:var(--muted); }
     .form-select.wide { min-width:200px; }
-
-    /* Search combo */
-    .search-combo { position:relative; display:flex; }
-    .search-combo .form-input { flex:1; min-width:160px; border-right:none; }
-
-    /* State combo */
-    .state-combo { position:relative; }
-    .state-combo .form-input { width:120px; }
-    .state-select-wrap { position:absolute; top:100%; left:0; min-width:200px; z-index:50;
-      display:none; background:var(--bg); border:1px solid var(--border-strong); border-top:none; }
-    .state-combo:focus-within .state-select-wrap { display:block; }
-    .state-listbox { width:100%; max-height:200px; overflow-y:auto; background:var(--bg);
-      font-family:'DM Sans',sans-serif; font-size:0.78rem; color:var(--text);
-      border:none; outline:none; cursor:pointer; }
-
-    /* Filter chips */
-    .filter-chips-wrap { padding:0.55rem var(--page-gutter); border-bottom:1px solid var(--border);
-      display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; }
-    .filter-chip { display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.5rem;
-      background:var(--bg); border:1px solid var(--border-strong);
-      font-family:'IBM Plex Mono',monospace; font-size:0.62rem; color:var(--subtle); }
-    .chip-x { background:none; border:none; cursor:pointer; font-size:0.85rem;
-      color:var(--muted); padding:0 0.1rem; line-height:1; display:flex; align-items:center; }
-    .chip-x:hover { color:var(--text); }
-    .chip-clear-all { background:none; border:1px solid var(--border-strong); cursor:pointer;
-      font-family:'IBM Plex Mono',monospace; font-size:0.6rem; color:var(--muted);
-      padding:0.2rem 0.5rem; text-transform:uppercase; letter-spacing:0; }
-    .chip-clear-all:hover { color:var(--text); border-color:var(--text); }
-
-    /* Results area */
-    .results-area { padding:2rem var(--page-gutter); }
+    /* Override committee-row grid for unified 4-column layout (name + type + treasurer + status) */
+    #results-list .committee-row { grid-template-columns:1fr auto auto auto; }
     .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
       text-transform:uppercase; letter-spacing:0; color:var(--muted);
       padding-bottom:0.75rem; }
-    /* Override committee-row grid for unified 4-column layout (name + type + treasurer + status) */
-    #results-list .committee-row { grid-template-columns:1fr auto auto auto; }
-
-    /* No results / error */
-    .no-results { padding:2.5rem var(--page-gutter); color:var(--muted); font-size:0.8rem; }
-    .error-prompt { padding:3rem var(--page-gutter); color:var(--muted); font-size:0.8rem; }
-    .error-prompt strong { display:block; font-family:'Barlow Condensed',sans-serif;
-      font-size:1.2rem; font-weight:700; text-transform:uppercase; letter-spacing:0;
-      color:var(--subtle); margin-bottom:0.4rem; }
-    .retry-btn { margin-top:0.75rem; padding:0.4rem 0.9rem; background:none;
-      border:1px solid var(--border-strong); font-family:'Barlow Condensed',sans-serif;
-      font-size:0.8rem; font-weight:700; text-transform:uppercase; cursor:pointer;
-      color:var(--subtle); transition:border-color 0.15s, color 0.15s; }
-    .retry-btn:hover { border-color:var(--text); color:var(--text); }
-
     @media (max-width:860px) {
-      .filter-bar-wrap { padding:var(--page-gutter); }
-      .results-area { padding:1.5rem var(--page-gutter); }
-      .no-results, .error-prompt { padding:2rem var(--page-gutter); }
       #results-list .committee-row { grid-template-columns:1fr; gap:0.2rem; }
     }
-    @media (max-width:480px) { .filter-bar { flex-direction:column; align-items:flex-start; } }
   </style>
 </head>
 <body>

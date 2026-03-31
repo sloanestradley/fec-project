@@ -1892,3 +1892,49 @@ The through-line: you're holding the design system to the same standard as produ
 - JFA organizer gap — is it worth fixing? The "Joint Fundraising" group only appears when committee_type === 'J', but the FEC often assigns 'N' or 'Q' to real JFAs. Is showing all JFAs in their own group important enough to invest in a more reliable detection heuristic (e.g. designation === 'J')? Or is "Other" an acceptable fallback for now?
 - Design system completeness vs. build momentum: This session was pure documentation catch-up. Is there a threshold where the design system is "good enough to stop maintaining in parallel" and attention should shift fully to Phase 4 features?
 - Modal demo data philosophy: Using Pelosi's real data is accurate but will age. Should demos use real but frozen data (with a "as of" note), or is synthetic-but-realistic data more appropriate for a living reference?
+---
+2026-03-31 CSS Consolidation Session
+
+## Process log draft
+
+Title: Making the system honest — token audit and CSS consolidation
+
+A full session of design system maintenance with no new features. We worked through six discrete cleanup tasks: replacing hardcoded color values in the global banner and modal overlay with semantic tokens, formalizing a new --overlay-bg token for the scrim layer, replacing two rgba() values in .callout with color-mix() derivations, and then two larger consolidation passes — promoting all browse-page chrome into styles.css, and stripping redundant rules from every profile page inline block. The codebase now has a single source of truth for every shared CSS rule.
+
+Changelog:
+- Global banner: replaced background:#1c1710, color:#7a7060, and strong color:#c8c0b0 with var(--text), var(--muted), var(--border)
+- Added --overlay-bg: rgba(26,21,16,0.65) to :root Accent group; .modal-overlay now references it; design-system.html token table updated
+- .callout: rgba(232,160,32,0.2) and rgba(232,160,32,0.05) replaced with color-mix(in srgb, var(--amber) 20%/5%, transparent)
+- CLAUDE.md: rgba semantic token refactor documented as deferred (blocked on primitive promotion decision)
+- Browse page chrome: ~200 lines of CSS (filter bar, state combo, chips, results area, error/no-results, retry) moved from candidates/committees/races/search inline blocks into styles.css section R; three 860px rules added; 480px block added
+- candidates.html, committees.html: inline <style> blocks reduced to page-specific overrides only
+- Profile page cleanup: .tabs-bar padding+opacity merged into styles.css; .tabs-bar.visible, .cycle-select, .meta-row added; .state-msg 860px and .stat-value 480px overrides promoted; .main, .raised-grid/.raised-cell/.raised-cell-title, empty .profile-header{} deleted from profile pages
+- design-system.html: .ds-component-demo .tabs-bar override added alongside .page-header-reveal reset
+- 271/271 Playwright tests passing
+
+Field notes:
+The tabs-bar demo override was a good catch — caught before execution because the plan included it. That's exactly the kind of downstream side effect that CSS promotion creates: a rule that means nothing in production (no JS adds .visible to demos) suddenly matters because the base rule changed. The design system is only trustworthy if it renders what production renders. The override keeps the contract intact.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+
+**Explicit, precise instructions — no inference required**
+Every task this session arrived as a complete specification: exactly which values to replace with which tokens, exactly which rules to promote, exactly which files to touch. That level of precision eliminates an entire category of judgment errors.
+
+**Catching the design-system.html demo side effect before execution**
+When the tabs-bar promotion was planned, Sloane added a correction before approval: the design-system demo needed a matching override because it doesn't run JS. That's systems thinking — recognizing that promoting a rule changes its blast radius, and that the design system is a consumer of styles.css just like production pages are.
+
+**color-mix() as the right tool for the callout**
+Rather than creating two new tokens for single-use tints, Sloane specified color-mix() derivations. Tokens should carry semantic meaning, not be ephemeral intermediate values. color-mix() keeps the relationship between the callout colors and --amber explicit in the CSS itself.
+
+**Deferred refactor as a first-class decision**
+Rather than doing a piecemeal rgba cleanup on the chart tokens, Sloane directed that the decision to NOT refactor be documented explicitly in CLAUDE.md — with the reason (blocked on primitive promotion) and the constraint (address as a single pass). Deferring intentionally is different from deferring by accident.
+
+The through-line: Sloane is treating CSS architecture with the same rigor as product architecture — every change either closes a known debt item or deliberately defers it with documented rationale.
+
+## What to bring to Claude Chat
+- color-mix() vs. token pattern: callout uses color-mix() for amber tints; chart overlays still use raw rgba(). Deferred refactor note documents the blocker (no primitive for blue-500/red-500/chart-amber in :root). Is there a session to promote those three primitives and close the rgba debt in one pass?
+- Design system status taxonomy: "stable" rename + audit of browse/committee/race page components still missing from design-system.html is in queue.
+- Phase 4 sequencing: CSS consolidation is done. First Phase 4 item? John validation queue should precede building.
+- candidates.html / committees.html still have redundant .main { overflow-x:hidden; } — not in this session's scope but worth a one-line cleanup next time those files are touched.

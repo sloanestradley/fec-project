@@ -11,8 +11,6 @@
   <!-- Amplitude Analytics -->
   <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
-    .main { overflow-x:hidden; min-width:0; }
-
     /* Search bar — always visible at top */
     .search-bar-wrap { padding:2.5rem var(--page-gutter) 2rem; border-bottom:1px solid var(--border); }
     .search-bar { display:flex; gap:0; max-width:600px; }
@@ -25,9 +23,6 @@
       color:var(--text); margin-bottom:0.75rem; }
     .search-hero-sub { font-size:0.82rem; color:var(--muted); line-height:1.6; }
 
-    /* Results area */
-    .results-area { padding:2rem var(--page-gutter); }
-
     /* No results */
     .no-results { padding:3rem var(--page-gutter); color:var(--muted); font-size:0.8rem; }
     .no-results strong { color:var(--text); display:block; font-size:1rem;
@@ -37,7 +32,6 @@
     @media (max-width:860px) {
       .search-bar-wrap { padding:var(--page-gutter); }
       .search-hero { padding:3rem var(--page-gutter) 2rem; }
-      .results-area { padding:1.5rem var(--page-gutter); }
       .no-results { padding:2rem var(--page-gutter); }
     }
   </style>
