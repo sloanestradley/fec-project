@@ -236,6 +236,14 @@ Reports endpoint (`/committee/{id}/reports/`) returns per-filing objects with:
 - `cash_on_hand_end_period` — COH snapshot at end of period
 - `coverage_start_date` / `coverage_end_date` — in format `"2025-03-31T00:00:00"` (strip `T` and after)
 - `report_form` — e.g. `"Form 3"` (use this to filter deadlines)
+- **Amended filings:** When multiple reports exist for the same period, use only the most recent. Amendment-tracking fields (verified from live response, C00806174 "Marie for Congress"):
+  - `most_recent` (boolean) — `true` = current authoritative version; `false` = superseded. **This is the correct dedup filter.** The API also accepts `?most_recent=true` as a query param to filter server-side.
+  - `is_amended` (boolean) — `true` = this record has been superseded by a newer filing. Equivalent to `most_recent: false`.
+  - `amendment_indicator` — `"N"` = originally filed as a new report; `"A"` = this record is itself an amendment filing
+  - `amendment_indicator_full` — `"NEW"` or `"AMENDMENT"`
+  - `amendment_chain` — array of `file_number` integers tracking the full amendment lineage
+  - `most_recent_file_number` — float; the `file_number` of the current authoritative version
+  - **`amendment_version` does NOT exist** — remove any logic relying on this field name; it is not present in API responses.
 
 Reporting-dates endpoint (`/reporting-dates/`) returns:
 - `report_type` — short code e.g. `"Q1"`, `"YE"`, `"12G"`, `"M6"`
@@ -254,6 +262,10 @@ Candidate totals endpoint returns:
 - `disbursements` — cycle total spent
 - `last_cash_on_hand_end_period` — most recent COH
 - `coverage_end_date` — most recent coverage date
+
+Committee totals endpoint (`/committee/{id}/totals/`) — amendment safety (verified from live response, C00806174 "Marie for Congress"):
+- Returns one record **per cycle** — 4 records for a multi-cycle committee, not one record by design. `per_page=1` with no cycle filter returns the most recent cycle only.
+- Has **no amendment fields** (`is_amended`, `most_recent`, `amendment_indicator` are absent). The endpoint returns pre-aggregated cycle totals, not raw filings — no dedup logic needed here.
 
 Elections-search endpoint (`/elections/search/`) returns:
 - `cycle` — integer, election cycle year (even number)
@@ -279,7 +291,7 @@ See `project-brief.md` for the full phased roadmap. Short version:
 - ~~committees.html~~ ✅ unified browse+search — auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state, treasurer always shown
 - ~~races.html~~ ✅ browse page — filter bar (Year/Office/State), results area, state combo, filter chips, all UI states; data fetching with progressive enrichment via /elections/
 - ~~race.html~~ ✅ scaffold — single race view, candidate cards with financials, cycle-anchored links, dynamic cycle dropdown from `/elections/search/`, Senate class indicator, URL param validation
-- Remaining on committee.html: Raised tab ✅ live; Spent tab ✅ live (donut by category, purpose breakdown bars, top vendors table, contributions to candidates & committees section); filing history still stub
+- committee.html: Raised tab ✅ live; Spent tab ✅ live (donut by category, purpose breakdown bars, top vendors table, contributions to candidates & committees section); filing history removed from scope — moved to backlog as a broader "candidate and committee filings" item pending validation with John
 
 **Phase 4:** Early signal data (48/24hr reports), AI insights, transaction-level search.
 
@@ -394,7 +406,7 @@ Senate 6-year cycles introduce a multi-sub-cycle pattern worth understanding bef
 - **Election dates from `/election-dates/`** — not `/elections/` (which returns candidate financial summaries, not actual dates)
 - **Mobile nav search icon** — at smaller breakpoints, search does not collapse into the hamburger drawer. A search icon remains exposed left of the menu icon at all times.
 - **Global nav links** — Home, Candidates, Committees, Races present from launch as stubs; activated as pages are built per phase plan.
-- **Race page = compare feature** — two modes, one shared UI. Curated mode: a specific contest auto-populates all declared candidates. Ad hoc mode: user selects any candidates across races (designed for consultants tracking multiple frontline races). No editorial curation required.
+- **Race page** — single contest view; all declared candidates auto-populated from `/elections/`. The comparison builder (selecting candidates across races) is a separate Phase 4 feature, not a mode of the race page.
 
 ---
 

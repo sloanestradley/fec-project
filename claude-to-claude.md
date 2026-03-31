@@ -1699,3 +1699,48 @@ The race-context-bar spacing conversation was surgical — Sloane identified the
 - Browse page headers feel bare now with eyebrows removed and titles downsized. Is just a title enough, or do they need a subtitle or contextual element?
 - Committee spent donut category labels are FEC jargon. Worth a pass with John to map to plain-language equivalents.
 - 1.5rem is emerging as the de facto section spacing value. Worth formalizing as a named token (--section-gap?) in the design system.
+
+---
+2026-03-30 18:00
+
+## Process log draft
+
+**Getting the map right before building anything else**
+
+A research and documentation session — no new features shipped, but the kind of work that prevents expensive wrong turns. We verified FEC API behavior against live responses, caught a bad committee ID that had been quietly wrong in the docs, and did a full audit of the project roadmap against what's actually built. Phase 3 is effectively done. The backlog is now much more thoughtful.
+
+Changelog:
+- Verified FEC amendment fields against live API (C00806174 "Marie for Congress"): confirmed `amendment_version` does not exist; correct filter is `most_recent: true`
+- Corrected MGP's principal committee ID in CLAUDE.md: was C00696948 (Bernie Sanders' 2020 presidential campaign); actual ID is C00806174
+- Documented `/committee/{id}/totals/` amendment safety: returns one record per cycle, no amendment fields, pre-aggregated — no dedup logic needed
+- Audited all phases in project-brief.md against current codebase; struck through and marked complete across Phases 1, 2, and 3
+- Moved spend timeline from Phase 1 Spent tab to Backlog Discussion
+- Removed filing history tab from committee.html scope; moved to Backlog as broader "candidate and committee filings" item pending John's validation
+- Removed "two modes" framing from race page; Race page is now the single contest view; comparison builder moved to Phase 4 as its own distinct feature
+- Added Phase 4 bullets: IE (Schedule E), refund spike detection, overhead ratio, dark money signals, candidate comparison builder
+- Added definitions: Employee aggregates vs. PAC money
+
+Field notes:
+The wrong committee ID — C00696948 was Bernie Sanders — had been sitting in the docs unnoticed. It's a small thing, but it's the kind of subtle error that makes you wonder what else you're quietly wrong about. The more interesting work was the roadmap audit — especially the conversation about race page modes. "Two modes, one shared UI" was a framing that made sense early on, when the comparison builder felt like an extension of the race page. But as the project got more concrete, it became clear they're fundamentally different products. The race page is a directory. The comparison builder is a workspace. Better to say that clearly now than to build a weird hybrid UI trying to serve both.
+
+## How Sloane steered the work
+
+**Move the spend timeline, don't delete it**
+When the phase audit showed the spend timeline was never built, Sloane's call was to move it to the backlog rather than close it as won't-do. The current category/purpose/vendor breakdown is sufficient, but the timeline pattern is worth revisiting once the Raised chart is ready to be reused. Backlog, not gone.
+
+**Filing history: smaller than a tab, possibly not worth building**
+Sloane quickly read filing history as something that skews toward backend recordkeeping — the kind of thing the FEC itself already surfaces well. The call wasn't to kill it, but to demote it: out of Phase 3, out of the tab bar, into the backlog as something to validate with John before committing any design or engineering time.
+
+**Race page modes: untangle them now**
+The two-modes framing had been in the brief since early days, and Sloane saw through it immediately — they're not modes, they're different products. A race page shows a contest. A comparison builder is a workspace. Separating them cleaned up Phase 3 (race page fully complete) and gave the comparison builder a more honest description in Phase 4.
+
+**Validate before building — consistent signal across four new bullets**
+Every Phase 4 bullet added this session (refund spike, overhead ratio, dark money signals, IE) included an explicit note to validate thresholds or framing with John before building. The tool's credibility depends on not hardcoding politically loaded signals without expert input.
+
+The through-line: Sloane is making decisions that protect the product from scope creep in both directions — features that aren't done get marked clearly, features that don't belong get demoted, and features that could be harmful if implemented carelessly get guardrails before they go anywhere near code.
+
+## What to bring to Claude Chat
+- John validation queue: four Phase 4 items need his input before any building starts — refund spike threshold, overhead ratio threshold, dark money signals non-partisan framing, IE display approach. Worth batching into one conversation.
+- Comparison builder product design: entry point, URL structure, save/share mechanics are undefined. Is this a logged-in feature? A shareable link? A scratch pad? Needs product thinking before it's ready to spec.
+- Candidate and committee filings: is there any scenario where surfacing FEC document links would be genuinely useful to a political strategist, or does this belong entirely to the FEC's own site? John's call.
+- Breadcrumbs: still hidden, JS wired. What form should they take in the redesign?
