@@ -54,6 +54,8 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **CSS consolidation principle:** Component CSS lives in `styles.css`. Inline `<style>` blocks in individual pages are for page-specific overrides only (layout grid, page-specific spacing, page-specific components). `design-system.html` imports the same `styles.css` as production — no component CSS is duplicated between pages.
 
+**Design system demo override pattern:** Any shared component rule that uses `opacity:0` / `transition` for a JS-revealed animation needs a matching override in `design-system.html`'s inline `<style>` block, alongside the existing `.page-header-reveal` reset: `.ds-component-demo .component-class { opacity:1; transition:none; }`. Demos don't run page JS so `.visible` is never added — without the override, the component renders invisible in the design system. Currently: `.page-header-reveal` and `.tabs-bar` both have overrides at line 115–117 of `design-system.html`.
+
 **Flush list item border pattern:** List items that stack flush in a column (`.candidate-card`, `.committee-row`, `.committee-result-row`) use the adjacent sibling selector to suppress the doubled border: `component + component { border-top:none }`. The container (`.results-list`, `.race-list`) is a plain `flex-direction:column` with no border, no background, no gap. Do not use inset `box-shadow` as an alternative — two touching inset shadows still render as a doubled line on retina displays.
 
 **`.candidate-card-office` — removed:** Replaced by `<span class="tag tag-neutral">` with `formatRaceName()` output on all pages. CSS rule and last call site (committee.html) both removed 2026-03-20.
@@ -123,6 +125,7 @@ Light "broadsheet" theme. Key CSS variables:
 --filing-terminated: #a8a099 (terminated filing status dot)
 --accent: #2c5282    (interactive accent, active indicators)
 --accent-dim: rgba(44,82,130,0.1)  (accent tint)
+--overlay-bg: rgba(26,21,16,0.65)  (modal and drawer overlay scrim)
 
 Layout tokens:
 --page-gutter: 3rem       (horizontal content padding — 1rem at mobile ≤860px)
