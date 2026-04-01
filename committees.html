@@ -522,6 +522,10 @@ var stateKbRow = null;
 function openStateDropdown() {
   document.getElementById('state-dropdown').classList.add('open');
   document.getElementById('f-state-filter').setAttribute('aria-expanded', 'true');
+  var current = activeFilters.state;
+  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) {
+    r.setAttribute('aria-selected', r.dataset.value === current ? 'true' : 'false');
+  });
 }
 function closeStateDropdown() {
   document.getElementById('state-dropdown').classList.remove('open');
