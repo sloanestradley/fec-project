@@ -744,7 +744,7 @@
           <span class="ds-component-name">Form Controls</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.form-input · .form-select · .form-search-btn — base. States: :focus (accent border), :disabled (opacity 0.45). Variants: .cycle-select · .search-combo · .search-combo .form-input</div>
+        <div class="ds-component-classes">.form-input · .form-select · .form-search-btn — base. States: :focus (accent border), :disabled (opacity 0.45). Variants: .cycle-select · .search-combo · .search-combo .form-input · .combo-wrap · .combo-trigger</div>
         <div class="ds-component-demo">
           <div style="display:flex;flex-direction:column;gap:1.5rem">
 
@@ -800,7 +800,7 @@
 
           </div>
         </div>
-        <div class="ds-component-notes"><code>border-radius:0</code> is intentional — form controls are deliberately square. <code>.cycle-select</code> is not a standalone input: it strips all borders and padding for flush tab bar use only; always rendered inside <code>.tabs-bar</code>. <code>.form-select.wide</code> (min-width:200px) is a local extension on <code>committees.html</code> — stays inline there, not promoted. Top-nav and search-bar size overrides also stay local to their pages. Missing states (hover, error/invalid) and size variants are deferred to a future design decision.</div>
+        <div class="ds-component-notes"><code>border-radius:0</code> is intentional — form controls are deliberately square. <code>.cycle-select</code> is not a standalone input: it strips all borders and padding for flush tab bar use only; always rendered inside <code>.tabs-bar</code>. <code>.form-select.wide</code> (min-width:200px) is a local extension on <code>committees.html</code> — stays inline there, not promoted. Top-nav and search-bar size overrides also stay local to their pages. Missing states (hover, error/invalid) and size variants are deferred to a future design decision. <code>.combo-wrap</code> + <code>.combo-trigger</code>: the custom accessible dropdown pattern — <code>.combo-wrap</code> is <code>position:relative</code> and contains the trigger button, the <code>.typeahead-dropdown</code> listbox, and a hidden native <code>&lt;select&gt;</code> for mobile fallback (shown at ≤860px via media query, trigger/dropdown hidden). Powered by <code>initComboDropdown(config)</code> in <code>utils.js</code> — handles ARIA semantics, keyboard navigation, and outside-click dismissal. Used by office/party/cycle filters on candidates.html, type filter on committees.html, and year/office filters on races.html.</div>
       </div>
 
       <!-- 8. Stats grid -->

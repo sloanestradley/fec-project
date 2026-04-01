@@ -250,6 +250,20 @@ test.describe('races.html', () => {
     await expect(page.locator('#f-state-native')).toBeAttached();
   });
 
+  test('office combo has trigger, listbox, and native fallback', async ({ page }) => {
+    await expect(page.locator('#f-office-trigger')).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect(page.locator('#office-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-office')).toBeAttached();
+    const values = await page.locator('#f-office option').evaluateAll(opts => opts.map(o => o.value));
+    expect(values).toEqual(['', 'H', 'S', 'P']);
+  });
+
+  test('cycle combo has trigger, listbox, and native fallback', async ({ page }) => {
+    await expect(page.locator('#f-cycle-trigger')).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect(page.locator('#cycle-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-cycle')).toBeAttached();
+  });
+
   test('office select has All offices, House, Senate, President', async ({ page }) => {
     const options = page.locator('#f-office option');
     await expect(options).toHaveCount(4);
@@ -484,6 +498,31 @@ test.describe('candidates.html', () => {
     await expect(page.locator('#f-state-native')).toBeAttached();
   });
 
+  test('office combo has trigger, listbox, and native fallback', async ({ page }) => {
+    await expect(page.locator('#f-office-trigger')).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect(page.locator('#office-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-office')).toBeAttached();
+    // native select has expected options
+    const values = await page.locator('#f-office option').evaluateAll(opts => opts.map(o => o.value));
+    expect(values).toEqual(['', 'H', 'S', 'P']);
+  });
+
+  test('party combo has trigger, listbox, and native fallback', async ({ page }) => {
+    await expect(page.locator('#f-party-trigger')).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect(page.locator('#party-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-party')).toBeAttached();
+  });
+
+  test('cycle combo has trigger, listbox with dynamic rows, and native fallback', async ({ page }) => {
+    await expect(page.locator('#f-cycle-trigger')).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect(page.locator('#cycle-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-cycle')).toBeAttached();
+    // listbox rows are populated by IIFE
+    const rows = page.locator('#cycle-dropdown .typeahead-row');
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(1);
+  });
+
   test('results auto-load on page load (no params)', async ({ page }) => {
     const cards = page.locator('.candidate-card');
     await expect(cards).not.toHaveCount(0, { timeout: 8000 });
@@ -497,14 +536,14 @@ test.describe('candidates.html', () => {
   });
 
   test('filter chips appear when a filter is active', async ({ page }) => {
-    await page.locator('#f-office').selectOption('H');
+    await page.locator('#f-office').selectOption('H', { force: true });
     await page.waitForSelector('.filter-chip', { timeout: 5000 });
     const chips = page.locator('.filter-chip');
     await expect(chips).not.toHaveCount(0);
   });
 
   test('URL updates after filter change', async ({ page }) => {
-    await page.locator('#f-office').selectOption('H');
+    await page.locator('#f-office').selectOption('H', { force: true });
     await page.waitForFunction(() => window.location.search.includes('office=H'), { timeout: 5000 });
     expect(page.url()).toContain('office=H');
   });
@@ -566,6 +605,16 @@ test.describe('committees.html', () => {
     await expect(page.locator('#f-state-native')).toBeAttached();
   });
 
+  test('type combo has trigger, listbox, and native fallback', async ({ page }) => {
+    await expect(page.locator('#f-type-trigger')).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect(page.locator('#type-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-type')).toBeAttached();
+    // listbox has expected options including principal campaign committee
+    const rows = page.locator('#type-dropdown .typeahead-row');
+    const count = await rows.count();
+    expect(count).toBeGreaterThanOrEqual(7); // "All types" + 6 type options
+  });
+
   test('results auto-load on page load (no params)', async ({ page }) => {
     await page.waitForSelector('.committee-row', { timeout: 8000 });
     const rows = page.locator('.committee-row');
@@ -580,13 +629,13 @@ test.describe('committees.html', () => {
   });
 
   test('filter chips appear when a filter is active', async ({ page }) => {
-    await page.locator('#f-type').selectOption('P');
+    await page.locator('#f-type').selectOption('P', { force: true });
     await page.waitForSelector('.filter-chip', { timeout: 5000 });
     await expect(page.locator('.filter-chip')).not.toHaveCount(0);
   });
 
   test('URL updates after filter change', async ({ page }) => {
-    await page.locator('#f-type').selectOption('P');
+    await page.locator('#f-type').selectOption('P', { force: true });
     await page.waitForFunction(() => window.location.search.includes('type=P'), { timeout: 5000 });
     expect(page.url()).toContain('type=P');
   });

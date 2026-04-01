@@ -199,32 +199,61 @@
 
         <!-- Office -->
         <div class="form-field">
-          <label class="form-label" for="f-office">Office</label>
-          <select class="form-select" id="f-office">
-            <option value="">All</option>
-            <option value="H">House</option>
-            <option value="S">Senate</option>
-            <option value="P">President</option>
-          </select>
+          <label class="form-label" for="f-office-trigger">Office</label>
+          <div class="combo-wrap" id="office-combo">
+            <button type="button" class="combo-trigger form-select" id="f-office-trigger"
+              aria-haspopup="listbox" aria-expanded="false" aria-controls="office-dropdown">All offices</button>
+            <div class="typeahead-dropdown" id="office-dropdown" role="listbox" aria-label="Office">
+              <div class="typeahead-row" id="office-opt-all" role="option" aria-selected="true"  data-value="" data-label="All offices">All offices</div>
+              <div class="typeahead-row" id="office-opt-H"   role="option" aria-selected="false" data-value="H"  data-label="House">House</div>
+              <div class="typeahead-row" id="office-opt-S"   role="option" aria-selected="false" data-value="S"  data-label="Senate">Senate</div>
+              <div class="typeahead-row" id="office-opt-P"   role="option" aria-selected="false" data-value="P"  data-label="President">President</div>
+            </div>
+            <select id="f-office" class="form-select" aria-label="Office">
+              <option value="">All offices</option>
+              <option value="H">House</option>
+              <option value="S">Senate</option>
+              <option value="P">President</option>
+            </select>
+          </div>
         </div>
 
         <!-- Party -->
         <div class="form-field">
-          <label class="form-label" for="f-party">Party</label>
-          <select class="form-select" id="f-party">
-            <option value="">All</option>
-            <option value="DEM">Democrat</option>
-            <option value="REP">Republican</option>
-            <option value="IND">Independent</option>
-          </select>
+          <label class="form-label" for="f-party-trigger">Party</label>
+          <div class="combo-wrap" id="party-combo">
+            <button type="button" class="combo-trigger form-select" id="f-party-trigger"
+              aria-haspopup="listbox" aria-expanded="false" aria-controls="party-dropdown">All parties</button>
+            <div class="typeahead-dropdown" id="party-dropdown" role="listbox" aria-label="Party">
+              <div class="typeahead-row" id="party-opt-all" role="option" aria-selected="true"  data-value=""    data-label="All parties">All parties</div>
+              <div class="typeahead-row" id="party-opt-DEM" role="option" aria-selected="false" data-value="DEM" data-label="Democrat">Democrat</div>
+              <div class="typeahead-row" id="party-opt-REP" role="option" aria-selected="false" data-value="REP" data-label="Republican">Republican</div>
+              <div class="typeahead-row" id="party-opt-IND" role="option" aria-selected="false" data-value="IND" data-label="Independent">Independent</div>
+            </div>
+            <select id="f-party" class="form-select" aria-label="Party">
+              <option value="">All parties</option>
+              <option value="DEM">Democrat</option>
+              <option value="REP">Republican</option>
+              <option value="IND">Independent</option>
+            </select>
+          </div>
         </div>
 
         <!-- Cycle -->
         <div class="form-field">
-          <label class="form-label" for="f-cycle">Cycle</label>
-          <select class="form-select" id="f-cycle">
-            <option value="">All cycles</option>
-          </select>
+          <label class="form-label" for="f-cycle-trigger">Cycle</label>
+          <div class="combo-wrap" id="cycle-combo">
+            <button type="button" class="combo-trigger form-select" id="f-cycle-trigger"
+              aria-haspopup="listbox" aria-expanded="false" aria-controls="cycle-dropdown">All cycles</button>
+            <div class="typeahead-dropdown" id="cycle-dropdown" role="listbox" aria-label="Cycle">
+              <div class="typeahead-row" id="cycle-opt-all" role="option" aria-selected="true" data-value="" data-label="All cycles">All cycles</div>
+              <!-- year rows populated dynamically -->
+            </div>
+            <select id="f-cycle" class="form-select" aria-label="Cycle">
+              <option value="">All cycles</option>
+              <!-- year options populated dynamically -->
+            </select>
+          </div>
         </div>
 
       </form>
@@ -285,6 +314,51 @@ var currentPage   = 1;
 var totalPages    = 1;
 var loading       = false;
 var lastFetch     = null;
+
+// ── Combo dropdowns ───────────────────────────────────────────────────────────
+
+var stateCombo = initComboDropdown({
+  trigger:    document.getElementById('f-state-filter'),
+  dropdown:   document.getElementById('state-dropdown'),
+  native:     document.getElementById('f-state-native'),
+  filterable: true,
+  getValue:   function() { return activeFilters.state; },
+  onSelect:   function(value) { activeFilters.state = value; doFetch(false); }
+});
+
+var officeCombo = initComboDropdown({
+  trigger:  document.getElementById('f-office-trigger'),
+  dropdown: document.getElementById('office-dropdown'),
+  native:   document.getElementById('f-office'),
+  getValue: function() { return activeFilters.office; },
+  onSelect: function(value) {
+    activeFilters.office = value;
+    if (value === 'P') {
+      activeFilters.state = '';
+      stateCombo.setValue('');
+      stateCombo.setDisabled(true);
+    } else {
+      stateCombo.setDisabled(false);
+    }
+    doFetch(false);
+  }
+});
+
+var partyCombo = initComboDropdown({
+  trigger:  document.getElementById('f-party-trigger'),
+  dropdown: document.getElementById('party-dropdown'),
+  native:   document.getElementById('f-party'),
+  getValue: function() { return activeFilters.party; },
+  onSelect: function(value) { activeFilters.party = value; doFetch(false); }
+});
+
+var cycleCombo = initComboDropdown({
+  trigger:  document.getElementById('f-cycle-trigger'),
+  dropdown: document.getElementById('cycle-dropdown'),
+  native:   document.getElementById('f-cycle'),
+  getValue: function() { return activeFilters.cycle; },
+  onSelect: function(value) { activeFilters.cycle = value; doFetch(false); }
+});
 
 // ── UI state ─────────────────────────────────────────────────────────────────
 
@@ -438,16 +512,17 @@ function clearFilter(key) {
     document.getElementById('f-search').value = '';
   } else if (key === 'state') {
     activeFilters.state = '';
-    document.getElementById('f-state-filter').value = '';
-    document.getElementById('f-state-native').value = '';
-    Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) { r.setAttribute('aria-selected', 'false'); });
-  } else {
-    activeFilters[key] = '';
-    document.getElementById('f-' + key).value = '';
-    if (key === 'office') {
-      document.getElementById('f-state-filter').disabled = false;
-      document.getElementById('f-state-native').disabled = false;
-    }
+    stateCombo.setValue('');
+  } else if (key === 'office') {
+    activeFilters.office = '';
+    officeCombo.setValue('');
+    stateCombo.setDisabled(false);
+  } else if (key === 'party') {
+    activeFilters.party = '';
+    partyCombo.setValue('');
+  } else if (key === 'cycle') {
+    activeFilters.cycle = '';
+    cycleCombo.setValue('');
   }
   doFetch(false);
 }
@@ -456,14 +531,11 @@ function clearAllFilters() {
   activeQ = '';
   activeFilters = { state: '', office: '', party: '', cycle: '' };
   document.getElementById('f-search').value = '';
-  document.getElementById('f-state-filter').value = '';
-  document.getElementById('f-state-native').value = '';
-  document.getElementById('f-office').value = '';
-  document.getElementById('f-party').value = '';
-  document.getElementById('f-cycle').value = '';
-  document.getElementById('f-state-filter').disabled = false;
-  document.getElementById('f-state-native').disabled = false;
-  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) { r.setAttribute('aria-selected', 'false'); });
+  stateCombo.setValue('');
+  officeCombo.setValue('');
+  partyCombo.setValue('');
+  cycleCombo.setValue('');
+  stateCombo.setDisabled(false);
   doFetch(false);
 }
 
@@ -524,138 +596,6 @@ document.addEventListener('click', function(e) {
   if (!e.target.closest('.search-combo')) closeTypeahead();
 });
 
-// ── State combo ───────────────────────────────────────────────────────────────
-
-var stateKbRow = null;
-var stateBlurTimer = null;
-
-function openStateDropdown() {
-  document.getElementById('state-dropdown').classList.add('open');
-  document.getElementById('f-state-filter').setAttribute('aria-expanded', 'true');
-  var current = activeFilters.state;
-  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) {
-    r.setAttribute('aria-selected', r.dataset.value === current ? 'true' : 'false');
-  });
-}
-function closeStateDropdown() {
-  document.getElementById('state-dropdown').classList.remove('open');
-  document.getElementById('f-state-filter').setAttribute('aria-expanded', 'false');
-  document.getElementById('f-state-filter').removeAttribute('aria-activedescendant');
-  if (stateKbRow) { stateKbRow.style.background = ''; stateKbRow = null; }
-}
-
-document.getElementById('f-state-filter').addEventListener('focus', function() {
-  if (stateBlurTimer) { clearTimeout(stateBlurTimer); stateBlurTimer = null; }
-  openStateDropdown();
-});
-
-document.getElementById('f-state-filter').addEventListener('input', function() {
-  var val = this.value.toLowerCase();
-  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(row) {
-    row.style.display = (!val || row.dataset.label.toLowerCase().includes(val)) ? '' : 'none';
-  });
-  if (stateKbRow && stateKbRow.style.display === 'none') {
-    stateKbRow.style.background = '';
-    stateKbRow = null;
-    this.removeAttribute('aria-activedescendant');
-  }
-  openStateDropdown();
-  if (!val && activeFilters.state) {
-    activeFilters.state = '';
-    doFetch(false);
-  }
-});
-
-document.getElementById('f-state-filter').addEventListener('blur', function() {
-  stateBlurTimer = setTimeout(function() { stateBlurTimer = null; closeStateDropdown(); }, 150);
-});
-
-document.getElementById('f-state-filter').addEventListener('keydown', function(e) {
-  var rows, idx, next;
-  if (e.key === 'Escape') {
-    closeStateDropdown();
-    this.blur();
-  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    rows = Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).filter(function(r) { return r.style.display !== 'none'; });
-    if (!rows.length) return;
-    idx = stateKbRow ? rows.indexOf(stateKbRow) : -1;
-    if (e.key === 'ArrowUp') {
-      if (idx <= 0) {
-        if (stateKbRow) { stateKbRow.style.background = ''; stateKbRow = null; }
-        this.removeAttribute('aria-activedescendant');
-        return;
-      }
-      next = rows[idx - 1];
-    } else {
-      next = rows[Math.min(idx + 1, rows.length - 1)];
-    }
-    if (stateKbRow) stateKbRow.style.background = '';
-    stateKbRow = next;
-    stateKbRow.style.background = 'var(--accent-dim)';
-    this.setAttribute('aria-activedescendant', stateKbRow.id);
-    stateKbRow.scrollIntoView({ block: 'nearest' });
-  } else if (e.key === 'Enter' && stateKbRow) {
-    var val = stateKbRow.dataset.value;
-    document.getElementById('f-state-filter').value = val;
-    activeFilters.state = val;
-    Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) {
-      r.setAttribute('aria-selected', r === stateKbRow ? 'true' : 'false');
-      r.style.display = '';
-    });
-    closeStateDropdown();
-    doFetch(false);
-  }
-});
-
-document.getElementById('state-dropdown').addEventListener('click', function(e) {
-  var row = e.target.closest('.typeahead-row');
-  if (!row) return;
-  var val = row.dataset.value;
-  document.getElementById('f-state-filter').value = val;
-  activeFilters.state = val;
-  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) {
-    r.setAttribute('aria-selected', r === row ? 'true' : 'false');
-    r.style.display = '';
-  });
-  closeStateDropdown();
-  doFetch(false);
-});
-
-// ── State native select (mobile) ─────────────────────────────────────────────
-
-document.getElementById('f-state-native').addEventListener('change', function() {
-  activeFilters.state = this.value;
-  doFetch(false);
-});
-
-// ── Office / party / cycle selects ───────────────────────────────────────────
-
-document.getElementById('f-office').addEventListener('change', function() {
-  activeFilters.office = this.value;
-  if (this.value === 'P') {
-    document.getElementById('f-state-filter').value = '';
-    document.getElementById('f-state-filter').disabled = true;
-    document.getElementById('f-state-native').value = '';
-    document.getElementById('f-state-native').disabled = true;
-    closeStateDropdown();
-    activeFilters.state = '';
-  } else {
-    document.getElementById('f-state-filter').disabled = false;
-    document.getElementById('f-state-native').disabled = false;
-  }
-  doFetch(false);
-});
-
-document.getElementById('f-party').addEventListener('change', function() {
-  activeFilters.party = this.value;
-  doFetch(false);
-});
-
-document.getElementById('f-cycle').addEventListener('change', function() {
-  activeFilters.cycle = this.value;
-  doFetch(false);
-});
 
 // ── Infinite scroll ───────────────────────────────────────────────────────────
 
@@ -672,11 +612,21 @@ window.addEventListener('scroll', function() {
   var now = new Date().getFullYear();
   var currentCycle = (now % 2 === 0) ? now : now + 1;
   var sel = document.getElementById('f-cycle');
+  var dd  = document.getElementById('cycle-dropdown');
   for (var c = currentCycle; c >= 2002; c -= 2) {
     var opt = document.createElement('option');
     opt.value = String(c);
     opt.textContent = String(c);
     sel.appendChild(opt);
+    var row = document.createElement('div');
+    row.className = 'typeahead-row';
+    row.id = 'cycle-opt-' + c;
+    row.setAttribute('role', 'option');
+    row.setAttribute('aria-selected', 'false');
+    row.dataset.value = String(c);
+    row.dataset.label = String(c);
+    row.textContent = String(c);
+    dd.appendChild(row);
   }
 })();
 
@@ -693,24 +643,20 @@ window.addEventListener('scroll', function() {
   }
   if (p.get('state')) {
     activeFilters.state = p.get('state');
-    document.getElementById('f-state-filter').value = activeFilters.state;
-    document.getElementById('f-state-native').value = activeFilters.state;
+    stateCombo.setValue(activeFilters.state);
   }
   if (p.get('office')) {
     activeFilters.office = p.get('office');
-    document.getElementById('f-office').value = activeFilters.office;
-    if (activeFilters.office === 'P') {
-      document.getElementById('f-state-filter').disabled = true;
-      document.getElementById('f-state-native').disabled = true;
-    }
+    officeCombo.setValue(activeFilters.office);
+    if (activeFilters.office === 'P') stateCombo.setDisabled(true);
   }
   if (p.get('party')) {
     activeFilters.party = p.get('party');
-    document.getElementById('f-party').value = activeFilters.party;
+    partyCombo.setValue(activeFilters.party);
   }
   if (p.get('cycle')) {
     activeFilters.cycle = p.get('cycle');
-    document.getElementById('f-cycle').value = activeFilters.cycle;
+    cycleCombo.setValue(activeFilters.cycle);
   }
 
   document.querySelector('.retry-btn').addEventListener('click', function() {

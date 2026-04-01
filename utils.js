@@ -226,3 +226,181 @@ function purposeBucket(desc) {
   }
   return 'Other';
 }
+
+// ── initComboDropdown ────────────────────────────────────────────────────────
+// Factory for accessible filter dropdowns: keyboard nav, ARIA, mobile fallback.
+//
+// config:
+//   trigger    — <input> (filterable) or <button> (non-filterable)
+//   dropdown   — .typeahead-dropdown[role="listbox"]
+//   native     — hidden <select> shown at ≤860px (optional)
+//   filterable — true → text-filter rows on input; false → button click toggles
+//   getValue   — () => string   current value (reads from caller's activeFilters)
+//   onSelect   — (value, label) => void   called on every selection/clear
+//
+// Returns: { setValue(v), setDisabled(bool) }
+function initComboDropdown(config) {
+  var trigger    = config.trigger;
+  var dropdown   = config.dropdown;
+  var native     = config.native   || null;
+  var filterable = !!config.filterable;
+  var getValue   = config.getValue;
+  var onSelect   = config.onSelect;
+  var kbRow      = null;
+  var blurTimer  = null;
+
+  function getRows() {
+    return Array.from(dropdown.querySelectorAll('.typeahead-row'));
+  }
+
+  function getVisibleRows() {
+    return getRows().filter(function(r) { return r.style.display !== 'none'; });
+  }
+
+  function syncAriaSelected() {
+    var current = getValue();
+    getRows().forEach(function(r) {
+      r.setAttribute('aria-selected', r.dataset.value === current ? 'true' : 'false');
+    });
+  }
+
+  function open() {
+    dropdown.classList.add('open');
+    trigger.setAttribute('aria-expanded', 'true');
+    syncAriaSelected();
+  }
+
+  function close() {
+    dropdown.classList.remove('open');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.removeAttribute('aria-activedescendant');
+    if (kbRow) { kbRow.style.background = ''; kbRow = null; }
+  }
+
+  function selectRow(row) {
+    var val   = row.dataset.value;
+    var label = row.dataset.label;
+    getRows().forEach(function(r) {
+      r.setAttribute('aria-selected', r === row ? 'true' : 'false');
+      if (filterable) r.style.display = '';
+    });
+    if (!filterable) trigger.textContent = label;
+    if (filterable)  trigger.value = val;
+    if (native) native.value = val;
+    close();
+    onSelect(val, label);
+  }
+
+  // ── Trigger events ──────────────────────────────────────────────────────────
+
+  if (filterable) {
+    trigger.addEventListener('focus', function() {
+      if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
+      open();
+    });
+
+    trigger.addEventListener('blur', function() {
+      blurTimer = setTimeout(function() { blurTimer = null; close(); }, 150);
+    });
+
+    trigger.addEventListener('input', function() {
+      var val = this.value.toLowerCase();
+      getRows().forEach(function(row) {
+        row.style.display = (!val || row.dataset.label.toLowerCase().indexOf(val) !== -1) ? '' : 'none';
+      });
+      if (kbRow && kbRow.style.display === 'none') {
+        kbRow.style.background = '';
+        kbRow = null;
+        trigger.removeAttribute('aria-activedescendant');
+      }
+      open();
+      if (!val && getValue()) {
+        if (native) native.value = '';
+        onSelect('', '');
+      }
+    });
+  } else {
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (dropdown.classList.contains('open')) { close(); } else { open(); }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!dropdown.classList.contains('open')) return;
+      if (!dropdown.contains(e.target) && e.target !== trigger) close();
+    });
+  }
+
+  // ── Keyboard ────────────────────────────────────────────────────────────────
+
+  trigger.addEventListener('keydown', function(e) {
+    var vrows, idx, next;
+    if (e.key === 'Escape') {
+      close();
+      if (filterable) this.blur();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!dropdown.classList.contains('open')) open();
+      vrows = getVisibleRows();
+      if (!vrows.length) return;
+      idx = kbRow ? vrows.indexOf(kbRow) : -1;
+      if (e.key === 'ArrowUp') {
+        if (idx <= 0) {
+          if (kbRow) { kbRow.style.background = ''; kbRow = null; }
+          trigger.removeAttribute('aria-activedescendant');
+          return;
+        }
+        next = vrows[idx - 1];
+      } else {
+        next = vrows[Math.min(idx + 1, vrows.length - 1)];
+      }
+      if (kbRow) kbRow.style.background = '';
+      kbRow = next;
+      kbRow.style.background = 'var(--accent-dim)';
+      trigger.setAttribute('aria-activedescendant', kbRow.id);
+      kbRow.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && kbRow) {
+      selectRow(kbRow);
+    }
+  });
+
+  // ── Dropdown click ──────────────────────────────────────────────────────────
+
+  dropdown.addEventListener('click', function(e) {
+    var row = e.target.closest('.typeahead-row');
+    if (!row) return;
+    selectRow(row);
+  });
+
+  // ── Native select (mobile) ──────────────────────────────────────────────────
+
+  if (native) {
+    native.addEventListener('change', function() {
+      var idx = this.selectedIndex;
+      var label = idx >= 0 ? this.options[idx].text : '';
+      onSelect(this.value, label);
+    });
+  }
+
+  // ── Public API ──────────────────────────────────────────────────────────────
+
+  return {
+    setValue: function(value) {
+      if (filterable) {
+        trigger.value = value;
+      } else {
+        var matchRow = getRows().filter(function(r) { return r.dataset.value === value; })[0];
+        trigger.textContent = matchRow ? matchRow.dataset.label : '';
+      }
+      if (native) native.value = value;
+      getRows().forEach(function(r) {
+        r.setAttribute('aria-selected', r.dataset.value === value ? 'true' : 'false');
+      });
+    },
+    setDisabled: function(disabled) {
+      trigger.disabled = !!disabled;
+      if (native) native.disabled = !!disabled;
+      if (disabled) close();
+    }
+  };
+}

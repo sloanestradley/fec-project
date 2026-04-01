@@ -12,7 +12,6 @@
   <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     .main { overflow-x:hidden; min-width:0; }
-    .form-select.wide { min-width:200px; }
     /* Override committee-row grid for unified 4-column layout (name + type + treasurer + status) */
     #results-list .committee-row { grid-template-columns:1fr auto auto auto; }
     .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
@@ -205,16 +204,29 @@
 
         <!-- Committee type -->
         <div class="form-field">
-          <label class="form-label" for="f-type">Committee Type</label>
-          <select class="form-select wide" id="f-type">
-            <option value="">All types</option>
-            <option value="P">Principal Campaign Committee</option>
-            <option value="J">Joint Fundraising Committee</option>
-            <option value="D">Leadership PAC</option>
-            <option value="O">Super PAC</option>
-            <option value="Q">PAC — Qualified</option>
-            <option value="Y">Party Committee</option>
-          </select>
+          <label class="form-label" for="f-type-trigger">Committee Type</label>
+          <div class="combo-wrap" id="type-combo">
+            <button type="button" class="combo-trigger form-select" id="f-type-trigger"
+              aria-haspopup="listbox" aria-expanded="false" aria-controls="type-dropdown">All types</button>
+            <div class="typeahead-dropdown" id="type-dropdown" role="listbox" aria-label="Committee Type">
+              <div class="typeahead-row" id="type-opt-all" role="option" aria-selected="true"  data-value=""  data-label="All types">All types</div>
+              <div class="typeahead-row" id="type-opt-P"   role="option" aria-selected="false" data-value="P" data-label="Principal Campaign Committee">Principal Campaign Committee</div>
+              <div class="typeahead-row" id="type-opt-J"   role="option" aria-selected="false" data-value="J" data-label="Joint Fundraising Committee">Joint Fundraising Committee</div>
+              <div class="typeahead-row" id="type-opt-D"   role="option" aria-selected="false" data-value="D" data-label="Leadership PAC">Leadership PAC</div>
+              <div class="typeahead-row" id="type-opt-O"   role="option" aria-selected="false" data-value="O" data-label="Super PAC">Super PAC</div>
+              <div class="typeahead-row" id="type-opt-Q"   role="option" aria-selected="false" data-value="Q" data-label="PAC — Qualified">PAC — Qualified</div>
+              <div class="typeahead-row" id="type-opt-Y"   role="option" aria-selected="false" data-value="Y" data-label="Party Committee">Party Committee</div>
+            </div>
+            <select id="f-type" class="form-select" aria-label="Committee Type">
+              <option value="">All types</option>
+              <option value="P">Principal Campaign Committee</option>
+              <option value="J">Joint Fundraising Committee</option>
+              <option value="D">Leadership PAC</option>
+              <option value="O">Super PAC</option>
+              <option value="Q">PAC — Qualified</option>
+              <option value="Y">Party Committee</option>
+            </select>
+          </div>
         </div>
 
         <!-- Show terminated toggle -->
@@ -280,6 +292,25 @@ var activeQ       = '';
 var activeFilters = { state: '', type: '', showTerminated: false };
 var currentPage   = 1;
 var totalPages    = 1;
+
+// ── Combo dropdowns ───────────────────────────────────────────────────────────
+
+var stateCombo = initComboDropdown({
+  trigger:    document.getElementById('f-state-filter'),
+  dropdown:   document.getElementById('state-dropdown'),
+  native:     document.getElementById('f-state-native'),
+  filterable: true,
+  getValue:   function() { return activeFilters.state; },
+  onSelect:   function(value) { activeFilters.state = value; doFetch(false); }
+});
+
+var typeCombo = initComboDropdown({
+  trigger:  document.getElementById('f-type-trigger'),
+  dropdown: document.getElementById('type-dropdown'),
+  native:   document.getElementById('f-type'),
+  getValue: function() { return activeFilters.type; },
+  onSelect: function(value) { activeFilters.type = value; doFetch(false); }
+});
 var loading       = false;
 var lastFetch     = null;
 
@@ -431,15 +462,13 @@ function clearFilter(key) {
     document.getElementById('f-search').value = '';
   } else if (key === 'state') {
     activeFilters.state = '';
-    document.getElementById('f-state-filter').value = '';
-    document.getElementById('f-state-native').value = '';
-    Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) { r.setAttribute('aria-selected', 'false'); });
+    stateCombo.setValue('');
+  } else if (key === 'type') {
+    activeFilters.type = '';
+    typeCombo.setValue('');
   } else if (key === 'showTerminated') {
     activeFilters.showTerminated = false;
     document.getElementById('f-terminated').checked = false;
-  } else {
-    activeFilters[key] = '';
-    document.getElementById('f-' + key).value = '';
   }
   doFetch(false);
 }
@@ -448,11 +477,9 @@ function clearAllFilters() {
   activeQ = '';
   activeFilters = { state: '', type: '', showTerminated: false };
   document.getElementById('f-search').value = '';
-  document.getElementById('f-state-filter').value = '';
-  document.getElementById('f-state-native').value = '';
-  document.getElementById('f-type').value = '';
+  stateCombo.setValue('');
+  typeCombo.setValue('');
   document.getElementById('f-terminated').checked = false;
-  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) { r.setAttribute('aria-selected', 'false'); });
   doFetch(false);
 }
 
@@ -515,117 +542,6 @@ document.addEventListener('click', function(e) {
   if (!e.target.closest('.search-combo')) closeTypeahead();
 });
 
-// ── State combo ───────────────────────────────────────────────────────────────
-
-var stateKbRow = null;
-var stateBlurTimer = null;
-
-function openStateDropdown() {
-  document.getElementById('state-dropdown').classList.add('open');
-  document.getElementById('f-state-filter').setAttribute('aria-expanded', 'true');
-  var current = activeFilters.state;
-  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) {
-    r.setAttribute('aria-selected', r.dataset.value === current ? 'true' : 'false');
-  });
-}
-function closeStateDropdown() {
-  document.getElementById('state-dropdown').classList.remove('open');
-  document.getElementById('f-state-filter').setAttribute('aria-expanded', 'false');
-  document.getElementById('f-state-filter').removeAttribute('aria-activedescendant');
-  if (stateKbRow) { stateKbRow.style.background = ''; stateKbRow = null; }
-}
-
-document.getElementById('f-state-filter').addEventListener('focus', function() {
-  if (stateBlurTimer) { clearTimeout(stateBlurTimer); stateBlurTimer = null; }
-  openStateDropdown();
-});
-
-document.getElementById('f-state-filter').addEventListener('input', function() {
-  var val = this.value.toLowerCase();
-  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(row) {
-    row.style.display = (!val || row.dataset.label.toLowerCase().includes(val)) ? '' : 'none';
-  });
-  if (stateKbRow && stateKbRow.style.display === 'none') {
-    stateKbRow.style.background = '';
-    stateKbRow = null;
-    this.removeAttribute('aria-activedescendant');
-  }
-  openStateDropdown();
-  if (!val && activeFilters.state) {
-    activeFilters.state = '';
-    doFetch(false);
-  }
-});
-
-document.getElementById('f-state-filter').addEventListener('blur', function() {
-  stateBlurTimer = setTimeout(function() { stateBlurTimer = null; closeStateDropdown(); }, 150);
-});
-
-document.getElementById('f-state-filter').addEventListener('keydown', function(e) {
-  var rows, idx, next;
-  if (e.key === 'Escape') {
-    closeStateDropdown();
-    this.blur();
-  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    rows = Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).filter(function(r) { return r.style.display !== 'none'; });
-    if (!rows.length) return;
-    idx = stateKbRow ? rows.indexOf(stateKbRow) : -1;
-    if (e.key === 'ArrowUp') {
-      if (idx <= 0) {
-        if (stateKbRow) { stateKbRow.style.background = ''; stateKbRow = null; }
-        this.removeAttribute('aria-activedescendant');
-        return;
-      }
-      next = rows[idx - 1];
-    } else {
-      next = rows[Math.min(idx + 1, rows.length - 1)];
-    }
-    if (stateKbRow) stateKbRow.style.background = '';
-    stateKbRow = next;
-    stateKbRow.style.background = 'var(--accent-dim)';
-    this.setAttribute('aria-activedescendant', stateKbRow.id);
-    stateKbRow.scrollIntoView({ block: 'nearest' });
-  } else if (e.key === 'Enter' && stateKbRow) {
-    var val = stateKbRow.dataset.value;
-    document.getElementById('f-state-filter').value = val;
-    activeFilters.state = val;
-    Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) {
-      r.setAttribute('aria-selected', r === stateKbRow ? 'true' : 'false');
-      r.style.display = '';
-    });
-    closeStateDropdown();
-    doFetch(false);
-  }
-});
-
-document.getElementById('state-dropdown').addEventListener('click', function(e) {
-  var row = e.target.closest('.typeahead-row');
-  if (!row) return;
-  var val = row.dataset.value;
-  document.getElementById('f-state-filter').value = val;
-  activeFilters.state = val;
-  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) {
-    r.setAttribute('aria-selected', r === row ? 'true' : 'false');
-    r.style.display = '';
-  });
-  closeStateDropdown();
-  doFetch(false);
-});
-
-// ── State native select (mobile) ─────────────────────────────────────────────
-
-document.getElementById('f-state-native').addEventListener('change', function() {
-  activeFilters.state = this.value;
-  doFetch(false);
-});
-
-// ── Committee type select ─────────────────────────────────────────────────────
-
-document.getElementById('f-type').addEventListener('change', function() {
-  activeFilters.type = this.value;
-  doFetch(false);
-});
 
 // ── Show terminated toggle ────────────────────────────────────────────────────
 
@@ -656,12 +572,11 @@ window.addEventListener('scroll', function() {
   }
   if (p.get('state')) {
     activeFilters.state = p.get('state');
-    document.getElementById('f-state-filter').value = activeFilters.state;
-    document.getElementById('f-state-native').value = activeFilters.state;
+    stateCombo.setValue(activeFilters.state);
   }
   if (p.get('type')) {
     activeFilters.type = p.get('type');
-    document.getElementById('f-type').value = activeFilters.type;
+    typeCombo.setValue(activeFilters.type);
   }
   if (p.get('terminated') === '1') {
     activeFilters.showTerminated = true;
