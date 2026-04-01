@@ -103,63 +103,116 @@
         <div class="form-field">
           <label class="form-label" for="f-state-filter">State</label>
           <div class="state-combo" id="state-combo">
-            <input class="form-input" type="text" id="f-state-filter" placeholder="All states" autocomplete="off"/>
-            <div class="state-select-wrap">
-              <select id="f-state" size="6" class="state-listbox">
-                <option value="">All states</option>
-                <option value="AK">AK — Alaska</option>
-                <option value="AL">AL — Alabama</option>
-                <option value="AR">AR — Arkansas</option>
-                <option value="AZ">AZ — Arizona</option>
-                <option value="CA">CA — California</option>
-                <option value="CO">CO — Colorado</option>
-                <option value="CT">CT — Connecticut</option>
-                <option value="DC">DC — D.C.</option>
-                <option value="DE">DE — Delaware</option>
-                <option value="FL">FL — Florida</option>
-                <option value="GA">GA — Georgia</option>
-                <option value="HI">HI — Hawaii</option>
-                <option value="IA">IA — Iowa</option>
-                <option value="ID">ID — Idaho</option>
-                <option value="IL">IL — Illinois</option>
-                <option value="IN">IN — Indiana</option>
-                <option value="KS">KS — Kansas</option>
-                <option value="KY">KY — Kentucky</option>
-                <option value="LA">LA — Louisiana</option>
-                <option value="MA">MA — Massachusetts</option>
-                <option value="MD">MD — Maryland</option>
-                <option value="ME">ME — Maine</option>
-                <option value="MI">MI — Michigan</option>
-                <option value="MN">MN — Minnesota</option>
-                <option value="MO">MO — Missouri</option>
-                <option value="MS">MS — Mississippi</option>
-                <option value="MT">MT — Montana</option>
-                <option value="NC">NC — North Carolina</option>
-                <option value="ND">ND — North Dakota</option>
-                <option value="NE">NE — Nebraska</option>
-                <option value="NH">NH — New Hampshire</option>
-                <option value="NJ">NJ — New Jersey</option>
-                <option value="NM">NM — New Mexico</option>
-                <option value="NV">NV — Nevada</option>
-                <option value="NY">NY — New York</option>
-                <option value="OH">OH — Ohio</option>
-                <option value="OK">OK — Oklahoma</option>
-                <option value="OR">OR — Oregon</option>
-                <option value="PA">PA — Pennsylvania</option>
-                <option value="RI">RI — Rhode Island</option>
-                <option value="SC">SC — South Carolina</option>
-                <option value="SD">SD — South Dakota</option>
-                <option value="TN">TN — Tennessee</option>
-                <option value="TX">TX — Texas</option>
-                <option value="UT">UT — Utah</option>
-                <option value="VA">VA — Virginia</option>
-                <option value="VT">VT — Vermont</option>
-                <option value="WA">WA — Washington</option>
-                <option value="WI">WI — Wisconsin</option>
-                <option value="WV">WV — West Virginia</option>
-                <option value="WY">WY — Wyoming</option>
-              </select>
+            <input class="form-input" type="text" id="f-state-filter" placeholder="All states" autocomplete="off"
+              role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="state-dropdown" aria-autocomplete="list"/>
+            <div class="typeahead-dropdown" id="state-dropdown" role="listbox" aria-label="States">
+              <div class="typeahead-row" id="state-opt-all" role="option" aria-selected="false" data-value="" data-label="All states">All states</div>
+              <div class="typeahead-row" id="state-opt-AK" role="option" aria-selected="false" data-value="AK" data-label="AK — Alaska">AK — Alaska</div>
+              <div class="typeahead-row" id="state-opt-AL" role="option" aria-selected="false" data-value="AL" data-label="AL — Alabama">AL — Alabama</div>
+              <div class="typeahead-row" id="state-opt-AR" role="option" aria-selected="false" data-value="AR" data-label="AR — Arkansas">AR — Arkansas</div>
+              <div class="typeahead-row" id="state-opt-AZ" role="option" aria-selected="false" data-value="AZ" data-label="AZ — Arizona">AZ — Arizona</div>
+              <div class="typeahead-row" id="state-opt-CA" role="option" aria-selected="false" data-value="CA" data-label="CA — California">CA — California</div>
+              <div class="typeahead-row" id="state-opt-CO" role="option" aria-selected="false" data-value="CO" data-label="CO — Colorado">CO — Colorado</div>
+              <div class="typeahead-row" id="state-opt-CT" role="option" aria-selected="false" data-value="CT" data-label="CT — Connecticut">CT — Connecticut</div>
+              <div class="typeahead-row" id="state-opt-DC" role="option" aria-selected="false" data-value="DC" data-label="DC — D.C.">DC — D.C.</div>
+              <div class="typeahead-row" id="state-opt-DE" role="option" aria-selected="false" data-value="DE" data-label="DE — Delaware">DE — Delaware</div>
+              <div class="typeahead-row" id="state-opt-FL" role="option" aria-selected="false" data-value="FL" data-label="FL — Florida">FL — Florida</div>
+              <div class="typeahead-row" id="state-opt-GA" role="option" aria-selected="false" data-value="GA" data-label="GA — Georgia">GA — Georgia</div>
+              <div class="typeahead-row" id="state-opt-HI" role="option" aria-selected="false" data-value="HI" data-label="HI — Hawaii">HI — Hawaii</div>
+              <div class="typeahead-row" id="state-opt-IA" role="option" aria-selected="false" data-value="IA" data-label="IA — Iowa">IA — Iowa</div>
+              <div class="typeahead-row" id="state-opt-ID" role="option" aria-selected="false" data-value="ID" data-label="ID — Idaho">ID — Idaho</div>
+              <div class="typeahead-row" id="state-opt-IL" role="option" aria-selected="false" data-value="IL" data-label="IL — Illinois">IL — Illinois</div>
+              <div class="typeahead-row" id="state-opt-IN" role="option" aria-selected="false" data-value="IN" data-label="IN — Indiana">IN — Indiana</div>
+              <div class="typeahead-row" id="state-opt-KS" role="option" aria-selected="false" data-value="KS" data-label="KS — Kansas">KS — Kansas</div>
+              <div class="typeahead-row" id="state-opt-KY" role="option" aria-selected="false" data-value="KY" data-label="KY — Kentucky">KY — Kentucky</div>
+              <div class="typeahead-row" id="state-opt-LA" role="option" aria-selected="false" data-value="LA" data-label="LA — Louisiana">LA — Louisiana</div>
+              <div class="typeahead-row" id="state-opt-MA" role="option" aria-selected="false" data-value="MA" data-label="MA — Massachusetts">MA — Massachusetts</div>
+              <div class="typeahead-row" id="state-opt-MD" role="option" aria-selected="false" data-value="MD" data-label="MD — Maryland">MD — Maryland</div>
+              <div class="typeahead-row" id="state-opt-ME" role="option" aria-selected="false" data-value="ME" data-label="ME — Maine">ME — Maine</div>
+              <div class="typeahead-row" id="state-opt-MI" role="option" aria-selected="false" data-value="MI" data-label="MI — Michigan">MI — Michigan</div>
+              <div class="typeahead-row" id="state-opt-MN" role="option" aria-selected="false" data-value="MN" data-label="MN — Minnesota">MN — Minnesota</div>
+              <div class="typeahead-row" id="state-opt-MO" role="option" aria-selected="false" data-value="MO" data-label="MO — Missouri">MO — Missouri</div>
+              <div class="typeahead-row" id="state-opt-MS" role="option" aria-selected="false" data-value="MS" data-label="MS — Mississippi">MS — Mississippi</div>
+              <div class="typeahead-row" id="state-opt-MT" role="option" aria-selected="false" data-value="MT" data-label="MT — Montana">MT — Montana</div>
+              <div class="typeahead-row" id="state-opt-NC" role="option" aria-selected="false" data-value="NC" data-label="NC — North Carolina">NC — North Carolina</div>
+              <div class="typeahead-row" id="state-opt-ND" role="option" aria-selected="false" data-value="ND" data-label="ND — North Dakota">ND — North Dakota</div>
+              <div class="typeahead-row" id="state-opt-NE" role="option" aria-selected="false" data-value="NE" data-label="NE — Nebraska">NE — Nebraska</div>
+              <div class="typeahead-row" id="state-opt-NH" role="option" aria-selected="false" data-value="NH" data-label="NH — New Hampshire">NH — New Hampshire</div>
+              <div class="typeahead-row" id="state-opt-NJ" role="option" aria-selected="false" data-value="NJ" data-label="NJ — New Jersey">NJ — New Jersey</div>
+              <div class="typeahead-row" id="state-opt-NM" role="option" aria-selected="false" data-value="NM" data-label="NM — New Mexico">NM — New Mexico</div>
+              <div class="typeahead-row" id="state-opt-NV" role="option" aria-selected="false" data-value="NV" data-label="NV — Nevada">NV — Nevada</div>
+              <div class="typeahead-row" id="state-opt-NY" role="option" aria-selected="false" data-value="NY" data-label="NY — New York">NY — New York</div>
+              <div class="typeahead-row" id="state-opt-OH" role="option" aria-selected="false" data-value="OH" data-label="OH — Ohio">OH — Ohio</div>
+              <div class="typeahead-row" id="state-opt-OK" role="option" aria-selected="false" data-value="OK" data-label="OK — Oklahoma">OK — Oklahoma</div>
+              <div class="typeahead-row" id="state-opt-OR" role="option" aria-selected="false" data-value="OR" data-label="OR — Oregon">OR — Oregon</div>
+              <div class="typeahead-row" id="state-opt-PA" role="option" aria-selected="false" data-value="PA" data-label="PA — Pennsylvania">PA — Pennsylvania</div>
+              <div class="typeahead-row" id="state-opt-RI" role="option" aria-selected="false" data-value="RI" data-label="RI — Rhode Island">RI — Rhode Island</div>
+              <div class="typeahead-row" id="state-opt-SC" role="option" aria-selected="false" data-value="SC" data-label="SC — South Carolina">SC — South Carolina</div>
+              <div class="typeahead-row" id="state-opt-SD" role="option" aria-selected="false" data-value="SD" data-label="SD — South Dakota">SD — South Dakota</div>
+              <div class="typeahead-row" id="state-opt-TN" role="option" aria-selected="false" data-value="TN" data-label="TN — Tennessee">TN — Tennessee</div>
+              <div class="typeahead-row" id="state-opt-TX" role="option" aria-selected="false" data-value="TX" data-label="TX — Texas">TX — Texas</div>
+              <div class="typeahead-row" id="state-opt-UT" role="option" aria-selected="false" data-value="UT" data-label="UT — Utah">UT — Utah</div>
+              <div class="typeahead-row" id="state-opt-VA" role="option" aria-selected="false" data-value="VA" data-label="VA — Virginia">VA — Virginia</div>
+              <div class="typeahead-row" id="state-opt-VT" role="option" aria-selected="false" data-value="VT" data-label="VT — Vermont">VT — Vermont</div>
+              <div class="typeahead-row" id="state-opt-WA" role="option" aria-selected="false" data-value="WA" data-label="WA — Washington">WA — Washington</div>
+              <div class="typeahead-row" id="state-opt-WI" role="option" aria-selected="false" data-value="WI" data-label="WI — Wisconsin">WI — Wisconsin</div>
+              <div class="typeahead-row" id="state-opt-WV" role="option" aria-selected="false" data-value="WV" data-label="WV — West Virginia">WV — West Virginia</div>
+              <div class="typeahead-row" id="state-opt-WY" role="option" aria-selected="false" data-value="WY" data-label="WY — Wyoming">WY — Wyoming</div>
             </div>
+            <select id="f-state-native" class="form-select" aria-label="State">
+              <option value="">All states</option>
+              <option value="AK">AK — Alaska</option>
+              <option value="AL">AL — Alabama</option>
+              <option value="AR">AR — Arkansas</option>
+              <option value="AZ">AZ — Arizona</option>
+              <option value="CA">CA — California</option>
+              <option value="CO">CO — Colorado</option>
+              <option value="CT">CT — Connecticut</option>
+              <option value="DC">DC — D.C.</option>
+              <option value="DE">DE — Delaware</option>
+              <option value="FL">FL — Florida</option>
+              <option value="GA">GA — Georgia</option>
+              <option value="HI">HI — Hawaii</option>
+              <option value="IA">IA — Iowa</option>
+              <option value="ID">ID — Idaho</option>
+              <option value="IL">IL — Illinois</option>
+              <option value="IN">IN — Indiana</option>
+              <option value="KS">KS — Kansas</option>
+              <option value="KY">KY — Kentucky</option>
+              <option value="LA">LA — Louisiana</option>
+              <option value="MA">MA — Massachusetts</option>
+              <option value="MD">MD — Maryland</option>
+              <option value="ME">ME — Maine</option>
+              <option value="MI">MI — Michigan</option>
+              <option value="MN">MN — Minnesota</option>
+              <option value="MO">MO — Missouri</option>
+              <option value="MS">MS — Mississippi</option>
+              <option value="MT">MT — Montana</option>
+              <option value="NC">NC — North Carolina</option>
+              <option value="ND">ND — North Dakota</option>
+              <option value="NE">NE — Nebraska</option>
+              <option value="NH">NH — New Hampshire</option>
+              <option value="NJ">NJ — New Jersey</option>
+              <option value="NM">NM — New Mexico</option>
+              <option value="NV">NV — Nevada</option>
+              <option value="NY">NY — New York</option>
+              <option value="OH">OH — Ohio</option>
+              <option value="OK">OK — Oklahoma</option>
+              <option value="OR">OR — Oregon</option>
+              <option value="PA">PA — Pennsylvania</option>
+              <option value="RI">RI — Rhode Island</option>
+              <option value="SC">SC — South Carolina</option>
+              <option value="SD">SD — South Dakota</option>
+              <option value="TN">TN — Tennessee</option>
+              <option value="TX">TX — Texas</option>
+              <option value="UT">UT — Utah</option>
+              <option value="VA">VA — Virginia</option>
+              <option value="VT">VT — Vermont</option>
+              <option value="WA">WA — Washington</option>
+              <option value="WI">WI — Wisconsin</option>
+              <option value="WV">WV — West Virginia</option>
+              <option value="WY">WY — Wyoming</option>
+            </select>
           </div>
         </div>
 
@@ -488,8 +541,9 @@ function clearFilter(key) {
   activeFilters[key] = '';
   if (key === 'office') document.getElementById('f-office').value = '';
   if (key === 'state') {
-    document.getElementById('f-state').value = '';
     document.getElementById('f-state-filter').value = '';
+    document.getElementById('f-state-native').value = '';
+    Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) { r.setAttribute('aria-selected', 'false'); });
   }
   applyFilters();
 }
@@ -498,32 +552,106 @@ function clearAllFilters() {
   activeFilters.office = '';
   activeFilters.state = '';
   document.getElementById('f-office').value = '';
-  document.getElementById('f-state').value = '';
   document.getElementById('f-state-filter').value = '';
+  document.getElementById('f-state-native').value = '';
+  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) { r.setAttribute('aria-selected', 'false'); });
   applyFilters();
 }
 
 // ── State combo ───────────────────────────────────────────────────────────────
 
+var stateKbRow = null;
+
+function openStateDropdown() {
+  document.getElementById('state-dropdown').classList.add('open');
+  document.getElementById('f-state-filter').setAttribute('aria-expanded', 'true');
+}
+function closeStateDropdown() {
+  document.getElementById('state-dropdown').classList.remove('open');
+  document.getElementById('f-state-filter').setAttribute('aria-expanded', 'false');
+  document.getElementById('f-state-filter').removeAttribute('aria-activedescendant');
+  if (stateKbRow) { stateKbRow.style.background = ''; stateKbRow = null; }
+}
+
+document.getElementById('f-state-filter').addEventListener('focus', openStateDropdown);
+
 document.getElementById('f-state-filter').addEventListener('input', function() {
   var val = this.value.toLowerCase();
-  Array.from(document.getElementById('f-state').options).forEach(function(opt) {
-    opt.style.display = (!val || opt.text.toLowerCase().includes(val)) ? '' : 'none';
+  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(row) {
+    row.style.display = (!val || row.dataset.label.toLowerCase().includes(val)) ? '' : 'none';
   });
+  if (stateKbRow && stateKbRow.style.display === 'none') {
+    stateKbRow.style.background = '';
+    stateKbRow = null;
+    this.removeAttribute('aria-activedescendant');
+  }
+  openStateDropdown();
   if (!val && activeFilters.state) {
     activeFilters.state = '';
-    document.getElementById('f-state').value = '';
     applyFilters();
   }
 });
 
-document.getElementById('f-state').addEventListener('change', function() {
-  var code = this.value;
-  document.getElementById('f-state-filter').value = code;
-  activeFilters.state = code;
-  this.blur();
-  document.getElementById('f-state-filter').blur();
-  Array.from(this.options).forEach(function(opt) { opt.style.display = ''; });
+document.getElementById('f-state-filter').addEventListener('blur', function() {
+  setTimeout(closeStateDropdown, 150);
+});
+
+document.getElementById('f-state-filter').addEventListener('keydown', function(e) {
+  var rows, idx, next;
+  if (e.key === 'Escape') {
+    closeStateDropdown();
+    this.blur();
+  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    rows = Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).filter(function(r) { return r.style.display !== 'none'; });
+    if (!rows.length) return;
+    idx = stateKbRow ? rows.indexOf(stateKbRow) : -1;
+    if (e.key === 'ArrowUp') {
+      if (idx <= 0) {
+        if (stateKbRow) { stateKbRow.style.background = ''; stateKbRow = null; }
+        this.removeAttribute('aria-activedescendant');
+        return;
+      }
+      next = rows[idx - 1];
+    } else {
+      next = rows[Math.min(idx + 1, rows.length - 1)];
+    }
+    if (stateKbRow) stateKbRow.style.background = '';
+    stateKbRow = next;
+    stateKbRow.style.background = 'var(--accent-dim)';
+    this.setAttribute('aria-activedescendant', stateKbRow.id);
+    stateKbRow.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' && stateKbRow) {
+    var val = stateKbRow.dataset.value;
+    document.getElementById('f-state-filter').value = val;
+    activeFilters.state = val;
+    Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) {
+      r.setAttribute('aria-selected', r === stateKbRow ? 'true' : 'false');
+      r.style.display = '';
+    });
+    closeStateDropdown();
+    applyFilters();
+  }
+});
+
+document.getElementById('state-dropdown').addEventListener('click', function(e) {
+  var row = e.target.closest('.typeahead-row');
+  if (!row) return;
+  var val = row.dataset.value;
+  document.getElementById('f-state-filter').value = val;
+  activeFilters.state = val;
+  Array.from(document.querySelectorAll('#state-dropdown .typeahead-row')).forEach(function(r) {
+    r.setAttribute('aria-selected', r === row ? 'true' : 'false');
+    r.style.display = '';
+  });
+  closeStateDropdown();
+  applyFilters();
+});
+
+// ── State native select (mobile) ─────────────────────────────────────────────
+
+document.getElementById('f-state-native').addEventListener('change', function() {
+  activeFilters.state = this.value;
   applyFilters();
 });
 
@@ -551,8 +679,8 @@ document.getElementById('f-cycle').addEventListener('change', function() {
   }
   if (urlState) {
     activeFilters.state = urlState;
-    document.getElementById('f-state').value = urlState;
     document.getElementById('f-state-filter').value = urlState;
+    document.getElementById('f-state-native').value = urlState;
   }
 
   populateCycles(urlCycle).then(function() {

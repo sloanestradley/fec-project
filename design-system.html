@@ -738,6 +738,71 @@
         </div>
       </div>
 
+      <!-- 8a. Form controls -->
+      <div class="ds-component" id="comp-form-controls" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Form Controls</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.form-input · .form-select · .form-search-btn — base. States: :focus (accent border), :disabled (opacity 0.45). Variants: .cycle-select · .search-combo · .search-combo .form-input</div>
+        <div class="ds-component-demo">
+          <div style="display:flex;flex-direction:column;gap:1.5rem">
+
+            <!-- Text input states -->
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Text input</div>
+              <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
+                <input class="form-input" type="text" value="Default" style="max-width:160px">
+                <input class="form-input" type="text" value="Focused" style="max-width:160px;border-color:var(--accent)">
+                <input class="form-input" type="text" value="Disabled" style="max-width:160px" disabled>
+              </div>
+            </div>
+
+            <!-- Select + wide variant -->
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Select · wide variant</div>
+              <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
+                <select class="form-select">
+                  <option>All offices</option>
+                  <option>House</option>
+                  <option>Senate</option>
+                </select>
+                <select class="form-select" style="min-width:200px">
+                  <option>All committee types</option>
+                  <option>PAC</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Search combo -->
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Search combo</div>
+              <div class="search-combo" style="max-width:360px">
+                <input class="form-input" type="text" placeholder="Search candidates…">
+                <button class="form-search-btn">Search</button>
+              </div>
+            </div>
+
+            <!-- Cycle select in tab bar context -->
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Cycle select — tab bar context</div>
+              <div class="tabs-bar">
+                <select class="cycle-select">
+                  <option>2024</option>
+                  <option>2022</option>
+                  <option>2020</option>
+                </select>
+                <a class="tab active" href="#">Summary</a>
+                <a class="tab" href="#">Raised</a>
+                <a class="tab" href="#">Spent</a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="ds-component-notes"><code>border-radius:0</code> is intentional — form controls are deliberately square. <code>.cycle-select</code> is not a standalone input: it strips all borders and padding for flush tab bar use only; always rendered inside <code>.tabs-bar</code>. <code>.form-select.wide</code> (min-width:200px) is a local extension on <code>committees.html</code> — stays inline there, not promoted. Top-nav and search-bar size overrides also stay local to their pages. Missing states (hover, error/invalid) and size variants are deferred to a future design decision.</div>
+      </div>
+
       <!-- 8. Stats grid -->
       <div class="ds-component" id="comp-stats-grid" data-status="stable">
         <div class="ds-component-header">

@@ -240,7 +240,14 @@ test.describe('races.html', () => {
   test('filter bar has Year, Office, and State fields', async ({ page }) => {
     await expect(page.locator('#f-cycle')).toBeAttached();
     await expect(page.locator('#f-office')).toBeAttached();
-    await expect(page.locator('#f-state')).toBeAttached();
+    await expect(page.locator('#f-state-filter')).toBeAttached();
+    await expect(page.locator('#state-dropdown')).toBeAttached();
+  });
+
+  test('state combo has ARIA combobox/listbox semantics and native fallback', async ({ page }) => {
+    await expect(page.locator('#f-state-filter')).toHaveAttribute('role', 'combobox');
+    await expect(page.locator('#state-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-state-native')).toBeAttached();
   });
 
   test('office select has All offices, House, Senate, President', async ({ page }) => {
@@ -471,6 +478,12 @@ test.describe('candidates.html', () => {
     await expect(searchInput).toBeVisible();
   });
 
+  test('state combo has ARIA combobox/listbox semantics and native fallback', async ({ page }) => {
+    await expect(page.locator('#f-state-filter')).toHaveAttribute('role', 'combobox');
+    await expect(page.locator('#state-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-state-native')).toBeAttached();
+  });
+
   test('results auto-load on page load (no params)', async ({ page }) => {
     const cards = page.locator('.candidate-card');
     await expect(cards).not.toHaveCount(0, { timeout: 8000 });
@@ -545,6 +558,12 @@ test.describe('committees.html', () => {
 
   test('search input is visible in filter bar', async ({ page }) => {
     await expect(page.locator('#f-search')).toBeVisible();
+  });
+
+  test('state combo has ARIA combobox/listbox semantics and native fallback', async ({ page }) => {
+    await expect(page.locator('#f-state-filter')).toHaveAttribute('role', 'combobox');
+    await expect(page.locator('#state-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-state-native')).toBeAttached();
   });
 
   test('results auto-load on page load (no params)', async ({ page }) => {

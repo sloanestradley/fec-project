@@ -235,9 +235,9 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .legend-item { font-family:'IBM Plex Mono',monospace; display:flex; align-items:center; gap:0.4rem; font-size:0.58rem; color:var(--muted); }
 .legend-swatch { width:18px; height:2px; flex-shrink:0; }
 .legend-dashed { background:repeating-linear-gradient(
-  to right,rgba(90,96,112,0.7) 0,rgba(90,96,112,0.7) 3px,transparent 3px,transparent 7px); }
+  to right,var(--chart-overlay-deadline) 0,var(--chart-overlay-deadline) 3px,transparent 3px,transparent 7px); }
 .legend-amber-dashed { background:repeating-linear-gradient(
-  to right,rgba(232,160,32,0.8) 0,rgba(232,160,32,0.8) 2px,transparent 2px,transparent 5px); }
+  to right,var(--chart-overlay-election) 0,var(--chart-overlay-election) 2px,transparent 2px,transparent 5px); }
 
 /* ── E: Committee rows ── */
 .committee-row { display:grid; grid-template-columns:1fr auto auto;
@@ -528,12 +528,8 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 
 .state-combo { position:relative; }
 .state-combo .form-input { width:120px; }
-.state-select-wrap { position:absolute; top:100%; left:0; min-width:200px; z-index:50;
-  display:none; background:var(--bg); border:1px solid var(--border-strong); border-top:none; }
-.state-combo:focus-within .state-select-wrap { display:block; }
-.state-listbox { width:100%; max-height:200px; overflow-y:auto; background:var(--bg);
-  font-family:'DM Sans',sans-serif; font-size:0.78rem; color:var(--text);
-  border:none; outline:none; cursor:pointer; }
+.state-combo .typeahead-dropdown { min-width:200px; }
+.state-combo .form-select { display:none; }
 
 .filter-chips-wrap { padding:0.55rem var(--page-gutter); border-bottom:1px solid var(--border);
   display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; }
@@ -575,6 +571,9 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   .raised-grid { grid-template-columns:1fr; }
   .stats-grid { grid-template-columns:repeat(2,1fr); }
   .typeahead-dropdown { max-width:100%; }
+  .state-combo .form-input { display:none; }
+  .state-combo .typeahead-dropdown { display:none !important; }
+  .state-combo .form-select { display:block; width:120px; }
   .filter-bar-wrap { padding:var(--page-gutter); }
   .results-area { padding:1.5rem var(--page-gutter); }
   .no-results, .error-prompt { padding:2rem var(--page-gutter); }
