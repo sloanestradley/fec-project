@@ -518,6 +518,7 @@ document.addEventListener('click', function(e) {
 // ── State combo ───────────────────────────────────────────────────────────────
 
 var stateKbRow = null;
+var stateBlurTimer = null;
 
 function openStateDropdown() {
   document.getElementById('state-dropdown').classList.add('open');
@@ -534,7 +535,10 @@ function closeStateDropdown() {
   if (stateKbRow) { stateKbRow.style.background = ''; stateKbRow = null; }
 }
 
-document.getElementById('f-state-filter').addEventListener('focus', openStateDropdown);
+document.getElementById('f-state-filter').addEventListener('focus', function() {
+  if (stateBlurTimer) { clearTimeout(stateBlurTimer); stateBlurTimer = null; }
+  openStateDropdown();
+});
 
 document.getElementById('f-state-filter').addEventListener('input', function() {
   var val = this.value.toLowerCase();
@@ -554,7 +558,7 @@ document.getElementById('f-state-filter').addEventListener('input', function() {
 });
 
 document.getElementById('f-state-filter').addEventListener('blur', function() {
-  setTimeout(closeStateDropdown, 150);
+  stateBlurTimer = setTimeout(function() { stateBlurTimer = null; closeStateDropdown(); }, 150);
 });
 
 document.getElementById('f-state-filter').addEventListener('keydown', function(e) {

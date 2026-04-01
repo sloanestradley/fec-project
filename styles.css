@@ -458,6 +458,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   text-decoration:none; color:inherit; }
 .typeahead-row:last-child { border-bottom:none; }
 .typeahead-row:hover { background:var(--accent-dim); }
+.typeahead-row[aria-selected="true"] { background:var(--accent-dim); }
 .typeahead-row-left {
   font-size:0.78rem; color:var(--text); min-width:0;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
