@@ -1938,3 +1938,44 @@ The through-line: Sloane is treating CSS architecture with the same rigor as pro
 - Design system status taxonomy: "stable" rename + audit of browse/committee/race page components still missing from design-system.html is in queue.
 - Phase 4 sequencing: CSS consolidation is done. First Phase 4 item? John validation queue should precede building.
 - candidates.html / committees.html still have redundant .main { overflow-x:hidden; } — not in this session's scope but worth a one-line cleanup next time those files are touched.
+
+---
+2026-04-01 [end of session]
+
+## Process log draft
+
+**Title:** The dropdown that earned its keep — accessibility and the custom state picker
+
+The state filter started this session as a native `<select size="6">` — functional but visually inconsistent and untestable in any meaningful way. It ended as a fully custom combobox with keyboard navigation, ARIA semantics, a mobile native fallback, and 9 new Playwright assertions covering the pattern across all three browse pages. Along the way, the form controls component got its first proper documentation card in the design system.
+
+**Changelog:**
+- styles.css: `.legend-dashed` and `.legend-amber-dashed` now reference CSS vars (`--chart-overlay-deadline`, `--chart-overlay-election`) instead of hardcoded rgba values — swatches now match chart overlays exactly
+- design-system.html: new Form Controls card (`comp-form-controls`, stable) — documents `.form-input`, `.form-select`, `.form-search-btn`, states (focus/disabled), and variants (cycle-select, search-combo) with live demos
+- candidates.html, committees.html, races.html: replaced native `<select size="6">` state picker with custom `.typeahead-dropdown` / `.typeahead-row` list — visually consistent with the name typeahead
+- styles.css: removed `.state-select-wrap`, `.state-listbox`, `:focus-within` toggle rules; added `.state-combo .typeahead-dropdown { min-width:200px }`; added mobile media query swap (hides custom input+dropdown, shows native select)
+- All three pages: keyboard nav (ArrowUp/Down/Enter/Escape), ARIA semantics (`role="combobox"` on input, `role="listbox"` on dropdown, `role="option"` on rows, `aria-expanded`, `aria-activedescendant`, `aria-selected`), `stateKbRow` tracking, blur+150ms pattern
+- tests/pages.spec.js: 3 new test blocks (one per browse page) asserting `role="combobox"`, `role="listbox"`, and `#f-state-native` presence — 274 tests pass
+
+**Field notes:**
+A detail that came up mid-session: the Claude Chat prompt had two quiet errors — it suggested adding `id="state-listbox"` to a div that already had `id="state-dropdown"` (an element can only have one id), and it named the All States row `id="state-opt-"` (just the prefix, no value). Both were caught before implementation. The broader lesson: prompts drafted in Claude Chat don't have codebase context, so they need a review pass against the actual HTML before you trust the DOM IDs. The CLAUDE.md rule about verifying field names against live API responses has an analogue here: verify DOM IDs against the actual markup before wiring up JS or ARIA references.
+
+Stack tags: Accessibility (ARIA combobox pattern), Keyboard navigation, Mobile fallback, Design system documentation
+
+## How Sloane steered the work
+
+**Reviewing the Claude Chat prompt before implementing**
+Rather than blindly executing the ARIA prompt, you asked Claude Code to read and adjust it first. That caught two ID errors (an impossible duplicate id and an incomplete id value) and a missing Playwright step before a single line was written — a much cheaper catch than a confusing test failure or broken aria-activedescendant pointer mid-session.
+
+**Insisting on documentation parity with implementation**
+You held the line that the Form Controls card had to land in design-system.html in the same session the component was used across four pages. That's a discipline most projects let slip ("we'll document it later") and it's what keeps the design system useful vs. decorative.
+
+**Legend swatches as a precision detail**
+The CSS var fix for the legend swatches was a small change with a clear payoff — swatches that don't exactly match their chart overlays erode trust in the data visualization, even if nobody consciously notices. Flagging this as a discrete, non-negotiable first task set the tone for the session.
+
+The through-line: you're making calls that look like "small polish" but are actually systemic — each one reduces the surface area where the next developer (including you in a future session) can make a mistake or miss a detail.
+
+## What to bring to Claude Chat
+
+- **State combo UX review:** The custom dropdown closes on blur with a 150ms delay. On mobile, the native select takes over. Worth a quick question for John or a test with a real user: does the custom dropdown feel predictable and accessible enough, or does it introduce friction vs. the original native select?
+- **Design system card review:** The Form Controls card now exists. Worth a look — are the four demo rows (text input states, select variants, search combo, cycle select in tabs) sufficient, or is anything missing?
+- **Race page: what's the next priority?** Races.html browse is live with progressive enrichment. race.html is scaffolded. The question is what Phase 3 work to prioritize — completing the single race view, or moving toward Phase 4 (early signal data, AI insights)?
