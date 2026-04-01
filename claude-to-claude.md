@@ -1979,3 +1979,47 @@ The through-line: you're making calls that look like "small polish" but are actu
 - **State combo UX review:** The custom dropdown closes on blur with a 150ms delay. On mobile, the native select takes over. Worth a quick question for John or a test with a real user: does the custom dropdown feel predictable and accessible enough, or does it introduce friction vs. the original native select?
 - **Design system card review:** The Form Controls card now exists. Worth a look — are the four demo rows (text input states, select variants, search combo, cycle select in tabs) sufficient, or is anything missing?
 - **Race page: what's the next priority?** Races.html browse is live with progressive enrichment. race.html is scaffolded. The question is what Phase 3 work to prioritize — completing the single race view, or moving toward Phase 4 (early signal data, AI insights)?
+
+---
+2026-04-01
+
+## Process log draft
+
+Title: The invisible dropdown, and the one-word fix
+
+This session started as an accessibility upgrade — replacing all the native filter selects on the browse pages with custom, keyboard-navigable dropdowns — and ended as a debugging session after two context compactions obscured a CSS specificity bug that made every new dropdown button invisible on desktop. The bug turned out to be two characters wide: ".form-select" hiding buttons that happened to share the class, fixed by qualifying it to "select.form-select". The implementation itself was sound; the compaction just didn't carry the right detail forward.
+
+Changelog:
+- Added initComboDropdown() factory to utils.js: ARIA combobox/listbox pattern, keyboard nav (arrow keys, Enter, Escape), outside-click dismiss, aria-selected sync on reopen, mobile native <select> fallback at ≤860px
+- Replaced native <select> filter controls with custom combo-wrap/combo-trigger dropdowns: office/party/cycle on candidates.html, type on committees.html, year/office on races.html
+- State combo on all three pages refactored to use the factory (removes ~300 lines of duplicated inline JS)
+- Fixed [aria-selected="true"] visual indicator (CSS rule was missing)
+- Fixed blur-timer race on state combo reopen
+- Added Form Controls card to design-system.html documenting all form control classes including the new combo pattern
+- CSS specificity fix: .combo-wrap .form-select → .combo-wrap select.form-select (two occurrences in styles.css)
+- 9 new Playwright combo ARIA assertions; 4 existing tests updated with { force: true } for hidden native selects
+- 271 → 280 structural tests passing
+- Docs updated: CLAUDE.md (test count, combo docs, specificity note), TESTING.md (test count, pages.spec.js description), test-cases.md (count, manual test items, test log row)
+
+Field notes: The specificity bug is a good reminder that dual-class elements are CSS landmines. A button styled to look like a select by sharing the form-select class seemed clever at the time — and it was, visually — but it silently inherited the hide/show rules meant for actual selects. The fix is also the lesson: when you need to hide "the select but not the button," say "the select" in CSS. Compaction didn't cause the bug; it just meant there was no one in the room who remembered writing the rule.
+
+Stack tags: accessibility, ARIA, CSS specificity, utils.js
+
+## How Sloane steered the work
+
+**Catching what compaction lost**
+The bug report — "I can't see several of the new dropdowns" — came with screenshots and a clear instinct that something had gone wrong during the compacted sessions. You didn't assume it was an API issue or a JS error; you went straight to the visual layer and asked for a plan before any fixes. That sequence (observe → plan → fix) is slower but it meant the diagnosis was right before any code changed.
+
+**Pausing before commit**
+You've now blocked the auto-commit at session end twice. That's a deliberate rhythm: do the work, do the documentation, then review the diff yourself before it lands in history. It's a quality gate that I was treating as optional. It's not.
+
+**Asking about the checkmarks**
+The question about ✅ in test-cases.md was a good catch — the file had become a mix of "automatically verified" and "manual only" items with no clear legend. The answer clarified the intent: ✅ = my job, unmarked = yours. That distinction matters for knowing where to spend time during a browser review pass.
+
+The through-line: you're building habits around review that treat the session as not done until you've seen the output, not just the tests. That's the right instinct for a portfolio piece where the diff is also the artifact.
+
+## What to bring to Claude Chat
+
+- **What's next after combos?** race.html is still a scaffold. The Spent tab on committee.html is live. Is Phase 4 (48hr reports, AI insights) the next direction, or is there remaining Phase 3 polish first?
+- **Browser QA on the combos** — The Playwright tests cover structure/ARIA, but keyboard nav and mobile fallback need a manual pass in the browser. Worth doing before pushing to Netlify.
+- **Context compaction strategy** — Two compactions in one session created a blind spot that produced a real bug. Worth discussing whether longer sessions should have a mid-session checkpoint, or whether the planning gate (plan → approve → implement) is sufficient protection.

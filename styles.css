@@ -534,7 +534,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 
 .combo-wrap { position:relative; }
 .combo-wrap .typeahead-dropdown { min-width:max-content; }
-.combo-wrap .form-select { display:none; }
+.combo-wrap select.form-select { display:none; }
 
 .combo-trigger {
   -webkit-appearance:none; appearance:none;
@@ -587,7 +587,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   .state-combo .form-select { display:block; width:120px; }
   .combo-wrap .combo-trigger { display:none; }
   .combo-wrap .typeahead-dropdown { display:none !important; }
-  .combo-wrap .form-select { display:block; }
+  .combo-wrap select.form-select { display:block; }
   .filter-bar-wrap { padding:var(--page-gutter); }
   .results-area { padding:1.5rem var(--page-gutter); }
   .no-results, .error-prompt { padding:2rem var(--page-gutter); }

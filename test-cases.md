@@ -5,7 +5,7 @@
 
 ## How to use this file
 
-**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 271 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
+**Automated tests (Track 1):** Run `npx playwright test` from the project root before and after changes. 280 structural tests across all pages run in ~1 minute with mocked API. See `TESTING.md` for full details.
 
 **Smoke tests (Track 2):** Run `npm run test:smoke` before deploys. Hits the live FEC API — 5 key checks. Requires the dev server to be running.
 
@@ -336,9 +336,10 @@
 - [ ] No `.page-desc` paragraph
 
 ### Filter bar
-- [ ] Year `<select>` populated with cycles from API, default to current cycle ✅
-- [ ] Office `<select>` with All offices / House / Senate / President ✅
+- [ ] Year combo trigger visible, clicking opens listbox populated with cycles from API, default to current cycle ✅
+- [ ] Office combo trigger visible with "All offices", clicking opens listbox with House/Senate/President options ✅
 - [ ] State combo with text filter input and listbox dropdown ✅
+- [ ] At ≤860px: combo triggers hidden, native `<select>` elements appear in their place (Year, Office)
 - [ ] State dropdown not clipped when open (overflow:visible on .main)
 - [ ] Filter chips area present and hidden by default ✅
 
@@ -471,9 +472,11 @@
 - [ ] ✅ Search input visible in filter bar alongside dropdowns
 - [ ] State combo: typing in state input filters listbox options
 - [ ] State combo: selecting from listbox populates text input and triggers fetch
-- [ ] Office dropdown: selecting President disables state filter
-- [ ] Party dropdown populates; changing selection re-fetches
-- [ ] Cycle dropdown populates 2026–2002; changing selection re-fetches
+- [ ] Office combo: clicking trigger opens custom listbox; selecting "President" disables state filter; selecting other option re-enables it; trigger label updates
+- [ ] Party combo: clicking trigger opens listbox; selecting a party re-fetches and updates trigger label
+- [ ] Cycle combo: clicking trigger opens listbox populated with even years 2026–2002; selecting a year re-fetches and updates trigger label
+- [ ] All three combos: keyboard nav works (arrow keys move highlight, Enter selects, Escape closes)
+- [ ] At ≤860px: combo triggers hidden, native `<select>` elements visible; selecting from native `<select>` triggers fetch
 - [ ] ✅ Filter chips row appears when any filter is active; shows chip per active filter
 - [ ] Clicking chip `×` clears that filter and re-fetches
 - [ ] "Clear all" chip appears when 2+ filters active; clears everything and re-fetches
@@ -534,7 +537,9 @@
 - [ ] ✅ Results auto-load immediately on page visit
 - [ ] ✅ Search input visible in filter bar alongside dropdowns
 - [ ] State combo: typing filters listbox; selecting from listbox triggers fetch
-- [ ] Committee type dropdown populates; changing selection re-fetches
+- [ ] Type combo: clicking trigger opens listbox with 7 options (All types + 6 committee types); selecting re-fetches and updates trigger label
+- [ ] Type combo: keyboard nav works (arrow keys, Enter, Escape)
+- [ ] At ≤860px: type combo trigger hidden, native `<select>` visible
 - [ ] ✅ Filter chips row appears when any filter is active
 - [ ] Clicking chip `×` clears that filter and re-fetches
 - [ ] ✅ URL updates after filter change — `?type=P`, `?state=WA`, etc.
@@ -738,3 +743,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-03-31 | Presidential race fixes (VALID_STATES + 'US', formatRaceName → 'US President', cycle cap +2 for P office), races.html mobile networkidle fix (second instance), committees.html Show terminated toggle (filing_frequency array param, chip, URL sync), candidate.html modal 'Terminated' tab label, toggle-switch CSS component, design-system.html ds-component-notes class + note placement cleanup, CLAUDE.md office cycle rhythms note + API key update; 4 new Playwright assertions (toggle DOM, Terminated tab label, state=US valid, US President title) | race.html, utils.js, committees.html, candidate.html, styles.css, design-system.html, CLAUDE.md, tests/pages.spec.js, tests/candidate.spec.js (automated) | None | 271/271 Track 1 passing |
 | 2026-03-31 | Design system documentation pass — rename .page-header-title → .page-title globally (styles.css single source, all local overrides removed); modal-scoped committee row spacing (.modal-body .committee-row); comp-raised-grid/comp-map/comp-donut promoted stable; comp-typeahead added (three demo dropdowns); comp-status-dot added; comp-results-groups added; comp-candidate-card extended with stats row; comp-modal updated with tab bar + Pelosi live data; JFA organizer display gap documented in CLAUDE.md; .typeahead-dd retired note removed | styles.css, candidate.html, committee.html, race.html, candidates.html, committees.html, races.html, process-log.html, design-system.html, CLAUDE.md, test-cases.md (no new Playwright tests — documentation/CSS pass only) | None | 271/271 Track 1 passing |
 | 2026-03-31 | CSS consolidation session — global banner token substitution (--text/--muted/--border); --overlay-bg token added to :root + modal-overlay; .callout rgba → color-mix(); browse page chrome (~200 lines) promoted from candidates/committees/races/search inline blocks to styles.css section R; profile page inline cleanup (.tabs-bar padding+opacity merged, .cycle-select/.meta-row/.state-msg mobile/.stat-value 480px promoted; .main/.raised-grid/etc. redundant copies deleted from candidate/committee/race/search); design-system.html tabs-bar demo override added | styles.css, candidate.html, committee.html, race.html, candidates.html, committees.html, races.html, search.html, design-system.html, CLAUDE.md (no new Playwright tests — CSS-only refactor, no DOM changes) | None | 271/271 Track 1 passing |
+| 2026-04-01 | Accessible state combo (state filter on candidates/committees/races): ARIA combobox/listbox semantics, keyboard nav, mobile native fallback, aria-selected visual indicator, blur timer race fix; Form Controls design-system.html card; initComboDropdown() factory in utils.js (office/party/cycle combos on candidates.html, type combo on committees.html, year/office combos on races.html); CSS specificity fix (.combo-wrap select.form-select to avoid hiding button triggers); 9 new Playwright combo ARIA assertions, 3 ARIA state combo assertions; 4 existing tests updated ({ force: true } for hidden native selects) | utils.js, styles.css, candidates.html, committees.html, races.html, design-system.html, CLAUDE.md, TESTING.md, test-cases.md, tests/pages.spec.js (automated) | CSS specificity bug: buttons with class="combo-trigger form-select" hidden by .combo-wrap .form-select rule (fixed to select.form-select); discovered after two context compactions | 280/280 Track 1 passing |
