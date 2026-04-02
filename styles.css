@@ -527,14 +527,12 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .search-combo { position:relative; display:flex; }
 .search-combo .form-input { flex:1; min-width:160px; border-right:none; }
 
-.state-combo { position:relative; }
-.state-combo .form-input { width:120px; }
-.state-combo .typeahead-dropdown { min-width:200px; }
-.state-combo .form-select { display:none; }
-
 .combo-wrap { position:relative; }
 .combo-wrap .typeahead-dropdown { min-width:max-content; }
 .combo-wrap select.form-select { display:none; }
+
+.state-combo .form-input { width:120px; }
+.state-combo .typeahead-dropdown { min-width:200px; }
 
 .combo-trigger {
   -webkit-appearance:none; appearance:none;
@@ -583,8 +581,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   .stats-grid { grid-template-columns:repeat(2,1fr); }
   .typeahead-dropdown { max-width:100%; }
   .state-combo .form-input { display:none; }
-  .state-combo .typeahead-dropdown { display:none !important; }
-  .state-combo .form-select { display:block; width:120px; }
+  .state-combo select.form-select { width:120px; }
   .combo-wrap .combo-trigger { display:none; }
   .combo-wrap .typeahead-dropdown { display:none !important; }
   .combo-wrap select.form-select { display:block; }

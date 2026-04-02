@@ -2023,3 +2023,42 @@ The through-line: you're building habits around review that treat the session as
 - **What's next after combos?** race.html is still a scaffold. The Spent tab on committee.html is live. Is Phase 4 (48hr reports, AI insights) the next direction, or is there remaining Phase 3 polish first?
 - **Browser QA on the combos** — The Playwright tests cover structure/ARIA, but keyboard nav and mobile fallback need a manual pass in the browser. Worth doing before pushing to Netlify.
 - **Context compaction strategy** — Two compactions in one session created a blind spot that produced a real bug. Worth discussing whether longer sessions should have a mid-session checkpoint, or whether the planning gate (plan → approve → implement) is sufficient protection.
+---
+2026-04-01
+
+## Process log draft
+
+Title: Cleaning the closet — the design system starts to mean something
+
+This session had no new features. It was two things: making CSS rules say what they actually mean, and making the design system document what actually exists. The combo-wrap consolidation was a structural tidying — two patterns that shared rules but maintained them separately, now unified. The design system work was the harder part: the Form Controls card had been written before the custom combo work existed, so it was quietly wrong. A card that doesn't show the filterable state-combo pattern, or explain which native selects are still in play, isn't documentation — it's archaeology.
+
+Changelog:
+- styles.css: merged duplicate position:relative and native-select hide/show rules from .state-combo into .combo-wrap; .state-combo retains only rules unique to it (input width, dropdown min-width, mobile input hide, mobile select width)
+- candidates.html, committees.html, races.html: state-combo divs now carry both state-combo and combo-wrap classes
+- design-system.html: comp-form-controls updated — state-combo filterable demo row added; native select row label updated to reflect current limited use; class list updated to include .state-combo; notes rewritten to document initComboDropdown modes (filterable:true vs filterable:false), .placeholder scoping, and .search-bar-wrap/.search-bar page-scoping
+- design-system.html: comp-browse-chrome card added (stable) — filter bar, filter chips, and error prompt demo sections; page-gutter padding overridden with fixed value for card context; notes document production page-gutter behavior and page-specific extensions
+- CLAUDE.md: Shared form controls note updated with CSS consolidation details
+- test-cases.md: test log row appended
+
+Field notes: The native-select caret question at the end of the session is a good example of a detail that looks like a bug but is actually a constraint. The mobile caret difference isn't a drift from the design — it's the cost of using the native OS picker, which is the right call for touch devices. The answer is worth having in a log somewhere because it will come up again when someone looks at the site on a phone and wonders why the State dropdown looks slightly different.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+
+**CSS consolidation as a scoped task, not a refactor**
+The combo-wrap/state-combo work came in as a precisely bounded spec: what to merge, what to keep, which files to touch, and an explicit constraint ("the state combo's .form-input hide at mobile must stay"). That precision prevented the kind of exploratory cleanup that turns a 20-minute task into a 2-hour one. The work was done, tested, and done.
+
+**Design system as a product artifact, not developer notes**
+Asking for three specific things wrong with the Form Controls card — the missing state-combo demo, the stale native-select framing, the undocumented initComboDropdown modes — shows that the design system is being read and held to a standard. A card that quietly misrepresents how the system works erodes trust in the whole reference. Fixing it now means the next person to build a filter control has an accurate guide.
+
+**The caret question**
+The question about the mobile native select caret was small and incisive — it's the kind of thing you notice when you're actually looking at the site on a phone, not just running tests. The answer (intentional, trade-off between visual consistency and native UX) is one of those "why is this like this" moments worth having on record.
+
+The through-line: you're treating the design system the way production code gets treated — it should be accurate, not aspirational. The session's work was less about building and more about making what already exists legible.
+
+## What to bring to Claude Chat
+
+- **Mobile caret parity — worth a decision:** Now that the design system explicitly documents native-select usage, is the caret inconsistency on mobile something to formally accept (add a note to the design system) or schedule a fix for? The `-webkit-appearance:none` + background-image approach is doable but adds maintenance surface. Good to have an explicit call rather than leaving it as an implicit known gap.
+- **Design system completeness audit:** The "stable" taxonomy is now well-populated. Is there anything that's on multiple pages but still missing a card? Worth a quick pass before Phase 4 starts, so the reference is complete at the transition point.
+- **Phase 4 first item:** CSS consolidation is done. Design system is honest. What's the first Phase 4 feature — 48/24hr early signal data, AI insights, or something else? Sequencing decision before the next build session.

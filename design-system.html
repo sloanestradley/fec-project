@@ -744,7 +744,7 @@
           <span class="ds-component-name">Form Controls</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.form-input · .form-select · .form-search-btn — base. States: :focus (accent border), :disabled (opacity 0.45). Variants: .cycle-select · .search-combo · .search-combo .form-input · .combo-wrap · .combo-trigger</div>
+        <div class="ds-component-classes">.form-input · .form-select · .form-search-btn — base. States: :focus (accent border), :disabled (opacity 0.45). Variants: .cycle-select · .search-combo · .search-combo .form-input · .combo-wrap · .combo-trigger · .state-combo</div>
         <div class="ds-component-demo">
           <div style="display:flex;flex-direction:column;gap:1.5rem">
 
@@ -760,12 +760,12 @@
 
             <!-- Select + wide variant -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Select · wide variant</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Native select — mobile fallback · cycle-select · terminated toggle</div>
               <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
                 <select class="form-select">
-                  <option>All offices</option>
-                  <option>House</option>
-                  <option>Senate</option>
+                  <option>All states</option>
+                  <option>California</option>
+                  <option>Washington</option>
                 </select>
                 <select class="form-select" style="min-width:200px">
                   <option>All committee types</option>
@@ -780,6 +780,51 @@
               <div class="search-combo" style="max-width:360px">
                 <input class="form-input" type="text" placeholder="Search candidates…">
                 <button class="form-search-btn">Search</button>
+              </div>
+            </div>
+
+            <!-- State combo — filterable -->
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">State combo — filterable</div>
+              <div class="state-combo combo-wrap" style="display:inline-block">
+                <input class="form-input" type="text" placeholder="All states" autocomplete="off"
+                  role="combobox" aria-haspopup="listbox" aria-expanded="true">
+                <div class="typeahead-dropdown" role="listbox" style="position:static;display:block">
+                  <div class="typeahead-row" role="option" aria-selected="true">All states</div>
+                  <div class="typeahead-row" role="option" aria-selected="false">CA — California</div>
+                  <div class="typeahead-row" role="option" aria-selected="false">WA — Washington</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Combo-wrap filter dropdown -->
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Combo-wrap filter dropdown</div>
+              <div style="display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap">
+                <div style="display:flex;flex-direction:column;gap:0.5rem">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Default</span>
+                  <div class="combo-wrap">
+                    <button type="button" class="combo-trigger form-select" aria-haspopup="listbox" aria-expanded="false">All offices</button>
+                    <div class="typeahead-dropdown" role="listbox">
+                      <div class="typeahead-row" role="option" aria-selected="true">All offices</div>
+                      <div class="typeahead-row" role="option" aria-selected="false">House</div>
+                      <div class="typeahead-row" role="option" aria-selected="false">Senate</div>
+                      <div class="typeahead-row" role="option" aria-selected="false">President</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.5rem">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Open</span>
+                  <div class="combo-wrap">
+                    <button type="button" class="combo-trigger form-select" aria-haspopup="listbox" aria-expanded="true">All offices</button>
+                    <div class="typeahead-dropdown open" role="listbox" style="position:static;min-width:160px">
+                      <div class="typeahead-row" role="option" aria-selected="true">All offices</div>
+                      <div class="typeahead-row" role="option" aria-selected="false">House</div>
+                      <div class="typeahead-row" role="option" aria-selected="false">Senate</div>
+                      <div class="typeahead-row" role="option" aria-selected="false">President</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -800,7 +845,7 @@
 
           </div>
         </div>
-        <div class="ds-component-notes"><code>border-radius:0</code> is intentional — form controls are deliberately square. <code>.cycle-select</code> is not a standalone input: it strips all borders and padding for flush tab bar use only; always rendered inside <code>.tabs-bar</code>. <code>.form-select.wide</code> (min-width:200px) is a local extension on <code>committees.html</code> — stays inline there, not promoted. Top-nav and search-bar size overrides also stay local to their pages. Missing states (hover, error/invalid) and size variants are deferred to a future design decision. <code>.combo-wrap</code> + <code>.combo-trigger</code>: the custom accessible dropdown pattern — <code>.combo-wrap</code> is <code>position:relative</code> and contains the trigger button, the <code>.typeahead-dropdown</code> listbox, and a hidden native <code>&lt;select&gt;</code> for mobile fallback (shown at ≤860px via media query, trigger/dropdown hidden). Powered by <code>initComboDropdown(config)</code> in <code>utils.js</code> — handles ARIA semantics, keyboard navigation, and outside-click dismissal. Used by office/party/cycle filters on candidates.html, type filter on committees.html, and year/office filters on races.html.</div>
+        <div class="ds-component-notes"><code>border-radius:0</code> is intentional — form controls are deliberately square. Native <code>&lt;select&gt;</code> (<code>.form-select</code>) is now limited to three contexts: <code>.cycle-select</code> in the tab bar (flush, borderless — always inside <code>.tabs-bar</code>), mobile fallback inside <code>.combo-wrap</code> and <code>.state-combo</code> (hidden at desktop; shown at ≤860px when the custom trigger/dropdown are hidden), and the terminated <code>.toggle-switch</code> on committees.html. Filter dropdowns on browse pages use the custom combo pattern — not native selects. <code>.form-select.wide</code> (min-width:200px) is a local extension on committees.html — stays inline there, not promoted. Missing states (hover, error/invalid) and size variants are deferred to a future design decision. <strong>initComboDropdown modes:</strong> <code>filterable: true</code> — uses a text <code>&lt;input&gt;</code> as the trigger (<code>.state-combo</code> pattern); opens on focus, filters options by typing, trigger displays the selected state code. <code>filterable: false</code> — uses a <code>&lt;button&gt;</code> as the trigger (<code>.combo-wrap</code> + <code>.combo-trigger</code> pattern); opens on click, trigger text updates to the selected label. Both modes share the same <code>.typeahead-dropdown</code> listbox, ARIA semantics (combobox/listbox/option roles), keyboard navigation (arrow keys, Enter, Escape), outside-click dismissal, and mobile native-select fallback. <strong>Page-scoped styles not part of this system:</strong> <code>.placeholder</code> (dashed border empty state, used on race.html when no race data is available — stays local to that page). <code>.search-bar-wrap</code> and <code>.search-bar</code> (search.html page-level layout wrappers — defined in styles.css but intentionally page-scoped, not promoted to the shared component system).</div>
       </div>
 
       <!-- 8. Stats grid -->
@@ -1043,6 +1088,57 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Browse page chrome -->
+      <div class="ds-component" id="comp-browse-chrome" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Browse Page Chrome</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.filter-bar-wrap · .filter-bar · .form-field · .form-label · .filter-chips-wrap · .filter-chip · .chip-x · .chip-clear-all · .results-area · .no-results · .error-prompt · .retry-btn — used on candidates.html, committees.html, races.html</div>
+        <div class="ds-component-demo" style="padding:0">
+
+          <!-- Filter bar -->
+          <div class="filter-bar-wrap" style="padding:1.5rem 1rem">
+            <div class="filter-bar">
+              <div class="form-field">
+                <label class="form-label">Search</label>
+                <div class="search-combo" style="max-width:280px">
+                  <input class="form-input" type="text" placeholder="Candidate name…">
+                  <button class="form-search-btn">Search</button>
+                </div>
+              </div>
+              <div class="form-field">
+                <label class="form-label">Office</label>
+                <div class="combo-wrap">
+                  <button type="button" class="combo-trigger form-select" aria-haspopup="listbox" aria-expanded="false">All offices</button>
+                  <div class="typeahead-dropdown" role="listbox">
+                    <div class="typeahead-row" role="option" aria-selected="true">All offices</div>
+                    <div class="typeahead-row" role="option" aria-selected="false">House</div>
+                    <div class="typeahead-row" role="option" aria-selected="false">Senate</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter chips -->
+          <div class="filter-chips-wrap" style="padding:0.55rem 1rem">
+            <div class="filter-chip">House <button class="chip-x" aria-label="Remove filter">×</button></div>
+            <div class="filter-chip">Washington <button class="chip-x" aria-label="Remove filter">×</button></div>
+            <button class="chip-clear-all">Clear all</button>
+          </div>
+
+          <!-- Error prompt -->
+          <div class="error-prompt" style="padding:2rem 1rem">
+            <strong>Unable to load results</strong>
+            Check your connection or try again.
+            <div><button class="retry-btn">Retry</button></div>
+          </div>
+
+        </div>
+        <div class="ds-component-notes"><code>.filter-bar-wrap</code> and <code>.filter-chips-wrap</code> use <code>var(--page-gutter)</code> for horizontal padding in production — overridden with a fixed value above for demo context. Page-specific extensions stay inline: <code>position:relative; z-index:10</code> on <code>races.html</code> <code>.filter-bar-wrap</code> (stacking context for dropdowns); <code>.form-select.wide</code> (min-width:200px) on <code>committees.html</code>. The <code>.combo-wrap</code> pattern for filter selects is documented in the Form Controls card.</div>
       </div>
 
       <!-- 11. Toggle switch -->
