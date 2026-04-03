@@ -74,7 +74,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **Typeahead item format:** candidates.html right side = office word only (`House`/`Senate`/`President`, no state, no bullet). committees.html right side = status dot only (no text label). search.html uses the same format as these — it is the reference.
 
-**Chart colors:** `--chart-*` CSS vars in `styles.css :root` are the canonical chart palette. JS chart configs reference the `CHART_COLORS` constant defined in `utils.js` (same rgba values — shared by `candidate.html` and `committee.html`). HTML legend swatches use the CSS vars directly (`style="background:var(--chart-raised)"`). Add new chart color vars to `styles.css :root` and `CHART_COLORS` in `utils.js` before using hardcoded rgba in chart configs.
+**Chart colors:** `--chart-*` CSS vars in `styles.css :root` are the canonical chart palette. JS chart configs reference the `CHART_COLORS` constant defined in `utils.js`. `CHART_COLORS` is populated via a `getComputedStyle` IIFE that reads the CSS variables at runtime — changing a token in `styles.css :root` automatically propagates to charts with no changes needed in `utils.js`. HTML legend swatches use the CSS vars directly (`style="background:var(--chart-raised)"`). Add new chart color vars to `styles.css :root` first; `utils.js` will pick them up via the IIFE.
 
 ### Token naming tiers
 
@@ -107,8 +107,8 @@ Every color swatch has `data-token` and `data-hex` attributes. Every component c
 Light "broadsheet" theme. Key CSS variables:
 
 ```
---bg: #ede8e0        (page background)
---surface: #f7f4ef   (cards, panels)
+--bg: #F8F5EC        (page background + nav)
+--surface: #ffffff   (cards, panels)
 --surface2: #eee9e1  (chart interiors, inset elements)
 --border: #cdc7bc
 --border-strong: #a8a099  (strong borders, nav dots default)
@@ -132,7 +132,6 @@ Layout tokens:
 --section-gap: 1.5rem     (vertical margin-bottom between stacked content sections — .banner, .chart-card, .donors-card, .stats-grid, .raised-grid)
 
 Nav tokens:
---nav-bg: #e8e2d8         (top nav + mobile nav background)
 --nav-active-bg: #d4cdc3  (nav active state background — currently unused, reserved)
 ```
 

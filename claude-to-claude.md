@@ -2062,3 +2062,44 @@ The through-line: you're treating the design system the way production code gets
 - **Mobile caret parity — worth a decision:** Now that the design system explicitly documents native-select usage, is the caret inconsistency on mobile something to formally accept (add a note to the design system) or schedule a fix for? The `-webkit-appearance:none` + background-image approach is doable but adds maintenance surface. Good to have an explicit call rather than leaving it as an implicit known gap.
 - **Design system completeness audit:** The "stable" taxonomy is now well-populated. Is there anything that's on multiple pages but still missing a card? Worth a quick pass before Phase 4 starts, so the reference is complete at the transition point.
 - **Phase 4 first item:** CSS consolidation is done. Design system is honest. What's the first Phase 4 feature — 48/24hr early signal data, AI insights, or something else? Sequencing decision before the next build session.
+---
+2026-04-02
+
+## Process log draft
+
+Title: The palette gets honest — tokens all the way down
+
+This session was a color audit and consolidation. Two background primitives that had been doing the same visual job at slightly different values — warm-floor for page background, warm-sidebar for nav — got merged into one token at a new value (#F8F5EC). Cards went to pure white. The design system got updated to reflect what actually exists. And along the way, the chart color palette in utils.js stopped being a parallel registry of hardcoded values and started reading from the CSS tokens it was always supposed to match.
+
+Changelog:
+- Consolidated warm-floor (#ede8e0) + warm-sidebar (#e8e2d8) → single warm-floor primitive at #F8F5EC; --nav-bg token removed from :root; all var(--nav-bg) call sites replaced with var(--bg)
+- warm-card (#f7f4ef) renamed to light-card at #ffffff; --surface: #ffffff
+- .tag-context background changed from var(--nav-bg) → var(--border) — Sloane's call to give the race context pill a more intentional fill rather than blending into the page
+- All hardcoded #ede8e0 and #f7f4ef values updated: map path strokes in candidate.html + committee.html; three values in CHART_COLORS (pointBorder, donutBorder, tooltipBg)
+- CHART_COLORS in utils.js refactored from 20 hardcoded rgba/hex strings to a getComputedStyle IIFE that reads CSS variables at runtime — charts now follow token changes automatically
+- design-system.html: Tier 1 primitive table (warm-sidebar row removed, warm-card → light-card, warm-floor hex updated); Tier 2 semantic token table (--nav-bg row removed, --surface primitive updated, hex cells updated); Background swatches updated; --nav-bg swatch removed; --surface swatch gets border for visibility at #fff
+- CLAUDE.md: --bg and --surface values updated; --nav-bg line removed from nav tokens block; CHART_COLORS architecture note updated
+
+Field notes:
+The CHART_COLORS refactor is a small change with a disproportionate payoff. Before: changing a CSS token meant finding and updating a parallel copy in utils.js, hoping you didn't miss one. After: the JS reads from the CSS, so there's one source of truth. The IIFE pattern keeps the same object shape so no call sites changed. The one remaining hardcoded value (axisGrid) has no token — and that's the right call, because not every color needs to be in the system. The design token system should capture intent, not catalog every rgba() in the codebase.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+
+**Asking the right audit question first**
+Rather than jumping straight to "change these colors," you started by asking exactly what each primitive touches — all pages, all files, all downstream references. That sequence (understand before changing) meant the implementation had no surprises: the tag-context implication was caught before any code was written, not after.
+
+**The tag-context call — var(--border) over blending in**
+When the consolidation would have made the race context pill invisible against the page background, you didn't default to the nearest safe option. You picked var(--border) — a choice that turns the pill into something more intentional and distinct than it was before. A background that's clearly a border color reads as a chip, not an accident.
+
+**"Is there any drawback?" before applying**
+The question before approving the CHART_COLORS refactor is a good instinct. It's a visible architectural change (plain object → IIFE) and the answer mattered: the only real constraint is load order, which is already guaranteed. Asking the question confirmed the tradeoff was understood, not just trusted.
+
+The through-line: you're treating design decisions and architecture decisions with the same rigor — understand the full blast radius, decide the edge cases explicitly, then execute. Nothing in this session was left as an implicit assumption.
+
+## What to bring to Claude Chat
+
+- **Visual QA on the new palette** — The three token changes (#F8F5EC background, #ffffff cards, var(--border) tag-context) will look notably different on the live site. Worth a browser pass before deciding if any adjustments are needed — particularly the tag-context pill, which is now noticeably more defined.
+- **Remaining hardcoded colors** — The donut/contributor chart color arrays in candidate.html and committee.html still have ~16 hardcoded values. Some map to existing tokens; others don't have a token yet. Is there appetite for a color system pass on the chart categories, or is that low priority relative to Phase 4 work?
+- **Phase 4 sequencing** — Design system is honest, token system is clean. What's the first Phase 4 feature — 48/24hr early signal data, AI insights, or something else?

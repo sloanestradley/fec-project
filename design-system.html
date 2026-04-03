@@ -265,10 +265,9 @@
         <table class="ds-token-table">
           <thead><tr><th>Name</th><th>Hex</th><th>Note</th></tr></thead>
           <tbody>
-            <tr><td><span class="ds-token-dot" style="background:#ede8e0;border:1px solid #cdc7bc"></span>warm-floor</td><td class="ds-token-hex">#ede8e0</td><td>Page bg</td></tr>
-            <tr><td><span class="ds-token-dot" style="background:#f7f4ef;border:1px solid #cdc7bc"></span>warm-card</td><td class="ds-token-hex">#f7f4ef</td><td>Card surface</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#F8F5EC;border:1px solid #cdc7bc"></span>warm-floor</td><td class="ds-token-hex">#F8F5EC</td><td>Page bg + nav bg</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#ffffff;border:1px solid #cdc7bc"></span>light-card</td><td class="ds-token-hex">#ffffff</td><td>Card surface</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#eee9e1;border:1px solid #cdc7bc"></span>warm-inset</td><td class="ds-token-hex">#eee9e1</td><td>Chart interiors</td></tr>
-            <tr><td><span class="ds-token-dot" style="background:#e8e2d8"></span>warm-sidebar</td><td class="ds-token-hex">#e8e2d8</td><td>Sidebar bg</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#d4cdc3"></span>warm-active</td><td class="ds-token-hex">#d4cdc3</td><td>Active nav bg</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#cdc7bc"></span>warm-rule</td><td class="ds-token-hex">#cdc7bc</td><td>Border default</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#a8a099"></span>warm-rule-dark</td><td class="ds-token-hex">#a8a099</td><td>Border strong</td></tr>
@@ -294,8 +293,8 @@
         <table class="ds-token-table">
           <thead><tr><th>Token</th><th>Primitive</th><th>Hex</th><th>Usage</th></tr></thead>
           <tbody>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--bg);border:1px solid var(--border)"></span>--bg</td><td>warm-floor</td><td class="ds-token-hex">#ede8e0</td><td>Page background</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--surface);border:1px solid var(--border)"></span>--surface</td><td>warm-card</td><td class="ds-token-hex">#f7f4ef</td><td>Cards, panels</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--bg);border:1px solid var(--border)"></span>--bg</td><td>warm-floor</td><td class="ds-token-hex">#F8F5EC</td><td>Page background + nav</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--surface);border:1px solid var(--border)"></span>--surface</td><td>light-card</td><td class="ds-token-hex">#ffffff</td><td>Cards, panels</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--surface2);border:1px solid var(--border)"></span>--surface2</td><td>warm-inset</td><td class="ds-token-hex">#eee9e1</td><td>Chart interiors, inset elements</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--border)"></span>--border</td><td>warm-rule</td><td class="ds-token-hex">#cdc7bc</td><td>Dividers, outlines</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--border-strong)"></span>--border-strong</td><td>warm-rule-dark</td><td class="ds-token-hex">#a8a099</td><td>Strong borders, nav dots default</td></tr>
@@ -320,7 +319,6 @@
   <td class="ds-token-hex">rgba(26,21,16,0.65)</td>
   <td>Modal and drawer overlay scrim</td>
 </tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--nav-bg)"></span>--nav-bg</td><td>warm-sidebar</td><td class="ds-token-hex">#e8e2d8</td><td>Top nav + mobile nav background</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--nav-active-bg)"></span>--nav-active-bg</td><td>warm-active</td><td class="ds-token-hex">#d4cdc3</td><td>Active nav item background (mobile drawer)</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-raised)"></span>--chart-raised</td><td>--dem @ 90%</td><td class="ds-token-hex">rgba(74,144,217,0.9)</td><td>Raised money line in chart</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-raised-solid)"></span>--chart-raised-solid</td><td>--dem @ 100%</td><td class="ds-token-hex">rgba(74,144,217,1)</td><td>Raised chart point fill</td></tr>
@@ -348,16 +346,16 @@
       <div class="ds-swatch-group">
         <div class="ds-swatch-group-label">Backgrounds</div>
         <div class="ds-swatch-grid">
-          <div class="ds-swatch" data-token="--bg" data-hex="#ede8e0">
+          <div class="ds-swatch" data-token="--bg" data-hex="#F8F5EC">
             <div class="ds-swatch-color" style="background:var(--bg)"></div>
             <div class="ds-swatch-token">--bg</div>
-            <div class="ds-swatch-hex">#ede8e0</div>
-            <div class="ds-swatch-desc">Page background (floor)</div>
+            <div class="ds-swatch-hex">#F8F5EC</div>
+            <div class="ds-swatch-desc">Page background + nav</div>
           </div>
-          <div class="ds-swatch" data-token="--surface" data-hex="#f7f4ef">
-            <div class="ds-swatch-color" style="background:var(--surface)"></div>
+          <div class="ds-swatch" data-token="--surface" data-hex="#ffffff">
+            <div class="ds-swatch-color" style="background:var(--surface);border:1px solid var(--border)"></div>
             <div class="ds-swatch-token">--surface</div>
-            <div class="ds-swatch-hex">#f7f4ef</div>
+            <div class="ds-swatch-hex">#ffffff</div>
             <div class="ds-swatch-desc">Cards, panels</div>
           </div>
           <div class="ds-swatch" data-token="--surface2" data-hex="#eee9e1">
@@ -371,12 +369,6 @@
             <div class="ds-swatch-token">--border</div>
             <div class="ds-swatch-hex">#cdc7bc</div>
             <div class="ds-swatch-desc">Dividers, outlines</div>
-          </div>
-          <div class="ds-swatch" data-token="--nav-bg" data-hex="#e8e2d8">
-            <div class="ds-swatch-color" style="background:var(--nav-bg)"></div>
-            <div class="ds-swatch-token">--nav-bg</div>
-            <div class="ds-swatch-hex">#e8e2d8</div>
-            <div class="ds-swatch-desc">Nav background</div>
           </div>
         </div>
       </div>
@@ -643,7 +635,7 @@
         </div>
         <div class="ds-component-classes">.top-nav · .top-nav-logo · .top-nav-links · .nav-link · .nav-link.active · .top-nav-search · .top-nav-mobile-controls · .mobile-nav · .nav-item · .nav-item.active</div>
         <div class="ds-component-demo">
-          <div style="background:var(--nav-bg);border:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:1rem;border-radius:2px">
+          <div style="background:var(--bg);border:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:1rem;border-radius:2px">
             <span style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;text-transform:uppercase;color:var(--text);flex-shrink:0;">ledger<em style="font-style:normal;color:var(--muted)">.fec</em></span>
             <a class="nav-link active" href="#" style="height:auto;padding:0.25rem 0.75rem">Candidates</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Committees</a>

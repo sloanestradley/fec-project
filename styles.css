@@ -4,14 +4,13 @@
 /* ── Design tokens ── */
 :root {
   /* Surfaces */
-  --bg:           #ede8e0;
-  --surface:      #f7f4ef;
+  --bg:           #F8F5EC;
+  --surface:      #ffffff;
   --surface2:     #eee9e1;
   --border:       #cdc7bc;
   --border-strong:#a8a099;
 
   /* Nav */
-  --nav-bg:         #e8e2d8;
   --nav-active-bg:  #d4cdc3;
 
   /* Typography */
@@ -77,7 +76,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 
 /* ── Top nav ── */
 .top-nav { position:fixed; top:var(--banner-h); left:0; right:0;
-  height:var(--header-h); background:var(--nav-bg);
+  height:var(--header-h); background:var(--bg);
   border-bottom:1px solid var(--border); z-index:200; }
 .top-nav-inner { display:flex; align-items:center;
   height:var(--header-h); padding:0 1.5rem; gap:1.5rem; }
@@ -102,7 +101,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   color:var(--subtle); padding:0.25rem; line-height:0; transition:color 0.15s; }
 .top-nav-search-toggle:hover { color:var(--text); }
 .top-nav-mobile-search { position:fixed; top:calc(var(--banner-h) + var(--header-h));
-  left:0; right:0; background:var(--nav-bg);
+  left:0; right:0; background:var(--bg);
   border-bottom:1px solid var(--border); padding:0.6rem 1rem; z-index:198;
   transform:translateY(-8px); opacity:0;
   visibility:hidden; pointer-events:none;
@@ -123,7 +122,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 
 /* ── Mobile nav (drops down from top) ── */
 .mobile-nav { position:fixed; top:calc(var(--banner-h) + var(--header-h));
-  left:0; right:0; background:var(--nav-bg);
+  left:0; right:0; background:var(--bg);
   border-bottom:1px solid var(--border); z-index:99;
   padding:0.5rem 0;
   transform:translateY(-8px); opacity:0;
@@ -202,7 +201,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
   padding: 0.18rem 0.55rem;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.62rem;
-  background: var(--nav-bg);
+  background: var(--border);
   border-radius: 2px;
   color: var(--subtle);
   flex-wrap: wrap;

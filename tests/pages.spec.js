@@ -914,7 +914,7 @@ test.describe('design-system.html', () => {
     const bgSwatch = page.locator('[data-token="--bg"]');
     await expect(bgSwatch).toBeAttached();
     const hex = await bgSwatch.getAttribute('data-hex');
-    // #ede8e0 → R=237 (high value = light color)
+    // #F8F5EC → R=248 (high value = light color)
     const r = parseInt((hex || '#000').slice(1, 3), 16);
     expect(r).toBeGreaterThan(200);
   });

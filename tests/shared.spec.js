@@ -130,7 +130,7 @@ for (const pageConfig of PAGES) {
       const bgColor = await page.evaluate(() =>
         getComputedStyle(document.body).backgroundColor
       );
-      // --bg: #ede8e0 → rgb(237, 232, 224)
+      // --bg: #F8F5EC → rgb(248, 245, 236)
       expect(bgColor).not.toBe('rgb(255, 255, 255)');
       expect(bgColor).not.toBe('rgb(0, 0, 0)');
       // Warm color: red channel > blue channel
