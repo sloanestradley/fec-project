@@ -18,6 +18,11 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 **Live URL:** sloanestradley.netlify.app  
 **Repo:** GitHub (ask Sloane for the repo URL if you don't have it)  
 **Deployment:** Netlify, auto-deploys on push to main. **Pretty URLs is enabled** (site setting) — Netlify automatically strips `.html` from URLs and redirects to clean paths.
+
+**`redesign` branch:** An active long-running branch for visual redesign exploration. It has a separate Netlify branch preview (auto-deployed on push). **Do not merge to main and do not use it for feature/bugfix work** — Phase 4 and any functional changes go on main. If you open a session and `git branch --show-current` shows `redesign`, all work in that session should be visual/design work scoped to the branch. Intentional divergences from main on this branch:
+- Project name: `FECLedger` (main still uses `ledger.fec`)
+- Font system: Oswald + IBM Plex Sans + IBM Plex Serif (main uses Barlow Condensed + DM Sans)
+- Typography specimens in design-system.html updated to reflect the new font system
 **Analytics:** Amplitude
 - Integrated on the original FRED proof-of-concept index page; may not be present on all current pages — audit before assuming
 - Pageview tracking is the baseline expectation on every page
