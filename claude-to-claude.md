@@ -2103,3 +2103,44 @@ The through-line: you're treating design decisions and architecture decisions wi
 - **Visual QA on the new palette** — The three token changes (#F8F5EC background, #ffffff cards, var(--border) tag-context) will look notably different on the live site. Worth a browser pass before deciding if any adjustments are needed — particularly the tag-context pill, which is now noticeably more defined.
 - **Remaining hardcoded colors** — The donut/contributor chart color arrays in candidate.html and committee.html still have ~16 hardcoded values. Some map to existing tokens; others don't have a token yet. Is there appetite for a color system pass on the chart categories, or is that low priority relative to Phase 4 work?
 - **Phase 4 sequencing** — Design system is honest, token system is clean. What's the first Phase 4 feature — 48/24hr early signal data, AI insights, or something else?
+---
+2026-04-06
+
+## Process log draft
+
+**Title:** The branch that didn't break anything — setting up the redesign runway
+
+This session was pure setup: a new branch, a name change, a font swap, and a design system audit. Nothing on the live site changed. The goal was to create a clean workspace where visual experiments can happen without touching main, and to confirm the full deploy pipeline (branch → Netlify preview) is wired correctly before any real redesign work begins. The font swap from Barlow Condensed/DM Sans to Oswald/IBM Plex Sans was the first substantive experiment — visible in the branch preview, invisible to anyone on main.
+
+**Changelog:**
+- Created `redesign` branch, pushed to origin, Netlify branch deploy triggered
+- Renamed `ledger.fec` → `FECLedger` across all UI (titles, nav logos, document.title JS strings) and docs (CLAUDE.md, ia.md, TESTING.md, test-cases.md); logo styled as `FEC<em>Ledger</em>`
+- Swapped Google Fonts import on all 9 HTML files: Barlow Condensed + DM Sans → Oswald + IBM Plex Sans + IBM Plex Serif (loaded, not yet assigned)
+- Updated all font-family declarations in styles.css (21 rules), design-system.html inline style + body inline styles, process-log.html, candidate.html, races.html, search.html
+- Audited Typography section of design-system.html: removed 4 phantom specimens (wrong font for nav, sizes with no matching CSS rule, weight 300 not in import); fixed 2 real entries (weight 300→400, added missing font-family on spans, corrected descriptions)
+- CLAUDE.md updated with new font stack (annotated as redesign-branch-only)
+- 280/280 Playwright tests passing throughout
+
+**Field notes:**
+The phantom specimen audit was more interesting than expected. Four of six IBM Plex Mono rows had no font-family declaration on the specimen span itself — they were rendering in body font while claiming to show Mono. The design system had quietly become a document that looked right but wasn't. The right call was to remove the ones with no real-world CSS backing and fix the two that did exist. A design system that shows you what the font looks like by rendering it in the wrong font is worse than no specimen at all.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+
+**Confirming branch before every destructive action**
+The explicit "confirm we're on the redesign branch before touching anything" instruction at the start of each task prevented any risk of landing font changes on main. That discipline — treat every session as if it might be running in the wrong context until proven otherwise — is the right default for a branch that exists to be different from production.
+
+**`FEC<em>Ledger</em>` as a follow-through call**
+After the initial rename committed as plain FECLedger, you came back to add the em treatment. A small thing, but it shows the difference between "rename done" and "rename done correctly." The design-system demo span got the matching font-style:normal; color:var(--muted) treatment because it should mirror production.
+
+**"Is this used anywhere?" — the right question**
+Rather than accepting the design system at face value, you questioned a specific specimen the moment something seemed off. That question led to finding four phantoms, not just one. The follow-up — "check the rest of the Typography section" — is the correct instinct: if one entry is wrong, audit the whole section, not just the one you noticed.
+
+The through-line: you're treating the redesign branch as a place to do real work carefully, not a sandbox to move fast in. The setup discipline (branch confirm, phantom audit, design system honesty) will pay off when the actual visual changes start landing.
+
+## What to bring to Claude Chat
+
+- **Type audit scope for next session:** The goal is to audit all font-family declarations across all pages and check whether they're represented in the design system. Worth confirming the approach: should the audit cover only styles.css (the source of truth) or also every inline style block and inline style= attribute across all pages?
+- **IBM Plex Serif:** It's loaded in the font import but not assigned anywhere. Intentional placeholder, or is there a specific use in mind (pull quotes? process log body text? data callouts)?
+- **Oswald weight range:** The import only loads 400 and 600. The old Barlow Condensed loaded 400–900, and several rules use font-weight:800 or font-weight:700. Oswald's heaviest weight is 700 — those 800 declarations will silently fall back to 700. Worth deciding whether to update all font-weight:800 declarations to 700, or add 700 to the import explicitly and leave the code as-is.
