@@ -1,4 +1,4 @@
-# Claude Code Brief — ledger.fec
+# Claude Code Brief — FECLedger
 *Hand this to Claude Code at the start of each session.*
 
 ---

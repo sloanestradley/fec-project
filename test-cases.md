@@ -1,4 +1,4 @@
-# ledger.fec — Test Cases
+# FECLedger — Test Cases
 *Manual browser checklist. Run locally: `python3 -m http.server 8080` from project root.*
 
 ---
@@ -405,7 +405,7 @@
 
 ### Race header
 - [ ] Race title reads "House • WA-03" (not "WA-03 HOUSE" — mixed case with bullet separator)
-- [ ] Browser tab title reads "House • WA-03 — ledger.fec" (no year)
+- [ ] Browser tab title reads "House • WA-03 — FECLedger" (no year)
 - [ ] Year dropdown present below the title, showing 2024 selected (from URL param)
 - [ ] Candidate count shown in meta row (e.g. "3 candidates")
 - [ ] Changing year dropdown to 2022 reloads page with `year=2022` in URL

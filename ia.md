@@ -1,4 +1,4 @@
-# ledger.fec — Information Architecture
+# FECLedger — Information Architecture
 
 *Last updated: 2026-03-20. Update this file whenever pages are added, renamed, or promoted in phase.*
 
@@ -30,7 +30,7 @@
 The global nav is a fixed top nav (`.top-nav`) — not a sidebar. It was refactored from a sidebar layout in 2026-03-19.
 
 ```
-ledger.fec (logo → /)        [top-nav-logo]
+FECLedger (logo → /)        [top-nav-logo]
 
 Nav links (desktop, always visible)
 ├── Candidates  → /candidates   (browse landing)

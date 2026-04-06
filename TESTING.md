@@ -1,4 +1,4 @@
-# Testing — ledger.fec
+# Testing — FECLedger
 
 Playwright-based automated tests. Two tracks: structural (mocked API, fast, runs every session) and smoke (live API, slow, run manually before deploys).
 

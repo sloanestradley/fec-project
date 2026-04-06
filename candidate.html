@@ -38,7 +38,7 @@
 <!-- Top nav -->
 <nav class="top-nav" id="top-nav">
   <div class="top-nav-inner">
-    <a class="top-nav-logo" href="/">ledger<em>.fec</em></a>
+    <a class="top-nav-logo" href="/">FECLedger</a>
     <div class="top-nav-links">
       <a class="nav-link active" href="/candidates">Candidates</a>
       <a class="nav-link" href="/committees">Committees</a>
@@ -1507,7 +1507,7 @@ async function init() {
       ? parts.slice(1).join(' ').trim()+' '+parts[0].trim()
       : cand.name).toLowerCase().replace(/\b\w/g, function(c){ return c.toUpperCase(); });
     document.getElementById('candidate-name').textContent = displayName;
-    document.title = displayName + ' — ledger.fec';
+    document.title = displayName + ' — FECLedger';
 
     // Tags — race tag first, party tag second
     document.getElementById('meta-row').innerHTML =
