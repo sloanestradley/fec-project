@@ -140,7 +140,7 @@ Nav tokens:
 --nav-active-bg: #d4cdc3  (nav active state background — currently unused, reserved)
 ```
 
-Typography: Oswald 400/600 for display/headings (uppercase; max weight 600), IBM Plex Sans 400/600 for body/nav, IBM Plex Serif 400/600 for editorial/narrative prose (sentence-format content: race context, health status), IBM Plex Mono 400/600 for labels and data. (redesign branch; main uses Barlow Condensed + DM Sans). Line-height system: 1.75 (prose/notes), 1.5 (body default), 1 (display/numeric). Variables deferred — in use as literal values for now.
+Typography: Oswald 400/600 for display/headings (uppercase; max weight 600), IBM Plex Sans 400/600 for body/nav, IBM Plex Serif 400/600 for editorial/narrative prose (sentence-format content: race context, health status), IBM Plex Mono 400/600 for labels and data. (redesign branch; main uses Barlow Condensed + DM Sans). Line-height system: `--lh-expanded: 1.75` (prose/notes), `--lh-normal: 1.5` (body default), `--lh-tight: 1` (display/numeric). Formalized as CSS vars in `styles.css :root`; used via `var(--lh-*)` in all class rules across styles.css, design-system.html, search.html, and process-log.html.
 
 ---
 

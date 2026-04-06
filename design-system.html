@@ -76,7 +76,7 @@
       gap:2rem; padding:0.85rem 0; border-bottom:1px solid var(--border); }
     .ds-type-row:last-child { border-bottom:none; }
     .ds-type-meta { font-size:0.57rem; color:var(--muted); white-space:nowrap;
-      flex-shrink:0; font-family:'IBM Plex Mono',monospace; line-height:1.4; text-align:right; }
+      flex-shrink:0; font-family:'IBM Plex Mono',monospace; line-height:var(--lh-normal); text-align:right; }
 
     /* ── Spacing scale ── */
     .ds-spacing-row { display:flex; align-items:center; gap:1rem; margin-bottom:0.4rem; }
@@ -104,7 +104,7 @@
     /* ── Page header ── */
     .page-header { border-top:3px solid var(--text); border-bottom:1px solid var(--border);
       padding:1.5rem 0 1.5rem; margin-bottom:3.5rem; }
-    .page-desc { font-size:0.75rem; color:var(--subtle); max-width:540px; line-height:1.7; }
+    .page-desc { font-size:0.75rem; color:var(--subtle); max-width:540px; line-height:var(--lh-expanded); }
 
     /* ── Component CSS: Tags, banner, candidate header ── */
     .profile-header { padding:2.5rem 0 2rem; border-bottom:1px solid var(--border); }
@@ -166,8 +166,8 @@
     .entry-date { font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase;
       color:var(--muted); margin-bottom:0.3rem; }
     .entry-title { font-family:'Oswald',sans-serif; font-size:1.3rem; font-weight:600;
-      letter-spacing:0; text-transform:uppercase; line-height:1.1; margin-bottom:0.6rem; }
-    .entry-summary { font-size:0.75rem; color:var(--subtle); line-height:1.7;
+      letter-spacing:0; text-transform:uppercase; line-height:var(--lh-tight); margin-bottom:0.6rem; }
+    .entry-summary { font-size:0.75rem; color:var(--subtle); line-height:var(--lh-expanded);
       margin-bottom:0; max-width:560px; }
 
     /* Insight block (log-only) */
@@ -176,7 +176,7 @@
       border-radius:0 3px 3px 0; }
     .insight-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
       color:var(--accent); margin-bottom:0.3rem; }
-    .insight-text { font-size:0.72rem; color:var(--subtle); line-height:1.7; }
+    .insight-text { font-size:0.72rem; color:var(--subtle); line-height:var(--lh-expanded); }
 
     /* Field notes block (log-only) */
     .field-notes { background:var(--surface); border:1px solid var(--border);
@@ -184,7 +184,7 @@
       border-radius:0 3px 3px 0; }
     .field-notes-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
       color:var(--muted); margin-bottom:0.3rem; }
-    .field-notes-text { font-size:0.72rem; color:var(--subtle); line-height:1.7; }
+    .field-notes-text { font-size:0.72rem; color:var(--subtle); line-height:var(--lh-expanded); }
 
     /* Stack tags (log-only) */
     .stack { display:flex; gap:0.4rem; flex-wrap:wrap; }
@@ -333,6 +333,10 @@
             <tr><td colspan="4" style="color:var(--muted);font-size:0.6rem;padding-top:0.75rem">Layout tokens:</td></tr>
             <tr><td class="ds-token-name">--page-gutter</td><td>—</td><td class="ds-token-hex">3rem / 1rem</td><td>Horizontal content padding — desktop / mobile (≤860px). Use <code style="font-size:0.6rem">padding: &lt;v&gt; var(--page-gutter)</code> on all content sections.</td></tr>
             <tr><td class="ds-token-name">--section-gap</td><td>—</td><td class="ds-token-hex">1.5rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.6rem">margin-bottom</code> on section-level components: <code style="font-size:0.6rem">.banner</code>, <code style="font-size:0.6rem">.chart-card</code>, <code style="font-size:0.6rem">.donors-card</code>, <code style="font-size:0.6rem">.stats-grid</code>, <code style="font-size:0.6rem">.raised-grid</code>.</td></tr>
+            <tr><td colspan="4" style="color:var(--muted);font-size:0.6rem;padding-top:0.75rem">Line-height tokens:</td></tr>
+            <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.6rem">.data-note</code>, <code style="font-size:0.6rem">.callout</code>, log entry body text</td></tr>
+            <tr><td class="ds-token-name">--lh-normal</td><td>—</td><td class="ds-token-hex">1.5</td><td>Body default — general readable text, <code style="font-size:0.6rem">body</code> element</td></tr>
+            <tr><td class="ds-token-name">--lh-tight</td><td>—</td><td class="ds-token-hex">1</td><td>Display and numeric — headings, stat values, tags, buttons</td></tr>
           </tbody>
         </table>
         <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#a83228</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). If the status system diverges from the partisan palette in the future, they should split into separate primitives.</div>
@@ -515,7 +519,7 @@
       <div class="ds-type-group">
         <div class="ds-type-group-label">IBM Plex Sans — Body &amp; Nav</div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.82rem;color:var(--muted);line-height:1.55">Raised-to-spent ratio of 3.84× with positive cash on hand.</span>
+          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.82rem;color:var(--muted);line-height:1.5">Raised-to-spent ratio of 3.84× with positive cash on hand.</span>
           <span class="ds-type-meta">IBM Plex Sans · 0.82rem<br>status descriptions, body text</span>
         </div>
         <div class="ds-type-row">
@@ -541,6 +545,22 @@
         <div class="ds-type-row">
           <span style="font-family:'IBM Plex Mono',monospace;font-size:0.58rem;font-weight:400;color:var(--muted)">Cycle total</span>
           <span class="ds-type-meta">IBM Plex Mono 400 · 0.58rem<br>legend, data labels</span>
+        </div>
+      </div>
+
+      <div class="ds-type-group">
+        <div class="ds-type-group-label">Line-height system</div>
+        <div class="ds-type-row">
+          <span style="font-family:'IBM Plex Serif',serif;font-size:0.875rem;color:var(--subtle);line-height:1.75;max-width:320px">Smith is the incumbent with 2 challengers in the 2024 race for House WA-03. View race →</span>
+          <span class="ds-type-meta"><code style="font-size:0.6rem">--lh-expanded: 1.75</code><br>prose / notes<br>.data-note · .callout · log entries</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.82rem;color:var(--muted);line-height:1.5;max-width:320px">Raised-to-spent ratio of 3.84× with positive cash on hand of $412k as of Q3 2024.</span>
+          <span class="ds-type-meta"><code style="font-size:0.6rem">--lh-normal: 1.5</code><br>body default<br>general readable text</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-family:'Oswald',sans-serif;font-size:2rem;font-weight:600;line-height:1;letter-spacing:0">$1.24M</span>
+          <span class="ds-type-meta"><code style="font-size:0.6rem">--lh-tight: 1</code><br>display / numeric<br>headings · stat values · tags</span>
         </div>
       </div>
     </section>
@@ -1310,7 +1330,7 @@
                 <div class="donut-center-lbl">Total Raised</div>
               </div>
             </div>
-            <div style="font-size:0.6rem;color:var(--muted);padding-top:0.5rem;line-height:1.8">
+            <div style="font-size:0.6rem;color:var(--muted);padding-top:0.5rem;line-height:1.75">
               Center overlay positioned absolute over canvas.<br>
               Background (donut chart) renders via Chart.js canvas.<br>
               Background shown here as CSS approximation only.
