@@ -66,7 +66,7 @@
 
 /* ── Base ── */
 body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif;
-  font-size:14px; line-height:1.55; min-height:100vh; overflow-x:hidden;
+  font-size:14px; line-height:1.5; min-height:100vh; overflow-x:hidden;
   padding-top:var(--banner-h); }
 
 /* ── Layout ── */
@@ -164,10 +164,10 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .placeholder { font-size:0.75rem; color:var(--muted); padding:2rem;
   border:1px dashed var(--border); text-align:center; border-radius:4px; }
 .data-note { font-size:0.6rem; color:var(--muted); margin-top:1.25rem;
-  padding-top:1rem; border-top:1px solid var(--border); line-height:1.8; }
+  padding-top:1rem; border-top:1px solid var(--border); line-height:1.75; }
 .callout { font-size:0.6rem; color:var(--amber); margin-top:0.75rem;
   padding:0.5rem 0.75rem; border:1px solid color-mix(in srgb, var(--amber) 20%, transparent);
-  border-radius:3px; background:color-mix(in srgb, var(--amber) 5%, transparent); line-height:1.6; }
+  border-radius:3px; background:color-mix(in srgb, var(--amber) 5%, transparent); line-height:1.75; }
 
 /* ── A: Tab bar ── */
 .tabs-bar { border-bottom:1px solid var(--border); padding:0 var(--page-gutter);
@@ -198,9 +198,9 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .tag-context {
   display: inline-flex;
   align-items: center;
-  padding: 0.18rem 0.55rem;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.62rem;
+  padding: 0.25rem 0.65rem;
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 0.875rem;
   background: var(--border);
   border-radius: 2px;
   color: var(--subtle);
@@ -263,7 +263,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .donors-table tr:hover td { background:var(--surface2); }
 .donors-table .dn { color:var(--text); }
 .donors-table .ds { font-size:0.58rem; color:var(--muted); margin-top:0.12rem; }
-.donors-table .da { font-family:'Oswald',sans-serif; font-weight:800;
+.donors-table .da { font-family:'Oswald',sans-serif; font-weight:600;
   font-size:1rem; letter-spacing:0; text-align:right; color:var(--text); }
 
 /* ── G: Spend purpose bars ── */
@@ -281,7 +281,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .donut-chart-wrap { position:relative; width:50%; aspect-ratio:1; }
 .donut-center { position:absolute; inset:0; display:flex; flex-direction:column;
   align-items:center; justify-content:center; pointer-events:none; text-align:center; }
-.donut-center-val { font-family:'Oswald',sans-serif; font-size:1rem; font-weight:700;
+.donut-center-val { font-family:'Oswald',sans-serif; font-size:1rem; font-weight:600;
   letter-spacing:0; line-height:1; }
 .donut-center-lbl { font-family:'IBM Plex Mono',monospace; font-size:0.5rem; color:var(--muted); letter-spacing:0;
   text-transform:uppercase; margin-top:0.25rem; }
@@ -303,7 +303,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   display:flex; flex-direction:column; overflow:hidden; }
 .modal-header { display:flex; justify-content:space-between; align-items:center;
   padding:1.25rem 1.5rem; border-bottom:1px solid var(--border); flex-shrink:0; }
-.modal-title { font-family:'Oswald',sans-serif; font-size:1rem; font-weight:800;
+.modal-title { font-family:'Oswald',sans-serif; font-size:1rem; font-weight:600;
   letter-spacing:0; text-transform:uppercase; }
 .modal-close { background:none; border:none; cursor:pointer; color:var(--muted);
   font-size:1.1rem; padding:0.15rem 0.35rem; transition:color 0.15s; line-height:1; }
@@ -346,7 +346,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .stat-card { background:var(--surface); padding:1.2rem 1.4rem; }
 .stat-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
   color:var(--muted); margin-bottom:0.35rem; }
-.stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:800;
+.stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:600;
   line-height:1; letter-spacing:0; margin-bottom:0.25rem; }
 .stat-sub { font-size:0.6rem; color:var(--muted); }
 .stat-sub.pos { color:var(--green); }
@@ -377,7 +377,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .candidate-card-stat-lbl { font-family:'IBM Plex Mono',monospace; font-size:0.54rem;
   text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); }
 .candidate-card-stat-val { font-family:'Oswald',sans-serif; font-size:1rem;
-  font-weight:700; letter-spacing:0; color:var(--text); }
+  font-weight:600; letter-spacing:0; color:var(--text); }
 
 /* ── O: Committee name link (in committee rows) ── */
 /* .committee-name-link — used in candidate.html committees modal; removed from committees.html row (now a full <a>). Keep until modal is refactored. */
@@ -399,7 +399,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .breadcrumb a:hover { color:var(--accent); }
 
 .page-title { font-family:'Oswald',sans-serif;
-  font-size:clamp(1.6rem,3vw,2.4rem); font-weight:800; line-height:1;
+  font-size:clamp(1.6rem,3vw,2.4rem); font-weight:600; line-height:1;
   letter-spacing:0; text-transform:uppercase; margin-bottom:0.5rem; }
 
 /* ── P: Form controls ── */
@@ -410,7 +410,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .form-input:disabled, .form-select:disabled { opacity:0.45; cursor:not-allowed; }
 .form-search-btn { padding:0.45rem 0.8rem; background:var(--text); color:var(--bg);
   border:1px solid var(--text); font-family:'Oswald',sans-serif;
-  font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0;
+  font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0;
   cursor:pointer; transition:opacity 0.15s; white-space:nowrap; flex-shrink:0; }
 .form-search-btn:hover { opacity:0.85; }
 
@@ -557,11 +557,11 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .no-results { padding:2.5rem var(--page-gutter); color:var(--muted); font-size:0.8rem; }
 .error-prompt { padding:3rem var(--page-gutter); color:var(--muted); font-size:0.8rem; }
 .error-prompt strong { display:block; font-family:'Oswald',sans-serif;
-  font-size:1.2rem; font-weight:700; text-transform:uppercase; letter-spacing:0;
+  font-size:1.2rem; font-weight:600; text-transform:uppercase; letter-spacing:0;
   color:var(--subtle); margin-bottom:0.4rem; }
 .retry-btn { margin-top:0.75rem; padding:0.4rem 0.9rem; background:none;
   border:1px solid var(--border-strong); font-family:'Oswald',sans-serif;
-  font-size:0.8rem; font-weight:700; text-transform:uppercase; cursor:pointer;
+  font-size:0.8rem; font-weight:600; text-transform:uppercase; cursor:pointer;
   color:var(--subtle); transition:border-color 0.15s, color 0.15s; }
 .retry-btn:hover { border-color:var(--text); color:var(--text); }
 

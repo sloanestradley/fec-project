@@ -2144,3 +2144,49 @@ The through-line: you're treating the redesign branch as a place to do real work
 - **Type audit scope for next session:** The goal is to audit all font-family declarations across all pages and check whether they're represented in the design system. Worth confirming the approach: should the audit cover only styles.css (the source of truth) or also every inline style block and inline style= attribute across all pages?
 - **IBM Plex Serif:** It's loaded in the font import but not assigned anywhere. Intentional placeholder, or is there a specific use in mind (pull quotes? process log body text? data callouts)?
 - **Oswald weight range:** The import only loads 400 and 600. The old Barlow Condensed loaded 400–900, and several rules use font-weight:800 or font-weight:700. Oswald's heaviest weight is 700 — those 800 declarations will silently fall back to 700. Worth deciding whether to update all font-weight:800 declarations to 700, or add 700 to the import explicitly and leave the code as-is.
+---
+2026-04-06
+
+## Process log draft
+
+Title: Type with intention — the weight audit and the rhythm question
+
+The redesign branch got its first real typographic decisions this session. Oswald was being used at weights that don't exist — 800 and 700, both silently falling back to 700 in the browser, which was itself too heavy. Committing to 600 as the ceiling made the decision explicit and consistent: the code now reflects what's actually rendering. The second half of the session was about rhythm. Body line-height had been sitting at 1.55 — an arbitrary middle value with no clean relationship to anything else. Pulling it to 1.5, and establishing 1.75 and 1 as the other two values, gives the system three intentional stops instead of four random ones.
+
+Changelog:
+– styles.css: all Oswald font-weight declarations updated to 600 (was 800 or 700); no visual change since browser was already falling back to 700 → but code now accurately reflects intent
+– design-system.html: matching updates to inline CSS, type specimen font-weight values, and all "Oswald 800 / Oswald 700" meta labels → "Oswald 600"
+– Google Fonts import confirmed at Oswald:wght@400;600 on all 9 pages — no change needed
+– styles.css: .tag-context updated from IBM Plex Mono 0.62rem → IBM Plex Serif 0.875rem; padding adjusted to match
+– design-system.html: IBM Plex Serif section added to typography specimens; .tag-context component notes updated with editorial intent
+– styles.css: line-height system settled at 1.75 / 1.5 / 1 — body 1.55→1.5, .data-note 1.8→1.75, .callout 1.6→1.75
+– CLAUDE.md: redesign branch typography section updated with Serif role, weight constraints, and line-height system note
+
+Field notes:
+The font-weight cleanup is a small thing that reveals something about how the old font system worked. Barlow Condensed had weights all the way to 900, so 800 was a real, visually distinct choice. When you swap the font and don't re-audit the weights, you inherit the old system's vocabulary without its palette. The 800 declarations weren't wrong — they were just orphaned. Choosing 600 as the ceiling for Oswald is a real design decision: it says this font should feel authoritative but not aggressive. The IBM Plex Serif for .tag-context is the more interesting call. It signals that some information in this tool isn't data — it's context. A serif sentence reads differently than a mono label, and that difference is intentional.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+
+**Starting from first principles on Oswald weight**
+When the weight issue came up, the question wasn't "which fix is easiest?" — it was "what weight do I actually want?" 600 as a ceiling is a considered design position, not a fallback. The explanation of why 800 was being silently rounded down made the decision concrete rather than arbitrary.
+
+**Catching that 700 also needed updating**
+After setting the ceiling at 600, immediately recognizing that the just-changed 700 values should also come down. The instinct wasn't "we already fixed the 800s" — it was "700 is also above where I want to be." That's the difference between patching and deciding.
+
+**IBM Plex Serif as editorial register, not decoration**
+The instruction to use Serif for "content that feels more special and information is put into a sentence format" is a typographic voice decision, not just a visual one. It draws a clear line between data presentation (Mono/Sans) and editorial narration (Serif). That distinction will shape every future content decision on this branch.
+
+**Codifying line-height as a system with three values**
+Rather than accepting whatever values happened to be in the file, you named the three values you want — 1.75, 1.5, 1 — and explicitly deferred the variable work for a dedicated session. That's a product instinct: get the values right now, formalize the system when it's warranted.
+
+The through-line: Sloane is making the redesign branch a place where every typographic property is intentional. Not "what does it currently say" but "what should it say" — weight, family, rhythm, all decided rather than inherited.
+
+## What to bring to Claude Chat
+
+– Line-height variables session: three values are now in use as literals (1.75, 1.5, 1). When's the right moment to formalize as CSS variables (--lh-prose, --lh-body, --lh-tight or similar)? Worth deciding the naming convention before building it.
+
+– IBM Plex Serif expansion: .tag-context is the first use. The health banner's .banner-desc (currently IBM Plex Sans 0.82rem) feels like a natural next candidate — it's prose describing financial health, not a label. Worth a visual check on the branch preview to see if .tag-context alone reads as a system or just a one-off.
+
+– Oswald 400 vs 600 in practice: now that 600 is the ceiling, is there anywhere currently using 600 where 400 would feel more appropriate — or vice versa where the step down from 600 to 400 is too big a jump? A visual review of the branch with fresh eyes would catch this.

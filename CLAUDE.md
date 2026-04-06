@@ -35,7 +35,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 - Vanilla HTML/CSS/JS — no framework, intentional for this stage
 - Chart.js 4.4.0 + chartjs-adapter-date-fns 3.0.0 (time scale support)
-- Google Fonts: Oswald (display/headings) + IBM Plex Sans (body/nav) + IBM Plex Serif (available, not yet assigned) + IBM Plex Mono (labels/data) — **redesign branch only**; main still uses Barlow Condensed + DM Sans
+- Google Fonts: Oswald (display/headings) + IBM Plex Sans (body/nav) + IBM Plex Serif (editorial/narrative prose) + IBM Plex Mono (labels/data) — **redesign branch only**; main still uses Barlow Condensed + DM Sans
 - FEC public API: `https://api.open.fec.gov/v1`
 - Netlify Functions for any server-side API proxying needed
 - No build step — files are served directly
@@ -140,7 +140,7 @@ Nav tokens:
 --nav-active-bg: #d4cdc3  (nav active state background — currently unused, reserved)
 ```
 
-Typography: Oswald 400–600 for display/headings (uppercase), IBM Plex Sans 400–600 for body/nav, IBM Plex Mono 400–600 for labels and data. (redesign branch; main uses Barlow Condensed + DM Sans)
+Typography: Oswald 400/600 for display/headings (uppercase; max weight 600), IBM Plex Sans 400/600 for body/nav, IBM Plex Serif 400/600 for editorial/narrative prose (sentence-format content: race context, health status), IBM Plex Mono 400/600 for labels and data. (redesign branch; main uses Barlow Condensed + DM Sans). Line-height system: 1.75 (prose/notes), 1.5 (body default), 1 (display/numeric). Variables deferred — in use as literal values for now.
 
 ---
 

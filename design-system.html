@@ -16,7 +16,7 @@
 
     /* ── Design system layout ── */
     .ds-section { margin-bottom: 4rem; }
-    .ds-section-title { font-family:'Oswald',sans-serif; font-size:1.1rem; font-weight:800;
+    .ds-section-title { font-family:'Oswald',sans-serif; font-size:1.1rem; font-weight:600;
       letter-spacing:0; text-transform:uppercase; margin-bottom:1.5rem; padding-bottom:0.75rem;
       border-bottom:2px solid var(--border); color:var(--text); }
 
@@ -121,7 +121,7 @@
       font-family:'Oswald',sans-serif; font-size:0.9rem;
       color:var(--bg); letter-spacing:0; text-transform:uppercase; flex-shrink:0; }
     .candidate-name { font-family:'Oswald',sans-serif; font-size:clamp(1.6rem,3vw,2.4rem);
-      font-weight:800; line-height:1; letter-spacing:0; text-transform:uppercase; min-width:0; }
+      font-weight:600; line-height:1; letter-spacing:0; text-transform:uppercase; min-width:0; }
     .committees-link { background:none; border:none; cursor:pointer;
       font-family:'IBM Plex Mono',monospace; font-size:0.7rem; color:var(--subtle);
       padding:0; white-space:nowrap;
@@ -135,7 +135,7 @@
     .stat-card  { background:var(--surface); padding:1.2rem 1.4rem; }
     .stat-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
       color:var(--muted); margin-bottom:0.35rem; }
-    .stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:800;
+    .stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:600;
       line-height:1; letter-spacing:0; margin-bottom:0.25rem; }
     .stat-sub   { font-size:0.6rem; color:var(--muted); }
     .stat-sub.pos  { color:var(--green); }
@@ -165,7 +165,7 @@
       background:var(--border); border:1.5px solid var(--muted); }
     .entry-date { font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase;
       color:var(--muted); margin-bottom:0.3rem; }
-    .entry-title { font-family:'Oswald',sans-serif; font-size:1.3rem; font-weight:700;
+    .entry-title { font-family:'Oswald',sans-serif; font-size:1.3rem; font-weight:600;
       letter-spacing:0; text-transform:uppercase; line-height:1.1; margin-bottom:0.6rem; }
     .entry-summary { font-size:0.75rem; color:var(--subtle); line-height:1.7;
       margin-bottom:0; max-width:560px; }
@@ -495,20 +495,20 @@
       <div class="ds-type-group">
         <div class="ds-type-group-label">Oswald — Display &amp; Headings (uppercase only)</div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;letter-spacing:0;text-transform:uppercase;line-height:1">Candidate Profile</span>
-          <span class="ds-type-meta">Oswald 800 · clamp(1.6rem, 3vw, 2.4rem)<br>candidate name, page title</span>
+          <span style="font-family:'Oswald',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:600;letter-spacing:0;text-transform:uppercase;line-height:1">Candidate Profile</span>
+          <span class="ds-type-meta">Oswald 600 · clamp(1.6rem, 3vw, 2.4rem)<br>candidate name, page title</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:2rem;font-weight:800;letter-spacing:0;line-height:1">$1.24M</span>
-          <span class="ds-type-meta">Oswald 800 · 2rem<br>stat value</span>
+          <span style="font-family:'Oswald',sans-serif;font-size:2rem;font-weight:600;letter-spacing:0;line-height:1">$1.24M</span>
+          <span class="ds-type-meta">Oswald 600 · 2rem<br>stat value</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:1.3rem;font-weight:700;letter-spacing:0;text-transform:uppercase">Process Log</span>
-          <span class="ds-type-meta">Oswald 700 · 1.3rem<br>entry title, section titles</span>
+          <span style="font-family:'Oswald',sans-serif;font-size:1.3rem;font-weight:600;letter-spacing:0;text-transform:uppercase">Process Log</span>
+          <span class="ds-type-meta">Oswald 600 · 1.3rem<br>entry title, section titles</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:1rem;font-weight:800;letter-spacing:0;text-transform:uppercase">Committee Ecosystem</span>
-          <span class="ds-type-meta">Oswald 800 · 1rem<br>modal title, tab labels</span>
+          <span style="font-family:'Oswald',sans-serif;font-size:1rem;font-weight:600;letter-spacing:0;text-transform:uppercase">Committee Ecosystem</span>
+          <span class="ds-type-meta">Oswald 600 · 1rem<br>modal title, tab labels</span>
         </div>
       </div>
 
@@ -521,6 +521,14 @@
         <div class="ds-type-row">
           <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.8rem;color:var(--muted)">Candidates</span>
           <span class="ds-type-meta">IBM Plex Sans · 0.8rem<br>nav items</span>
+        </div>
+      </div>
+
+      <div class="ds-type-group">
+        <div class="ds-type-group-label">IBM Plex Serif — Editorial &amp; Narrative</div>
+        <div class="ds-type-row">
+          <span style="font-family:'IBM Plex Serif',serif;font-size:0.875rem;color:var(--subtle);line-height:1.5">Smith is the incumbent with 2 challengers. <a href="#" style="color:var(--subtle)">View race →</a></span>
+          <span class="ds-type-meta">IBM Plex Serif 400 · 0.875rem<br>race context, health status — sentence-format editorial content</span>
         </div>
       </div>
 
@@ -620,7 +628,7 @@
         <div class="ds-component-classes">.top-nav · .top-nav-logo · .top-nav-links · .nav-link · .nav-link.active · .top-nav-search · .top-nav-mobile-controls · .mobile-nav · .nav-item · .nav-item.active</div>
         <div class="ds-component-demo">
           <div style="background:var(--bg);border:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:1rem;border-radius:2px">
-            <span style="font-family:'Oswald',sans-serif;font-size:1.1rem;font-weight:900;text-transform:uppercase;color:var(--text);flex-shrink:0;">FEC<em style="font-style:normal;color:var(--muted)">Ledger</em></span>
+            <span style="font-family:'Oswald',sans-serif;font-size:1.1rem;font-weight:600;text-transform:uppercase;color:var(--text);flex-shrink:0;">FEC<em style="font-style:normal;color:var(--muted)">Ledger</em></span>
             <a class="nav-link active" href="#" style="height:auto;padding:0.25rem 0.75rem">Candidates</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Committees</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Races</a>
@@ -1422,7 +1430,7 @@
           <span class="tag-context">Smith is the incumbent with 2 challengers. <a href="#">View race →</a></span>
         </div>
         <div class="ds-component-notes">
-          Filled background variant of the tag family. No border, no uppercase. Lives inside <code>#race-context-bar</code> — a persistent strip between the tab bar and content, visible on all tabs. The bar wrapper uses a CSS rule in <code>candidate.html</code>'s inline style block (<code>padding</code>, <code>border-bottom</code>, opacity fade-in). The <code>.tag-context</code> span wraps on narrow viewports (<code>flex-wrap:wrap</code>, no <code>white-space:nowrap</code>) so the "View race →" link stays inline with the last line of text. Promote to <code>stable</code> when used on a second page.
+          Editorial prose pill — IBM Plex Serif 0.875rem, filled background (<code>var(--border)</code>), no border, no uppercase. Intended for content that reads as a sentence rather than a label: race context, health status, or any data point presented in plain language. The serif type signals "narrative" vs. the mono/sans used for raw data. Lives inside <code>#race-context-bar</code> — a persistent strip between the tab bar and content, visible on all tabs. Wraps on narrow viewports (<code>flex-wrap:wrap</code>) so inline links stay on the last line of text. Promote to <code>stable</code> when used on a second page.
         </div>
       </div>
 
