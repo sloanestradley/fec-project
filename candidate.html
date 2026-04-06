@@ -20,7 +20,7 @@
     .candidate-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap; }
     .avatar { width:32px; height:32px; border-radius:2px; background:var(--text);
       display:flex; align-items:center; justify-content:center;
-      font-family:'Oswald',sans-serif; font-size:0.9rem;
+      font-family:'Oswald',sans-serif; font-size:0.875rem;
       color:var(--bg); letter-spacing:0; text-transform:uppercase; flex-shrink:0; }
     .candidate-name { min-width:0; }
 
@@ -160,7 +160,7 @@
 
       <!-- Raised tab -->
       <div id="tab-raised" style="display:none">
-        <div id="raised-loading" style="display:flex;align-items:center;gap:1rem;padding:3rem 0;color:var(--muted);font-size:.75rem">
+        <div id="raised-loading" style="display:flex;align-items:center;gap:1rem;padding:3rem 0;color:var(--muted);font-size:0.75rem">
           <div class="loader"></div><span>Loading contributor data…</span>
         </div>
         <div id="raised-content" style="display:none">
@@ -206,7 +206,7 @@
 
       <!-- Spent tab -->
       <div id="tab-spent" style="display:none">
-        <div id="spent-loading" style="display:flex;align-items:center;gap:1rem;padding:3rem 0;color:var(--muted);font-size:.75rem">
+        <div id="spent-loading" style="display:flex;align-items:center;gap:1rem;padding:3rem 0;color:var(--muted);font-size:0.75rem">
           <div class="loader"></div><span>Loading spending data…</span>
         </div>
         <div id="spent-content" style="display:none">
@@ -368,7 +368,7 @@ function renderCommitteeGroups(comms, muted) {
 async function fetchAndRenderCommittees() {
   var activeEl  = document.getElementById('modal-active-list');
   var historyEl = document.getElementById('modal-history-list');
-  activeEl.innerHTML = '<div style="display:flex;align-items:center;gap:0.75rem;color:var(--muted);font-size:.72rem;padding:1rem 0"><div class="loader"></div>Loading…</div>';
+  activeEl.innerHTML = '<div style="display:flex;align-items:center;gap:0.75rem;color:var(--muted);font-size:0.75rem;padding:1rem 0"><div class="loader"></div>Loading…</div>';
   try {
     // Two parallel calls: authorized committees + sponsored (leadership PACs use sponsor_candidate_id)
     var results = await Promise.all([
@@ -394,7 +394,7 @@ async function fetchAndRenderCommittees() {
     // Render Active tab
     var activeHtml = renderCommitteeGroups(active, false);
     activeEl.innerHTML = activeHtml ||
-      '<div style="color:var(--muted);font-size:.72rem;padding:1rem 0">No active committee data available.</div>';
+      '<div style="color:var(--muted);font-size:0.75rem;padding:1rem 0">No active committee data available.</div>';
 
     // Render History tab — only if terminated committees exist
     if (terminated.length) {
@@ -411,7 +411,7 @@ async function fetchAndRenderCommittees() {
 
     committeesLoaded = true;
   } catch(err) {
-    activeEl.innerHTML = '<div style="color:var(--red);font-size:.72rem;padding:1rem 0">⚠ Could not load committees: '+err.message+'</div>';
+    activeEl.innerHTML = '<div style="color:var(--red);font-size:0.75rem;padding:1rem 0">⚠ Could not load committees: '+err.message+'</div>';
   }
 }
 
@@ -842,7 +842,7 @@ function renderContributorDonut(breakdown, totalRaised) {
 // ── Raised tab: choropleth ───────────────────────────
 async function renderChoropleth(byStateData) {
   var container = document.getElementById('map-container');
-  container.innerHTML = '<div style="padding:1rem 0;color:var(--muted);font-size:.63rem">Loading map…</div>';
+  container.innerHTML = '<div style="padding:1rem 0;color:var(--muted);font-size:0.625rem">Loading map…</div>';
   try {
     if (!usTopoCache) {
       usTopoCache = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
@@ -916,7 +916,7 @@ async function renderChoropleth(byStateData) {
     document.getElementById('map-legend').style.display = 'flex';
 
   } catch(e) {
-    container.innerHTML = '<div style="padding:1rem 0;color:var(--muted);font-size:.63rem">Map unavailable.</div>';
+    container.innerHTML = '<div style="padding:1rem 0;color:var(--muted);font-size:0.625rem">Map unavailable.</div>';
     console.warn('Choropleth render failed:', e.message);
   }
 }
@@ -934,9 +934,9 @@ function renderTopDonors(donors) {
       : '—';
     var label = ENTITY_TYPE_LABELS[d.entity_type] || 'Committee';
     return '<tr>' +
-      '<td style="color:var(--muted);font-size:.6rem">' + (i+1) + '</td>' +
+      '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
       '<td><div class="dn">' + name + '</div></td>' +
-      '<td style="font-size:.61rem;color:var(--muted)">' + label + '</td>' +
+      '<td style="font-size:0.625rem;color:var(--muted)">' + label + '</td>' +
       '<td class="da">' + fmtFull(d.total) + '</td>' +
     '</tr>';
   }).join('');
@@ -1113,9 +1113,9 @@ function renderTopVendors(vendors) {
       ? v.purpose.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
       : '—';
     return '<tr>' +
-      '<td style="color:var(--muted);font-size:.6rem">' + (i+1) + '</td>' +
+      '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
       '<td><div class="dn">' + name + '</div></td>' +
-      '<td style="font-size:.61rem;color:var(--muted)">' + purpose + '</td>' +
+      '<td style="font-size:0.625rem;color:var(--muted)">' + purpose + '</td>' +
       '<td class="da">' + fmtFull(v.total) + '</td>' +
     '</tr>';
   }).join('');
@@ -1142,7 +1142,7 @@ function renderSpendDetail(transactions) {
 
   var el = document.getElementById('spend-detail-bars');
   if (!rows.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:.63rem;padding:.5rem 0">No purpose data available for this sub-cycle.</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:0.625rem;padding:.5rem 0">No purpose data available for this sub-cycle.</div>';
     return;
   }
 

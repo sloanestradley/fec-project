@@ -12,7 +12,7 @@
   <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     .main { overflow-x:hidden; min-width:0; }
-    .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
+    .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
       text-transform:uppercase; letter-spacing:0; color:var(--muted);
       padding-bottom:0.75rem; }
   </style>
@@ -275,7 +275,7 @@
         <div id="load-more-spinner" class="state-msg" style="display:none;padding:1.5rem var(--page-gutter);justify-content:center">
           <div class="loader"></div>
         </div>
-        <div id="end-of-results" style="display:none;padding:1.25rem var(--page-gutter);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0;border-top:1px solid var(--border);text-align:center">
+        <div id="end-of-results" style="display:none;padding:1.25rem var(--page-gutter);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0;border-top:1px solid var(--border);text-align:center">
           End of results
         </div>
       </div>
@@ -385,7 +385,7 @@ function buildCard(c, i, fromPage) {
     + ',result_position:' + i + '})">'
     + '<div class="candidate-card-name">' + name + '</div>'
     + '<div class="candidate-card-meta">'
-    + (office ? '<span class="tag tag-neutral" style="font-size:0.62rem">' + office + '</span>' : '')
+    + (office ? '<span class="tag tag-neutral" style="font-size:0.625rem">' + office + '</span>' : '')
     + '<span class="tag ' + pcls + '" title="' + partyTooltip(c.party, c.party_full) + '">' + plbl + '</span>'
     + (latestCycle ? '<span class="candidate-card-cycle">' + latestCycle + '</span>' : '')
     + '</div></a>';

@@ -24,16 +24,16 @@
     .ds-component { border:1px solid var(--border); margin-bottom:1.25rem; }
     .ds-component-header { display:flex; align-items:center; justify-content:space-between;
       padding:0.75rem 1rem; border-bottom:1px solid var(--border); background:var(--surface); }
-    .ds-component-name { font-size:0.7rem; font-weight:500; color:var(--subtle);
+    .ds-component-name { font-size:0.75rem; font-weight:500; color:var(--subtle);
       font-family:'IBM Plex Mono',monospace; }
-    .ds-component-classes { font-size:0.57rem; color:var(--muted); padding:0.5rem 1rem;
+    .ds-component-classes { font-size:0.625rem; color:var(--muted); padding:0.5rem 1rem;
       border-bottom:1px solid var(--border); background:var(--surface);
       font-family:'IBM Plex Mono',monospace; letter-spacing:0.02em; }
     .ds-component-demo { padding:1.5rem; overflow-x:auto; }
-    .ds-component-notes { padding:0.75rem 1rem; font-size:0.6rem; color:var(--muted); border-top:1px solid var(--border); }
+    .ds-component-notes { padding:0.75rem 1rem; font-size:0.625rem; color:var(--muted); border-top:1px solid var(--border); }
 
     /* ── Status badges ── */
-    .ds-status { font-size:0.52rem; letter-spacing:0.1em; text-transform:uppercase;
+    .ds-status { font-size:0.625rem; letter-spacing:0.1em; text-transform:uppercase;
       padding:0.15rem 0.45rem; border-radius:2px; font-weight:500; border:1px solid; }
     .ds-status.stable      { color:var(--green);  border-color:rgba(30,102,68,0.3);   background:rgba(30,102,68,0.06); }
     .ds-status.candidate-only { color:var(--dem); border-color:rgba(30,58,95,0.3);   background:rgba(30,58,95,0.06); }
@@ -43,54 +43,54 @@
 
     /* ── Token table ── */
     .ds-token-table { width:100%; border-collapse:collapse; display:block; overflow-x:auto; }
-    .ds-token-table th { padding:0.45rem 0.75rem; text-align:left; font-size:0.55rem;
+    .ds-token-table th { padding:0.45rem 0.75rem; text-align:left; font-size:0.625rem;
       letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);
       border-bottom:1px solid var(--border); font-family:'IBM Plex Mono',monospace; }
     .ds-token-table td { padding:0.55rem 0.75rem; border-bottom:1px solid var(--border);
-      vertical-align:middle; font-size:0.64rem; color:var(--subtle);
+      vertical-align:middle; font-size:0.625rem; color:var(--subtle);
       font-family:'IBM Plex Mono',monospace; }
     .ds-token-table tr:last-child td { border-bottom:none; }
     .ds-token-table tr:hover td { background:var(--surface2); }
     .ds-token-dot { width:12px; height:12px; border-radius:2px; display:inline-block;
       vertical-align:middle; border:1px solid rgba(255,255,255,0.06); margin-right:0.35rem; }
     .ds-token-name { color:var(--dem); }
-    .ds-token-hex  { color:var(--muted); font-size:0.6rem; }
+    .ds-token-hex  { color:var(--muted); font-size:0.625rem; }
 
 
     /* ── Color swatches ── */
     .ds-swatch-group { margin-bottom:2rem; }
-    .ds-swatch-group-label { font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase;
+    .ds-swatch-group-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
       color:var(--muted); margin-bottom:0.75rem; }
     .ds-swatch-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:0.75rem; }
     .ds-swatch-color { height:44px; border-radius:3px; margin-bottom:0.4rem;
       border:1px solid var(--border); }
-    .ds-swatch-token { font-size:0.6rem; color:var(--subtle); font-family:'IBM Plex Mono',monospace; }
-    .ds-swatch-hex   { font-size:0.55rem; color:var(--muted); margin-top:0.1rem; }
-    .ds-swatch-desc  { font-size:0.54rem; color:var(--muted); margin-top:0.15rem; font-style:italic; }
+    .ds-swatch-token { font-size:0.625rem; color:var(--subtle); font-family:'IBM Plex Mono',monospace; }
+    .ds-swatch-hex   { font-size:0.625rem; color:var(--muted); margin-top:0.1rem; }
+    .ds-swatch-desc  { font-size:0.625rem; color:var(--muted); margin-top:0.15rem; font-style:italic; }
 
     /* ── Typography specimens ── */
     .ds-type-group { margin-bottom:2rem; }
-    .ds-type-group-label { font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase;
+    .ds-type-group-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
       color:var(--muted); margin-bottom:0.75rem; }
     .ds-type-row { display:flex; align-items:baseline; justify-content:space-between;
       gap:2rem; padding:0.85rem 0; border-bottom:1px solid var(--border); }
     .ds-type-row:last-child { border-bottom:none; }
-    .ds-type-meta { font-size:0.57rem; color:var(--muted); white-space:nowrap;
+    .ds-type-meta { font-size:0.625rem; color:var(--muted); white-space:nowrap;
       flex-shrink:0; font-family:'IBM Plex Mono',monospace; line-height:var(--lh-normal); text-align:right; }
 
     /* ── Spacing scale ── */
     .ds-spacing-row { display:flex; align-items:center; gap:1rem; margin-bottom:0.4rem; }
     .ds-spacing-bar  { background:var(--subtle); height:6px; border-radius:2px; flex-shrink:0; }
-    .ds-spacing-label { font-size:0.6rem; color:var(--subtle); min-width:3.5rem;
+    .ds-spacing-label { font-size:0.625rem; color:var(--subtle); min-width:3.5rem;
       font-family:'IBM Plex Mono',monospace; }
-    .ds-spacing-px { font-size:0.57rem; color:var(--muted); }
+    .ds-spacing-px { font-size:0.625rem; color:var(--muted); }
 
     /* ── Demo helpers ── */
     .ds-demo-row { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; }
     .ds-demo-col { display:flex; flex-direction:column; gap:0.5rem; }
     .ds-state-controls { display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap; }
     .ds-state-btn { background:none; border:1px solid var(--border); border-radius:3px;
-      font-family:'IBM Plex Mono',monospace; font-size:0.6rem; color:var(--muted);
+      font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted);
       padding:0.25rem 0.6rem; cursor:pointer; transition:all 0.15s; }
     .ds-state-btn:hover { border-color:var(--subtle); color:var(--text); }
     .ds-state-btn.active { border-color:var(--text); color:var(--text); background:var(--surface2); }
@@ -98,8 +98,8 @@
       border-radius:4px; padding:0.75rem 0.5rem; width:180px; }
     .ds-chart-placeholder { background:var(--surface2); border:1px dashed var(--border);
       border-radius:3px; height:140px; display:flex; align-items:center; justify-content:center;
-      color:var(--muted); font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase; }
-    .ds-note { font-size:0.58rem; color:var(--muted); font-style:italic; margin-bottom:0.75rem; }
+      color:var(--muted); font-size:0.625rem; letter-spacing:0.08em; text-transform:uppercase; }
+    .ds-note { font-size:0.625rem; color:var(--muted); font-style:italic; margin-bottom:0.75rem; }
 
     /* ── Page header ── */
     .page-header { border-top:3px solid var(--text); border-bottom:1px solid var(--border);
@@ -108,7 +108,7 @@
 
     /* ── Component CSS: Tags, banner, candidate header ── */
     .profile-header { padding:2.5rem 0 2rem; border-bottom:1px solid var(--border); }
-    .breadcrumb { font-size:0.62rem; color:var(--muted); letter-spacing:0.05em;
+    .breadcrumb { font-size:0.625rem; color:var(--muted); letter-spacing:0.05em;
       margin-bottom:1.25rem; }
     .breadcrumb a { color:var(--muted); text-decoration:none; }
     .breadcrumb a:hover { color:var(--accent); }
@@ -118,12 +118,12 @@
     .candidate-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; }
     .avatar { width:32px; height:32px; border-radius:2px; background:var(--text);
       display:flex; align-items:center; justify-content:center;
-      font-family:'Oswald',sans-serif; font-size:0.9rem;
+      font-family:'Oswald',sans-serif; font-size:0.875rem;
       color:var(--bg); letter-spacing:0; text-transform:uppercase; flex-shrink:0; }
     .candidate-name { font-family:'Oswald',sans-serif; font-size:clamp(1.6rem,3vw,2.4rem);
       font-weight:600; line-height:1; letter-spacing:0; text-transform:uppercase; min-width:0; }
     .committees-link { background:none; border:none; cursor:pointer;
-      font-family:'IBM Plex Mono',monospace; font-size:0.7rem; color:var(--subtle);
+      font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:var(--subtle);
       padding:0; white-space:nowrap;
       text-decoration:underline; text-decoration-color:transparent;
       text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
@@ -133,11 +133,11 @@
     .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
       gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:0; }
     .stat-card  { background:var(--surface); padding:1.2rem 1.4rem; }
-    .stat-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
+    .stat-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
       color:var(--muted); margin-bottom:0.35rem; }
     .stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:600;
       line-height:1; letter-spacing:0; margin-bottom:0.25rem; }
-    .stat-sub   { font-size:0.6rem; color:var(--muted); }
+    .stat-sub   { font-size:0.625rem; color:var(--muted); }
     .stat-sub.pos  { color:var(--green); }
     .stat-sub.neg  { color:var(--red); }
     .stat-sub.warn { color:var(--amber); }
@@ -147,7 +147,7 @@
       margin-bottom:1.5rem; }
     .raised-cell { background:var(--surface); border:1px solid var(--border);
       padding:1.75rem; min-width:0; overflow:hidden; }
-    .raised-cell-title { font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase;
+    .raised-cell-title { font-size:0.625rem; letter-spacing:0.12em; text-transform:uppercase;
       color:var(--subtle); margin-bottom:1.25rem; }
 
     /* Donut center overlay */
@@ -163,7 +163,7 @@
     .entry::before { content:''; position:absolute; left:-2.375rem; top:6px;
       width:8px; height:8px; border-radius:50%;
       background:var(--border); border:1.5px solid var(--muted); }
-    .entry-date { font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase;
+    .entry-date { font-size:0.625rem; letter-spacing:0.12em; text-transform:uppercase;
       color:var(--muted); margin-bottom:0.3rem; }
     .entry-title { font-family:'Oswald',sans-serif; font-size:1.3rem; font-weight:600;
       letter-spacing:0; text-transform:uppercase; line-height:var(--lh-tight); margin-bottom:0.6rem; }
@@ -174,21 +174,21 @@
     .insight { background:var(--surface); border:1px solid var(--border);
       border-left:3px solid var(--accent); padding:0.85rem 1rem;
       border-radius:0 3px 3px 0; }
-    .insight-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
+    .insight-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
       color:var(--accent); margin-bottom:0.3rem; }
-    .insight-text { font-size:0.72rem; color:var(--subtle); line-height:var(--lh-expanded); }
+    .insight-text { font-size:0.75rem; color:var(--subtle); line-height:var(--lh-expanded); }
 
     /* Field notes block (log-only) */
     .field-notes { background:var(--surface); border:1px solid var(--border);
       border-left:3px solid var(--muted); padding:0.85rem 1rem;
       border-radius:0 3px 3px 0; }
-    .field-notes-label { font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase;
+    .field-notes-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
       color:var(--muted); margin-bottom:0.3rem; }
-    .field-notes-text { font-size:0.72rem; color:var(--subtle); line-height:var(--lh-expanded); }
+    .field-notes-text { font-size:0.75rem; color:var(--subtle); line-height:var(--lh-expanded); }
 
     /* Stack tags (log-only) */
     .stack { display:flex; gap:0.4rem; flex-wrap:wrap; }
-    .stack-tag { font-size:0.58rem; letter-spacing:0.07em; text-transform:uppercase;
+    .stack-tag { font-size:0.625rem; letter-spacing:0.07em; text-transform:uppercase;
       color:var(--muted); border:1px solid var(--border); border-radius:3px;
       padding:0.15rem 0.5rem; background:var(--surface); }
 
@@ -256,8 +256,8 @@
     <section class="ds-section" id="tokens">
       <h2 class="ds-section-title">Token Naming Strategy</h2>
 
-      <p class="ds-note" style="margin-bottom:1.5rem;font-style:normal;font-size:0.7rem;color:var(--subtle);line-height:1.7;">
-        Tokens are organized in three tiers. <strong style="color:var(--text)">Tier 1 primitives</strong> are raw hex values — not CSS variables, just the reference palette. <strong style="color:var(--text)">Tier 2 semantic tokens</strong> are CSS variables defined in <code style="font-size:0.65rem;color:var(--dem)">styles.css :root</code> — named by meaning, not appearance. <strong style="color:var(--text)">Tier 3 component tokens</strong> (not yet built) would be scoped to specific components, like <code style="font-size:0.65rem;color:var(--dem)">--tag-dem-bg</code>.
+      <p class="ds-note" style="margin-bottom:1.5rem;font-style:normal;font-size:0.75rem;color:var(--subtle);line-height:1.7;">
+        Tokens are organized in three tiers. <strong style="color:var(--text)">Tier 1 primitives</strong> are raw hex values — not CSS variables, just the reference palette. <strong style="color:var(--text)">Tier 2 semantic tokens</strong> are CSS variables defined in <code style="font-size:0.75rem;color:var(--dem)">styles.css :root</code> — named by meaning, not appearance. <strong style="color:var(--text)">Tier 3 component tokens</strong> (not yet built) would be scoped to specific components, like <code style="font-size:0.75rem;color:var(--dem)">--tag-dem-bg</code>.
       </p>
 
       <div style="margin-bottom:1.5rem">
@@ -280,7 +280,7 @@
             <tr><td><span class="ds-token-dot" style="background:#5a4a7a"></span>purple-deep</td><td class="ds-token-hex">#5a4a7a</td><td>Independent</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#1e6644"></span>green-deep</td><td class="ds-token-hex">#1e6644</td><td>Success</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#8a5f10"></span>amber-deep</td><td class="ds-token-hex">#8a5f10</td><td>Warning</td></tr>
-            <tr><td colspan="3" style="color:var(--muted);font-size:0.6rem;padding-top:0.75rem">Chart primitives (still referenced by --chart-* tokens, unchanged from previous palette):</td></tr>
+            <tr><td colspan="3" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Chart primitives (still referenced by --chart-* tokens, unchanged from previous palette):</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#4a90d9"></span>blue-500</td><td class="ds-token-hex">#4a90d9</td><td>Chart raised</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#d94a4a"></span>red-500</td><td class="ds-token-hex">#d94a4a</td><td>Chart spent</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#3dbf7a"></span>green-500</td><td class="ds-token-hex">#3dbf7a</td><td>Chart CoH</td></tr>
@@ -330,12 +330,12 @@
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-deadline)"></span>--chart-overlay-deadline</td><td>--muted @ 40%</td><td class="ds-token-hex">rgba(90,96,112,0.4)</td><td>Filing deadline vertical line</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-election)"></span>--chart-overlay-election</td><td>--amber @ 75%</td><td class="ds-token-hex">rgba(232,160,32,0.75)</td><td>Election date vertical line</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-today)"></span>--chart-overlay-today</td><td>--subtle @ 18%</td><td class="ds-token-hex">rgba(136,144,160,0.18)</td><td>Today marker (active cycles)</td></tr>
-            <tr><td colspan="4" style="color:var(--muted);font-size:0.6rem;padding-top:0.75rem">Layout tokens:</td></tr>
-            <tr><td class="ds-token-name">--page-gutter</td><td>—</td><td class="ds-token-hex">3rem / 1rem</td><td>Horizontal content padding — desktop / mobile (≤860px). Use <code style="font-size:0.6rem">padding: &lt;v&gt; var(--page-gutter)</code> on all content sections.</td></tr>
-            <tr><td class="ds-token-name">--section-gap</td><td>—</td><td class="ds-token-hex">1.5rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.6rem">margin-bottom</code> on section-level components: <code style="font-size:0.6rem">.banner</code>, <code style="font-size:0.6rem">.chart-card</code>, <code style="font-size:0.6rem">.donors-card</code>, <code style="font-size:0.6rem">.stats-grid</code>, <code style="font-size:0.6rem">.raised-grid</code>.</td></tr>
-            <tr><td colspan="4" style="color:var(--muted);font-size:0.6rem;padding-top:0.75rem">Line-height tokens:</td></tr>
-            <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.6rem">.data-note</code>, <code style="font-size:0.6rem">.callout</code>, log entry body text</td></tr>
-            <tr><td class="ds-token-name">--lh-normal</td><td>—</td><td class="ds-token-hex">1.5</td><td>Body default — general readable text, <code style="font-size:0.6rem">body</code> element</td></tr>
+            <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Layout tokens:</td></tr>
+            <tr><td class="ds-token-name">--page-gutter</td><td>—</td><td class="ds-token-hex">3rem / 1rem</td><td>Horizontal content padding — desktop / mobile (≤860px). Use <code style="font-size:0.625rem">padding: &lt;v&gt; var(--page-gutter)</code> on all content sections.</td></tr>
+            <tr><td class="ds-token-name">--section-gap</td><td>—</td><td class="ds-token-hex">1.5rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.625rem">margin-bottom</code> on section-level components: <code style="font-size:0.625rem">.banner</code>, <code style="font-size:0.625rem">.chart-card</code>, <code style="font-size:0.625rem">.donors-card</code>, <code style="font-size:0.625rem">.stats-grid</code>, <code style="font-size:0.625rem">.raised-grid</code>.</td></tr>
+            <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Line-height tokens:</td></tr>
+            <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.625rem">.data-note</code>, <code style="font-size:0.625rem">.callout</code>, log entry body text</td></tr>
+            <tr><td class="ds-token-name">--lh-normal</td><td>—</td><td class="ds-token-hex">1.5</td><td>Body default — general readable text, <code style="font-size:0.625rem">body</code> element</td></tr>
             <tr><td class="ds-token-name">--lh-tight</td><td>—</td><td class="ds-token-hex">1</td><td>Display and numeric — headings, stat values, tags, buttons</td></tr>
           </tbody>
         </table>
@@ -519,11 +519,11 @@
       <div class="ds-type-group">
         <div class="ds-type-group-label">IBM Plex Sans — Body &amp; Nav</div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.82rem;color:var(--muted);line-height:1.5">Raised-to-spent ratio of 3.84× with positive cash on hand.</span>
-          <span class="ds-type-meta">IBM Plex Sans · 0.82rem<br>status descriptions, body text</span>
+          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;color:var(--muted);line-height:1.5">Raised-to-spent ratio of 3.84× with positive cash on hand.</span>
+          <span class="ds-type-meta">IBM Plex Sans · 0.75rem<br>status descriptions, body text</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.8rem;color:var(--muted)">Candidates</span>
+          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;color:var(--muted)">Candidates</span>
           <span class="ds-type-meta">IBM Plex Sans · 0.8rem<br>nav items</span>
         </div>
       </div>
@@ -539,11 +539,11 @@
       <div class="ds-type-group">
         <div class="ds-type-group-label">IBM Plex Mono — Labels &amp; Data</div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:400;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase">Total Raised</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;font-weight:400;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase">Total Raised</span>
           <span class="ds-type-meta">IBM Plex Mono 400 · 0.6rem · uppercase<br>section labels, chips</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.58rem;font-weight:400;color:var(--muted)">Cycle total</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;font-weight:400;color:var(--muted)">Cycle total</span>
           <span class="ds-type-meta">IBM Plex Mono 400 · 0.58rem<br>legend, data labels</span>
         </div>
       </div>
@@ -552,15 +552,15 @@
         <div class="ds-type-group-label">Line-height system</div>
         <div class="ds-type-row">
           <span style="font-family:'IBM Plex Serif',serif;font-size:0.875rem;color:var(--subtle);line-height:1.75;max-width:320px">Smith is the incumbent with 2 challengers in the 2024 race for House WA-03. View race →</span>
-          <span class="ds-type-meta"><code style="font-size:0.6rem">--lh-expanded: 1.75</code><br>prose / notes<br>.data-note · .callout · log entries</span>
+          <span class="ds-type-meta"><code style="font-size:0.625rem">--lh-expanded: 1.75</code><br>prose / notes<br>.data-note · .callout · log entries</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.82rem;color:var(--muted);line-height:1.5;max-width:320px">Raised-to-spent ratio of 3.84× with positive cash on hand of $412k as of Q3 2024.</span>
-          <span class="ds-type-meta"><code style="font-size:0.6rem">--lh-normal: 1.5</code><br>body default<br>general readable text</span>
+          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;color:var(--muted);line-height:1.5;max-width:320px">Raised-to-spent ratio of 3.84× with positive cash on hand of $412k as of Q3 2024.</span>
+          <span class="ds-type-meta"><code style="font-size:0.625rem">--lh-normal: 1.5</code><br>body default<br>general readable text</span>
         </div>
         <div class="ds-type-row">
           <span style="font-family:'Oswald',sans-serif;font-size:2rem;font-weight:600;line-height:1;letter-spacing:0">$1.24M</span>
-          <span class="ds-type-meta"><code style="font-size:0.6rem">--lh-tight: 1</code><br>display / numeric<br>headings · stat values · tags</span>
+          <span class="ds-type-meta"><code style="font-size:0.625rem">--lh-tight: 1</code><br>display / numeric<br>headings · stat values · tags</span>
         </div>
       </div>
     </section>
@@ -584,7 +584,7 @@
         <div class="ds-spacing-row"><span class="ds-spacing-label">3.5rem</span><div class="ds-spacing-bar" style="width:3.5rem"></div><span class="ds-spacing-px">56px</span></div>
       </div>
       <div class="callout" style="margin-top:1.25rem">
-        <strong>Page gutter pattern:</strong> All content sections use <code style="font-size:0.65rem;color:var(--dem)">var(--page-gutter)</code> for horizontal padding — <strong>3rem</strong> on desktop, <strong>1rem</strong> on mobile (≤860px). The mobile value is controlled in one place via <code style="font-size:0.65rem;color:var(--dem)">styles.css :root @media (max-width:860px)</code>. Usage: <code style="font-size:0.65rem;color:var(--dem)">padding: &lt;vertical&gt; var(--page-gutter)</code>. Component-internal padding (buttons, cards, modals) stays hardcoded.
+        <strong>Page gutter pattern:</strong> All content sections use <code style="font-size:0.75rem;color:var(--dem)">var(--page-gutter)</code> for horizontal padding — <strong>3rem</strong> on desktop, <strong>1rem</strong> on mobile (≤860px). The mobile value is controlled in one place via <code style="font-size:0.75rem;color:var(--dem)">styles.css :root @media (max-width:860px)</code>. Usage: <code style="font-size:0.75rem;color:var(--dem)">padding: &lt;vertical&gt; var(--page-gutter)</code>. Component-internal padding (buttons, cards, modals) stays hardcoded.
       </div>
     </section>
 
@@ -621,19 +621,19 @@
           <div class="ds-demo-row">
             <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
               <div class="health-signal green"></div>
-              <span style="font-size:0.58rem;color:var(--muted)">green</span>
+              <span style="font-size:0.625rem;color:var(--muted)">green</span>
             </div>
             <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
               <div class="health-signal amber"></div>
-              <span style="font-size:0.58rem;color:var(--muted)">amber</span>
+              <span style="font-size:0.625rem;color:var(--muted)">amber</span>
             </div>
             <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
               <div class="health-signal red"></div>
-              <span style="font-size:0.58rem;color:var(--muted)">red</span>
+              <span style="font-size:0.625rem;color:var(--muted)">red</span>
             </div>
             <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
               <div class="health-signal grey"></div>
-              <span style="font-size:0.58rem;color:var(--muted)">grey</span>
+              <span style="font-size:0.625rem;color:var(--muted)">grey</span>
             </div>
           </div>
         </div>
@@ -665,7 +665,7 @@
         </div>
         <div class="ds-component-classes">.global-banner · .global-banner-text — normally position:fixed top:0</div>
         <div class="ds-component-demo">
-          <div class="ds-note">Rendered inline here; on live pages it is <code style="font-size:0.6rem">position:fixed</code> and sits above the top nav.</div>
+          <div class="ds-note">Rendered inline here; on live pages it is <code style="font-size:0.625rem">position:fixed</code> and sits above the top nav.</div>
           <div class="global-banner">
             <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
           </div>
@@ -754,7 +754,7 @@
 
             <!-- Text input states -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Text input</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Text input</div>
               <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
                 <input class="form-input" type="text" value="Default" style="max-width:160px">
                 <input class="form-input" type="text" value="Focused" style="max-width:160px;border-color:var(--accent)">
@@ -764,7 +764,7 @@
 
             <!-- Select + wide variant -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Native select — mobile fallback · cycle-select · terminated toggle</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Native select — mobile fallback · cycle-select · terminated toggle</div>
               <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
                 <select class="form-select">
                   <option>All states</option>
@@ -780,7 +780,7 @@
 
             <!-- Search combo -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Search combo</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Search combo</div>
               <div class="search-combo" style="max-width:360px">
                 <input class="form-input" type="text" placeholder="Search candidates…">
                 <button class="form-search-btn">Search</button>
@@ -789,7 +789,7 @@
 
             <!-- State combo — filterable -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">State combo — filterable</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">State combo — filterable</div>
               <div class="state-combo combo-wrap" style="display:inline-block">
                 <input class="form-input" type="text" placeholder="All states" autocomplete="off"
                   role="combobox" aria-haspopup="listbox" aria-expanded="true">
@@ -803,10 +803,10 @@
 
             <!-- Combo-wrap filter dropdown -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Combo-wrap filter dropdown</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Combo-wrap filter dropdown</div>
               <div style="display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap">
                 <div style="display:flex;flex-direction:column;gap:0.5rem">
-                  <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Default</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Default</span>
                   <div class="combo-wrap">
                     <button type="button" class="combo-trigger form-select" aria-haspopup="listbox" aria-expanded="false">All offices</button>
                     <div class="typeahead-dropdown" role="listbox">
@@ -818,7 +818,7 @@
                   </div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:0.5rem">
-                  <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Open</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Open</span>
                   <div class="combo-wrap">
                     <button type="button" class="combo-trigger form-select" aria-haspopup="listbox" aria-expanded="true">All offices</button>
                     <div class="typeahead-dropdown open" role="listbox" style="position:static;min-width:160px">
@@ -834,7 +834,7 @@
 
             <!-- Cycle select in tab bar context -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Cycle select — tab bar context</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Cycle select — tab bar context</div>
               <div class="tabs-bar">
                 <select class="cycle-select">
                   <option>2024</option>
@@ -896,11 +896,11 @@
           <div class="raised-grid">
             <div class="raised-cell">
               <div class="raised-cell-title">Contributor Types</div>
-              <div style="font-size:0.65rem;color:var(--muted)">Chart or breakdown renders here</div>
+              <div style="font-size:0.75rem;color:var(--muted)">Chart or breakdown renders here</div>
             </div>
             <div class="raised-cell">
               <div class="raised-cell-title">Where Contributions Come From</div>
-              <div style="font-size:0.65rem;color:var(--muted)">Chart or breakdown renders here</div>
+              <div style="font-size:0.75rem;color:var(--muted)">Chart or breakdown renders here</div>
             </div>
           </div>
         </div>
@@ -914,7 +914,7 @@
         </div>
         <div class="ds-component-classes">.map-svg-wrap · .map-legend · .map-legend-bar · .map-legend-lbl · .map-tt · .map-tt-name · .map-tt-val</div>
         <div class="ds-component-demo">
-          <div class="map-svg-wrap" style="max-width:400px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;height:120px;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">SVG path map</div>
+          <div class="map-svg-wrap" style="max-width:400px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;height:120px;font-size:0.625rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">SVG path map</div>
           <div class="map-legend" style="max-width:400px;margin-top:0.75rem">
             <div class="map-legend-lbl">$0</div>
             <div class="map-legend-bar" style="background:linear-gradient(to right,rgba(74,144,217,0.1),rgba(74,144,217,0.92))"></div>
@@ -933,7 +933,7 @@
         <div class="ds-component-classes">.tabs-bar · .tab · .tab.active · .cycle-select · .chart-card · .chart-header · .chart-title · .chart-legend · .legend-item · .legend-swatch · .legend-dashed · .legend-amber-dashed</div>
         <div class="ds-component-demo" style="padding:0">
           <div class="tabs-bar" id="demo-tabs">
-            <select class="form-select cycle-select" style="align-self:stretch;border:none;border-radius:0;font-size:0.72rem;padding:0 0.75rem;min-width:5.5rem;margin-right:1rem;background:var(--bg);color:var(--subtle)">
+            <select class="form-select cycle-select" style="align-self:stretch;border:none;border-radius:0;font-size:0.75rem;padding:0 0.75rem;min-width:5.5rem;margin-right:1rem;background:var(--bg);color:var(--subtle)">
               <option>2024</option>
               <option>2022</option>
             </select>
@@ -973,23 +973,23 @@
             <div class="committee-name">MGP for Congress</div>
             <div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">Jane Smith</div>
             <div class="committee-type">Principal CC</div>
-            <div class="committee-id"><span class="tag tag-neutral" style="font-size:0.52rem"><span class="status-dot dot-active"></span>Quarterly Filer</span></div>
+            <div class="committee-id"><span class="tag tag-neutral" style="font-size:0.625rem"><span class="status-dot dot-active"></span>Quarterly Filer</span></div>
           </div>
           <div class="section-title" style="margin-top:1rem">Joint Fundraising</div>
           <div class="committee-row" style="grid-template-columns:1fr auto auto auto">
             <div class="committee-name">WA Democratic Victory Fund</div>
             <div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">Tom Lee</div>
             <div class="committee-type">JFA</div>
-            <div class="committee-id"><span class="tag tag-neutral" style="font-size:0.52rem"><span class="status-dot dot-active"></span>Quarterly Filer</span></div>
+            <div class="committee-id"><span class="tag tag-neutral" style="font-size:0.625rem"><span class="status-dot dot-active"></span>Quarterly Filer</span></div>
           </div>
           <div class="section-title" style="margin-top:1rem">Leadership PAC</div>
           <div class="committee-row" style="grid-template-columns:1fr auto auto auto;border-left:2px solid var(--amber);padding-left:0.75rem">
             <div class="committee-name">MGP Leadership Fund</div>
             <div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">Maria Chen</div>
             <div class="committee-type">Leadership PAC</div>
-            <div class="committee-id"><span class="tag tag-neutral" style="font-size:0.52rem"><span class="status-dot dot-active"></span>Monthly Filer</span></div>
+            <div class="committee-id"><span class="tag tag-neutral" style="font-size:0.625rem"><span class="status-dot dot-active"></span>Monthly Filer</span></div>
           </div>
-          <div style="font-size:0.57rem;color:var(--muted);margin-top:0.5rem">↑ Leadership PAC variant — amber left border applied via inline style in <code style="font-size:0.55rem">renderCommitteeGroups()</code></div>
+          <div style="font-size:0.625rem;color:var(--muted);margin-top:0.5rem">↑ Leadership PAC variant — amber left border applied via inline style in <code style="font-size:0.625rem">renderCommitteeGroups()</code></div>
         </div>
       </div>
 
@@ -1004,7 +1004,7 @@
           <a class="candidate-card" href="#" style="display:block;max-width:480px;text-decoration:none">
             <div class="candidate-card-name">Maria Cantwell</div>
             <div class="candidate-card-meta">
-              <span class="tag tag-neutral" style="font-size:0.62rem">Senate · WA</span>
+              <span class="tag tag-neutral" style="font-size:0.625rem">Senate · WA</span>
               <span class="tag tag-dem">Democrat</span>
               <span class="candidate-card-cycle">2026</span>
             </div>
@@ -1012,7 +1012,7 @@
           <a class="candidate-card" href="#" style="display:block;max-width:480px;text-decoration:none;margin-top:0">
             <div class="candidate-card-name">Gluesenkamp Perez, Marie</div>
             <div class="candidate-card-meta">
-              <span class="tag tag-neutral" style="font-size:0.62rem">House · WA-03</span>
+              <span class="tag tag-neutral" style="font-size:0.625rem">House · WA-03</span>
               <span class="tag tag-dem">Democrat</span>
               <span class="candidate-card-cycle">2024</span>
             </div>
@@ -1046,7 +1046,7 @@
             <span class="committee-result-name">Cantwell for Senate</span>
             <span class="committee-result-meta">
               <span class="committee-result-type">Principal CC</span>
-              <span class="tag tag-neutral" style="font-size:0.52rem">
+              <span class="tag tag-neutral" style="font-size:0.625rem">
                 <span class="status-dot dot-active"></span>Monthly
               </span>
             </span>
@@ -1071,7 +1071,7 @@
               <a class="candidate-card" href="#" style="display:block;text-decoration:none">
                 <div class="candidate-card-name">Gluesenkamp Perez, Marie</div>
                 <div class="candidate-card-meta">
-                  <span class="tag tag-neutral" style="font-size:0.62rem">House · WA-03</span>
+                  <span class="tag tag-neutral" style="font-size:0.625rem">House · WA-03</span>
                   <span class="tag tag-dem">Democrat</span>
                   <span class="candidate-card-cycle">2024</span>
                 </div>
@@ -1086,7 +1086,7 @@
                 <span class="committee-result-name">MGP for Congress</span>
                 <span class="committee-result-meta">
                   <span class="committee-result-type">Principal CC</span>
-                  <span class="tag tag-neutral" style="font-size:0.52rem"><span class="status-dot dot-active"></span>Monthly</span>
+                  <span class="tag tag-neutral" style="font-size:0.625rem"><span class="status-dot dot-active"></span>Monthly</span>
                 </span>
               </a>
             </div>
@@ -1155,7 +1155,7 @@
         <div class="ds-component-demo">
           <div style="display:flex;gap:2rem;align-items:center;flex-wrap:wrap">
             <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-start">
-              <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Off</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Off</span>
               <label class="toggle-switch">
                 <input type="checkbox">
                 <span class="toggle-track"><span class="toggle-knob"></span></span>
@@ -1163,7 +1163,7 @@
               </label>
             </div>
             <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-start">
-              <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">On</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">On</span>
               <label class="toggle-switch">
                 <input type="checkbox" checked>
                 <span class="toggle-track"><span class="toggle-knob"></span></span>
@@ -1220,16 +1220,16 @@
         <div class="ds-component-classes">.status-dot · .dot-active · .dot-gray · .typeahead-status-dot · .typeahead-status-dot.dot-active · .typeahead-status-dot.dot-terminated</div>
         <div class="ds-component-demo">
           <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
-            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:var(--subtle)">
+            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--subtle)">
               <span class="status-dot dot-active"></span>Active
             </span>
-            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:var(--subtle)">
+            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--subtle)">
               <span class="status-dot dot-gray"></span>Terminated
             </span>
-            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:var(--subtle)">
+            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--subtle)">
               <span class="typeahead-status-dot dot-active"></span>Typeahead active
             </span>
-            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:var(--subtle)">
+            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--subtle)">
               <span class="typeahead-status-dot dot-terminated"></span>Typeahead terminated
             </span>
           </div>
@@ -1330,7 +1330,7 @@
                 <div class="donut-center-lbl">Total Raised</div>
               </div>
             </div>
-            <div style="font-size:0.6rem;color:var(--muted);padding-top:0.5rem;line-height:1.75">
+            <div style="font-size:0.625rem;color:var(--muted);padding-top:0.5rem;line-height:1.75">
               Center overlay positioned absolute over canvas.<br>
               Background (donut chart) renders via Chart.js canvas.<br>
               Background shown here as CSS approximation only.
@@ -1539,7 +1539,7 @@
           <div class="committee-id">C00376400</div>
         </div>
       </div>
-      <div class="data-note">Real data — Nancy Pelosi (H8CA05035). Populated dynamically in production via <code style="font-size:0.58rem">fetchAndRenderCommittees()</code>. Leadership PAC gets amber left border; terminated committees render muted. Note: JFAs organized by the candidate may appear as "Other" if the FEC assigns <code style="font-size:0.58rem">committee_type</code> other than <code style="font-size:0.58rem">'J'</code>.</div>
+      <div class="data-note">Real data — Nancy Pelosi (H8CA05035). Populated dynamically in production via <code style="font-size:0.625rem">fetchAndRenderCommittees()</code>. Leadership PAC gets amber left border; terminated committees render muted. Note: JFAs organized by the candidate may appear as "Other" if the FEC assigns <code style="font-size:0.625rem">committee_type</code> other than <code style="font-size:0.625rem">'J'</code>.</div>
     </div>
   </div>
 </div>

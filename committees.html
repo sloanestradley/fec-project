@@ -14,7 +14,7 @@
     .main { overflow-x:hidden; min-width:0; }
     /* Override committee-row grid for unified 4-column layout (name + type + treasurer + status) */
     #results-list .committee-row { grid-template-columns:1fr auto auto auto; }
-    .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
+    .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
       text-transform:uppercase; letter-spacing:0; color:var(--muted);
       padding-bottom:0.75rem; }
     @media (max-width:860px) {
@@ -255,7 +255,7 @@
         <div id="load-more-spinner" class="state-msg" style="display:none;padding:1.5rem var(--page-gutter);justify-content:center">
           <div class="loader"></div>
         </div>
-        <div id="end-of-results" style="display:none;padding:1.25rem var(--page-gutter);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0;border-top:1px solid var(--border);text-align:center">
+        <div id="end-of-results" style="display:none;padding:1.25rem var(--page-gutter);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0;border-top:1px solid var(--border);text-align:center">
           End of results
         </div>
       </div>
@@ -337,7 +337,7 @@ function buildRow(c, i, fromPage) {
     + '<div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">'
     +   (c.treasurer_name || '—') + '</div>'
     + '<div class="committee-type">' + committeeTypeLabel(c.committee_type) + '</div>'
-    + '<div class="committee-id"><span class="tag tag-neutral" style="font-size:0.52rem">'
+    + '<div class="committee-id"><span class="tag tag-neutral" style="font-size:0.625rem">'
     + '<span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span></div>'
     + '</a>';
 }
