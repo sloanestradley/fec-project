@@ -16,8 +16,8 @@
 
     /* ── Design system layout ── */
     .ds-section { margin-bottom: 4rem; }
-    .ds-section-title { font-family:'Oswald',sans-serif; font-size:1.1rem; font-weight:600;
-      letter-spacing:0; text-transform:uppercase; margin-bottom:1.5rem; padding-bottom:0.75rem;
+    .ds-section-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:600;
+      text-transform:uppercase; margin-bottom:1.5rem; padding-bottom:0.75rem;
       border-bottom:2px solid var(--border); color:var(--text); }
 
     /* ── Component cards ── */
@@ -28,12 +28,12 @@
       font-family:'IBM Plex Mono',monospace; }
     .ds-component-classes { font-size:0.625rem; color:var(--muted); padding:0.5rem 1rem;
       border-bottom:1px solid var(--border); background:var(--surface);
-      font-family:'IBM Plex Mono',monospace; letter-spacing:0.02em; }
+      font-family:'IBM Plex Mono',monospace; }
     .ds-component-demo { padding:1.5rem; overflow-x:auto; }
     .ds-component-notes { padding:0.75rem 1rem; font-size:0.625rem; color:var(--muted); border-top:1px solid var(--border); }
 
     /* ── Status badges ── */
-    .ds-status { font-size:0.625rem; letter-spacing:0.1em; text-transform:uppercase;
+    .ds-status { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       padding:0.15rem 0.45rem; border-radius:2px; font-weight:500; border:1px solid; }
     .ds-status.stable      { color:var(--green);  border-color:rgba(30,102,68,0.3);   background:rgba(30,102,68,0.06); }
     .ds-status.candidate-only { color:var(--dem); border-color:rgba(30,58,95,0.3);   background:rgba(30,58,95,0.06); }
@@ -44,7 +44,7 @@
     /* ── Token table ── */
     .ds-token-table { width:100%; border-collapse:collapse; display:block; overflow-x:auto; }
     .ds-token-table th { padding:0.45rem 0.75rem; text-align:left; font-size:0.625rem;
-      letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);
+      letter-spacing:var(--ls-expanded); text-transform:uppercase; color:var(--muted);
       border-bottom:1px solid var(--border); font-family:'IBM Plex Mono',monospace; }
     .ds-token-table td { padding:0.55rem 0.75rem; border-bottom:1px solid var(--border);
       vertical-align:middle; font-size:0.625rem; color:var(--subtle);
@@ -59,7 +59,7 @@
 
     /* ── Color swatches ── */
     .ds-swatch-group { margin-bottom:2rem; }
-    .ds-swatch-group-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
+    .ds-swatch-group-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       color:var(--muted); margin-bottom:0.75rem; }
     .ds-swatch-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:0.75rem; }
     .ds-swatch-color { height:44px; border-radius:3px; margin-bottom:0.4rem;
@@ -70,7 +70,7 @@
 
     /* ── Typography specimens ── */
     .ds-type-group { margin-bottom:2rem; }
-    .ds-type-group-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
+    .ds-type-group-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       color:var(--muted); margin-bottom:0.75rem; }
     .ds-type-row { display:flex; align-items:baseline; justify-content:space-between;
       gap:2rem; padding:0.85rem 0; border-bottom:1px solid var(--border); }
@@ -86,6 +86,8 @@
     .ds-spacing-px { font-size:0.625rem; color:var(--muted); }
 
     /* ── Demo helpers ── */
+    .ds-demo-label { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted);
+      text-transform:uppercase; letter-spacing:var(--ls-expanded); margin-bottom:0.5rem; }
     .ds-demo-row { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; }
     .ds-demo-col { display:flex; flex-direction:column; gap:0.5rem; }
     .ds-state-controls { display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap; }
@@ -98,7 +100,7 @@
       border-radius:4px; padding:0.75rem 0.5rem; width:180px; }
     .ds-chart-placeholder { background:var(--surface2); border:1px dashed var(--border);
       border-radius:3px; height:140px; display:flex; align-items:center; justify-content:center;
-      color:var(--muted); font-size:0.625rem; letter-spacing:0.08em; text-transform:uppercase; }
+      color:var(--muted); font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase; }
     .ds-note { font-size:0.625rem; color:var(--muted); font-style:italic; margin-bottom:0.75rem; }
 
     /* ── Page header ── */
@@ -108,7 +110,7 @@
 
     /* ── Component CSS: Tags, banner, candidate header ── */
     .profile-header { padding:2.5rem 0 2rem; border-bottom:1px solid var(--border); }
-    .breadcrumb { font-size:0.625rem; color:var(--muted); letter-spacing:0.05em;
+    .breadcrumb { font-size:0.625rem; color:var(--muted);
       margin-bottom:1.25rem; }
     .breadcrumb a { color:var(--muted); text-decoration:none; }
     .breadcrumb a:hover { color:var(--accent); }
@@ -119,9 +121,8 @@
     .avatar { width:32px; height:32px; border-radius:2px; background:var(--text);
       display:flex; align-items:center; justify-content:center;
       font-family:'Oswald',sans-serif; font-size:0.875rem;
-      color:var(--bg); letter-spacing:0; text-transform:uppercase; flex-shrink:0; }
-    .candidate-name { font-family:'Oswald',sans-serif; font-size:clamp(1.6rem,3vw,2.4rem);
-      font-weight:600; line-height:1; letter-spacing:0; text-transform:uppercase; min-width:0; }
+      color:var(--bg); text-transform:uppercase; flex-shrink:0; }
+
     .committees-link { background:none; border:none; cursor:pointer;
       font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:var(--subtle);
       padding:0; white-space:nowrap;
@@ -133,10 +134,10 @@
     .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
       gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:0; }
     .stat-card  { background:var(--surface); padding:1.2rem 1.4rem; }
-    .stat-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
+    .stat-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       color:var(--muted); margin-bottom:0.35rem; }
     .stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:600;
-      line-height:1; letter-spacing:0; margin-bottom:0.25rem; }
+      line-height:1; margin-bottom:0.25rem; }
     .stat-sub   { font-size:0.625rem; color:var(--muted); }
     .stat-sub.pos  { color:var(--green); }
     .stat-sub.neg  { color:var(--red); }
@@ -147,7 +148,7 @@
       margin-bottom:1.5rem; }
     .raised-cell { background:var(--surface); border:1px solid var(--border);
       padding:1.75rem; min-width:0; overflow:hidden; }
-    .raised-cell-title { font-size:0.625rem; letter-spacing:0.12em; text-transform:uppercase;
+    .raised-cell-title { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       color:var(--subtle); margin-bottom:1.25rem; }
 
     /* Donut center overlay */
@@ -163,10 +164,10 @@
     .entry::before { content:''; position:absolute; left:-2.375rem; top:6px;
       width:8px; height:8px; border-radius:50%;
       background:var(--border); border:1.5px solid var(--muted); }
-    .entry-date { font-size:0.625rem; letter-spacing:0.12em; text-transform:uppercase;
+    .entry-date { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       color:var(--muted); margin-bottom:0.3rem; }
-    .entry-title { font-family:'Oswald',sans-serif; font-size:1.3rem; font-weight:600;
-      letter-spacing:0; text-transform:uppercase; line-height:var(--lh-tight); margin-bottom:0.6rem; }
+    .entry-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:600;
+      text-transform:uppercase; line-height:var(--lh-tight); margin-bottom:0.6rem; }
     .entry-summary { font-size:0.75rem; color:var(--subtle); line-height:var(--lh-expanded);
       margin-bottom:0; max-width:560px; }
 
@@ -174,7 +175,7 @@
     .insight { background:var(--surface); border:1px solid var(--border);
       border-left:3px solid var(--accent); padding:0.85rem 1rem;
       border-radius:0 3px 3px 0; }
-    .insight-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
+    .insight-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       color:var(--accent); margin-bottom:0.3rem; }
     .insight-text { font-size:0.75rem; color:var(--subtle); line-height:var(--lh-expanded); }
 
@@ -182,13 +183,13 @@
     .field-notes { background:var(--surface); border:1px solid var(--border);
       border-left:3px solid var(--muted); padding:0.85rem 1rem;
       border-radius:0 3px 3px 0; }
-    .field-notes-label { font-size:0.625rem; letter-spacing:0.14em; text-transform:uppercase;
+    .field-notes-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       color:var(--muted); margin-bottom:0.3rem; }
     .field-notes-text { font-size:0.75rem; color:var(--subtle); line-height:var(--lh-expanded); }
 
     /* Stack tags (log-only) */
     .stack { display:flex; gap:0.4rem; flex-wrap:wrap; }
-    .stack-tag { font-size:0.625rem; letter-spacing:0.07em; text-transform:uppercase;
+    .stack-tag { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       color:var(--muted); border:1px solid var(--border); border-radius:3px;
       padding:0.15rem 0.5rem; background:var(--surface); }
 
@@ -337,6 +338,9 @@
             <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.625rem">.data-note</code>, <code style="font-size:0.625rem">.callout</code>, log entry body text</td></tr>
             <tr><td class="ds-token-name">--lh-normal</td><td>—</td><td class="ds-token-hex">1.5</td><td>Body default — general readable text, <code style="font-size:0.625rem">body</code> element</td></tr>
             <tr><td class="ds-token-name">--lh-tight</td><td>—</td><td class="ds-token-hex">1</td><td>Display and numeric — headings, stat values, tags, buttons</td></tr>
+            <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Letter-spacing tokens:</td></tr>
+            <tr><td class="ds-token-name">--ls-tight</td><td>—</td><td class="ds-token-hex">-0.125rem</td><td>Display titles — <code style="font-size:0.625rem">.page-title</code> (fixed rem, not proportional)</td></tr>
+            <tr><td class="ds-token-name">--ls-expanded</td><td>—</td><td class="ds-token-hex">0.1em</td><td>Small uppercase labels — <code style="font-size:0.625rem">.stat-label</code>, <code style="font-size:0.625rem">.breadcrumb</code>, <code style="font-size:0.625rem">.tag</code>, table headers (proportional em)</td></tr>
           </tbody>
         </table>
         <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#a83228</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). If the status system diverges from the partisan palette in the future, they should split into separate primitives.</div>
@@ -497,70 +501,62 @@
       <h2 class="ds-section-title">Typography</h2>
 
       <div class="ds-type-group">
-        <div class="ds-type-group-label">Oswald — Display &amp; Headings (uppercase only)</div>
+        <div class="ds-type-group-label">Named type styles</div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:600;letter-spacing:0;text-transform:uppercase;line-height:1">Candidate Profile</span>
-          <span class="ds-type-meta">Oswald 600 · clamp(1.6rem, 3vw, 2.4rem)<br>candidate name, page title</span>
+          <span class="page-title" style="margin-bottom:0">Candidate Profile</span>
+          <span class="ds-type-meta"><strong>display</strong><br>Oswald 600 · clamp(1.6–5rem) · --ls-tight · --lh-tight<br>.page-title</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:2rem;font-weight:600;letter-spacing:0;line-height:1">$1.24M</span>
-          <span class="ds-type-meta">Oswald 600 · 2rem<br>stat value</span>
+          <span class="stat-value" style="margin-bottom:0">$1.24M</span>
+          <span class="ds-type-meta"><strong>stat</strong><br>Oswald 600 · 2rem · --lh-tight<br>.stat-value</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:1.3rem;font-weight:600;letter-spacing:0;text-transform:uppercase">Process Log</span>
-          <span class="ds-type-meta">Oswald 600 · 1.3rem<br>entry title, section titles</span>
+          <span class="ds-section-title" style="margin-bottom:0;padding-bottom:0;border-bottom:none">Committee Ecosystem</span>
+          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 600 · 1.25rem · uppercase<br>.top-nav-logo · .results-group-header · .entry-title</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:1rem;font-weight:600;letter-spacing:0;text-transform:uppercase">Committee Ecosystem</span>
-          <span class="ds-type-meta">Oswald 600 · 1rem<br>modal title, tab labels</span>
-        </div>
-      </div>
-
-      <div class="ds-type-group">
-        <div class="ds-type-group-label">IBM Plex Sans — Body &amp; Nav</div>
-        <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;color:var(--muted);line-height:1.5">Raised-to-spent ratio of 3.84× with positive cash on hand.</span>
-          <span class="ds-type-meta">IBM Plex Sans · 0.75rem<br>status descriptions, body text</span>
+          <span class="tab" style="padding:0;border-bottom:none;margin-bottom:0;cursor:default">Summary</span>
+          <span class="ds-type-meta"><strong>tab</strong><br>Oswald 400 · 1.25rem<br>.tab · .cycle-select</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;color:var(--muted)">Candidates</span>
-          <span class="ds-type-meta">IBM Plex Sans · 0.8rem<br>nav items</span>
-        </div>
-      </div>
-
-      <div class="ds-type-group">
-        <div class="ds-type-group-label">IBM Plex Serif — Editorial &amp; Narrative</div>
-        <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Serif',serif;font-size:0.875rem;color:var(--subtle);line-height:1.5">Smith is the incumbent with 2 challengers. <a href="#" style="color:var(--subtle)">View race →</a></span>
-          <span class="ds-type-meta">IBM Plex Serif 400 · 0.875rem<br>race context, health status — sentence-format editorial content</span>
-        </div>
-      </div>
-
-      <div class="ds-type-group">
-        <div class="ds-type-group-label">IBM Plex Mono — Labels &amp; Data</div>
-        <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;font-weight:400;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase">Total Raised</span>
-          <span class="ds-type-meta">IBM Plex Mono 400 · 0.6rem · uppercase<br>section labels, chips</span>
+          <span class="banner-label">Total Raised</span>
+          <span class="ds-type-meta"><strong>subheading</strong><br>Oswald 600 · 0.875rem · uppercase<br>.banner-label · .chart-title · .modal-title · .form-search-btn</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;font-weight:400;color:var(--muted)">Cycle total</span>
-          <span class="ds-type-meta">IBM Plex Mono 400 · 0.58rem<br>legend, data labels</span>
+          <span class="stat-label" style="margin-bottom:0">Total Raised</span>
+          <span class="ds-type-meta"><strong>label</strong><br>Plex Mono 400 · 0.625rem · uppercase · --ls-expanded<br>.stat-label · .tag · .breadcrumb · table headers</span>
+        </div>
+        <div class="ds-type-row">
+          <span class="legend-item" style="gap:0">Cycle total</span>
+          <span class="ds-type-meta"><strong>caption</strong><br>Plex Mono 400 · 0.625rem<br>.legend-item · .banner-note · .donut-center-lbl</span>
+        </div>
+        <div class="ds-type-row">
+          <span class="banner-desc">Raised-to-spent ratio of 3.84× with positive cash on hand.</span>
+          <span class="ds-type-meta"><strong>body</strong><br>Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .banner-desc · .nav-item</span>
+        </div>
+        <div class="ds-type-row">
+          <span class="candidate-card-name" style="margin-bottom:0">Marie Gluesenkamp Perez</span>
+          <span class="ds-type-meta"><strong>body-emphasis</strong><br>Plex Sans 500 · 0.875rem<br>.candidate-card-name · .committee-name</span>
+        </div>
+        <div class="ds-type-row">
+          <span class="tag-context" style="background:none;padding:0;border-radius:0">Smith is the incumbent with 2 challengers. <a href="#" style="color:var(--subtle)">View race →</a></span>
+          <span class="ds-type-meta"><strong>prose</strong><br>Plex Serif 400 · 0.875rem<br>.tag-context — sentence-format editorial content</span>
         </div>
       </div>
 
       <div class="ds-type-group">
         <div class="ds-type-group-label">Line-height system</div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Serif',serif;font-size:0.875rem;color:var(--subtle);line-height:1.75;max-width:320px">Smith is the incumbent with 2 challengers in the 2024 race for House WA-03. View race →</span>
-          <span class="ds-type-meta"><code style="font-size:0.625rem">--lh-expanded: 1.75</code><br>prose / notes<br>.data-note · .callout · log entries</span>
+          <span class="tag-context" style="background:none;padding:0;border-radius:0;line-height:var(--lh-expanded);max-width:320px">Smith is the incumbent with 2 challengers in the 2024 race for House WA-03. View race →</span>
+          <span class="ds-type-meta"><code>--lh-expanded: 1.75</code><br>prose / notes<br>.data-note · .callout · log entries</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;color:var(--muted);line-height:1.5;max-width:320px">Raised-to-spent ratio of 3.84× with positive cash on hand of $412k as of Q3 2024.</span>
-          <span class="ds-type-meta"><code style="font-size:0.625rem">--lh-normal: 1.5</code><br>body default<br>general readable text</span>
+          <span class="banner-desc" style="line-height:var(--lh-normal);max-width:320px">Raised-to-spent ratio of 3.84× with positive cash on hand of $412k as of Q3 2024.</span>
+          <span class="ds-type-meta"><code>--lh-normal: 1.5</code><br>body default<br>general readable text</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:2rem;font-weight:600;line-height:1;letter-spacing:0">$1.24M</span>
-          <span class="ds-type-meta"><code style="font-size:0.625rem">--lh-tight: 1</code><br>display / numeric<br>headings · stat values · tags</span>
+          <span class="stat-value" style="margin-bottom:0">$1.24M</span>
+          <span class="ds-type-meta"><code>--lh-tight: 1</code><br>display / numeric<br>headings · stat values · tags</span>
         </div>
       </div>
     </section>
@@ -648,7 +644,7 @@
         <div class="ds-component-classes">.top-nav · .top-nav-logo · .top-nav-links · .nav-link · .nav-link.active · .top-nav-search · .top-nav-mobile-controls · .mobile-nav · .nav-item · .nav-item.active</div>
         <div class="ds-component-demo">
           <div style="background:var(--bg);border:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:1rem;border-radius:2px">
-            <span style="font-family:'Oswald',sans-serif;font-size:1.1rem;font-weight:600;text-transform:uppercase;color:var(--text);flex-shrink:0;">FEC<em style="font-style:normal;color:var(--muted)">Ledger</em></span>
+            <span class="top-nav-logo">FEC<em>Ledger</em></span>
             <a class="nav-link active" href="#" style="height:auto;padding:0.25rem 0.75rem">Candidates</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Committees</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Races</a>
@@ -754,7 +750,7 @@
 
             <!-- Text input states -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Text input</div>
+              <div class="ds-demo-label">Text input</div>
               <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
                 <input class="form-input" type="text" value="Default" style="max-width:160px">
                 <input class="form-input" type="text" value="Focused" style="max-width:160px;border-color:var(--accent)">
@@ -764,7 +760,7 @@
 
             <!-- Select + wide variant -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Native select — mobile fallback · cycle-select · terminated toggle</div>
+              <div class="ds-demo-label">Native select — mobile fallback · cycle-select · terminated toggle</div>
               <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
                 <select class="form-select">
                   <option>All states</option>
@@ -780,7 +776,7 @@
 
             <!-- Search combo -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Search combo</div>
+              <div class="ds-demo-label">Search combo</div>
               <div class="search-combo" style="max-width:360px">
                 <input class="form-input" type="text" placeholder="Search candidates…">
                 <button class="form-search-btn">Search</button>
@@ -789,7 +785,7 @@
 
             <!-- State combo — filterable -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">State combo — filterable</div>
+              <div class="ds-demo-label">State combo — filterable</div>
               <div class="state-combo combo-wrap" style="display:inline-block">
                 <input class="form-input" type="text" placeholder="All states" autocomplete="off"
                   role="combobox" aria-haspopup="listbox" aria-expanded="true">
@@ -803,10 +799,10 @@
 
             <!-- Combo-wrap filter dropdown -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Combo-wrap filter dropdown</div>
+              <div class="ds-demo-label">Combo-wrap filter dropdown</div>
               <div style="display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap">
                 <div style="display:flex;flex-direction:column;gap:0.5rem">
-                  <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Default</span>
+                  <span class="ds-demo-label" style="margin-bottom:0">Default</span>
                   <div class="combo-wrap">
                     <button type="button" class="combo-trigger form-select" aria-haspopup="listbox" aria-expanded="false">All offices</button>
                     <div class="typeahead-dropdown" role="listbox">
@@ -818,7 +814,7 @@
                   </div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:0.5rem">
-                  <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Open</span>
+                  <span class="ds-demo-label" style="margin-bottom:0">Open</span>
                   <div class="combo-wrap">
                     <button type="button" class="combo-trigger form-select" aria-haspopup="listbox" aria-expanded="true">All offices</button>
                     <div class="typeahead-dropdown open" role="listbox" style="position:static;min-width:160px">
@@ -834,9 +830,9 @@
 
             <!-- Cycle select in tab bar context -->
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">Cycle select — tab bar context</div>
+              <div class="ds-demo-label">Cycle select — tab bar context</div>
               <div class="tabs-bar">
-                <select class="cycle-select">
+                <select class="form-select cycle-select">
                   <option>2024</option>
                   <option>2022</option>
                   <option>2020</option>
@@ -914,7 +910,7 @@
         </div>
         <div class="ds-component-classes">.map-svg-wrap · .map-legend · .map-legend-bar · .map-legend-lbl · .map-tt · .map-tt-name · .map-tt-val</div>
         <div class="ds-component-demo">
-          <div class="map-svg-wrap" style="max-width:400px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;height:120px;font-size:0.625rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">SVG path map</div>
+          <div class="map-svg-wrap" style="max-width:400px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;height:120px;font-size:0.625rem;color:var(--muted);letter-spacing:var(--ls-expanded);text-transform:uppercase">SVG path map</div>
           <div class="map-legend" style="max-width:400px;margin-top:0.75rem">
             <div class="map-legend-lbl">$0</div>
             <div class="map-legend-bar" style="background:linear-gradient(to right,rgba(74,144,217,0.1),rgba(74,144,217,0.92))"></div>
@@ -933,7 +929,7 @@
         <div class="ds-component-classes">.tabs-bar · .tab · .tab.active · .cycle-select · .chart-card · .chart-header · .chart-title · .chart-legend · .legend-item · .legend-swatch · .legend-dashed · .legend-amber-dashed</div>
         <div class="ds-component-demo" style="padding:0">
           <div class="tabs-bar" id="demo-tabs">
-            <select class="form-select cycle-select" style="align-self:stretch;border:none;border-radius:0;font-size:0.75rem;padding:0 0.75rem;min-width:5.5rem;margin-right:1rem;background:var(--bg);color:var(--subtle)">
+            <select class="form-select cycle-select">
               <option>2024</option>
               <option>2022</option>
             </select>
@@ -957,7 +953,7 @@
             </div>
           </div>
         </div>
-        <div class="ds-component-notes">Chart line/point colors use the <code>CHART_COLORS</code> JS constant in <code>candidate.html</code>'s script block. HTML legend swatches use the corresponding <code>--chart-*</code> CSS vars in <code>styles.css :root</code>. Add new chart color vars there before using hardcoded rgba in chart configs. — The cycle <code>&lt;select&gt;</code> uses <code>.form-select</code> as base with <code>.cycle-select</code> for tab-bar sizing (no borders, <code>margin-right:1rem</code>, <code>align-self:stretch</code>); scoped to <code>candidate.html</code>'s inline style block.</div>
+        <div class="ds-component-notes">Chart line/point colors use the <code>CHART_COLORS</code> JS constant in <code>candidate.html</code>'s script block. HTML legend swatches use the corresponding <code>--chart-*</code> CSS vars in <code>styles.css :root</code>. Add new chart color vars there before using hardcoded rgba in chart configs. — The cycle <code>&lt;select&gt;</code> uses <code>.cycle-select.form-select</code> in <code>styles.css</code> (Oswald 400, 1.25rem, no border, <code>color:var(--text)</code>) — specificity bump ensures it overrides <code>.form-select</code> defaults.</div>
       </div>
 
       <!-- 10. Section title + committee rows -->
@@ -1155,7 +1151,7 @@
         <div class="ds-component-demo">
           <div style="display:flex;gap:2rem;align-items:center;flex-wrap:wrap">
             <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-start">
-              <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Off</span>
+              <span class="ds-demo-label" style="margin-bottom:0">Off</span>
               <label class="toggle-switch">
                 <input type="checkbox">
                 <span class="toggle-track"><span class="toggle-knob"></span></span>
@@ -1163,7 +1159,7 @@
               </label>
             </div>
             <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-start">
-              <span style="font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">On</span>
+              <span class="ds-demo-label" style="margin-bottom:0">On</span>
               <label class="toggle-switch">
                 <input type="checkbox" checked>
                 <span class="toggle-track"><span class="toggle-knob"></span></span>

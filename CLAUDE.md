@@ -140,7 +140,28 @@ Nav tokens:
 --nav-active-bg: #d4cdc3  (nav active state background — currently unused, reserved)
 ```
 
-Typography: Oswald 400/600 for display/headings (uppercase; max weight 600), IBM Plex Sans 400/600 for body/nav, IBM Plex Serif 400/600 for editorial/narrative prose (sentence-format content: race context, health status), IBM Plex Mono 400/600 for labels and data. (redesign branch; main uses Barlow Condensed + DM Sans). Line-height system: `--lh-expanded: 1.75` (prose/notes), `--lh-normal: 1.5` (body default), `--lh-tight: 1` (display/numeric). Formalized as CSS vars in `styles.css :root`; used via `var(--lh-*)` in all class rules across styles.css, design-system.html, search.html, and process-log.html. Font-size scale (redesign branch): three tiers — `0.625rem` (labels/data), `0.75rem` (body/nav), `0.875rem` (medium UI: tabs, banner labels, serif context). Values at 1rem+ (headings, stat values, logo, modals) and the two hardcoded px values (10px banner, 14px body base) are outside the tier system. No CSS vars for font-size — consolidated as literals.
+**Typography — named type styles (redesign branch):** All text must use one of these 10 canonical styles. Do not introduce new font-family/font-size/font-weight combinations — map to the closest existing style. The styles are documented in `styles.css :root` (comment block) and rendered as live specimens in `design-system.html`.
+
+| Style | Family | Size | Weight | Transform | Spacing | Line-height |
+|---|---|---|---|---|---|---|
+| **display** | Oswald | clamp(1.6rem,5vw,5rem) | 600 | uppercase | `--ls-tight` | `--lh-tight` |
+| **stat** | Oswald | 2rem | 600 | — | — | `--lh-tight` |
+| **heading** | Oswald | 1.25rem | 600 | uppercase | — | — |
+| **tab** | Oswald | 1.25rem | 400 | none | — | — |
+| **subheading** | Oswald | 0.875rem | 600 | uppercase | — | — |
+| **label** | IBM Plex Mono | 0.625rem | 400 | uppercase | `--ls-expanded` | — |
+| **caption** | IBM Plex Mono | 0.625rem | 400 | none | — | — |
+| **body** | IBM Plex Sans | 0.75rem | 400 | none | — | — |
+| **body-emphasis** | IBM Plex Sans | 0.875rem | 500 | none | — | — |
+| **prose** | IBM Plex Serif | 0.875rem | 400 | none | — | — |
+
+"—" = inherits default (no explicit declaration needed). Exceptions outside the system: `body` element (14px base), `.global-banner-text` (Mono 10px).
+
+**Typography tokens (CSS vars in `styles.css :root`):**
+- Line-height: `--lh-expanded: 1.75` (prose/notes), `--lh-normal: 1.5` (body default), `--lh-tight: 1` (display/numeric)
+- Letter-spacing: `--ls-tight: -0.125rem` (display titles, fixed rem), `--ls-expanded: 0.1em` (small uppercase labels, proportional em)
+
+Font families: Oswald 400/600 (display/headings), IBM Plex Sans 400/600 (body/nav), IBM Plex Serif 400/600 (editorial prose), IBM Plex Mono 400/600 (labels/data). Redesign branch only; main uses Barlow Condensed + DM Sans.
 
 ---
 

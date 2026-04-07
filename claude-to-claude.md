@@ -2233,3 +2233,55 @@ The through-line: you came in with a clear sense of what a systematic typography
 – Letter-spacing next? Font-size and line-height passes are done. Letter-spacing has the same drift pattern — a cluster of values that could collapse to two, plus a breadcrumb discrepancy (0.05em in design-system.html vs 0.08em in styles.css). Is this next, or lower priority than other Oswald/visual work?
 – IBM Plex Serif expansion: .tag-context is the only Serif use. .banner-desc was flagged as a candidate. Now that font-size is clean, does .banner-desc at 0.75rem in Serif feel right, or should it stay IBM Plex Sans?
 – CSS vars for font-size? The consolidation landed as literals. Is there appetite for --fs-label/--fs-body/--fs-medium vars in a follow-up, or is the three-tier literal system sufficient for this project's scale?
+
+---
+2026-04-06 — Typography consolidation: 32 combos → 10 named styles
+
+## Process log draft
+Title: From 32 shades of gray to 10 with names
+
+The typography system was technically working — every element had a font-family, a font-size, a weight. But there were 32 distinct combinations, many near-duplicates with slight variations nobody could explain. This session collapsed them into 10 named styles with clear roles: display, stat, heading, tab, subheading, label, caption, body, body-emphasis, prose. Same approach for letter-spacing — seven different values consolidated into two CSS vars. The search page's oversized hero title is gone, replaced by the same .page-title every other page uses. The design system specimens now render from production CSS classes instead of inline styles, which means they can't drift from reality.
+
+Changelog:
+– Eliminated .search-hero class; search page now uses shared .page-header + .page-title
+– Updated .page-title: font-size to clamp(1.6rem,5vw,5rem), letter-spacing to -0.125rem
+– Tabs and cycle select updated to Oswald 1.25rem; cycle-select specificity fixed via .cycle-select.form-select
+– Consolidated all 1.1rem/1.2rem/1.3rem font-sizes to 1.25rem across 6 files
+– Created letter-spacing system: --ls-tight (-0.125rem) and --ls-expanded (0.1em); collapsed 7 distinct values; stripped ~40 unnecessary letter-spacing:0 declarations
+– Defined 10 named type styles; documented in styles.css :root comment block and CLAUDE.md table
+– Updated .modal-title and .form-search-btn to subheading (0.875rem); .nav-item to body (0.75rem); .committee-name to body-emphasis (0.875rem); .candidate-card-stat-val to subheading (0.875rem)
+– Promoted .candidate-name { min-width:0 } to styles.css (was duplicated in candidate.html + design-system.html)
+– Rewrote design-system.html typography section: specimens use production classes; created .ds-demo-label class replacing ~15 inline-styled demo labels; added --ls-tight/--ls-expanded to token table
+– CLAUDE.md typography section rewritten with named styles table and enforcement rule
+
+Field notes:
+The most interesting discovery was how many letter-spacing values existed. Seven different values between 0.02em and 0.14em, all doing the same job: "slightly spaced small uppercase label." Nobody chose seven — they accumulated, one component at a time, each author picking a number that looked right in isolation. The same thing was happening with font-sizes: 1.1rem, 1.2rem, 1.25rem, 1.3rem — four sizes that are visually indistinguishable at screen distance. The consolidation wasn't about picking the "right" number. It was about deciding there should be one number instead of four. The named styles table in CLAUDE.md is the real deliverable — not because it documents what exists, but because it constrains what can be added next.
+
+Stack tags: CSS custom properties · Typography system · Design tokens
+
+## How Sloane steered the work
+**"Align search hero to page title and eliminate the class"**
+The opening move set the tone for the entire session. Rather than fixing the search hero's typography, eliminate the class entirely and use the shared pattern. That instinct — consolidate, don't customize — drove every decision that followed.
+
+**Catching the cycle-select mismatch visually**
+When the cycle select didn't match the tabs despite the CSS changes, Sloane caught it from a screenshot and pushed until the specificity issue was resolved. A developer might have accepted "the code looks right" — a designer checks whether it *looks* right.
+
+**"What text uses 1.1rem, 1.2rem, 1.35rem, 1.3rem?"**
+This question launched the font-size consolidation. Sloane didn't ask to fix a specific element — she asked for the full picture first. That's systems thinking: understand the landscape before making moves.
+
+**"Should letter-spacing be em or rem? What's correct?"**
+Rather than accepting the mixed units, Sloane asked for the reasoning. The answer (em for proportional tracking, rem for fixed display tightening) informed the var naming and meant the system was built on understanding, not just pattern-matching.
+
+**"I'd like to limit it to ~10 clearly defined styles"**
+This was the session's defining constraint. Not "clean up the typography" — "give me a number." The constraint forced real decisions: modal-title absorbs into subheading (0.875rem), committee-name bumps up to body-emphasis (0.875rem). Without the target count, each of those would have stayed as a comfortable one-off.
+
+**"How can we avoid deviation in future sessions?"**
+The final question shifted from execution to durability. The CLAUDE.md enforcement rule ("All text must use one of these 10 styles") is the direct result — a constraint that outlives the session.
+
+The through-line: Sloane consistently treated typography as a *system* to be designed, not a collection of values to be cleaned up. Every question was framed at the system level — how many styles should exist, what units are correct, how do we enforce it — and the implementation followed from the constraints.
+
+## What to bring to Claude Chat
+– Typography review on live branch preview — The named styles are defined but need a visual check across all pages at desktop and mobile. Some size changes (modal-title 1rem→0.875rem, form-search-btn 0.75rem→0.875rem, nav-item 1rem→0.75rem) may feel too small or too large in context.
+– Mono 0.75rem assessment — Deferred from this session. Several classes use IBM Plex Mono at 0.75rem (.committees-link, .form-input, .filter-bar) — this sits between label (0.625rem) and body (0.75rem Plex Sans). Should it stay as-is, or should those elements use Plex Sans body instead?
+– committee-treasurer promotion — .committee-treasurer has no CSS rule in styles.css (only inline styles). Worth promoting as body style.
+– The two hardcoded px values — body at 14px and .global-banner-text at 10px are outside the rem system. Worth discussing whether 14px is the right base.

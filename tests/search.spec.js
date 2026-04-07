@@ -23,7 +23,7 @@ test.describe('search.html — initial state (no query)', () => {
   });
 
   test('search hero / empty state is visible without a query', async ({ page }) => {
-    await expect(page.locator('.search-hero')).toBeVisible();
+    await expect(page.locator('#state-empty .page-header')).toBeVisible();
   });
 
   test('Amplitude Page Viewed fires with page: search', async ({ page }) => {
