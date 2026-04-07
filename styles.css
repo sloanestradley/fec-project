@@ -108,11 +108,11 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 
 /* ── Layout ── */
 .layout { min-height:100vh; }
-.main { padding-top:var(--header-h); overflow-x:hidden; min-width:0; }
+.main { overflow-x:hidden; min-width:0; }
 .main-inner { max-width:1600px; margin-left:auto; margin-right:auto; width:100%; }
 
 /* ── Top nav ── */
-.top-nav { position:fixed; top:0; left:0; right:0;
+.top-nav { position:sticky; top:0; left:0; right:0;
   height:var(--header-h); background:var(--bg);
   border-bottom:1px solid var(--border); z-index:200; }
 .top-nav-inner { display:flex; align-items:center;

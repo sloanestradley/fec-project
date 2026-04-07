@@ -195,7 +195,7 @@
 
     /* Responsive */
     @media (max-width:860px) {
-      .main { padding:var(--space-24) var(--page-gutter); padding-top: calc(var(--header-h) + var(--space-24)); }
+      .main { padding:var(--space-24) var(--page-gutter); }
       .stats-grid { grid-template-columns:repeat(2,1fr); }
     }
   </style>
@@ -670,7 +670,7 @@
           <span class="ds-component-name">Global Banner</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.global-banner · .global-banner-text — normally position:fixed top:0</div>
+        <div class="ds-component-classes">.global-banner · .global-banner-text — in normal flow above sticky nav; scrolls out of view</div>
         <div class="ds-component-demo">
           <div class="ds-note">Rendered inline here; on live pages it is <code style="font-size:0.625rem">position:fixed</code> and sits above the top nav.</div>
           <div class="global-banner">
