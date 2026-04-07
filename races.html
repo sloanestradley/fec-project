@@ -9,19 +9,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <!-- Amplitude Analytics -->
-  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     .main { overflow:visible; min-width:0; }
     .filter-bar-wrap { position:relative; z-index:10; } /* stacking context for filter bar dropdown */
     .section-title { font-family:'Oswald',sans-serif; font-weight:600;
       font-size:0.875rem; text-transform:uppercase;
-      color:var(--subtle); margin:1.5rem 0 0.5rem; }
+      color:var(--subtle); margin:var(--space-24) 0 var(--space-8); }
     .section-title:first-child { margin-top:0; }
-    .race-row-meta { display:flex; gap:1rem; font-family:'IBM Plex Mono',monospace;
-      font-size:0.625rem; color:var(--muted); margin-top:0.2rem; }
+    .race-row-meta { display:flex; gap:var(--space-16); font-family:'IBM Plex Mono',monospace;
+      font-size:0.625rem; color:var(--muted); margin-top:var(--space-4); }
     .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
       text-transform:uppercase; color:var(--muted);
-      margin-bottom:1rem; }
+      margin-bottom:var(--space-16); }
     @media (max-width:860px) {
       .main { padding-top:calc(var(--banner-h) + var(--header-h)); }
     }

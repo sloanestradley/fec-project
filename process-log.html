@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <!-- Amplitude Analytics -->
-  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     /* ── Main ── */
     .main {
@@ -21,8 +21,8 @@
     .page-header {
       border-top: 3px solid var(--text);
       border-bottom: 1px solid var(--border);
-      padding: 1.5rem 0 1.25rem;
-      margin-bottom: 3.5rem;
+      padding: var(--space-24) 0 var(--space-24);
+      margin-bottom: var(--space-64);
     }
 
 
@@ -37,7 +37,7 @@
     /* ── Timeline ── */
     .timeline {
       position: relative;
-      padding-left: 2rem;
+      padding-left: var(--space-32);
     }
 
     /* Vertical rule */
@@ -54,7 +54,7 @@
     /* ── Entry ── */
     .entry {
       position: relative;
-      margin-bottom: 3.5rem;
+      margin-bottom: var(--space-64);
       opacity: 0;
       transform: translateY(14px);
       animation: fadeUp 0.5s ease forwards;
@@ -100,7 +100,7 @@
       letter-spacing: var(--ls-expanded);
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 0.3rem;
+      margin-bottom: var(--space-4);
     }
 
     .entry.today .entry-date { color: var(--accent); }
@@ -112,7 +112,7 @@
       font-weight: 700;
       text-transform: uppercase;
       line-height: var(--lh-tight);
-      margin-bottom: 0.6rem;
+      margin-bottom: var(--space-8);
     }
 
     /* Summary */
@@ -120,7 +120,7 @@
       font-size: 0.75rem;
       color: var(--subtle);
       line-height: var(--lh-expanded);
-      margin-bottom: 1rem;
+      margin-bottom: var(--space-16);
       max-width: 560px;
     }
 
@@ -130,13 +130,13 @@
 
     /* Changelog */
     .changelog {
-      margin-bottom: 1rem;
+      margin-bottom: var(--space-16);
     }
 
     .changelog-item {
       display: flex;
-      gap: 0.6rem;
-      padding: 0.3rem 0;
+      gap: var(--space-8);
+      padding: var(--space-4) 0;
       font-size:0.75rem;
       color: var(--subtle);
       border-bottom: 1px solid var(--border);
@@ -148,7 +148,7 @@
     .changelog-bullet {
       color: var(--muted);
       flex-shrink: 0;
-      margin-top: 0.05rem;
+      margin-top: 0.05rem; /* 0.8px — fine-tune only */
     }
 
     /* Insight */
@@ -156,8 +156,8 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-left: 3px solid var(--accent);
-      padding: 0.85rem 1rem;
-      margin-bottom: 1rem;
+      padding: var(--space-16);
+      margin-bottom: var(--space-16);
       border-radius: 0 3px 3px 0;
     }
 
@@ -166,7 +166,7 @@
       letter-spacing: var(--ls-expanded);
       text-transform: uppercase;
       color: var(--accent);
-      margin-bottom: 0.3rem;
+      margin-bottom: var(--space-4);
     }
 
     .insight-text {
@@ -178,9 +178,9 @@
     /* Stack tags */
     .stack {
       display: flex;
-      gap: 0.4rem;
+      gap: var(--space-8);
       flex-wrap: wrap;
-      margin-bottom: 1rem;
+      margin-bottom: var(--space-16);
     }
 
     .stack-tag {
@@ -190,7 +190,7 @@
       color: var(--muted);
       border: 1px solid var(--border);
       border-radius: 3px;
-      padding: 0.15rem 0.5rem;
+      padding: var(--space-4) var(--space-8);
       background: var(--surface);
     }
 
@@ -203,12 +203,12 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
+      gap: var(--space-8);
       color: var(--muted);
       font-size:0.75rem;
       letter-spacing: var(--ls-expanded);
       text-transform: uppercase;
-      margin-bottom: 1rem;
+      margin-bottom: var(--space-16);
       background: var(--surface);
     }
 
@@ -221,8 +221,8 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-left: 3px solid var(--muted);
-      padding: 0.85rem 1rem;
-      margin-bottom: 1rem;
+      padding: var(--space-16);
+      margin-bottom: var(--space-16);
       border-radius: 0 3px 3px 0;
     }
     .field-notes-label {
@@ -230,7 +230,7 @@
       letter-spacing: var(--ls-expanded);
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 0.3rem;
+      margin-bottom: var(--space-4);
     }
     .field-notes-text {
       font-size:0.75rem;
@@ -249,8 +249,8 @@
     /* ── View toggle ── */
     .view-toggle {
       display: flex;
-      gap: 1.5rem;
-      margin-top: 1.25rem;
+      gap: var(--space-24);
+      margin-top: var(--space-24);
       padding-bottom: 0;
     }
 
@@ -258,7 +258,7 @@
       background: none;
       border: none;
       border-bottom: 2px solid transparent;
-      padding: 0 0 0.35rem;
+      padding: 0 0 var(--space-4);
       font-family: 'IBM Plex Mono', monospace;
       font-size:0.75rem;
       letter-spacing: var(--ls-expanded);
@@ -279,7 +279,7 @@
 
     /* Responsive */
     @media (max-width: 860px) {
-      .main { padding: 1.5rem var(--page-gutter); padding-top: calc(var(--header-h) + 1.5rem); }
+      .main { padding: var(--space-24) var(--page-gutter); padding-top: calc(var(--header-h) + var(--space-24)); }
     }
   </style>
 </head>

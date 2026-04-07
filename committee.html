@@ -14,20 +14,20 @@
   <script src="https://cdn.jsdelivr.net/npm/d3-array@3/dist/d3-array.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-geo@3/dist/d3-geo.min.js"></script>
   <!-- Amplitude Analytics -->
-  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     /* Committee header */
-    .committee-header-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap; }
+    .committee-header-row { display:flex; align-items:center; gap:var(--space-8); margin-bottom:var(--space-8); flex-wrap:wrap; }
     .designation-label { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
-      color:var(--muted); margin-left:0.25rem; }
-    .back-link-area { margin-top:0.85rem; }
+      color:var(--muted); margin-left:var(--space-4); }
+    .back-link-area { margin-top:var(--space-16); }
     .back-link-area a { font-family:'IBM Plex Mono',monospace; font-size:0.75rem;
       color:var(--subtle); text-decoration:underline; text-decoration-color:transparent;
       text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
     .back-link-area a:hover { color:var(--accent); text-decoration-color:var(--accent); }
 
     /* Content area */
-    .committee-content { padding:2.5rem var(--page-gutter);
+    .committee-content { padding:var(--space-40) var(--page-gutter);
       opacity:0; transition:opacity 0.3s ease; }
     .committee-content.visible { opacity:1; }
 
@@ -35,7 +35,7 @@
     .assoc-list { display:flex; flex-direction:column; }
 
     @media (max-width:860px) {
-      .committee-content { padding:1.5rem var(--page-gutter); }
+      .committee-content { padding:var(--space-24) var(--page-gutter); }
     }
   </style>
 </head>

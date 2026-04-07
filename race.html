@@ -9,26 +9,26 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <!-- Amplitude Analytics -->
-  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     /* Race header — shared base via .page-header and .page-title in styles.css */
-    .race-meta-row { display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem; }
+    .race-meta-row { display:flex; align-items:center; gap:var(--space-8); margin-top:var(--space-4); }
     .race-meta { font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:var(--muted); }
     .year-select { font-family:'IBM Plex Mono',monospace; font-size:0.75rem;
       color:var(--subtle); background:transparent; border:none;
-      border-bottom:1px solid var(--border); padding:0.1rem 0.25rem;
+      border-bottom:1px solid var(--border); padding:var(--space-4);
       cursor:pointer; appearance:none; -webkit-appearance:none;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23625b52'/%3E%3C/svg%3E");
-      background-repeat:no-repeat; background-position:right 0.25rem center;
-      padding-right:1.1rem; }
+      background-repeat:no-repeat; background-position:right var(--space-4) center;
+      padding-right:var(--space-16); }
     .year-select:focus { outline:1px solid var(--accent); }
 
-    .race-content { padding:2rem var(--page-gutter); opacity:0; transition:opacity 0.3s ease; }
+    .race-content { padding:var(--space-32) var(--page-gutter); opacity:0; transition:opacity 0.3s ease; }
     .race-content.visible { opacity:1; }
-    .race-list { display:flex; flex-direction:column; margin-bottom:1.5rem; }
+    .race-list { display:flex; flex-direction:column; margin-bottom:var(--space-24); }
 
     @media (max-width:860px) {
-      .race-content { padding:1.5rem var(--page-gutter); }
+      .race-content { padding:var(--space-24) var(--page-gutter); }
     }
   </style>
 </head>

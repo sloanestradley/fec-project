@@ -9,27 +9,27 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <!-- Amplitude Analytics -->
-  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     /* Search bar — always visible at top */
-    .search-bar-wrap { padding:2.5rem var(--page-gutter) 2rem; border-bottom:1px solid var(--border); }
+    .search-bar-wrap { padding:var(--space-40) var(--page-gutter) var(--space-32); border-bottom:1px solid var(--border); }
     .search-bar { display:flex; gap:0; max-width:600px; }
     .search-bar .form-input { flex:1; border-right:none; }
 
     /* Empty / hero state */
-    #state-empty .page-header { padding:5rem var(--page-gutter); max-width:560px; }
+    #state-empty .page-header { padding:5rem var(--page-gutter); /* 80px — no token above --space-64 */ max-width:560px; }
     #state-empty .search-sub { font-size:0.75rem; color:var(--muted); line-height:var(--lh-normal); }
 
     /* No results */
-    .no-results { padding:3rem var(--page-gutter); color:var(--muted); font-size:0.75rem; }
+    .no-results { padding:var(--space-48) var(--page-gutter); color:var(--muted); font-size:0.75rem; }
     .no-results strong { color:var(--text); display:block; font-size:1rem;
       font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase;
-      margin-bottom:0.4rem; }
+      margin-bottom:var(--space-8); }
 
     @media (max-width:860px) {
       .search-bar-wrap { padding:var(--page-gutter); }
-      #state-empty .page-header { padding:3rem var(--page-gutter) 2rem; }
-      .no-results { padding:2rem var(--page-gutter); }
+      #state-empty .page-header { padding:var(--space-48) var(--page-gutter) var(--space-32); }
+      .no-results { padding:var(--space-32) var(--page-gutter); }
     }
   </style>
 </head>

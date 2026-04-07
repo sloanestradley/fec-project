@@ -9,16 +9,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <!-- Amplitude Analytics -->
-  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     .main { overflow-x:hidden; min-width:0; }
     /* Override committee-row grid for unified 4-column layout (name + type + treasurer + status) */
     #results-list .committee-row { grid-template-columns:1fr auto auto auto; }
     .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
       text-transform:uppercase; color:var(--muted);
-      padding-bottom:0.75rem; }
+      padding-bottom:var(--space-8); }
     @media (max-width:860px) {
-      #results-list .committee-row { grid-template-columns:1fr; gap:0.2rem; }
+      #results-list .committee-row { grid-template-columns:1fr; gap:var(--space-4); }
     }
   </style>
 </head>

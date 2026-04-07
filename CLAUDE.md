@@ -89,21 +89,28 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **Rgba semantic token refactor — deferred:** Several semantic tokens in `:root` (`--chart-raised`, `--chart-spent`, `--chart-overlay-*`, etc.) are expressed as raw `rgba()` values rather than `color-mix()` derivations from primitives. This is a known cleanup item. Blocked on a decision about whether blue-500 (`#4a90d9`), red-500 (`#d94a4a`), and chart-amber (`rgba(232,160,32,...)`) should be promoted to `:root` as explicit primitive tokens. Do not refactor piecemeal — address as a single pass when unblocked.
 
-**Spacing token system (8px grid):** All padding, margin, and gap declarations in `styles.css` use one of nine named tokens. Do not write raw rem spacing values in `styles.css` — map to the nearest token. Inline `<style>` blocks in individual HTML pages are page-specific overrides and may use raw values only when no token fits and the deviation is documented with an inline comment.
+**Spacing token system (8px grid):** All padding, margin, and gap declarations in `styles.css` AND inline `<style>` blocks use `--space-*` tokens exclusively. Do not write raw rem spacing values in either location — map to the nearest token using the table below. The only permitted raw values are sub-floor fine-tunes (below 0.1rem) and values above the scale ceiling (above 4rem), both must be documented with an inline comment.
+
+Off-grid values map to nearest token as follows:
+```
+0.1–0.2rem  → --space-4    0.3–0.35rem → --space-4
+0.4–0.75rem → --space-8    0.8–1.2rem  → --space-16
+1.25–1.5rem → --space-24   1.75–2rem   → --space-32
+```
 
 ```
 --space-2:  2px      micro — fine-tuning only; leave an inline comment at every call site
---space-4:  0.25rem  tag padding, chip gap, form-field label gap
---space-8:  0.5rem   meta gaps, form control padding, tight component rows
---space-16: 1rem     standard component padding, card internals, table cells
---space-24: 1.5rem   section subgaps, modal padding, nav inner
---space-32: 2rem     card body padding, results area
---space-40: 2.5rem   page-header top, sparse empty states
+--space-4:  0.25rem  tag padding, chip gap, form-field label gap, entry-date margin, icon fine-tune
+--space-8:  0.5rem   meta gaps, form control padding, tight component rows, badge padding, swatch gaps
+--space-16: 1rem     standard component padding, card internals, table cells, insight/field-notes padding
+--space-24: 1.5rem   section subgaps, modal padding, nav inner, content area padding, raised grid gap
+--space-32: 2rem     card body padding, results area, timeline indent, entry margin, raised-cell padding
+--space-40: 2.5rem   page-header top, committee/race content padding
 --space-48: 3rem     page gutter (desktop) — use via var(--page-gutter)
---space-64: 4rem     full-bleed empty state padding
+--space-64: 4rem     DS section margin, page-header bottom margin, timeline entry gap, hero state padding
 ```
 
-Documented non-token exceptions in `styles.css`: `gap:1px` in `.stats-grid` (hairline border technique); `margin-bottom:-1px` in `.tab` (border-offset technique); `calc(-1 * var(--space-24))` for the negative modal committee-row flush margin.
+Documented non-token exceptions: `gap:1px` in `.stats-grid` (hairline border technique); `margin-bottom:-1px` in `.tab` (border-offset technique); `calc(-1 * var(--space-24))` for the negative modal committee-row flush margin. Inline block exception: `margin-top:0.05rem` on `.changelog-bullet` in `process-log.html` (0.8px — below mapping floor, fine-tune only).
 
 **Page gutter pattern:** All content sections use `var(--page-gutter)` for horizontal padding — resolves to `var(--space-48)` (48px) on desktop, `var(--space-16)` (16px) on mobile (≤860px). Mobile value is overridden in `:root` inside `@media (max-width:860px)`. When adding a new page or content section, use `padding: <vertical> var(--page-gutter)`. Component-internal padding (buttons, cards, modals) uses `--space-*` tokens directly, not `--page-gutter`.
 
