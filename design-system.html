@@ -209,7 +209,7 @@
 <!-- Top nav -->
 <nav class="top-nav" id="top-nav">
   <div class="top-nav-inner">
-    <a class="top-nav-logo" href="/">FEC<em>Ledger</em></a>
+    <a class="top-nav-logo" href="/"><span class="logo-fec">FEC</span><span class="logo-ledger">Ledger</span></a>
     <div class="top-nav-links">
       <a class="nav-link" href="/candidates">Candidates</a>
       <a class="nav-link" href="/committees">Committees</a>
@@ -281,6 +281,8 @@
             <tr><td><span class="ds-token-dot" style="background:#5a4a7a"></span>purple-deep</td><td class="ds-token-hex">#5a4a7a</td><td>Independent</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#1e6644"></span>green-deep</td><td class="ds-token-hex">#1e6644</td><td>Success</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#8a5f10"></span>amber-deep</td><td class="ds-token-hex">#8a5f10</td><td>Warning</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#05234f"></span>navy-950</td><td class="ds-token-hex">#05234f</td><td>Nav logo "Ledger" — future brand accent</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#a83228"></span>red-700</td><td class="ds-token-hex">#a83228</td><td>Nav logo "FEC" — also backs --rep and --red</td></tr>
             <tr><td colspan="3" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Chart primitives (still referenced by --chart-* tokens, unchanged from previous palette):</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#4a90d9"></span>blue-500</td><td class="ds-token-hex">#4a90d9</td><td>Chart raised</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#d94a4a"></span>red-500</td><td class="ds-token-hex">#d94a4a</td><td>Chart spent</td></tr>
@@ -344,8 +346,8 @@
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Layout tokens:</td></tr>
             <tr><td class="ds-token-name">--page-gutter</td><td>--space-48</td><td class="ds-token-hex">3rem / 1rem</td><td>Horizontal content padding — <code style="font-size:0.625rem">var(--space-48)</code> desktop, <code style="font-size:0.625rem">var(--space-16)</code> mobile (≤860px). Use <code style="font-size:0.625rem">padding: &lt;v&gt; var(--page-gutter)</code> on all content sections.</td></tr>
             <tr><td class="ds-token-name">--section-gap</td><td>--space-24</td><td class="ds-token-hex">1.5rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.625rem">margin-bottom</code> on: <code style="font-size:0.625rem">.banner</code>, <code style="font-size:0.625rem">.chart-card</code>, <code style="font-size:0.625rem">.donors-card</code>, <code style="font-size:0.625rem">.stats-grid</code>, <code style="font-size:0.625rem">.raised-grid</code>.</td></tr>
-            <tr><td class="ds-token-name">--header-h</td><td>—</td><td class="ds-token-hex">48px</td><td>Fixed top nav height. Total content offset = <code style="font-size:0.625rem">--banner-h + --header-h</code> = 88px.</td></tr>
-            <tr><td class="ds-token-name">--banner-h</td><td>—</td><td class="ds-token-hex">40px</td><td>Fixed global banner height. Body and nav both reference this token to maintain correct stacking.</td></tr>
+            <tr><td class="ds-token-name">--header-h</td><td>—</td><td class="ds-token-hex">48px</td><td>Fixed top nav height. Content offset = 48px. Banner scrolls out of view — not added to offset.</td></tr>
+            <tr><td class="ds-token-name">--banner-h</td><td>—</td><td class="ds-token-hex">40px</td><td>Global banner height. Banner is not fixed — scrolls with page. Token retained for height reference.</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Line-height tokens:</td></tr>
             <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.625rem">.data-note</code>, <code style="font-size:0.625rem">.callout</code>, log entry body text</td></tr>
             <tr><td class="ds-token-name">--lh-normal</td><td>—</td><td class="ds-token-hex">1.5</td><td>Body default — general readable text, <code style="font-size:0.625rem">body</code> element</td></tr>
@@ -355,7 +357,7 @@
             <tr><td class="ds-token-name">--ls-expanded</td><td>—</td><td class="ds-token-hex">0.1em</td><td>Small uppercase labels — <code style="font-size:0.625rem">.stat-label</code>, <code style="font-size:0.625rem">.breadcrumb</code>, <code style="font-size:0.625rem">.tag</code>, table headers (proportional em)</td></tr>
           </tbody>
         </table>
-        <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#a83228</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). If the status system diverges from the partisan palette in the future, they should split into separate primitives.</div>
+        <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#a83228</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). Both are backed by the <code>--color-red-700</code> primitive. If the status system diverges from the partisan palette in the future, they should split into separate primitives at that point.</div>
       </div>
     </section>
 
@@ -653,7 +655,7 @@
         <div class="ds-component-classes">.top-nav · .top-nav-logo · .top-nav-links · .nav-link · .nav-link.active · .top-nav-search · .top-nav-mobile-controls · .mobile-nav · .nav-item · .nav-item.active</div>
         <div class="ds-component-demo">
           <div style="background:var(--bg);border:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:1rem;border-radius:2px">
-            <span class="top-nav-logo">FEC<em>Ledger</em></span>
+            <span class="top-nav-logo"><span class="logo-fec">FEC</span><span class="logo-ledger">Ledger</span></span>
             <a class="nav-link active" href="#" style="height:auto;padding:0.25rem 0.75rem">Candidates</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Committees</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Races</a>

@@ -59,6 +59,10 @@
   --red:       #a83228;
   --filing-terminated: #a8a099;
 
+  /* Brand primitives */
+  --color-navy-950: #05234f; /* nav logo "Ledger", future brand accent */
+  --color-red-700:  #a83228; /* nav logo "FEC"; also backs --rep and --red */
+
   /* Spacing — 8px grid */
   --space-2:  2px;     /* micro: fine-tuning only — leave inline comment at every call site */
   --space-4:  0.25rem; /* 4px  — tag padding, chip gap, sub-label margin */
@@ -90,8 +94,7 @@
 }
 
 /* ── Global banner ── */
-.global-banner { position:fixed; top:0; left:0; right:0; z-index:300;
-  background:var(--text); height:var(--banner-h);
+.global-banner { background:var(--text); height:var(--banner-h);
   display:flex; align-items:center; justify-content:center; }
 .global-banner-text { font-family:'IBM Plex Mono',monospace; font-size:10px;
   text-transform:uppercase; color:var(--muted); text-align:center; line-height:var(--lh-tight); }
@@ -101,8 +104,7 @@
 
 /* ── Base ── */
 body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif;
-  font-size:14px; line-height:var(--lh-normal); min-height:100vh; overflow-x:hidden;
-  padding-top:var(--banner-h); }
+  font-size:14px; line-height:var(--lh-normal); min-height:100vh; overflow-x:hidden; }
 
 /* ── Layout ── */
 .layout { min-height:100vh; }
@@ -110,15 +112,16 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .main-inner { max-width:1600px; margin-left:auto; margin-right:auto; width:100%; }
 
 /* ── Top nav ── */
-.top-nav { position:fixed; top:var(--banner-h); left:0; right:0;
+.top-nav { position:fixed; top:0; left:0; right:0;
   height:var(--header-h); background:var(--bg);
   border-bottom:1px solid var(--border); z-index:200; }
 .top-nav-inner { display:flex; align-items:center;
   height:var(--header-h); padding:0 var(--space-24); gap:var(--space-24); }
 .top-nav-logo { font-family:'Oswald',sans-serif; font-size:1.25rem;
   font-weight:600; text-transform:uppercase; text-decoration:none;
-  color:var(--text); white-space:nowrap; flex-shrink:0; }
-.top-nav-logo em { font-style:normal; color:var(--muted); }
+  white-space:nowrap; flex-shrink:0; }
+.logo-fec    { color: var(--color-red-700); }
+.logo-ledger { color: var(--color-navy-950); }
 .top-nav-links { display:flex; align-items:center; }
 .nav-link { font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem;
   color:var(--muted); padding:0 var(--space-16); height:var(--header-h);
@@ -135,7 +138,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .top-nav-search-toggle { background:none; border:none; cursor:pointer;
   color:var(--subtle); padding:var(--space-4); line-height:0; transition:color 0.15s; }
 .top-nav-search-toggle:hover { color:var(--text); }
-.top-nav-mobile-search { position:fixed; top:calc(var(--banner-h) + var(--header-h));
+.top-nav-mobile-search { position:fixed; top:var(--header-h);
   left:0; right:0; background:var(--bg);
   border-bottom:1px solid var(--border); padding:var(--space-8) var(--space-16); z-index:198;
   transform:translateY(-8px); opacity:0;
@@ -156,7 +159,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .hamburger.open span:nth-child(3) { transform:translateY(-5.5px) rotate(-45deg); }
 
 /* ── Mobile nav (drops down from top) ── */
-.mobile-nav { position:fixed; top:calc(var(--banner-h) + var(--header-h));
+.mobile-nav { position:fixed; top:var(--header-h);
   left:0; right:0; background:var(--bg);
   border-bottom:1px solid var(--border); z-index:99;
   padding:var(--space-8) 0;
