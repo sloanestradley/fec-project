@@ -89,7 +89,23 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **Rgba semantic token refactor — deferred:** Several semantic tokens in `:root` (`--chart-raised`, `--chart-spent`, `--chart-overlay-*`, etc.) are expressed as raw `rgba()` values rather than `color-mix()` derivations from primitives. This is a known cleanup item. Blocked on a decision about whether blue-500 (`#4a90d9`), red-500 (`#d94a4a`), and chart-amber (`rgba(232,160,32,...)`) should be promoted to `:root` as explicit primitive tokens. Do not refactor piecemeal — address as a single pass when unblocked.
 
-**Page gutter pattern:** All content sections use `var(--page-gutter)` for horizontal padding — not hardcoded `3rem`/`1rem`. This means mobile padding is controlled in one place (the `:root` override in `styles.css`'s `@media (max-width:860px)` block). When adding a new page or content section, use `padding: <vertical> var(--page-gutter)` and you get correct desktop/mobile gutters for free. Component-internal padding (buttons, cards, modals) should remain hardcoded.
+**Spacing token system (8px grid):** All padding, margin, and gap declarations in `styles.css` use one of nine named tokens. Do not write raw rem spacing values in `styles.css` — map to the nearest token. Inline `<style>` blocks in individual HTML pages are page-specific overrides and may use raw values only when no token fits and the deviation is documented with an inline comment.
+
+```
+--space-2:  2px      micro — fine-tuning only; leave an inline comment at every call site
+--space-4:  0.25rem  tag padding, chip gap, form-field label gap
+--space-8:  0.5rem   meta gaps, form control padding, tight component rows
+--space-16: 1rem     standard component padding, card internals, table cells
+--space-24: 1.5rem   section subgaps, modal padding, nav inner
+--space-32: 2rem     card body padding, results area
+--space-40: 2.5rem   page-header top, sparse empty states
+--space-48: 3rem     page gutter (desktop) — use via var(--page-gutter)
+--space-64: 4rem     full-bleed empty state padding
+```
+
+Documented non-token exceptions in `styles.css`: `gap:1px` in `.stats-grid` (hairline border technique); `margin-bottom:-1px` in `.tab` (border-offset technique); `calc(-1 * var(--space-24))` for the negative modal committee-row flush margin.
+
+**Page gutter pattern:** All content sections use `var(--page-gutter)` for horizontal padding — resolves to `var(--space-48)` (48px) on desktop, `var(--space-16)` (16px) on mobile (≤860px). Mobile value is overridden in `:root` inside `@media (max-width:860px)`. When adding a new page or content section, use `padding: <vertical> var(--page-gutter)`. Component-internal padding (buttons, cards, modals) uses `--space-*` tokens directly, not `--page-gutter`.
 
 **Known intentional overlap:** `--red` and `--rep` both resolve to `#d94a4a`. `--rep` = Republican partisan color; `--red` = status color (stressed/error). Do not merge them. If the status system ever diverges from the partisan palette, split them at that point.
 
@@ -132,9 +148,11 @@ Light "broadsheet" theme. Key CSS variables:
 --accent-dim: rgba(44,82,130,0.1)  (accent tint)
 --overlay-bg: rgba(26,21,16,0.65)  (modal and drawer overlay scrim)
 
-Layout tokens:
---page-gutter: 3rem       (horizontal content padding — 1rem at mobile ≤860px)
---section-gap: 1.5rem     (vertical margin-bottom between stacked content sections — .banner, .chart-card, .donors-card, .stats-grid, .raised-grid)
+Layout tokens (reference --space-* scale):
+--page-gutter: var(--space-48)   (48px desktop / var(--space-16) 16px mobile ≤860px)
+--section-gap: var(--space-24)   (24px — vertical margin-bottom between stacked content sections)
+--header-h: 48px                 (fixed top nav height)
+--banner-h: 40px                 (fixed global banner height; total content offset = 88px)
 
 Nav tokens:
 --nav-active-bg: #d4cdc3  (nav active state background — currently unused, reserved)

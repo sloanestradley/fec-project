@@ -331,9 +331,21 @@
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-deadline)"></span>--chart-overlay-deadline</td><td>--muted @ 40%</td><td class="ds-token-hex">rgba(90,96,112,0.4)</td><td>Filing deadline vertical line</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-election)"></span>--chart-overlay-election</td><td>--amber @ 75%</td><td class="ds-token-hex">rgba(232,160,32,0.75)</td><td>Election date vertical line</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-today)"></span>--chart-overlay-today</td><td>--subtle @ 18%</td><td class="ds-token-hex">rgba(136,144,160,0.18)</td><td>Today marker (active cycles)</td></tr>
+            <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Spacing scale tokens (8px grid):</td></tr>
+            <tr><td class="ds-token-name">--space-2</td><td>—</td><td class="ds-token-hex">2px</td><td>Micro — fine-tuning only; every call site must have an inline comment explaining the rationale</td></tr>
+            <tr><td class="ds-token-name">--space-4</td><td>—</td><td class="ds-token-hex">0.25rem (4px)</td><td>Tag padding, chip gap, form-field label gap, sub-label margin</td></tr>
+            <tr><td class="ds-token-name">--space-8</td><td>—</td><td class="ds-token-hex">0.5rem (8px)</td><td>Meta row gaps, form control padding, tight component rows, nav padding</td></tr>
+            <tr><td class="ds-token-name">--space-16</td><td>—</td><td class="ds-token-hex">1rem (16px)</td><td>Standard component padding, card internals, table cell padding</td></tr>
+            <tr><td class="ds-token-name">--space-24</td><td>—</td><td class="ds-token-hex">1.5rem (24px)</td><td>Section subgaps, modal padding, nav inner, chart header margin</td></tr>
+            <tr><td class="ds-token-name">--space-32</td><td>—</td><td class="ds-token-hex">2rem (32px)</td><td>Card body padding, results area vertical padding</td></tr>
+            <tr><td class="ds-token-name">--space-40</td><td>—</td><td class="ds-token-hex">2.5rem (40px)</td><td>Page header top padding, sparse empty state padding</td></tr>
+            <tr><td class="ds-token-name">--space-48</td><td>—</td><td class="ds-token-hex">3rem (48px)</td><td>Page gutter (desktop) — use via <code style="font-size:0.625rem">var(--page-gutter)</code>, not directly</td></tr>
+            <tr><td class="ds-token-name">--space-64</td><td>—</td><td class="ds-token-hex">4rem (64px)</td><td>Full-bleed empty state padding (.state-msg)</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Layout tokens:</td></tr>
-            <tr><td class="ds-token-name">--page-gutter</td><td>—</td><td class="ds-token-hex">3rem / 1rem</td><td>Horizontal content padding — desktop / mobile (≤860px). Use <code style="font-size:0.625rem">padding: &lt;v&gt; var(--page-gutter)</code> on all content sections.</td></tr>
-            <tr><td class="ds-token-name">--section-gap</td><td>—</td><td class="ds-token-hex">1.5rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.625rem">margin-bottom</code> on section-level components: <code style="font-size:0.625rem">.banner</code>, <code style="font-size:0.625rem">.chart-card</code>, <code style="font-size:0.625rem">.donors-card</code>, <code style="font-size:0.625rem">.stats-grid</code>, <code style="font-size:0.625rem">.raised-grid</code>.</td></tr>
+            <tr><td class="ds-token-name">--page-gutter</td><td>--space-48</td><td class="ds-token-hex">3rem / 1rem</td><td>Horizontal content padding — <code style="font-size:0.625rem">var(--space-48)</code> desktop, <code style="font-size:0.625rem">var(--space-16)</code> mobile (≤860px). Use <code style="font-size:0.625rem">padding: &lt;v&gt; var(--page-gutter)</code> on all content sections.</td></tr>
+            <tr><td class="ds-token-name">--section-gap</td><td>--space-24</td><td class="ds-token-hex">1.5rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.625rem">margin-bottom</code> on: <code style="font-size:0.625rem">.banner</code>, <code style="font-size:0.625rem">.chart-card</code>, <code style="font-size:0.625rem">.donors-card</code>, <code style="font-size:0.625rem">.stats-grid</code>, <code style="font-size:0.625rem">.raised-grid</code>.</td></tr>
+            <tr><td class="ds-token-name">--header-h</td><td>—</td><td class="ds-token-hex">48px</td><td>Fixed top nav height. Total content offset = <code style="font-size:0.625rem">--banner-h + --header-h</code> = 88px.</td></tr>
+            <tr><td class="ds-token-name">--banner-h</td><td>—</td><td class="ds-token-hex">40px</td><td>Fixed global banner height. Body and nav both reference this token to maintain correct stacking.</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Line-height tokens:</td></tr>
             <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.625rem">.data-note</code>, <code style="font-size:0.625rem">.callout</code>, log entry body text</td></tr>
             <tr><td class="ds-token-name">--lh-normal</td><td>—</td><td class="ds-token-hex">1.5</td><td>Body default — general readable text, <code style="font-size:0.625rem">body</code> element</td></tr>
@@ -564,23 +576,20 @@
     <!-- ── SECTION: Spacing ───────────────────────────────── -->
     <section class="ds-section" id="spacing">
       <h2 class="ds-section-title">Spacing</h2>
-      <p class="ds-note">All spacing derived from component usage. 1rem = 16px (browser default); body font-size is 13px but spacing uses rem throughout.</p>
+      <p class="ds-note">8px grid. All padding, margin, and gap declarations in styles.css use one of these nine tokens. 1rem = 16px (browser default). Do not introduce new raw rem spacing values — map to the nearest token.</p>
       <div style="max-width:480px">
-        <div class="ds-spacing-row"><span class="ds-spacing-label">0.25rem</span><div class="ds-spacing-bar" style="width:0.25rem"></div><span class="ds-spacing-px">4px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">0.35rem</span><div class="ds-spacing-bar" style="width:0.35rem"></div><span class="ds-spacing-px">5.6px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">0.5rem</span><div class="ds-spacing-bar" style="width:0.5rem"></div><span class="ds-spacing-px">8px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">0.75rem</span><div class="ds-spacing-bar" style="width:0.75rem"></div><span class="ds-spacing-px">12px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">1rem</span><div class="ds-spacing-bar" style="width:1rem"></div><span class="ds-spacing-px">16px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">1.25rem</span><div class="ds-spacing-bar" style="width:1.25rem"></div><span class="ds-spacing-px">20px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">1.5rem</span><div class="ds-spacing-bar" style="width:1.5rem"></div><span class="ds-spacing-px">24px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">1.75rem</span><div class="ds-spacing-bar" style="width:1.75rem"></div><span class="ds-spacing-px">28px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">2rem</span><div class="ds-spacing-bar" style="width:2rem"></div><span class="ds-spacing-px">32px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">2.5rem</span><div class="ds-spacing-bar" style="width:2.5rem"></div><span class="ds-spacing-px">40px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">3rem</span><div class="ds-spacing-bar" style="width:3rem"></div><span class="ds-spacing-px">48px</span></div>
-        <div class="ds-spacing-row"><span class="ds-spacing-label">3.5rem</span><div class="ds-spacing-bar" style="width:3.5rem"></div><span class="ds-spacing-px">56px</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label" style="min-width:6.5rem">--space-2</span><div class="ds-spacing-bar" style="width:2px"></div><span class="ds-spacing-px">2px — micro only</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label" style="min-width:6.5rem">--space-4</span><div class="ds-spacing-bar" style="width:0.25rem"></div><span class="ds-spacing-px">4px · 0.25rem</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label" style="min-width:6.5rem">--space-8</span><div class="ds-spacing-bar" style="width:0.5rem"></div><span class="ds-spacing-px">8px · 0.5rem</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label" style="min-width:6.5rem">--space-16</span><div class="ds-spacing-bar" style="width:1rem"></div><span class="ds-spacing-px">16px · 1rem</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label" style="min-width:6.5rem">--space-24</span><div class="ds-spacing-bar" style="width:1.5rem"></div><span class="ds-spacing-px">24px · 1.5rem</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label" style="min-width:6.5rem">--space-32</span><div class="ds-spacing-bar" style="width:2rem"></div><span class="ds-spacing-px">32px · 2rem</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label" style="min-width:6.5rem">--space-40</span><div class="ds-spacing-bar" style="width:2.5rem"></div><span class="ds-spacing-px">40px · 2.5rem</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label" style="min-width:6.5rem">--space-48</span><div class="ds-spacing-bar" style="width:3rem"></div><span class="ds-spacing-px">48px · 3rem</span></div>
+        <div class="ds-spacing-row"><span class="ds-spacing-label" style="min-width:6.5rem">--space-64</span><div class="ds-spacing-bar" style="width:4rem"></div><span class="ds-spacing-px">64px · 4rem</span></div>
       </div>
       <div class="callout" style="margin-top:1.25rem">
-        <strong>Page gutter pattern:</strong> All content sections use <code style="font-size:0.75rem;color:var(--dem)">var(--page-gutter)</code> for horizontal padding — <strong>3rem</strong> on desktop, <strong>1rem</strong> on mobile (≤860px). The mobile value is controlled in one place via <code style="font-size:0.75rem;color:var(--dem)">styles.css :root @media (max-width:860px)</code>. Usage: <code style="font-size:0.75rem;color:var(--dem)">padding: &lt;vertical&gt; var(--page-gutter)</code>. Component-internal padding (buttons, cards, modals) stays hardcoded.
+        <strong>Page gutter pattern:</strong> All content sections use <code style="font-size:0.75rem;color:var(--dem)">var(--page-gutter)</code> for horizontal padding — resolves to <code style="font-size:0.75rem;color:var(--dem)">var(--space-48)</code> (48px) on desktop, <code style="font-size:0.75rem;color:var(--dem)">var(--space-16)</code> (16px) on mobile (≤860px). Usage: <code style="font-size:0.75rem;color:var(--dem)">padding: &lt;vertical&gt; var(--page-gutter)</code>. Component-internal padding (buttons, cards, modals) uses tokens directly, not via --page-gutter.
       </div>
     </section>
 

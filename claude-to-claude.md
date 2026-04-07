@@ -2285,3 +2285,46 @@ The through-line: Sloane consistently treated typography as a *system* to be des
 – Mono 0.75rem assessment — Deferred from this session. Several classes use IBM Plex Mono at 0.75rem (.committees-link, .form-input, .filter-bar) — this sits between label (0.625rem) and body (0.75rem Plex Sans). Should it stay as-is, or should those elements use Plex Sans body instead?
 – committee-treasurer promotion — .committee-treasurer has no CSS rule in styles.css (only inline styles). Worth promoting as body style.
 – The two hardcoded px values — body at 14px and .global-banner-text at 10px are outside the rem system. Worth discussing whether 14px is the right base.
+
+---
+2026-04-07
+
+## Process log draft
+
+Title: The spacing system gets a name — 9 tokens instead of 80 numbers
+
+The redesign branch now has a real spacing system. Before this session, every padding, margin, and gap declaration in styles.css was a raw rem value — 0.85rem here, 0.6rem there, 0.3rem somewhere else. Some were clearly intentional; many were accumulated drift. This session replaced all of them with nine named tokens on an 8px grid, from --space-2 (2px, micro-only) to --space-64 (4rem, full-bleed states). The layout tokens that downstream code already used — --page-gutter and --section-gap — now reference the scale instead of raw values. The design system page's Spacing section, which was showing the old ad-hoc values as if they were a system, was rewritten to show the actual named tokens. The CLAUDE.md enforcement rule is explicit: no new raw rem spacing values in styles.css without a documented reason.
+
+Changelog:
+– styles.css: 9 --space-* tokens added to :root; --page-gutter → var(--space-48); --section-gap → var(--space-24); --header-h 52px → 48px; --banner-h 36px → 40px (net offset unchanged at 88px)
+– styles.css: all padding/margin/gap declarations (~80+ values) replaced with --space-* tokens
+– 4 documented --space-2 micro exceptions with inline comments; gap:1px in .stats-grid flagged; margin-bottom:-1px in .tab left as pixel border offset
+– Mobile :root gutter override updated from literal 1rem to var(--space-16)
+– design-system.html: Spacing section rewritten — 12 ad-hoc rows → 9 named token rows with var() labels; intro note and callout updated
+– design-system.html: token table — new "Spacing scale tokens" group; --page-gutter/--section-gap updated with source token; --header-h/--banner-h added
+– CLAUDE.md: spacing token system documented with scale table, named exceptions, enforcement rule; layout token block updated
+– test-cases.md: test log row appended
+
+Field notes:
+The most interesting decision was what not to tokenize. gap:1px in .stats-grid is a hairline border technique — it creates the 1px dividing lines between stat cells using background-color bleed-through. Snapping that to --space-4 (4px) would have broken the visual. Same for margin-bottom:-1px in .tab, which is the active-tab border-overlap trick. The mapping table in the brief anticipated this: it covers rem values, not px micro-techniques. The system is strict about rem spacing and intentionally silent about px techniques. That distinction is worth keeping clear.
+
+Stack tags: CSS custom properties · Design tokens · Spacing system
+
+## How Sloane steered the work
+
+**Arriving with a complete spec — not just a direction**
+The opening prompt contained the full token scale, the exact mapping table with rem ranges, the exclusion list, and the edge case rule for micro values. That level of completeness meant the implementation was straight execution. The precision produced a cleaner audit than an open-ended "rationalize spacing" instruction would have.
+
+**"Check spacing for block and inline styling on all pages" — naming the follow-on**
+Explicitly scoping this session to styles.css only and naming the follow-on work before the session ended is clean triage. It means the next session starts from a clear boundary rather than having to figure out where this one stopped.
+
+**Ending at the right moment**
+Rather than opening the follow-on HTML audit in a context-pressured state, calling end-of-session correctly is the right call. A partial audit on six pages with incomplete documentation is worse than a complete audit on one file with clean docs.
+
+The through-line: Sloane treats spacing as a system to be designed, not a list of numbers to be cleaned up. Arriving with a named token scale and a mapping table is the difference between a design decision and a cleanup task.
+
+## What to bring to Claude Chat
+
+- HTML inline style audit scope: every page has an inline <style> block with raw rem spacing values. Now that styles.css is clean, worth deciding: (a) audit all inline blocks to enforce tokens too, or (b) accept raw values in page blocks per the current "page-specific overrides" principle.
+- --space-2 usage review: four call sites use the micro token (donor sub-label, tooltip value, stat cell gap, chip × button). Worth a visual check to confirm the 2px snap feels right vs. the original 0.10–0.15rem values.
+- Spacing scale gap at 12px: nothing between --space-8 (8px) and --space-16 (16px). The old 0.75rem values were snapped to --space-8. If the visual needs a 12px step, --space-12 would be the next logical addition.
