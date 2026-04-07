@@ -288,7 +288,7 @@
 
 <!-- Top nav -->
 <div class="global-banner">
-  <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
+  <p class="global-banner-text">Early build, actively evolving. &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
 </div>
 <nav class="top-nav" id="top-nav">
   <div class="top-nav-inner">
@@ -300,8 +300,11 @@
     </div>
     <div class="top-nav-search">
       <form class="top-nav-search-form" id="top-nav-search-form">
-        <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-search-input" aria-label="Search candidates and committees">
-        <button class="form-search-btn" type="submit" aria-label="Search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        <div class="search-field">
+          <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-search-input" aria-label="Search candidates and committees">
+        </div>
+        <button class="form-search-btn sr-only" type="submit" aria-label="Search"></button>
       </form>
     </div>
     <div class="top-nav-mobile-controls">
@@ -315,8 +318,11 @@
   </div>
   <div class="top-nav-mobile-search" id="top-nav-mobile-search">
     <form class="top-nav-mobile-search-form" id="top-nav-mobile-search-form">
-      <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-mobile-search-input" aria-label="Search candidates and committees">
-      <button class="form-search-btn" type="submit" aria-label="Search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+      <div class="search-field">
+        <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-mobile-search-input" aria-label="Search candidates and committees">
+      </div>
+      <button class="form-search-btn sr-only" type="submit" aria-label="Search"></button>
     </form>
   </div>
 </nav>

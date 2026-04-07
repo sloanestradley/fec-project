@@ -22,6 +22,18 @@ test.describe('search.html — initial state (no query)', () => {
     await expect(page.locator('#search-input')).toBeVisible();
   });
 
+  test('page-level search input is wrapped in .search-field with icon', async ({ page }) => {
+    const searchField = page.locator('#search-form .search-field');
+    await expect(searchField).toHaveCount(1);
+    await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
+  });
+
+  test('page-level search submit button is sr-only', async ({ page }) => {
+    const btn = page.locator('#search-form .form-search-btn.sr-only');
+    await expect(btn).toHaveCount(1);
+    await expect(btn).toHaveAttribute('type', 'submit');
+  });
+
   test('search hero / empty state is visible without a query', async ({ page }) => {
     await expect(page.locator('#state-empty .page-header')).toBeVisible();
   });

@@ -492,6 +492,12 @@ test.describe('candidates.html', () => {
     await expect(searchInput).toBeVisible();
   });
 
+  test('filter bar search input is wrapped in .search-field with icon', async ({ page }) => {
+    const searchField = page.locator('.search-combo .search-field');
+    await expect(searchField).toHaveCount(1);
+    await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
+  });
+
   test('state combo has ARIA combobox/listbox semantics and native fallback', async ({ page }) => {
     await expect(page.locator('#f-state-filter')).toHaveAttribute('role', 'combobox');
     await expect(page.locator('#state-dropdown')).toHaveAttribute('role', 'listbox');
@@ -597,6 +603,12 @@ test.describe('committees.html', () => {
 
   test('search input is visible in filter bar', async ({ page }) => {
     await expect(page.locator('#f-search')).toBeVisible();
+  });
+
+  test('filter bar search input is wrapped in .search-field with icon', async ({ page }) => {
+    const searchField = page.locator('.search-combo .search-field');
+    await expect(searchField).toHaveCount(1);
+    await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
   });
 
   test('state combo has ARIA combobox/listbox semantics and native fallback', async ({ page }) => {

@@ -2369,3 +2369,55 @@ The through-line: you're building rules that can be applied without judgment, no
 - The inline block sweep is done. Is there anything left on the redesign branch that's "pre-systems" — CSS that predates the token system and hasn't been touched? Worth a pass before building new UI.
 - The 10 named type styles are documented but haven't been audited against the live pages. Is a typography audit the right next step, or is there a more visible design goal to move toward first?
 - The performance fix (async Amplitude) is live on the redesign branch. Should it be backported to main? It's a pure win — no design changes, just a perf improvement.
+
+---
+2026-04-07 End of session
+
+## Process log draft
+
+**Title:** "The nav that stopped fighting gravity"
+**Date:** 2026-04-07
+**Tags:** css, nav, design-system, typography, playwright
+
+The fixed nav was a wall — everything had to account for it, compensate for it, push away from it. Switching to sticky changed the relationship: the banner scrolls out naturally, the nav anchors when it hits the top, and the page stops needing workarounds to feel right. A small architectural change that made ten other things simpler.
+
+The search bar got the same treatment. The old pattern was a button right-of-input — fine in a vacuum, but the proportions never felt intentional. The icon-leading pattern (search icon inside the field, submit button visually hidden but keyboard-accessible) collapses the visual complexity: one unified input, the affordance is the icon, the action is Enter. Applied it consistently across nav, mobile nav, hero search, and both browse-page filter bars in one pass.
+
+### Changelog
+- Added brand color primitives: `--color-navy-950` (nav logo "Ledger") and `--color-red-700` (nav logo "FEC", also backs `--rep` and `--red`)
+- Two-tone nav logo: `<span class="logo-fec">FEC</span><span class="logo-ledger">Ledger</span>`
+- Global banner: moved before `<nav>` in DOM on all 9 pages; changed from `position:fixed` to in-flow; background `--color-navy-950`; height 32px; IBM Plex Mono label text, `--bg` color; removed `<strong>` wrapper
+- Nav: switched to `position:sticky; top:0`; height 56px; no bottom border; padding `0 var(--space-32)`; inverted link states; active state = text color only
+- Nav search: transparent/borderless input; icon-leading `.search-field` pattern
+- Mobile nav/search top positions updated to `var(--header-h)` (banner no longer in fixed stack)
+- `.main { padding-top }` removed from all pages (sticky nav is in-flow)
+- Stale mobile padding-top overrides removed from races.html, process-log.html, design-system.html
+- `.sr-only` utility and `.search-field` / `.search-field-icon` pattern added to `styles.css`
+- Icon-leading search applied across all 9 pages: nav desktop, nav mobile, search.html hero, candidates/committees filter bars
+- Playwright: +40 tests — 320 total
+
+### Field notes
+The DOM-order requirement for sticky positioning was the surprise of the session. The banner had always lived at the bottom of the body — irrelevant when it was fixed, fatal when it needed to be in flow above the nav. The fix was surgical: move the banner before the nav in all 9 files. What felt like a CSS problem was actually an HTML structure problem, which is the more honest version of most layout bugs.
+
+## How Sloane steered the work
+
+### "The banner should scroll away — not be dismissed"
+The original brief said "fix the banner to scroll out above the sticky nav." That's a different contract than a dismissible banner or one that stays forever. You wanted the banner to feel like a physical part of the page — present on arrival, gone when you scroll past it, no interaction required. That shaped everything: the sticky nav architecture, the DOM reorder, removing all the offset padding. A clear UX intention drove a meaningful architectural change.
+
+### Redirecting the search bar direction mid-spec
+When asked about the nav search input width, you considered a width adjustment but recognized the real problem was the layout pattern, not the number. "Let's look at a different direction" — and proposed icon-leading search from scratch. That instinct (fix the pattern, not the value) is the difference between local patches and systematic improvement. The resulting pattern is simpler, more accessible, and consistent across every search surface on the site.
+
+### "Wait until the end of session to commit"
+When a mid-session commit was about to happen, you redirected: finish the work, then commit once. This keeps the session's intent coherent in git history — one commit, one story.
+
+### No `<strong>` in the banner
+Small but deliberate: removing `<strong>` from the banner text. Mono label type, all-caps via CSS, `--bg` color on navy: confident and quiet. Typographic weight is editorial judgment, not markup semantics.
+
+The through-line: you're consistently choosing restraint — in hierarchy, in motion, in affordance. The redesign is becoming more minimal with each session, not through subtraction of features but through elimination of visual hedging.
+
+## What to bring to Claude Chat
+
+- **Banner content decision**: "The FEC, made legible" — is that the right permanent brand statement, or should it rotate/update as the product evolves? Worth deciding before public launch.
+- **Search bar scope on nav**: Should nav search go to search.html with ?q= prefilled, or execute inline? The current behavior (redirect) is unverified — worth a gut check on intended UX.
+- **Sticky nav on mobile**: Banner is now in-flow, so mobile users see the 32px banner before the nav sticks. Should the banner be hidden ≤860px?
+- **Next redesign priority**: Nav and banner are done. Highest-leverage visual surface next: page headers/hero states, card/row visual treatment, or typography specimens in design-system.html?

@@ -40,7 +40,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 - Netlify Functions for any server-side API proxying needed
 - No build step — files are served directly
 - **Clean URLs:** `_redirects` defines Netlify 200 rewrites for all pages. Profile pages with path-segment URLs (`/candidate/:id`, `/committee/:id`) **must use absolute paths** for every local resource and nav link — `href="/styles.css"`, `src="/main.js"`, `href="/candidates"`, etc. Relative paths break because the browser treats the path segment as a subdirectory (e.g. from `/candidate/H2WA03217`, relative `utils.js` resolves to `/candidate/utils.js`, which also matches the rewrite rule and returns HTML served as JS). Browse pages (`/candidates`, `/committees`, `/races`, `/race`, `/search`) use single-level paths so relative links still resolve to root — but any new page with a deeper path must follow the absolute-path rule.
-- **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 280 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
+- **Testing:** Playwright (`@playwright/test`) — `npx playwright test` runs 320 structural tests (mocked API); `npm run test:smoke` runs 5 live-API smoke tests. See `TESTING.md`.
 - **apiFetch concurrency queue:** `utils.js` implements a `MAX_CONCURRENT = 4` request queue to avoid 429 rate-limit errors when pages fire many parallel API calls (candidate page fires 15–20 on load). All calls still execute — they just pace to ≤4 in-flight at a time. No call-site changes needed; `apiFetch(path, params)` signature is identical.
 - **FEC API key is shared across all users:** The key in `utils.js` is client-side and visible in source. All visitors to the site draw from the same 1000-calls/hour limit. `races.html` was the primary offender (475 calls/visit) — mitigated via IntersectionObserver enrichment + localStorage caching (see Races browse architecture section). An upgraded key has been confirmed at 7,200 calls/hour (120 calls/min). Rotate the key before public launch (currently exposed client-side in utils.js — Netlify Function proxy is the fix).
 - **FEC API field verification:** Before writing logic that depends on a specific field name or value from any FEC endpoint, verify the actual response shape first. Navigate directly to the endpoint in a browser (or use `apiFetch` in the console) and confirm field names, value formats, and null behavior. Do not infer from the FEC docs alone — the docs and actual responses diverge in practice (e.g. `/elections/` returns `incumbent_challenge_full` as `"Incumbent"/"Challenger"/"Open seat"`, not the single-letter `incumbent_challenge` code). Document any verified field behavior in the relevant section below.
@@ -72,6 +72,14 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 **Office/race display in candidate cards:** Use `formatRaceName(c.office, c.state, c.district)` + `<span class="tag tag-neutral" style="font-size:0.625rem">` to render the race/seat label in candidate card meta rows. This is the canonical pattern on all three browse pages.
 
 **Shared form controls:** `.form-input`, `.form-select`, `.form-search-btn` (and their focus/disabled variants) are defined in `styles.css` and used across search.html, candidates.html, and committees.html. `.toggle-switch` (CSS-only pill toggle: hidden checkbox + `.toggle-track` + `.toggle-knob` + `.toggle-label`) is also defined in `styles.css` — used on committees.html filter bar for "Show terminated". `.toggle-label` uses DM Sans 0.8rem to match form input value text. Also in `styles.css` (promoted from candidates.html/committees.html): `.search-combo` (position:relative; display:flex — the search input + button row), `.search-combo .form-input` (flex:1; min-width:160px; border-right:none), `.state-combo`, `.state-combo .form-input`, `.filter-bar-wrap`, `.filter-bar`, `.form-field`, `.form-label`, `.filter-chips-wrap`, `.filter-chip`, `.chip-x`, `.chip-clear-all`, `.results-area`, `.no-results`, `.error-prompt`, `.retry-btn`. Page-specific extensions stay inline: `.form-select.wide` (committees only), `.search-bar .form-input` (search.html flex + border-right). **Custom combo dropdowns:** `.combo-wrap` + `.combo-trigger` (in `styles.css`) + `initComboDropdown(config)` (in `utils.js`) implement the accessible filter dropdown pattern used for office/party/cycle on candidates.html, type on committees.html, and year/office on races.html. The trigger `<button>` carries both `combo-trigger` and `form-select` classes for visual consistency — **critical:** the hide/show CSS for native selects inside `.combo-wrap` must use `select.form-select` (type-qualified), not `.form-select`, to avoid hiding the button via specificity. At ≤860px, `.combo-wrap .combo-trigger { display:none }` and `.combo-wrap select.form-select { display:block }` swap in the native `<select>` for mobile. `initComboDropdown` returns `{ setValue(v), setDisabled(bool) }` — use these in `clearFilter`, `clearAllFilters`, and `init` to keep combo state in sync with `activeFilters`. **CSS consolidation (2026-04-01):** `.combo-wrap` is now the single source for `position:relative` and `select.form-select { display:none }` (desktop) / `select.form-select { display:block }` (mobile) / `.typeahead-dropdown { display:none !important }` (mobile). `.state-combo` retains only its unique rules: `.form-input { width:120px }`, `.typeahead-dropdown { min-width:200px }`, mobile `.form-input { display:none }`, mobile `select.form-select { width:120px }`. All three state-combo divs in HTML carry both `state-combo` and `combo-wrap` classes.
+
+**`.sr-only` utility:** Defined in `styles.css`. Standard visually-hidden pattern (`position:absolute; width:1px; height:1px; ...`). Use for submit buttons that are visually replaced by icon affordances — keeps the button DOM-present and keyboard/screen-reader accessible while invisible.
+
+**Icon-leading search pattern (`.search-field`):** All search inputs on the site use this pattern. `.search-field` is `position:relative; display:flex; align-items:center`. `.search-field-icon` is `position:absolute; left:var(--space-8); color:var(--muted); pointer-events:none`. The input inside gets `padding-left:calc(var(--space-8) + 14px + var(--space-8))` (8 + icon + 8 = 30px). Icon SVGs use `aria-hidden="true" focusable="false"`. Submit buttons use `.form-search-btn.sr-only` with `type="submit"` and `aria-label="Search"`. Context-specific flex rules: `.search-combo .search-field { flex:1; min-width:0 }`, `.top-nav-mobile-search-form .search-field { flex:1 }`. Page-level search.html uses `.search-bar .search-field { flex:1 }` in inline styles.
+
+**Nav logo markup:** Two-tone split via separate spans: `<span class="logo-fec">FEC</span><span class="logo-ledger">Ledger</span>` inside `.top-nav-logo`. `.logo-fec` = `--color-red-700`; `.logo-ledger` = `--color-navy-950`. Do not use `<em>` or plain text — the split requires separate spans. Playwright tests check for both spans in `.top-nav .top-nav-logo`.
+
+**Banner and nav architecture (sticky pattern):** `.global-banner` is in-flow (not fixed). `.top-nav` uses `position:sticky; top:0`. This means the banner is visible above the nav on page arrival and scrolls away naturally — the nav sticks only after the banner is out of the viewport. **Critical DOM order:** `.global-banner` must immediately precede `<nav class="top-nav">` in every HTML file — sticky only works when the banner is above the nav in the document flow. `.main` does NOT need `padding-top` to offset a sticky nav — it is already in-flow. Mobile `.mobile-nav` and `.top-nav-mobile-search` use `top:var(--header-h)` (not `top:calc(var(--banner-h) + var(--header-h))`) since the banner is no longer in the fixed stack. Playwright test: `.global-banner precedes .top-nav in the DOM` checks `compareDocumentPosition` to enforce this contract.
 
 **`apiFetch` array params:** `utils.js` `_execute` supports array values in the params object — `{ filing_frequency: ['-T', '-A'] }` correctly serializes to `filing_frequency=-T&filing_frequency=-A`. This was added 2026-03-31 to support multi-value filter params. All existing scalar call sites are unaffected.
 
@@ -135,6 +143,9 @@ Every color swatch has `data-token` and `data-hex` attributes. Every component c
 Light "broadsheet" theme. Key CSS variables:
 
 ```
+--color-navy-950: #05234f  (brand primitive — backs logo "Ledger", banner bg, future brand accent)
+--color-red-700:  #a83228  (brand primitive — backs logo "FEC", also backs --rep and --red)
+
 --bg: #F8F5EC        (page background + nav)
 --surface: #ffffff   (cards, panels)
 --surface2: #eee9e1  (chart interiors, inset elements)
@@ -144,12 +155,12 @@ Light "broadsheet" theme. Key CSS variables:
 --muted: #625b52
 --subtle: #46403a
 --dem: #1e3a5f       (Democrat)
---rep: #a83228       (Republican)
+--rep: #a83228       (Republican — resolves via --color-red-700)
 --ind: #5a4a7a       (Independent)
 --green: #1e6644     (healthy)
 --filing-active: #3dbf7a (active filing status dot)
 --amber: #8a5f10     (watch / warning)
---red: #a83228       (stressed)
+--red: #a83228       (stressed — resolves via --color-red-700; same value as --rep, intentionally kept separate)
 --filing-terminated: #a8a099 (terminated filing status dot)
 --accent: #2c5282    (interactive accent, active indicators)
 --accent-dim: rgba(44,82,130,0.1)  (accent tint)
@@ -158,8 +169,8 @@ Light "broadsheet" theme. Key CSS variables:
 Layout tokens (reference --space-* scale):
 --page-gutter: var(--space-48)   (48px desktop / var(--space-16) 16px mobile ≤860px)
 --section-gap: var(--space-24)   (24px — vertical margin-bottom between stacked content sections)
---header-h: 48px                 (fixed top nav height)
---banner-h: 40px                 (fixed global banner height; total content offset = 88px)
+--header-h: 56px                 (sticky top nav height)
+--banner-h: 32px                 (in-flow global banner height; banner scrolls away naturally before nav sticks)
 
 Nav tokens:
 --nav-active-bg: #d4cdc3  (nav active state background — currently unused, reserved)

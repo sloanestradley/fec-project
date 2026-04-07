@@ -203,7 +203,7 @@
 <body>
 
 <div class="global-banner">
-  <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
+  <p class="global-banner-text">Early build, actively evolving. &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
 </div>
 
 <!-- Top nav -->
@@ -217,8 +217,11 @@
     </div>
     <div class="top-nav-search">
       <form class="top-nav-search-form" id="top-nav-search-form">
-        <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-search-input" aria-label="Search candidates and committees">
-        <button class="form-search-btn" type="submit" aria-label="Search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        <div class="search-field">
+          <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-search-input" aria-label="Search candidates and committees">
+        </div>
+        <button class="form-search-btn sr-only" type="submit" aria-label="Search"></button>
       </form>
     </div>
     <div class="top-nav-mobile-controls">
@@ -232,8 +235,11 @@
   </div>
   <div class="top-nav-mobile-search" id="top-nav-mobile-search">
     <form class="top-nav-mobile-search-form" id="top-nav-mobile-search-form">
-      <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-mobile-search-input" aria-label="Search candidates and committees">
-      <button class="form-search-btn" type="submit" aria-label="Search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+      <div class="search-field">
+        <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-mobile-search-input" aria-label="Search candidates and committees">
+      </div>
+      <button class="form-search-btn sr-only" type="submit" aria-label="Search"></button>
     </form>
   </div>
 </nav>
@@ -346,8 +352,8 @@
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Layout tokens:</td></tr>
             <tr><td class="ds-token-name">--page-gutter</td><td>--space-48</td><td class="ds-token-hex">3rem / 1rem</td><td>Horizontal content padding — <code style="font-size:0.625rem">var(--space-48)</code> desktop, <code style="font-size:0.625rem">var(--space-16)</code> mobile (≤860px). Use <code style="font-size:0.625rem">padding: &lt;v&gt; var(--page-gutter)</code> on all content sections.</td></tr>
             <tr><td class="ds-token-name">--section-gap</td><td>--space-24</td><td class="ds-token-hex">1.5rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.625rem">margin-bottom</code> on: <code style="font-size:0.625rem">.banner</code>, <code style="font-size:0.625rem">.chart-card</code>, <code style="font-size:0.625rem">.donors-card</code>, <code style="font-size:0.625rem">.stats-grid</code>, <code style="font-size:0.625rem">.raised-grid</code>.</td></tr>
-            <tr><td class="ds-token-name">--header-h</td><td>—</td><td class="ds-token-hex">48px</td><td>Fixed top nav height. Content offset = 48px. Banner scrolls out of view — not added to offset.</td></tr>
-            <tr><td class="ds-token-name">--banner-h</td><td>—</td><td class="ds-token-hex">40px</td><td>Global banner height. Banner is not fixed — scrolls with page. Token retained for height reference.</td></tr>
+            <tr><td class="ds-token-name">--header-h</td><td>—</td><td class="ds-token-hex">56px</td><td>Sticky nav height. Content follows naturally in flow — no explicit offset needed.</td></tr>
+            <tr><td class="ds-token-name">--banner-h</td><td>—</td><td class="ds-token-hex">32px</td><td>Global banner height. Banner is not fixed — scrolls with page. Token retained for height reference.</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Line-height tokens:</td></tr>
             <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.625rem">.data-note</code>, <code style="font-size:0.625rem">.callout</code>, log entry body text</td></tr>
             <tr><td class="ds-token-name">--lh-normal</td><td>—</td><td class="ds-token-hex">1.5</td><td>Body default — general readable text, <code style="font-size:0.625rem">body</code> element</td></tr>
@@ -674,7 +680,7 @@
         <div class="ds-component-demo">
           <div class="ds-note">Rendered inline here; on live pages it is <code style="font-size:0.625rem">position:fixed</code> and sits above the top nav.</div>
           <div class="global-banner">
-            <p class="global-banner-text"><strong>Early build, actively evolving.</strong> &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
+            <p class="global-banner-text">Early build, actively evolving. &nbsp;All data sourced from the FEC public API. &nbsp;Non-partisan by design.</p>
           </div>
         </div>
       </div>

@@ -144,6 +144,36 @@ for (const pageConfig of PAGES) {
       expect(event.args[0]).toBe('Page Viewed');
     });
 
+    test('nav logo has .logo-fec and .logo-ledger spans', async ({ page }) => {
+      const logo = page.locator('.top-nav .top-nav-logo');
+      await expect(logo.locator('.logo-fec')).toHaveCount(1);
+      await expect(logo.locator('.logo-ledger')).toHaveCount(1);
+    });
+
+    test('.global-banner precedes .top-nav in the DOM', async ({ page }) => {
+      const bannerBeforeNav = await page.evaluate(() => {
+        const banner = document.querySelector('.global-banner');
+        const nav = document.querySelector('.top-nav');
+        if (!banner || !nav) return false;
+        // DOCUMENT_POSITION_FOLLOWING (4) is set when nav comes after banner
+        return !!(banner.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING);
+      });
+      expect(bannerBeforeNav).toBe(true);
+    });
+
+    test('desktop nav search input is wrapped in .search-field with icon', async ({ page }) => {
+      const searchField = page.locator('.top-nav-search .search-field');
+      await expect(searchField).toHaveCount(1);
+      await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
+    });
+
+    test('desktop nav search submit button is sr-only (visually hidden, accessible)', async ({ page }) => {
+      const btn = page.locator('.top-nav-search .form-search-btn.sr-only');
+      await expect(btn).toHaveCount(1);
+      await expect(btn).toHaveAttribute('type', 'submit');
+      await expect(btn).toHaveAttribute('aria-label', 'Search');
+    });
+
     test('no uncaught JS errors on load', async ({ page }) => {
       const errors = [];
       // Listen for any errors that fire after page settled (late errors)
