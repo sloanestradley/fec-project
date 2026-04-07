@@ -2190,3 +2190,46 @@ The through-line: Sloane is making the redesign branch a place where every typog
 – IBM Plex Serif expansion: .tag-context is the first use. The health banner's .banner-desc (currently IBM Plex Sans 0.82rem) feels like a natural next candidate — it's prose describing financial health, not a label. Worth a visual check on the branch preview to see if .tag-context alone reads as a system or just a one-off.
 
 – Oswald 400 vs 600 in practice: now that 600 is the ceiling, is there anywhere currently using 600 where 400 would feel more appropriate — or vice versa where the step down from 600 to 400 is too big a jump? A visual review of the branch with fresh eyes would catch this.
+---
+2026-04-06
+
+## Process log draft
+
+Title: The type system gets honest — three vars and three sizes
+
+This session was two passes, not one. The first formalized the line-height system that had been settled as literals last session: three CSS variables (--lh-expanded, --lh-normal, --lh-tight) now live in :root, and every line-height declaration across styles.css and all the HTML inline style blocks uses them. The audit also caught a batch of off-system values — 1.1, 1.4, 1.55, 1.6, 1.7 — scattered across design-system.html, search.html, and process-log.html that hadn't been cleaned up last session. They got snapped to the correct tier.
+
+The second pass was bigger in scope but simpler in logic: 30+ font-size values collapsed to three. Everything in the 0.5–0.9rem range now resolves to 0.625rem (labels), 0.75rem (body), or 0.875rem (medium UI). The audit found no clean prior system — just drift. Five values below 0.62rem, five more between 0.57 and 0.62, three in the mid-range, four at body, four at medium. Now there are three.
+
+Changelog:
+– styles.css: added --lh-expanded: 1.75, --lh-normal: 1.5, --lh-tight: 1 to :root; replaced all 9 literal line-height values in class rules with CSS vars
+– design-system.html, search.html, process-log.html: snapped 13 off-system line-height values (1.1, 1.4, 1.55, 1.6, 1.7) to correct tier via var(--lh-*)
+– design-system.html: added Line-height system type group to Typography section; added three lh token rows to Tier 2 token table
+– font-size: 30+ values in 0.5–0.9rem range collapsed to 0.625/0.75/0.875rem across 10 files (styles.css + 9 HTML)
+– design-system.html: updated IBM Plex Sans and IBM Plex Mono specimen meta labels to reflect new sizes
+– CLAUDE.md: font-size tier system documented; stale 0.62rem reference updated to 0.625rem; line-height var description updated
+
+Field notes:
+The font-size audit number was the tell: 32 distinct values. Line-height had three clean tiers hiding under a few dirty literals. Font-size had no system at all — just six values in a 0.08rem range that were functionally indistinguishable on screen. The decision to collapse to three tiers (0.625 / 0.75 / 0.875) was fast because the groupings were obvious once you saw them clustered. The harder question is always whether any of those drifted values was actually intentional — whether the 0.57rem versus 0.58rem distinction was a real design call or just two people typing different numbers. In this codebase, it was drift. The three-tier system replaces a false precision with an honest one.
+
+Stack tags: none (no new dependencies)
+
+## How Sloane steered the work
+
+**"What about font-size?" — the right follow-up question**
+After the letter-spacing audit surfaced a similar fragmentation problem, the immediate instinct was to check font-size. That question produced the 32-value audit, which made the consolidation obvious. Pulling on the thread before moving on is what keeps audits from being one-and-done.
+
+**Naming the tiers precisely before execution**
+"All Tiny and Label-dense to .625, all Mid-small and Body to .75, and all Medium to .875" is an executable spec. No ambiguity about which values go where, no room for interpretation. That precision meant the implementation was a straight execution rather than a series of judgment calls mid-flight.
+
+**Catching the scope question on font-size**
+When asked to confirm the plan was targeting font-size values specifically, you pushed back on the plan before approving it — asking whether it was explicit enough. That's the right gate: a plan that's ambiguous about scope will produce ambiguous execution. Adding "font-size declarations only" to the context made the boundary clear.
+
+The through-line: you came in with a clear sense of what a systematic typography cleanup looks like — not patching individual values but auditing the full property and deciding the system. Each pass (line-height, then font-size) followed the same shape: audit → identify the real structure → collapse to intentional tiers.
+
+## What to bring to Claude Chat
+
+– Visual QA priority: nav links (0.82rem → 0.75rem) and tab labels (0.9rem → 0.875rem) are the biggest visual steps from the font-size consolidation. Worth a branch preview pass before the next session to confirm they read correctly.
+– Letter-spacing next? Font-size and line-height passes are done. Letter-spacing has the same drift pattern — a cluster of values that could collapse to two, plus a breadcrumb discrepancy (0.05em in design-system.html vs 0.08em in styles.css). Is this next, or lower priority than other Oswald/visual work?
+– IBM Plex Serif expansion: .tag-context is the only Serif use. .banner-desc was flagged as a candidate. Now that font-size is clean, does .banner-desc at 0.75rem in Serif feel right, or should it stay IBM Plex Sans?
+– CSS vars for font-size? The consolidation landed as literals. Is there appetite for --fs-label/--fs-body/--fs-medium vars in a follow-up, or is the three-tier literal system sufficient for this project's scale?
