@@ -184,7 +184,7 @@ Nav tokens:
 |---|---|---|---|---|---|---|
 | **display** | Oswald | clamp(1.6rem,5vw,5rem) | 600 | uppercase | `--ls-tight` | `--lh-tight` |
 | **stat** | Oswald | 2rem | 600 | — | — | `--lh-tight` |
-| **heading** | Oswald | 1.25rem | 600 | uppercase | — | — |
+| **heading** | Oswald | 1.25rem | 400 | uppercase | — | — |
 | **tab** | Oswald | 1.25rem | 400 | none | — | — |
 | **subheading** | Oswald | 0.875rem | 600 | uppercase | — | — |
 | **label** | IBM Plex Mono | 0.625rem | 400 | uppercase | `--ls-expanded` | — |

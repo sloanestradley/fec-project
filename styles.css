@@ -32,7 +32,7 @@
    *
    *  display       Oswald      clamp(1.6–5rem)  600  uppercase  --ls-tight    --lh-tight
    *  stat          Oswald      2rem             600  —          —             --lh-tight
-   *  heading       Oswald      1.25rem          600  uppercase  —             —
+   *  heading       Oswald      1.25rem          400  uppercase  —             —
    *  tab           Oswald      1.25rem          400  none       —             —
    *  subheading    Oswald      0.875rem         600  uppercase  —             —
    *  label         Plex Mono   0.625rem         400  uppercase  --ls-expanded —
@@ -117,7 +117,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .top-nav-inner { display:flex; align-items:center;
   height:var(--header-h); padding:0 var(--space-32); gap:var(--space-24); }
 .top-nav-logo { font-family:'Oswald',sans-serif; font-size:1.25rem;
-  font-weight:600; text-transform:uppercase; text-decoration:none;
+  font-weight:400; text-transform:uppercase; text-decoration:none;
   white-space:nowrap; flex-shrink:0; }
 .logo-fec    { color: var(--color-red-700); }
 .logo-ledger { color: var(--color-navy-950); }
@@ -608,7 +608,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .no-results { padding:var(--space-40) var(--page-gutter); color:var(--muted); font-size:0.75rem; }
 .error-prompt { padding:var(--space-48) var(--page-gutter); color:var(--muted); font-size:0.75rem; }
 .error-prompt strong { display:block; font-family:'Oswald',sans-serif;
-  font-size:1.25rem; font-weight:600; text-transform:uppercase; color:var(--subtle); margin-bottom:var(--space-8); }
+  font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--subtle); margin-bottom:var(--space-8); }
 .retry-btn { margin-top:var(--space-8); padding:var(--space-8) var(--space-16); background:none;
   border:1px solid var(--border-strong); font-family:'Oswald',sans-serif;
   font-size:0.75rem; font-weight:600; text-transform:uppercase; cursor:pointer;
