@@ -209,21 +209,21 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   border-radius:3px; background:color-mix(in srgb, var(--amber) 5%, transparent); line-height:var(--lh-expanded); }
 
 /* ── A: Tab bar ── */
-.tabs-bar { border-bottom:1px solid var(--border); padding:0 var(--page-gutter);
-  display:flex; overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
+.tabs-bar { border-bottom:2px solid var(--color-navy-950); padding:0 var(--page-gutter);
+  display:flex; gap:var(--space-16); overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
   opacity:0; transition:opacity 0.4s ease; }
 .tabs-bar::-webkit-scrollbar { display:none; }
 .tabs-bar.visible { opacity:1; }
 .cycle-select.form-select { align-self:stretch; border:none; border-radius:0;
-  font-family:'Oswald',sans-serif; font-weight:400; font-size:1.25rem; padding:0 var(--space-8); min-width:5.5rem; margin-right:var(--space-16);
-  background:var(--bg); color:var(--text); cursor:pointer; }
-.cycle-select.form-select:focus { outline:none; color:var(--text); }
+  font-family:'Oswald',sans-serif; font-weight:400; font-size:1.25rem; padding:0 var(--space-8); min-width:5.5rem; margin-left:auto; margin-right:var(--space-16);
+  background:var(--bg); color:var(--color-navy-950); cursor:pointer; }
+.cycle-select.form-select:focus { outline:none; color:var(--color-navy-950); }
 .meta-row { display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
-.tab { font-family:'Oswald',sans-serif; padding:var(--space-16) var(--space-24); font-size:1.25rem; text-transform:none; color:var(--muted); cursor:pointer;
-  border-bottom:2px solid transparent; margin-bottom:-1px;
+.tab { font-family:'Oswald',sans-serif; padding:var(--space-4) 0; font-size:1.25rem; text-transform:none; color:var(--color-navy-950); cursor:pointer;
+  border-bottom:4px solid transparent; margin-bottom:-2px;
   transition:all 0.15s; text-decoration:none; white-space:nowrap; flex-shrink:0; }
-.tab:hover { color:var(--text); }
-.tab.active { color:var(--text); border-bottom-color:var(--accent); }
+.tab:hover { color:var(--muted); }
+.tab.active { color:var(--color-navy-950); border-bottom-color:var(--color-red-700); }
 
 /* ── B: Tags ── */
 .tag { display:inline-flex; align-items:center; padding:var(--space-4) var(--space-8);
