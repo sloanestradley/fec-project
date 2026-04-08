@@ -518,7 +518,7 @@
         <div class="ds-type-group-label">Named type styles</div>
         <div class="ds-type-row">
           <span class="page-title" style="margin-bottom:0">Candidate Profile</span>
-          <span class="ds-type-meta"><strong>display</strong><br>Oswald 600 · clamp(1.6–5rem) · --ls-tight · --lh-tight<br>.page-title</span>
+          <span class="ds-type-meta"><strong>display</strong><br>Oswald 600 · clamp(1.6–5rem) · --ls-tight · --lh-tight · color:var(--color-navy-950)<br>.page-title</span>
         </div>
         <div class="ds-type-row">
           <span class="stat-value" style="margin-bottom:0">$1.24M</span>
@@ -526,11 +526,11 @@
         </div>
         <div class="ds-type-row">
           <span class="ds-section-title" style="margin-bottom:0;padding-bottom:0;border-bottom:none">Committee Ecosystem</span>
-          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong</span>
+          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .candidate-race-label (candidate header race label — red-700, redesign branch)</span>
         </div>
         <div class="ds-type-row">
           <span class="tab" style="padding:0;border-bottom:none;margin-bottom:0;cursor:default">Summary</span>
-          <span class="ds-type-meta"><strong>tab</strong><br>Oswald 400 · 1.25rem<br>.tab · .cycle-select</span>
+          <span class="ds-type-meta"><strong>tab</strong><br>Oswald 400 · 1.25rem<br>.tab · .cycle-select · .race-seat-class (Senate seat class in race.html tabs bar — muted color)</span>
         </div>
         <div class="ds-type-row">
           <span class="banner-label">Total Raised</span>
@@ -546,7 +546,7 @@
         </div>
         <div class="ds-type-row">
           <span class="banner-desc">Raised-to-spent ratio of 3.84× with positive cash on hand.</span>
-          <span class="ds-type-meta"><strong>body</strong><br>Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .banner-desc · .nav-item · .committees-link · .retry-btn · .back-link-area a</span>
+          <span class="ds-type-meta"><strong>body</strong><br>Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .banner-desc · .nav-item · .committees-link · .retry-btn</span>
         </div>
         <div class="ds-type-row">
           <span class="candidate-card-name" style="margin-bottom:0">Marie Gluesenkamp Perez</span>
@@ -696,7 +696,7 @@
           </div>
         </div>
         <div class="ds-component-notes">
-          Shared base for all profile page headers (candidate, committee, race). Add <code>.page-header</code> to the wrapper div and <code>.page-title</code> to the title element. No border-bottom. Page-specific elements (cycle switcher, year select, back-link) stay in local styles.
+          Shared base for all profile page headers (candidate, committee, race). Add <code>.page-header</code> to the wrapper div and <code>.page-title</code> to the title element. No border-bottom. Page-specific elements (cycle switcher, year select) stay in local styles.
         </div>
       </div>
 
@@ -706,13 +706,13 @@
           <span class="ds-component-name">Candidate Header</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">extends .page-header · .candidate-row · .candidate-name · .cycle-select · .committees-link</div>
+        <div class="ds-component-classes">extends .page-header · .candidate-race-label · .candidate-row · .candidate-name · .cycle-select · .committees-link</div>
         <div class="ds-component-demo" style="padding:0">
           <div class="profile-header page-header" style="padding:2rem">
+            <div style="font-family:'Oswald',sans-serif;font-size:1.25rem;font-weight:400;text-transform:uppercase;color:var(--color-red-700);margin-bottom:0.5rem"><a href="#" style="color:inherit;text-decoration:none">US House: Washington's 3rd District</a></div>
             <div class="candidate-row" style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
               <div class="candidate-name page-title">Marie Gluesenkamp Perez</div>
               <div class="meta-row" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-                <span class="tag tag-neutral">House · WA-03</span>
                 <span class="tag tag-dem">Democrat</span>
               </div>
               <div style="margin-left:auto">

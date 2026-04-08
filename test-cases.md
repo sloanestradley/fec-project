@@ -74,9 +74,10 @@
 - [ ] No vertical jump or layout shift as the header fades in (opacity-only transition, no translateY)
 
 ### Profile header
+- [ ] Race label (`.candidate-race-label`) appears above the candidate name — reads e.g. "US HOUSE: WASHINGTON'S 3RD DISTRICT" in red-700 Oswald uppercase
+- [ ] Race label is an `<a>` linking to the race page (`/race?state=WA&district=03&office=H&year=...`)
 - [ ] Candidate name displays
-- [ ] Race/office tag appears first (e.g. "House · WA-03"), party tag second — in that order inline
-- [ ] Tags are inline with the candidate name in the same flex row (not in a separate row below)
+- [ ] Meta-row shows party tag only — no race/office tag (race tag removed on redesign branch)
 - [ ] "Committees (N) →" trigger floats to the far right of the candidate row, vertically centered
 - [ ] At narrow viewports (≤860px), tags wrap below the name; committees link stays right-aligned
 - [ ] ✅ `#race-context` element present in DOM (now in `#race-context-bar`, not meta-row)
@@ -246,7 +247,8 @@
 - [ ] Overspend note visible when disbursements > receipts for a selected cycle
 
 ### Associated candidate section
-- [ ] Back-link to associated candidate appears in header (if linked via candidate_ids or sponsor_candidate_ids)
+- [ ] No back-link in header (removed on redesign branch)
+- [ ] Associated candidate card appears in Summary tab (if linked via candidate_ids or sponsor_candidate_ids)
 - [ ] Associated candidate card shows race tag + party tag (not deprecated .candidate-card-office)
 - [ ] Section title is "Sponsored Candidate" for leadership PACs, "Principal Committee For" for authorized committees
 - [ ] ✅ .candidate-card-office class not present anywhere on page (deprecated class fully removed)
@@ -382,13 +384,15 @@
 - [ ] Race title uses `.page-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase
 - [ ] Header fades in on load (opacity transition via `.page-header-reveal`)
 
-### Race header
-- [ ] Race title reads "House • WA-03" (not "WA-03 HOUSE" — mixed case with bullet separator)
-- [ ] Browser tab title reads "House • WA-03 — FECLedger" (no year)
-- [ ] Year dropdown present below the title, showing 2024 selected (from URL param)
-- [ ] Candidate count shown in meta row (e.g. "3 candidates")
+### Race header + tabs bar
+- [ ] Race title reads "US HOUSE: WASHINGTON'S 3RD DISTRICT" (long-form, uppercase via `.page-title`)
+- [ ] Browser tab title reads "US House: Washington's 3rd District — FECLedger"
+- [ ] Tabs bar visible below header with "Candidates" (active) and "Insights" tabs
+- [ ] Year dropdown is inside the tabs bar, right-aligned
+- [ ] No candidate count in header or meta (removed)
 - [ ] Changing year dropdown to 2022 reloads page with `year=2022` in URL
 - [ ] ✅ Year dropdown shows 2024 as selected value when URL param is `year=2024`
+- [ ] Clicking "Insights" tab shows coming-soon message; clicking "Candidates" shows candidate list
 
 ### Dynamic cycle dropdown
 - [ ] ✅ Year dropdown options populated from `/elections/search/` endpoint (not hardcoded)
@@ -400,11 +404,11 @@
 - [ ] Year in URL not in dropdown (e.g. `year=2028` with no data): page snaps to nearest valid cycle
 
 ### Senate class indicator
-- [ ] ✅ Senate race shows class label in meta (e.g. "3 candidates · Class I seat")
+- [ ] Senate race shows class label in the tabs bar left of the year dropdown (e.g. "Class I seat")
 - [ ] ✅ House race does NOT show class label
 - [ ] WA Senate 2024 → "Class I seat"; WA Senate 2022 → "Class III seat"
 - [ ] Switching year on Senate race: class label updates correctly on reload
-- [ ] Class label uses `.race-meta` style (IBM Plex Mono, --muted)
+- [ ] Class label uses Oswald 400 1.25rem, `--muted` color
 
 ### URL param validation
 - [ ] ✅ Invalid state (e.g. `state=ZZ`) shows error with back link to /races

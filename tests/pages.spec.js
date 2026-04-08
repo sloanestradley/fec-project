@@ -117,6 +117,14 @@ test.describe('committee.html', () => {
     await expect(page.locator('.candidate-card-office')).toHaveCount(0);
   });
 
+  test('#back-link-area is not present in committee header (removed on redesign branch)', async ({ page }) => {
+    await expect(page.locator('#back-link-area')).toHaveCount(0);
+  });
+
+  test('#assoc-section is present in the DOM', async ({ page }) => {
+    await expect(page.locator('#assoc-section')).toBeAttached();
+  });
+
   test('filing history stub is not present', async ({ page }) => {
     await expect(page.locator('.section-title').filter({ hasText: 'Filing History' })).toHaveCount(0);
   });
@@ -390,17 +398,20 @@ test.describe('race.html', () => {
   });
 
   test('House race does not show Senate class indicator', async ({ page }) => {
-    const meta = page.locator('#race-meta');
-    const text = await meta.textContent();
-    expect(text).not.toContain('Class');
+    // #race-seat-class exists but should be empty for House races
+    const seatClass = page.locator('#race-seat-class');
+    await expect(seatClass).toBeAttached();
+    const text = await seatClass.textContent();
+    expect(text?.trim()).toBe('');
   });
 
-  test('Senate race shows class indicator in meta', async ({ page }) => {
+  test('Senate race shows class indicator in tabs bar', async ({ page }) => {
     // Navigate to a Senate race — 2024 is Class I
     await page.goto('/race.html?state=WA&office=S&year=2024');
     await waitForRaceLoad(page);
-    const meta = page.locator('#race-meta');
-    const text = await meta.textContent();
+    const seatClass = page.locator('#race-seat-class');
+    await expect(seatClass).toBeAttached();
+    const text = await seatClass.textContent();
     expect(text).toContain('Class I seat');
   });
 
@@ -421,12 +432,12 @@ test.describe('race.html', () => {
     expect(text).not.toContain('Invalid state');
   });
 
-  test('presidential race title shows "US President"', async ({ page }) => {
+  test('presidential race title shows "US Presidential"', async ({ page }) => {
     await page.goto('/race.html?state=US&office=P&year=2024');
     await waitForRaceLoad(page);
     const title = page.locator('#race-title');
     await expect(title).toBeVisible();
-    await expect(title).toContainText('US President');
+    await expect(title).toContainText('US Presidential');
   });
 
   test('invalid office shows error', async ({ page }) => {
@@ -441,6 +452,34 @@ test.describe('race.html', () => {
     await waitForRaceLoad(page);
     const msg = page.locator('#state-msg');
     await expect(msg).toContainText('Invalid election year');
+  });
+
+  test('tabs bar is present and visible after load', async ({ page }) => {
+    await expect(page.locator('#tabs-bar')).toBeVisible();
+  });
+
+  test('tabs bar has Candidates and Insights tabs', async ({ page }) => {
+    const tabs = page.locator('#tabs-bar .tab');
+    await expect(tabs).toHaveCount(2);
+    await expect(tabs.filter({ hasText: 'Candidates' })).toHaveCount(1);
+    await expect(tabs.filter({ hasText: 'Insights' })).toHaveCount(1);
+  });
+
+  test('Candidates tab is active by default', async ({ page }) => {
+    await expect(page.locator('.tab').filter({ hasText: 'Candidates' })).toHaveClass(/active/);
+  });
+
+  test('#tab-candidates is visible and #tab-insights is hidden on load', async ({ page }) => {
+    await expect(page.locator('#tab-candidates')).toBeVisible();
+    await expect(page.locator('#tab-insights')).toBeHidden();
+  });
+
+  test('#year-select is inside .tabs-bar', async ({ page }) => {
+    await expect(page.locator('.tabs-bar #year-select')).toBeAttached();
+  });
+
+  test('#race-meta is not present in DOM (candidate count removed)', async ({ page }) => {
+    await expect(page.locator('#race-meta')).toHaveCount(0);
   });
 });
 

@@ -47,6 +47,25 @@ test.describe('candidate.html — profile header', () => {
     await expect(tags).not.toHaveCount(0);
   });
 
+  test('#race-label is present in the profile header', async ({ page }) => {
+    await setup(page);
+    await expect(page.locator('#race-label')).toBeAttached();
+  });
+
+  test('#race-label contains a link to the race page', async ({ page }) => {
+    await setup(page);
+    const link = page.locator('#race-label a');
+    await expect(link).toBeAttached();
+    const href = await link.getAttribute('href');
+    expect(href).toMatch(/\/race\?state=/);
+  });
+
+  test('meta-row has no .tag-neutral race tag (race tag removed on redesign branch)', async ({ page }) => {
+    await setup(page);
+    // incumbent tag uses .tag-neutral too — check there's no non-incumbent .tag-neutral
+    await expect(page.locator('#meta-row .tag-neutral:not(.incumbent-tag)')).toHaveCount(0);
+  });
+
   test('race-context element is present in meta-row', async ({ page }) => {
     await setup(page);
     await expect(page.locator('#race-context')).toBeAttached();
