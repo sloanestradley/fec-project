@@ -44,6 +44,78 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
   });
 })();
 
+// ── Nav search typeahead ──────────────────────────────
+
+function officeWord(code) {
+  return { H: 'House', S: 'Senate', P: 'President' }[code] || code || '';
+}
+
+function buildTypeaheadHTML(candidates, committees) {
+  var html = '';
+  html += '<div class="typeahead-group-label">Candidates</div>';
+  if (candidates.length) {
+    html += candidates.map(function(c) {
+      var name = formatCandidateName(c.name);
+      return '<a class="typeahead-row" href="/candidate/' + c.candidate_id + '">'
+        + '<span class="typeahead-row-left">' + name
+        + ' <span class="typeahead-row-id">(' + c.candidate_id + ')</span></span>'
+        + '<span class="typeahead-row-right">' + officeWord(c.office) + '</span>'
+        + '</a>';
+    }).join('');
+  } else {
+    html += '<div class="typeahead-empty">No candidates found</div>';
+  }
+  html += '<div class="typeahead-group-label">Committees</div>';
+  if (committees.length) {
+    html += committees.map(function(c) {
+      var dotCls = filingFrequencyDotClass(c.filing_frequency);
+      return '<a class="typeahead-row" href="/committee/' + c.committee_id + '">'
+        + '<span class="typeahead-row-left">' + c.name
+        + ' <span class="typeahead-row-id">(' + c.committee_id + ')</span></span>'
+        + '<span class="typeahead-row-right">'
+        + '<span class="typeahead-status-dot ' + dotCls + '"></span>'
+        + '</span>'
+        + '</a>';
+    }).join('');
+  } else {
+    html += '<div class="typeahead-empty">No committees found</div>';
+  }
+  return html;
+}
+
+var navTypeaheadTimer = null;
+
+function showNavTypeahead(html) {
+  var d = document.getElementById('nav-typeahead-dropdown');
+  if (!d) return;
+  d.innerHTML = html;
+  d.style.display = 'block';
+}
+
+function hideNavTypeahead() {
+  var d = document.getElementById('nav-typeahead-dropdown');
+  if (!d) return;
+  d.style.display = 'none';
+  d.innerHTML = '';
+}
+
+async function doNavTypeahead(query) {
+  if (query.length < 2) { hideNavTypeahead(); return; }
+  var d = document.getElementById('nav-typeahead-dropdown');
+  if (!d) return;
+  d.innerHTML = '<div class="typeahead-loading">Searching…</div>';
+  d.style.display = 'block';
+  try {
+    var results = await Promise.all([
+      apiFetch('/candidates/', { q: query, per_page: 5, sort: '-receipts' }),
+      apiFetch('/committees/', { q: query, per_page: 5, sort: '-receipts' }),
+    ]);
+    showNavTypeahead(buildTypeaheadHTML(results[0].results || [], results[1].results || []));
+  } catch(e) {
+    hideNavTypeahead();
+  }
+}
+
 // ── Global search form submit ─────────────────────────
 (function() {
   function bindSearchForm(formId) {
@@ -53,9 +125,31 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
       e.preventDefault();
       var inp = form.querySelector('input[type="search"]');
       var q = inp ? inp.value.trim() : '';
-      if (q) window.location.href = '/search?q=' + encodeURIComponent(q);
+      if (!q) return;
+      if (typeof window.__navSearchHandler === 'function') {
+        window.__navSearchHandler(q);
+      } else {
+        window.location.href = '/search?q=' + encodeURIComponent(q);
+      }
     });
   }
   bindSearchForm('top-nav-search-form');
   bindSearchForm('top-nav-mobile-search-form');
+
+  // ── Nav input typeahead wiring ──────────────────────
+  var navInput = document.getElementById('top-nav-search-input');
+  if (navInput) {
+    navInput.addEventListener('input', function() {
+      clearTimeout(navTypeaheadTimer);
+      var v = navInput.value.trim();
+      navTypeaheadTimer = setTimeout(function() { doNavTypeahead(v); }, 300);
+    });
+    navInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') hideNavTypeahead();
+    });
+    document.addEventListener('click', function(e) {
+      var d = document.getElementById('nav-typeahead-dropdown');
+      if (d && !d.contains(e.target) && e.target !== navInput) hideNavTypeahead();
+    });
+  }
 })();

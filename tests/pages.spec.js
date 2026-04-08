@@ -498,6 +498,12 @@ test.describe('candidates.html', () => {
     await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
   });
 
+  test('filter bar search submit button is sr-only (visually hidden, accessible)', async ({ page }) => {
+    const btn = page.locator('.search-combo .search-field .form-search-btn.sr-only');
+    await expect(btn).toHaveCount(1);
+    await expect(btn).toHaveAttribute('aria-label', 'Search');
+  });
+
   test('state combo has ARIA combobox/listbox semantics and native fallback', async ({ page }) => {
     await expect(page.locator('#f-state-filter')).toHaveAttribute('role', 'combobox');
     await expect(page.locator('#state-dropdown')).toHaveAttribute('role', 'listbox');
@@ -609,6 +615,12 @@ test.describe('committees.html', () => {
     const searchField = page.locator('.search-combo .search-field');
     await expect(searchField).toHaveCount(1);
     await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
+  });
+
+  test('filter bar search submit button is sr-only (visually hidden, accessible)', async ({ page }) => {
+    const btn = page.locator('.search-combo .search-field .form-search-btn.sr-only');
+    await expect(btn).toHaveCount(1);
+    await expect(btn).toHaveAttribute('aria-label', 'Search');
   });
 
   test('state combo has ARIA combobox/listbox semantics and native fallback', async ({ page }) => {

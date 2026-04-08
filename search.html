@@ -47,7 +47,7 @@
       <a class="nav-link" href="/committees">Committees</a>
       <a class="nav-link" href="/races">Races</a>
     </div>
-    <div class="top-nav-search">
+    <div class="top-nav-search" style="position:relative">
       <form class="top-nav-search-form" id="top-nav-search-form">
         <div class="search-field">
           <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -55,6 +55,9 @@
         </div>
         <button class="form-search-btn sr-only" type="submit" aria-label="Search"></button>
       </form>
+      <div id="nav-typeahead-dropdown" class="typeahead-dropdown"
+           style="right:0;left:auto;min-width:360px"
+           role="listbox" aria-label="Search suggestions"></div>
     </div>
     <div class="top-nav-mobile-controls">
       <button class="top-nav-search-toggle" id="top-nav-search-toggle" aria-label="Toggle search">
@@ -93,7 +96,10 @@
         <div class="search-field">
           <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="search" class="form-input" id="search-input"
-            placeholder="Search candidates and committees" autocomplete="off" spellcheck="false"/>
+            placeholder="Search candidates and committees" autocomplete="off" spellcheck="false"
+            aria-label="Search candidates and committees"
+            role="combobox" aria-haspopup="listbox" aria-expanded="false"
+            aria-controls="typeahead-dropdown" aria-autocomplete="list"/>
         </div>
         <button type="submit" class="form-search-btn sr-only" aria-label="Search"></button>
         <div id="typeahead-dropdown" class="typeahead-dropdown" style="display:none"
@@ -159,58 +165,18 @@ function showState(name) {
   document.getElementById('state-no-results').style.display  = name === 'no-results' ? 'block' : 'none';
 }
 
-function officeWord(code) {
-  return { H: 'House', S: 'Senate', P: 'President' }[code] || code || '';
-}
-
-function buildTypeaheadHTML(candidates, committees) {
-  var html = '';
-
-  // Candidates group
-  html += '<div class="typeahead-group-label">Candidates</div>';
-  if (candidates.length) {
-    html += candidates.map(function(c) {
-      var name = formatCandidateName(c.name);
-      return '<a class="typeahead-row" href="/candidate/' + c.candidate_id + '">'
-        + '<span class="typeahead-row-left">' + name
-        + ' <span class="typeahead-row-id">(' + c.candidate_id + ')</span></span>'
-        + '<span class="typeahead-row-right">' + officeWord(c.office) + '</span>'
-        + '</a>';
-    }).join('');
-  } else {
-    html += '<div class="typeahead-empty">No candidates found</div>';
-  }
-
-  // Committees group
-  html += '<div class="typeahead-group-label">Committees</div>';
-  if (committees.length) {
-    html += committees.map(function(c) {
-      var dotCls = filingFrequencyDotClass(c.filing_frequency);
-      return '<a class="typeahead-row" href="/committee/' + c.committee_id + '">'
-        + '<span class="typeahead-row-left">' + c.name
-        + ' <span class="typeahead-row-id">(' + c.committee_id + ')</span></span>'
-        + '<span class="typeahead-row-right">'
-        + '<span class="typeahead-status-dot ' + dotCls + '"></span>'
-        + '</span>'
-        + '</a>';
-    }).join('');
-  } else {
-    html += '<div class="typeahead-empty">No committees found</div>';
-  }
-
-  return html;
-}
-
 function showTypeahead(html) {
   var d = document.getElementById('typeahead-dropdown');
   d.innerHTML = html;
   d.style.display = 'block';
+  document.getElementById('search-input').setAttribute('aria-expanded', 'true');
 }
 
 function hideTypeahead() {
   var d = document.getElementById('typeahead-dropdown');
   d.style.display = 'none';
   d.innerHTML = '';
+  document.getElementById('search-input').setAttribute('aria-expanded', 'false');
 }
 
 async function doTypeahead(query) {
@@ -218,6 +184,7 @@ async function doTypeahead(query) {
   var d = document.getElementById('typeahead-dropdown');
   d.innerHTML = '<div class="typeahead-loading">Searching…</div>';
   d.style.display = 'block';
+  document.getElementById('search-input').setAttribute('aria-expanded', 'true');
   try {
     var results = await Promise.all([
       apiFetch('/candidates/', { q: query, per_page: 5, sort: '-receipts' }),
@@ -366,6 +333,14 @@ function handleSubmit(e) {
     if (d && !d.contains(e.target) && e.target !== input) hideTypeahead();
   });
 })();
+
+// On search.html, nav submit fires inline search instead of redirecting
+window.__navSearchHandler = function(q) {
+  hideNavTypeahead();
+  document.getElementById('search-input').value = q;
+  history.pushState(null, '', '/search?q=' + encodeURIComponent(q));
+  doSearch(q);
+};
 </script>
 
 </body>

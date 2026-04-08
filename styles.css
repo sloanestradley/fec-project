@@ -572,7 +572,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .search-field .form-input { padding-left:calc(var(--space-8) + 14px + var(--space-8)); }
 
 .search-combo { position:relative; display:flex; }
-.search-combo .form-input { flex:1; min-width:160px; border-right:none; }
+.search-combo .form-input { flex:1; min-width:160px; }
 .search-combo .search-field { flex:1; min-width:0; }
 
 .combo-wrap { position:relative; }

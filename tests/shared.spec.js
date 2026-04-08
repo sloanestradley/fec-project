@@ -174,6 +174,11 @@ for (const pageConfig of PAGES) {
       await expect(btn).toHaveAttribute('aria-label', 'Search');
     });
 
+    test('nav typeahead dropdown container is present', async ({ page }) => {
+      await expect(page.locator('#nav-typeahead-dropdown')).toHaveCount(1);
+      await expect(page.locator('#nav-typeahead-dropdown')).toHaveAttribute('role', 'listbox');
+    });
+
     test('no uncaught JS errors on load', async ({ page }) => {
       const errors = [];
       // Listen for any errors that fire after page settled (late errors)

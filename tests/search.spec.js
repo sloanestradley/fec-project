@@ -22,6 +22,20 @@ test.describe('search.html — initial state (no query)', () => {
     await expect(page.locator('#search-input')).toBeVisible();
   });
 
+  test('#search-input has combobox ARIA attributes', async ({ page }) => {
+    const input = page.locator('#search-input');
+    await expect(input).toHaveAttribute('role', 'combobox');
+    await expect(input).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect(input).toHaveAttribute('aria-expanded', 'false');
+    await expect(input).toHaveAttribute('aria-controls', 'typeahead-dropdown');
+    await expect(input).toHaveAttribute('aria-autocomplete', 'list');
+  });
+
+  test('nav search handler is registered on search.html', async ({ page }) => {
+    const registered = await page.evaluate(() => typeof window.__navSearchHandler === 'function');
+    expect(registered).toBe(true);
+  });
+
   test('page-level search input is wrapped in .search-field with icon', async ({ page }) => {
     const searchField = page.locator('#search-form .search-field');
     await expect(searchField).toHaveCount(1);

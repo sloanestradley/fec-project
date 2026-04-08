@@ -2421,3 +2421,53 @@ The through-line: you're consistently choosing restraint — in hierarchy, in mo
 - **Search bar scope on nav**: Should nav search go to search.html with ?q= prefilled, or execute inline? The current behavior (redirect) is unverified — worth a gut check on intended UX.
 - **Sticky nav on mobile**: Banner is now in-flow, so mobile users see the 32px banner before the nav sticks. Should the banner be hidden ≤860px?
 - **Next redesign priority**: Nav and banner are done. Highest-leverage visual surface next: page headers/hero states, card/row visual treatment, or typography specimens in design-system.html?
+---
+2026-04-07 end of session
+
+## Process log draft
+
+Title: Small fixes, global reach
+
+Most of this session was fixing work that was almost right. The browse-page search buttons were still visible — the icon-leading pattern from last session had been applied to the nav and the hero search, but the filter bar inputs on candidates.html and committees.html were missed. The fix was surgical: move the button inside .search-field, add sr-only, and remove the border-right:none that had been holding space for the visible button. Small, but it matters — a stray button in a filter bar undercuts the whole visual system.
+
+The second half was about follow-through on the nav search typeahead. We'd built it for search.html last session, but it only worked there because the logic was stranded in a page-level inline script. Making it global meant identifying what actually belongs in main.js (officeWord, buildTypeaheadHTML, the show/hide/do cycle, the input wiring) versus what stays page-specific (the __navSearchHandler hook search.html uses to fire inline results instead of redirecting). The architecture question — "does something need to move?" — produced a cleaner outcome than the initial search.html-only implementation.
+
+Changelog:
+– candidates.html + committees.html: filter bar search button moved inside .search-field, sr-only applied, SVG removed from button
+– styles.css: removed border-right:none from .search-combo .form-input
+– search.html #search-input: added role=combobox, aria-haspopup=listbox, aria-expanded (toggled by show/hideTypeahead), aria-controls=typeahead-dropdown, aria-autocomplete=list
+– main.js: officeWord + buildTypeaheadHTML moved from search.html; show/hide/doNavTypeahead + navTypeaheadTimer added; bindSearchForm updated with window.__navSearchHandler hook; nav input event wiring (debounce, Escape, click-outside)
+– All 9 pages: position:relative on .top-nav-search; #nav-typeahead-dropdown added
+– search.html: stripped nav typeahead code (now in main.js); added window.__navSearchHandler to fire inline doSearch on submit
+– +11 Playwright tests
+
+Field notes: The clone-the-form approach from the first pass (wireNavSearch) was the right call for a page-specific fix but the wrong architecture for something global. The __navSearchHandler hook is cleaner — main.js stays unaware of search.html internals, and search.html registers its override at load time. The lesson is familiar: the first implementation that works isn't always the one you keep.
+
+Stack tags: accessibility · ARIA · progressive enhancement
+
+## How Sloane steered the work
+
+**"I still see the search button on the browse pages"**
+Rather than accepting last session's work as done, you checked the actual result and caught what the implementation missed. The icon-leading pattern had been applied inconsistently — nav and hero correct, filter bar missed. The precise bug report made the diagnosis immediate.
+
+**Accessibility additions as explicit specifications**
+The ARIA attribute additions for #search-input were specified exactly — attribute names, values, and the three JS sites to update. That precision meant zero interpretation overhead and zero rework.
+
+**"For attribute on filter labels doesn't match trigger IDs" — then verifying it was fine**
+Catching a potential bug and asking to verify before assuming it's broken. The outcome (all labels correctly matched) is less interesting than the instinct — don't assume, check first.
+
+**"Let's make this fix global"**
+After the search.html nav typeahead landed, immediately asking whether it should be global. This isn't a feature request — it's a recognition that a page-specific fix is incomplete when the element exists on every page. The follow-on question ("does something need to move?") correctly framed the architecture question.
+
+**Option B on keyboard accessibility**
+Rather than adding open-on-focus behavior that would technically improve WCAG AA compliance, you accepted the honest analysis: Space and Enter already work via native button behavior, and open-on-focus is optional.
+
+The through-line: you're catching the gap between "it works somewhere" and "it works everywhere," and you're making the distinction between a patch and a fix.
+
+## What to bring to Claude Chat
+
+– Mobile nav search typeahead: the desktop nav now has a functioning typeahead; the mobile search panel (#top-nav-mobile-search) does not. Worth deciding whether mobile gets the same treatment before the next visual session, or whether it's lower priority.
+
+– Next redesign visual priority: the token system is fully clean (spacing, typography, color). What's the highest-leverage visual surface to tackle next? Page headers/hero states, card/row treatment, or something else?
+
+– FEC API outage: today's outage had no impact on this session (all work was structural/JS/CSS, smoke tests skipped). Worth noting for the next session if smoke tests need to be re-run.
