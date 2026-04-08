@@ -436,7 +436,8 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 
 .page-title { font-family:'Oswald',sans-serif;
   font-size:clamp(1.6rem,5vw,5rem); font-weight:600; line-height:var(--lh-tight);
-  letter-spacing:var(--ls-tight); text-transform:uppercase; margin-bottom:var(--space-8); }
+  letter-spacing:var(--ls-tight); text-transform:uppercase; margin-bottom:var(--space-8);
+  color:var(--color-navy-950); }
 .candidate-name { min-width:0; }
 
 /* ── P: Form controls ── */

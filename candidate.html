@@ -17,6 +17,9 @@
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     /* Profile header */
+    .candidate-race-label { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--color-red-700); margin-bottom:var(--space-8); }
+    .candidate-race-label a { color:inherit; text-decoration:none; }
+    .candidate-race-label a:hover { text-decoration:underline; }
     .candidate-row { display:flex; align-items:center; gap:var(--space-8); margin-bottom:var(--space-8); flex-wrap:wrap; }
     /* Race context bar */
     #race-context-bar { padding:var(--space-16) var(--page-gutter) 0;
@@ -88,6 +91,7 @@
     </div>
 
     <div class="profile-header page-header page-header-reveal" id="profile-header" style="display:none">
+      <div class="candidate-race-label" id="race-label"></div>
       <div class="candidate-row">
         <div class="candidate-name page-title" id="candidate-name">—</div>
         <div class="meta-row" id="meta-row"></div>
@@ -1488,10 +1492,8 @@ async function init() {
     document.getElementById('candidate-name').textContent = displayName;
     document.title = displayName + ' — FECLedger';
 
-    // Tags — race tag first, party tag second
+    // Tags — party only (race label is now in #race-label above the name)
     document.getElementById('meta-row').innerHTML =
-      '<span class="tag tag-neutral">'+(cand.office_full||'')+' · '+
-      (cand.state||'')+(cand.district&&cand.district!=='00'?'-'+cand.district:'')+'</span> '+
       '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>';
 
     // Cycle switcher: default to most recent active cycle, or hash override
@@ -1504,6 +1506,17 @@ async function init() {
     if (ALL_CYCLES.indexOf(hashCycle) !== -1) defaultCycle = hashCycle;
     activeCycle = defaultCycle;
     CAND_NAME = displayName;
+
+    // Race label above candidate name
+    (function() {
+      var labelEl = document.getElementById('race-label');
+      if (!labelEl) return;
+      var distParam = (CAND_OFFICE === 'H' && CAND_DIST && CAND_DIST !== '00')
+        ? '&district=' + encodeURIComponent(CAND_DIST) : '';
+      var href = '/race?state=' + encodeURIComponent(CAND_STATE)
+        + distParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + activeCycle;
+      labelEl.innerHTML = '<a href="' + href + '">' + formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST) + '</a>';
+    })();
     amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null });
 
     var sw = document.getElementById('cycle-switcher');
