@@ -247,7 +247,7 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 - **Local dev:** `python3 -m http.server 8080` from project root, then `localhost:8080/candidate.html?id=H2WA03217`
 
 ### What's working
-- Profile header (no top border); initials avatar, office/district tag first then party tag, all inline in `.candidate-row` with flex-wrap; "Committees (N) →" trigger floats right via `margin-left:auto` within the same row
+- Profile header (no top border); office/district tag first then party tag, all inline in `.candidate-row` with flex-wrap; "Committees (N) →" trigger floats right via `margin-left:auto` within the same row
 - Race context sentence (`.tag-context` pill sourced from `/elections/`, skeleton while loading) lives in a persistent `#race-context-bar` strip between the tab bar and content — visible on all tabs
 - Cycle switcher is a `<select>` element, first child of `.tabs-bar`, populated from `election_years` — `loadCycle()` updates `select.value` in sync; Amplitude `Cycle Switched` fires on `onchange`
 - URL anchor encodes cycle + tab: `candidate.html#2024#summary`

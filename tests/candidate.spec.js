@@ -39,14 +39,6 @@ test.describe('candidate.html — profile header', () => {
     expect(text?.trim().length).toBeGreaterThan(3);
   });
 
-  test('initials avatar is present', async ({ page }) => {
-    await setup(page);
-    const avatar = page.locator('#avatar');
-    await expect(avatar).toBeVisible();
-    const text = await avatar.textContent();
-    expect(text?.trim()).not.toBe('—');
-  });
-
   test('party tag is visible in meta-row', async ({ page }) => {
     await setup(page);
     const metaRow = page.locator('#meta-row');

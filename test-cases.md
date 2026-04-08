@@ -75,11 +75,10 @@
 
 ### Profile header
 - [ ] Candidate name displays
-- [ ] Initials avatar present (3-letter preferred, e.g. "MGP")
 - [ ] Race/office tag appears first (e.g. "House · WA-03"), party tag second — in that order inline
 - [ ] Tags are inline with the candidate name in the same flex row (not in a separate row below)
 - [ ] "Committees (N) →" trigger floats to the far right of the candidate row, vertically centered
-- [ ] At narrow viewports (≤860px), tags wrap below the name/avatar; committees link stays right-aligned
+- [ ] At narrow viewports (≤860px), tags wrap below the name; committees link stays right-aligned
 - [ ] ✅ `#race-context` element present in DOM (now in `#race-context-bar`, not meta-row)
 - [ ] Race context bar appears as a persistent strip between the tab bar and content (visible on all tabs)
 - [ ] Skeleton pulse appears in the race context bar while `/elections/` fetch is in-flight

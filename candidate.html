@@ -18,11 +18,6 @@
   <style>
     /* Profile header */
     .candidate-row { display:flex; align-items:center; gap:var(--space-8); margin-bottom:var(--space-8); flex-wrap:wrap; }
-    .avatar { width:32px; height:32px; border-radius:2px; background:var(--text);
-      display:flex; align-items:center; justify-content:center;
-      font-family:'Oswald',sans-serif; font-size:0.875rem;
-      color:var(--bg); text-transform:uppercase; flex-shrink:0; }
-
     /* Race context bar */
     #race-context-bar { padding:var(--space-16) var(--page-gutter) 0;
       opacity:0; transition:opacity 0.4s ease; min-height:var(--space-32); }
@@ -94,7 +89,6 @@
 
     <div class="profile-header page-header page-header-reveal" id="profile-header" style="display:none">
       <div class="candidate-row">
-        <div class="avatar" id="avatar">—</div>
         <div class="candidate-name page-title" id="candidate-name">—</div>
         <div class="meta-row" id="meta-row"></div>
         <div id="committees-trigger" style="display:none;margin-left:auto;align-self:center">
@@ -472,15 +466,6 @@ function getSubCycles(cycle) {
   var span = getCycleSpanYears(), subs = [];
   for (var c = cycle - span + 2; c <= cycle; c += 2) subs.push(c);
   return subs;
-}
-function getInitials(name) {
-  if (!name) return '?';
-  var parts = name.split(',');
-  var last  = (parts[0]||'').trim();
-  var first = (parts[1]||'').trim();
-  var fi    = first ? first[0] : '';
-  var li    = last.split(/[\s-]+/).filter(Boolean).map(function(w){return w[0];}).join('');
-  return (fi + li).toUpperCase().slice(0,3);
 }
 // ── Tab routing ─────────────────────────────────────
 function showTab(name, e) {
@@ -1494,9 +1479,6 @@ async function init() {
     CAND_PARTY  = cand.party    || '';
     ALL_CYCLES  = (cand.election_years || []).slice().sort(function(a,b){ return b-a; });
     if (!ALL_CYCLES.length) throw new Error('No election years found for this candidate');
-
-    // Avatar initials
-    document.getElementById('avatar').textContent = getInitials(cand.name);
 
     // Display name: "PEREZ, MARIE GLUESENKAMP" → "Marie Gluesenkamp Perez"
     var parts = cand.name.split(',');
