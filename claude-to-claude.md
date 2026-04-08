@@ -2471,3 +2471,55 @@ The through-line: you're catching the gap between "it works somewhere" and "it w
 – Next redesign visual priority: the token system is fully clean (spacing, typography, color). What's the highest-leverage visual surface to tackle next? Page headers/hero states, card/row treatment, or something else?
 
 – FEC API outage: today's outage had no impact on this session (all work was structural/JS/CSS, smoke tests skipped). Worth noting for the next session if smoke tests need to be re-run.
+
+---
+2026-04-07 end of session (2)
+
+## Process log draft
+
+Title: The border that wouldn't break free
+
+Three approaches to one visual goal: make the tabs-bar border span the full viewport width. The negative margin breakout was clipped by overflow-x:hidden on .main. Moving tabs-bar outside .main-inner didn't align tab content with the rest of the page at wide viewports. The solution that stuck was both: move tabs-bar outside .main-inner (so the border naturally spans .main's full width), then use a responsive max() padding formula that matches .main-inner's centering math at any viewport size. A CSS problem that required understanding the full containment chain before writing a single line.
+
+The tabs-bar also got a visual overhaul in the same session — navy-950 border, red-700 active indicator, tighter padding, gap-based spacing, and the cycle select pushed to the right end of the bar.
+
+Changelog:
+– styles.css: .tabs-bar border updated to 2px solid --color-navy-950; responsive max() padding for full-bleed border with aligned content; gap:var(--space-16) between tabs
+– styles.css: .tab padding reduced to --space-4 vertical only; colors updated to --color-navy-950 (default/active) and --muted (hover); active indicator 4px --color-red-700 (was 2px --accent)
+– styles.css: .cycle-select margin-left:auto (pushes right), color --color-navy-950
+– candidate.html + committee.html: .tabs-bar moved outside .main-inner to direct child of .main; cycle select reordered to last child
+– design-system.html: both tabs-bar demos updated (select order + token usage descriptions for navy-950 and red-700)
+– CLAUDE.md: tabs-bar architecture documented (placement, responsive padding formula, cycle-select position)
+– test-cases.md: cycle switcher position updated, full-viewport border check added, test log row appended
+
+Field notes:
+The session was a study in constraint surfacing. The first approach (negative margins) seemed textbook — it's the standard CSS breakout pattern — but overflow-x:hidden on .main killed it silently. The second approach (HTML restructure) was architecturally sound but created a content alignment gap at wide viewports that wasn't visible at normal screen sizes. The third approach combined the HTML move with a padding formula that mirrors .main-inner's centering logic: max(page-gutter, (100% - 1600px) / 2 + page-gutter). Each failed attempt narrowed the problem until the right solution was obvious. Sometimes the fastest path is through two wrong answers.
+
+Stack tags: CSS layout · containment · responsive padding
+
+## How Sloane steered the work
+
+**"I still see the search button" — QA as design enforcement**
+Last session's icon-leading search pattern was caught as incomplete on the browse pages. This session's tabs-bar work followed the same pattern: Sloane QA'd the Netlify preview and caught when the negative margin approach wasn't producing the expected result, rather than accepting it.
+
+**Diagnosing before prescribing**
+After two failed approaches, instead of guessing at a third, Sloane asked for a diagnostic pass — inspect the actual computed layout, find what's blocking the border, then propose a solution. That shifted the work from trial-and-error to systematic debugging.
+
+**"Should the --page-gutter padding be applied?"**
+This question caught a real alignment bug in the max() formula before it shipped. At viewports > 1600px, the tab content would have been offset from page content by exactly one page-gutter. The fix was adding var(--page-gutter) inside the calc — a one-line change that would have been a visible misalignment on ultrawide monitors.
+
+**Knowing when to revert**
+Two deliberate reverts in one session — the full-bleed layout restructure (too much structural change for the goal) and the .main-inner split (QA'd the wrong URL, then asked to undo cleanly). Both reverts were decisive, not hesitant. Better to undo cleanly than accumulate structural debt from an approach that isn't working.
+
+**"What documentation do we need to update?"**
+Asked proactively after the code stabilized, covering tests, test-cases.md, and design-system.html in one sweep. The habit of treating documentation as part of the deliverable, not an afterthought.
+
+The through-line: Sloane treats visual QA as a first-class constraint — if it doesn't look right on the preview, the code isn't done, regardless of what the tests say.
+
+## What to bring to Claude Chat
+
+– Full-bleed pattern for other elements: the tabs-bar now breaks out of .main-inner for full-viewport border. Should page-header, filter-bar-wrap, or other chrome elements follow the same pattern on the redesign branch? Worth deciding the rule before applying case-by-case.
+
+– Tab bar visual refinement: the active indicator is now 4px red-700. On the preview, check whether the indicator weight feels right relative to the 2px navy border — the 2:1 ratio is intentional but worth eyeballing at different viewport sizes.
+
+– Next redesign priority: tabs-bar is styled, nav is styled, spacing/typography tokens are clean. What's the next highest-leverage visual surface? Cards/rows, page headers, or something else?

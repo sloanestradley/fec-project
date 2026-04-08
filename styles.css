@@ -209,7 +209,9 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   border-radius:3px; background:color-mix(in srgb, var(--amber) 5%, transparent); line-height:var(--lh-expanded); }
 
 /* ── A: Tab bar ── */
-.tabs-bar { border-bottom:2px solid var(--color-navy-950); padding:0 var(--page-gutter);
+.tabs-bar { border-bottom:2px solid var(--color-navy-950);
+  padding-left:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
+  padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
   display:flex; gap:var(--space-16); overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
   opacity:0; transition:opacity 0.4s ease; }
 .tabs-bar::-webkit-scrollbar { display:none; }

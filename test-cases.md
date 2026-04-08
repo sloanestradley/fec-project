@@ -110,8 +110,9 @@
 
 ### Cycle switcher
 - [ ] ✅ Cycle switcher renders as a `<select>` with options populated from candidate's `election_years`
-- [ ] Select is positioned as the first element in the tab bar, left of the tab links
+- [ ] Select is positioned as the last element in the tab bar (after all tabs), pushed right via margin-left:auto
 - [ ] No border on the select; tab bar's bottom border provides visual structure
+- [ ] Tabs-bar bottom border spans full viewport width (check at >1600px viewport); tab text aligns with page content below
 - [ ] Default to current active cycle (or most recent if no active cycle)
 - [ ] Selecting a different cycle re-fetches data and updates the view; select value stays in sync
 - [ ] `Cycle Switched` Amplitude event fires on select change (not on init)
@@ -239,10 +240,11 @@
 - [ ] ✅ Summary tab is active by default
 - [ ] ✅ Clicking Raised tab activates it and shows #tab-raised; #tab-summary hidden
 - [ ] ✅ Clicking Spent tab activates it and shows #tab-spent; #tab-summary hidden
-- [ ] ✅ Cycle switcher is present inside .tabs-bar
+- [ ] ✅ Cycle switcher is present inside .tabs-bar (last child, after all tabs)
 - [ ] ✅ Cycle switcher has an "All time" option with value "all"
 - [ ] ✅ Cycle switcher has at least one numeric cycle option
 - [ ] Cycle switcher defaults to "All time" on load
+- [ ] Tabs-bar bottom border spans full viewport width (check at >1600px viewport); tab text aligns with page content below
 - [ ] Selecting a cycle re-renders stats for that cycle
 - [ ] Selecting 2026 (no totals record) shows `—` in all stat fields
 - [ ] Amplitude `Cycle Switched` fires with `{ cycle, committee_id }` — no `committee_name` property
@@ -753,3 +755,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-04-07 | Spacing token system (redesign branch) — 8px grid established; 9 --space-* tokens added to :root (2px–4rem); --page-gutter updated to var(--space-48), --section-gap to var(--space-24), --header-h 52→48px, --banner-h 36→40px (net content offset unchanged at 88px); all padding/margin/gap declarations in styles.css replaced with tokens (~80+ values); 4 documented --space-2 micro exceptions with inline comments; gap:1px in .stats-grid flagged (hairline border technique); mobile :root gutter override updated from 1rem to var(--space-16); design-system.html Spacing section rewritten with named token scale (was 12 ad-hoc rows, now 9 named token rows); token table updated with --space-* group + --header-h/--banner-h rows; CLAUDE.md spacing system + layout token block updated | styles.css, design-system.html, CLAUDE.md (redesign branch only — no DOM changes, no new Playwright tests) | None | 280/280 Track 1 passing |
 | 2026-04-07 | Performance fix + spacing token enforcement in inline blocks (redesign branch) — identified render-blocking Amplitude session replay script as cause of extreme localhost lag; added async attribute to all 9 pages; added null guard in main.js for sessionReplay.plugin() race condition; enforced --space-* tokens in all inline <style> blocks across all 9 HTML pages (all padding/margin/gap); applied user-provided off-grid mapping table (0.1–2rem → nearest token); applied same mapping pass to styles.css residuals; 3.5rem + 5rem hero spacings updated to 4rem (--space-64); CLAUDE.md spacing token section updated (scope extended to inline blocks, off-grid mapping table added, token usage descriptions expanded) | main.js, candidate.html, candidates.html, committee.html, committees.html, design-system.html, process-log.html, race.html, races.html, search.html, CLAUDE.md (redesign branch only — no new Playwright tests; no DOM changes) | None | 280/280 Track 1 passing |
 | 2026-04-07 | Accessibility + global nav typeahead (redesign branch) — browse page sr-only button fix (candidates.html + committees.html filter bar search had visible form-search-btn outside .search-field; moved inside, added sr-only, removed border-right:none from .search-combo .form-input); search.html #search-input ARIA attributes (role=combobox, aria-haspopup=listbox, aria-expanded=false/true, aria-controls=typeahead-dropdown, aria-autocomplete=list); nav search typeahead global: officeWord + buildTypeaheadHTML + show/hide/doNavTypeahead moved to main.js; bindSearchForm updated with window.__navSearchHandler hook; #nav-typeahead-dropdown added to all 9 pages; search.html sets window.__navSearchHandler to fire inline doSearch instead of redirecting; +11 Playwright tests | main.js, styles.css, search.html, candidates.html, committees.html, candidate.html, committee.html, races.html, race.html, process-log.html, design-system.html, tests/shared.spec.js, tests/search.spec.js, tests/pages.spec.js (automated) | None | 333/333 Track 1 passing |
+| 2026-04-07 | Tabs bar redesign (redesign branch) — navy border (2px --color-navy-950), red active indicator (4px --color-red-700), gap spacing (--space-16), cycle select reordered to last child (margin-left:auto pushes right); tabs-bar moved outside .main-inner to direct child of .main on candidate.html + committee.html for full-viewport border; responsive max() padding aligns tab content with .main-inner at wide viewports; tab colors updated (navy-950 default, muted hover); design-system.html demos updated | styles.css, candidate.html, committee.html, design-system.html, CLAUDE.md, test-cases.md (redesign branch only) | None | 333/333 Track 1 passing |

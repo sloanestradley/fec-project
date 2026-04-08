@@ -110,13 +110,15 @@
       <div class="back-link-area" id="back-link-area" style="display:none"></div>
     </div>
 
-    <!-- Tabs bar — revealed after load -->
-    <div class="tabs-bar" id="tabs-bar" style="display:none">
-      <select id="cycle-switcher" class="form-select cycle-select"></select>
-      <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
-      <a class="tab"        href="#raised"  onclick="showTab('raised',event)">Raised</a>
-      <a class="tab"        href="#spent"   onclick="showTab('spent',event)">Spent</a>
-    </div>
+  </div><!-- /main-inner -->
+  <!-- Tabs bar — revealed after load -->
+  <div class="tabs-bar" id="tabs-bar" style="display:none">
+    <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
+    <a class="tab"        href="#raised"  onclick="showTab('raised',event)">Raised</a>
+    <a class="tab"        href="#spent"   onclick="showTab('spent',event)">Spent</a>
+    <select id="cycle-switcher" class="form-select cycle-select"></select>
+  </div>
+  <div class="main-inner">
 
     <!-- Committee content — revealed after load -->
     <div class="committee-content" id="committee-content" style="display:none">
