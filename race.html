@@ -94,7 +94,6 @@
     </div>
 
     <div class="race-header page-header page-header-reveal" id="race-header" style="display:none">
-      <div class="breadcrumb" style="display:none"><a href="/races">Races</a> <span>/ <span id="breadcrumb-race"></span></span></div>
       <div class="race-title page-title" id="race-title">—</div>
       <div class="race-meta-row">
         <select id="year-select" class="year-select" aria-label="Election cycle year"></select>
@@ -306,7 +305,6 @@ async function init() {
 
     var raceName = formatRaceName(officeParam, stateParam, districtParam);
 
-    document.getElementById('breadcrumb-race').textContent = raceName;
     document.getElementById('race-title').textContent = raceName;
 
     // Build meta: candidate count + optional Senate class

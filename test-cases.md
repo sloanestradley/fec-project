@@ -65,18 +65,9 @@
 - [ ] `Committees Modal Opened` fires on clicking the committees trigger
 - [ ] `Committees Tab Switched` fires on clicking Active/Terminated tabs inside modal
 
-### Breadcrumb
-- [ ] ✅ Breadcrumb shows "Candidates / House • WA-03 / Marie Gluesenkamp Perez" (mixed case, bullet separator)
-- [ ] ✅ "Candidates" is a link to /candidates
-- [ ] ✅ "House • WA-03" is a link to /race with correct state, office, district, and active cycle year (e.g. `/race?state=WA&district=03&office=H&year=2024`)
-- [ ] "Marie Gluesenkamp Perez" is plain text (no link — current page)
-- [ ] Switch to a different cycle — verify the race link year in the breadcrumb updates to match
-- [ ] All breadcrumb text renders uppercase (text-transform:uppercase via shared CSS)
-
 ### Header template (shared with committee.html and race.html)
 - [ ] Header uses `.page-header` wrapper — same padding and border-bottom as committee and race headers
 - [ ] Candidate name uses `.page-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase as other profile pages
-- [ ] Breadcrumb uses `.breadcrumb` shared class — same size, spacing, color as other profile pages
 
 ### Header animation
 - [ ] Profile header, tab bar, and content area all fade in together on load (no element pops in before others)
@@ -214,12 +205,6 @@
 - [ ] `Page Viewed` fires with `page: 'committee'` and `committee_id` property
 
 ### Breadcrumb
-- [ ] ✅ Breadcrumb shows "Committees / [Full Committee Name]" (not type label like "House Candidate Committee")
-- [ ] ✅ "Committees" is a link to /committees
-- [ ] Committee name is plain text (no link — current page)
-- [ ] Committee name in breadcrumb is title-case (not ALL CAPS from FEC API) — `toTitleCase()` applied in `renderHeader()`
-- [ ] All breadcrumb text renders uppercase (text-transform:uppercase via shared CSS)
-
 ### Header template (shared with candidate.html and race.html)
 - [ ] Header uses `.page-header` wrapper — same padding and border-bottom as candidate and race headers
 - [ ] Committee name uses `.page-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase as other profile pages (accepts wrapping for long names)
@@ -392,13 +377,6 @@
 ### API correctness
 - [ ] No 422 error in console (confirms office param is sent as lowercase full word: "house", not "H")
 - [ ] Check Network tab: the `/elections/` API call includes `office=house` (not `office=H`)
-
-### Breadcrumb
-- [ ] ✅ Breadcrumb shows "Races / House • WA-03" (no year in breadcrumb; mixed case with bullet separator)
-- [ ] ✅ "Races" is a link to /races
-- [ ] "House • WA-03" is plain text (no link — current page)
-- [ ] "← All Races" back-link is absent (removed; breadcrumb serves this purpose)
-- [ ] All breadcrumb text renders uppercase (text-transform:uppercase via shared CSS)
 
 ### Header template (shared with candidate.html and committee.html)
 - [ ] Header uses `.page-header` wrapper — same padding and border-bottom as candidate and committee headers
@@ -642,9 +620,8 @@
 - [ ] Each card has a status badge (stable / candidate-only / log-only / planned / deprecated)
 - [ ] Live demos work: tab bar switches tabs, health banner cycles through Green/Amber/Red/Closed states, modal opens and closes
 - [ ] View page source: no `<style>` block in `<head>` containing component CSS (all CSS should be in styles.css)
-- [ ] Page Header component card present (`id="comp-page-header"`, status "stable") — documents `.page-header`, `.page-title`, `.breadcrumb`
+- [ ] Page Header component card present (`id="comp-page-header"`, status "stable") — documents `.page-header`, `.page-title`
 - [ ] Page Header and Candidate Header component demos are visible (not invisible — demos don't use `.page-header-reveal` so no JS required)
-- [ ] Breadcrumb demo text appears uppercase
 
 ---
 

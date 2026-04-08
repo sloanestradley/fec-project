@@ -102,7 +102,6 @@
 
     <!-- Committee header — revealed after load -->
     <div class="committee-header page-header page-header-reveal" id="committee-header" style="display:none">
-      <div class="breadcrumb" style="display:none"><a href="/committees">Committees</a> <span>/ <span id="breadcrumb-name"></span></span></div>
       <div class="committee-header-row">
         <div class="committee-name-display page-title" id="committee-name">—</div>
         <div class="meta-row" id="meta-row"></div>
@@ -413,9 +412,6 @@ async function init() {
 }
 
 function renderHeader(c) {
-  // Breadcrumb
-  document.getElementById('breadcrumb-name').textContent = toTitleCase(c.name) || committeeTypeLabel(c.committee_type);
-
   // Name — title-cased
   document.getElementById('committee-name').textContent = toTitleCase(c.name) || '—';
 

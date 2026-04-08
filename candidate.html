@@ -93,7 +93,6 @@
     </div>
 
     <div class="profile-header page-header page-header-reveal" id="profile-header" style="display:none">
-      <div class="breadcrumb" id="breadcrumb" style="display:none"><a href="/candidates">Candidates</a></div>
       <div class="candidate-row">
         <div class="avatar" id="avatar">—</div>
         <div class="candidate-name page-title" id="candidate-name">—</div>
@@ -1209,24 +1208,9 @@ async function renderSpentIfReady() {
   }
 }
 
-// ── Breadcrumb ───────────────────────────────────────
-function updateBreadcrumb() {
-  if (!CAND_NAME) return;
-  var raceName = formatRaceName(CAND_OFFICE, CAND_STATE, CAND_DIST);
-  var raceHref = '/race?state=' + encodeURIComponent(CAND_STATE)
-    + (CAND_OFFICE === 'H' && CAND_DIST ? '&district=' + encodeURIComponent(CAND_DIST) : '')
-    + '&office=' + encodeURIComponent(CAND_OFFICE)
-    + '&year=' + activeCycle;
-  document.getElementById('breadcrumb').innerHTML =
-    '<a href="/candidates">Candidates</a>'
-    + ' <span>/ <a href="' + raceHref + '">' + raceName + '</a>'
-    + ' / ' + CAND_NAME + '</span>';
-}
-
 // ── Load one cycle ──────────────────────────────────
 async function loadCycle(cycle) {
   activeCycle = cycle;
-  updateBreadcrumb();
 
   // Reset raised tab state for new cycle
   raisedDataPromise = null;
@@ -1538,7 +1522,6 @@ async function init() {
     if (ALL_CYCLES.indexOf(hashCycle) !== -1) defaultCycle = hashCycle;
     activeCycle = defaultCycle;
     CAND_NAME = displayName;
-    updateBreadcrumb();
     amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null });
 
     var sw = document.getElementById('cycle-switcher');

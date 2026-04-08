@@ -193,8 +193,6 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - ~~**Search**~~ ✅ live — covers candidates and committees (exceeded original scope); races not yet searchable
 - ~~**Search results page**~~ ✅ live — both entity types, grouped results
 - ~~**Candidates browse page**~~ ✅ live — unified browse+search on one surface; typeahead, filter chips (office/party/state/cycle), URL sync, error state with retry
-- **Candidate breadcrumbs** — wired but hidden (`display:none`) on all profile pages; JS preserved for future redesign
-
 ### Phase 3 — Expand the data model
 *Goal: show the full money ecosystem, not just the candidate.*
 
@@ -223,7 +221,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 
 - **The name** — "Ledger" appears in the process log nav but hasn't been committed to. Name and domain matter for portfolio presentation and user perception.
 - **UI, interaction, and accessibility** — needs a holistic pass; not scoped to a single phase. Accessibility standards, motion design, touch targets, color contrast, keyboard navigation.
-- **House / Senate browsing pages** — breadcrumbs reference these but they're not priority pages. Filtered search results serve this function for MVP; revisit post-Phase 2.
+- **House / Senate browsing pages** — filtered search results serve this function for MVP; revisit post-Phase 2.
 
 ---
 

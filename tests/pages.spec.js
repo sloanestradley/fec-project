@@ -60,8 +60,8 @@ test.describe('committee.html', () => {
     expect(hasNonZeroDollar).toBe(true);
   });
 
-  test('committees link is present (breadcrumb or nav)', async ({ page }) => {
-    const backLink = page.locator('a[href*="committees"]').first();
+  test('committees link is present in nav', async ({ page }) => {
+    const backLink = page.locator('.top-nav a[href*="committees"]').first();
     await expect(backLink).toBeAttached();
   });
 
@@ -322,11 +322,6 @@ test.describe('race.html', () => {
     expect(text?.trim().length).toBeGreaterThan(0);
     // Should include WA (state) or H/House info
     expect(text).toMatch(/WA|House|03/i);
-  });
-
-  test('breadcrumb contains link to races page', async ({ page }) => {
-    const link = page.locator('.breadcrumb a[href*="races"]').first();
-    await expect(link).toBeAttached();
   });
 
   test('year selector dropdown is present with options', async ({ page }) => {

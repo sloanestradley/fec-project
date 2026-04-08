@@ -67,20 +67,6 @@ test.describe('candidate.html — profile header', () => {
     await expect(tag).toHaveText('Incumbent');
   });
 
-  test('breadcrumb contains link to /candidates', async ({ page }) => {
-    await setup(page);
-    const link = page.locator('.breadcrumb a[href="/candidates"]');
-    await expect(link).toBeAttached();
-  });
-
-  test('breadcrumb contains race link with year', async ({ page }) => {
-    await setup(page);
-    const link = page.locator('.breadcrumb a[href*="/race"]');
-    await expect(link).toBeAttached();
-    const href = await link.getAttribute('href');
-    expect(href).toMatch(/year=\d{4}/);
-  });
-
   test('cycle switcher renders as select with options', async ({ page }) => {
     await setup(page);
     const switcher = page.locator('select#cycle-switcher');

@@ -25,7 +25,7 @@
 
   /* Typography — letter spacing */
   --ls-tight:    -0.125rem; /* display titles: .page-title */
-  --ls-expanded: 0.1em;    /* small uppercase labels: .stat-label, .breadcrumb, .entry-date */
+  --ls-expanded: 0.1em;    /* small uppercase labels: .stat-label, .entry-date */
 
   /*
    * Named type styles (10 canonical styles — all component classes reference one of these):
@@ -430,12 +430,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .page-header { padding:var(--space-40) var(--page-gutter) var(--space-16); }
 .page-header-reveal { opacity:0; transition:opacity 0.4s ease; }
 .page-header-reveal.visible { opacity:1; }
-
-.breadcrumb { font-size:0.625rem; color:var(--muted); letter-spacing:var(--ls-expanded);
-  text-transform:uppercase; margin-bottom:var(--space-24); }
-.breadcrumb span { color:var(--subtle); }
-.breadcrumb a { color:var(--muted); text-decoration:none; }
-.breadcrumb a:hover { color:var(--accent); }
 
 .page-title { font-family:'Oswald',sans-serif;
   font-size:clamp(1.6rem,5vw,5rem); font-weight:600; line-height:var(--lh-tight);
