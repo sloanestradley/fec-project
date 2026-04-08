@@ -140,6 +140,47 @@ function formatRaceName(office, state, district) {
   return officeName + ' \u2022 ' + (state || '') + districtStr;
 }
 
+// ── State name lookup ────────────────────────────────────────────────────────
+
+var STATE_NAMES = {
+  AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California',
+  CO:'Colorado', CT:'Connecticut', DE:'Delaware', DC:'District of Columbia',
+  FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois',
+  IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana',
+  ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota',
+  MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada',
+  NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York',
+  NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma', OR:'Oregon',
+  PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota',
+  TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont', VA:'Virginia',
+  WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming'
+};
+
+function toOrdinal(n) {
+  var i = parseInt(n, 10);
+  var mod100 = i % 100;
+  var mod10  = i % 10;
+  if (mod100 >= 11 && mod100 <= 13) return i + 'th';
+  if (mod10 === 1) return i + 'st';
+  if (mod10 === 2) return i + 'nd';
+  if (mod10 === 3) return i + 'rd';
+  return i + 'th';
+}
+
+// Format a long-form race label for profile page headers:
+//   'H', 'WA', '03' → "US House: Washington's 3rd District"
+//   'S', 'WA', ''   → "US Senate: Washington"
+//   'P', '', ''     → "US Presidential"
+//   'H', 'AK', '00' → "US House: Alaska"  (at-large — omit district)
+function formatRaceLabelLong(office, state, district) {
+  if (office === 'P') return 'US Presidential';
+  var stateName = STATE_NAMES[state] || state || '';
+  if (office === 'S') return 'US Senate: ' + stateName;
+  // House
+  if (!district || district === '00') return 'US House: ' + stateName;
+  return 'US House: ' + stateName + '\u2019s ' + toOrdinal(district) + ' District';
+}
+
 // ── Committee utilities ──────────────────────────────────────────────────────
 
 function filingFrequencyLabel(code) {
