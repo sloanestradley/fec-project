@@ -2523,3 +2523,43 @@ The through-line: Sloane treats visual QA as a first-class constraint — if it 
 – Tab bar visual refinement: the active indicator is now 4px red-700. On the preview, check whether the indicator weight feels right relative to the 2px navy border — the 2:1 ratio is intentional but worth eyeballing at different viewport sizes.
 
 – Next redesign priority: tabs-bar is styled, nav is styled, spacing/typography tokens are clean. What's the next highest-leverage visual surface? Cards/rows, page headers, or something else?
+
+---
+2026-04-07 end of session (3)
+
+## Process log draft
+
+Title: Stripping it back
+
+Three removals in one session — heading weight dropped from 600 to 400, breadcrumbs deleted sitewide, avatar pulled from the candidate header. None of these were broken; they were just in the way of the redesign taking shape. The heading weight change was surgical (four CSS declarations). The breadcrumb removal was the deepest cut — markup on three pages, a JS function with three call sites, four CSS rules, three Playwright tests, and references scattered across six documentation files. The avatar was similar but smaller. Each removal required tracing every reference through code, tests, and docs to make sure nothing was left dangling.
+
+Changelog:
+– Heading type style: Oswald weight 600 → 400 across styles.css, design-system.html, process-log.html (.entry-title was 700, also corrected), CLAUDE.md
+– Breadcrumbs removed from candidate.html (markup + updateBreadcrumb() + 2 call sites), committee.html (markup + JS binding), race.html (markup + JS binding)
+– Breadcrumb CSS rules removed from styles.css; inline overrides removed from design-system.html
+– 3 breadcrumb Playwright tests removed (candidate.spec.js × 2, pages.spec.js × 1); committee nav test updated to scope to .top-nav
+– Avatar removed from candidate.html (markup + .avatar CSS + getInitials() function + getElementById call)
+– 1 avatar Playwright test removed from candidate.spec.js
+– Avatar CSS + demo removed from design-system.html
+– All breadcrumb and avatar references cleaned from CLAUDE.md, project-brief.md, test-cases.md, design-system.html, TESTING.md
+– Test count: 333 → 329 (4 tests removed, 0 added)
+
+Field notes: Removal sessions are unglamorous but they expose how well-threaded your documentation is. Every breadcrumb reference in CLAUDE.md, test-cases.md, project-brief.md, and design-system.html had to be found and pulled. The fact that the documentation was thorough enough to have all those references is a sign the system is working — but it also means cleanup isn't just deleting code, it's editing six files of prose. The design system is earning its keep as a contract: if you add something to the system, you'll have to remove it from the system too.
+
+Stack tags: CSS · cleanup · design system maintenance
+
+## How Sloane steered the work
+
+**Three precise removals, no debate**
+Each request was a single sentence with clear scope — "update heading weight to 400", "remove breadcrumbs sitewide", "remove the .avatar div entirely." No ambiguity about what to do or why. The redesign direction is clear enough that these decisions didn't need justification; they're consequences of a visual direction that's already been established over multiple sessions.
+
+**Commit-and-push cadence**
+After each discrete change, immediate "commit and push" — no batching, no waiting to see if the next change might conflict. This keeps the branch preview current and makes each change independently reviewable on Netlify.
+
+The through-line: you're editing the design by subtraction — removing elements that don't earn their place in the new visual system, and doing it decisively.
+
+## What to bring to Claude Chat
+
+– The candidate header is now name + tags + committees link, no avatar. Worth checking the Netlify preview to see if the header feels balanced without the avatar at different viewport sizes, or if something else should anchor the left side.
+– Next redesign surface: with nav, tabs bar, typography, spacing, and now header cleanup all done — what's the next highest-leverage visual target? Cards/rows, the stats grid, chart styling, or the overall page chrome?
+– The heading weight at 400 is noticeably lighter than before. Check the preview to confirm it reads well for the nav logo and error states — if it feels too light, 500 might be the sweet spot (would require adding weight to the Google Fonts import).
