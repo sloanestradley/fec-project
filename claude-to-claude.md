@@ -2723,3 +2723,52 @@ The through-line: Sloane consistently turns single-file investigations into syst
 - **Next redesign surface** — nav, tabs bar, typography, spacing, header cleanup, and CSS consolidation are all done. What's the next highest-leverage visual target? Candidate cards, stats grid, or overall page-level surface treatment?
 - **`.profile-content` padding rhythm** — all three profile pages now use --space-32 top padding after the tabs bar, but candidate also has #race-context-bar adding --space-16 above it. Worth checking whether the candidate effective gap feels right relative to committee and race on the preview.
 - **Display type clamp settled at `clamp(2rem,5vw,4.5rem)`** — worth confirming at both ends: mobile (2rem floor) and ultrawide (4.5rem ceiling). The 5vw midpoint hits the ceiling at ~1440px.
+
+---
+2026-04-08 End of session (4)
+
+## Process log draft
+
+Title: The sticky stack, built in two passes
+
+This session introduced the compact sticky header on the candidate page — a one-line [race] / [name] strip that appears below the top nav as the user scrolls past the full profile header. Getting there required two structural fixes that turned out to be more interesting than the feature itself: `overflow-x:hidden` on `.main` was silently killing all sticky positioning by creating an implicit scroll container, and the tabs bar had never been given `position:sticky` at all despite being described as sticky in documentation.
+
+The compact header is working — clean trigger, no visible overlap with the full header, tabs bar stacks flush below it. The timing of the trigger is still a known compromise: we're waiting for the name row to clear the nav before showing the compact version, which requires more scrolling than feels ideal. A single-element approach (the profile header itself transitions between full and compact states via a CSS class) would resolve this by tying the trigger to the sticky engagement point rather than a content-clearing threshold. That refactor is documented and planned for the next session.
+
+Changelog:
+- styles.css: .tabs-bar gets position:sticky, top:var(--header-h), z-index:185, background:var(--bg)
+- styles.css: .main overflow-x:hidden → overflow-x:clip (bug fix — hidden broke sticky)
+- candidate.html: #compact-header element added (sticky, z-index:190, [race]/[name] inline)
+- candidate.html: #compact-header CSS in inline <style> block (no border-bottom, responsive padding matching tabs-bar)
+- candidate.html: #profile-header-row id added for use as scroll trigger sentinel
+- candidate.html: scroll listener (passive) on profile-header-row.bottom <= headerH → show/hide compact
+- candidate.html: compact header text populated from same data as full header (formatRaceLabelLong + displayName)
+- candidate.html: tabs-bar top offset updated dynamically via compactEl.offsetHeight
+- tests/candidate.spec.js: 2 new structural assertions (#compact-header exists + is initially hidden; child spans present)
+- All 9 pages: global banner &nbsp; entities removed (separate commit)
+
+Field notes: The overflow-x:hidden → overflow-x:clip fix is the kind of thing that's invisible until it isn't. The property was set to prevent horizontal scroll bleed, which is reasonable, but the side effect (implicit scroll container, sticky broken) isn't documented anywhere obvious. `overflow-x:clip` achieves the same visual result without the scroll container behavior — a distinction that only matters when sticky positioning is involved. The sticky timing problem for the compact header is a genuinely interesting design challenge: the two-element approach is always racing to detect when content has disappeared, while the single-element approach sidesteps the race entirely by making the transition part of the element's own sticky engagement.
+
+Stack tags: CSS · JavaScript · interaction design
+
+## How Sloane steered the work
+
+**"Remove border-bottom" — reading the design before it renders**
+Before implementation was approved, you made a targeted visual call: the compact header doesn't need a border-bottom. That decision reflects a design instinct about visual weight — a bare strip with typography doesn't need a ruled bottom edge to feel like a header.
+
+**Three rounds of trigger tuning — then stepping back**
+After the feature was working structurally, you stayed with the UX problem across three iterations: past the whole header (too late), name top as trigger (too early, visible overlap), name row bottom (still a compromise). Rather than approving the third attempt as "good enough," you asked whether a fundamentally different approach existed. That's the right question — the trigger iterations were all symptoms of an architectural mismatch.
+
+**"Is there a cleaner approach altogether?" — the right moment to stop**
+The ask to describe a single-element approach before committing to it showed exactly the right instinct: get the architectural feedback first, don't just keep tuning. When the answer was "yes, but it's a real refactor," you made the pragmatic call to document it and close the session cleanly rather than cramming it in.
+
+**Closing the session rather than overextending**
+With context running low, you asked directly how to close out cleanly rather than pushing for one more feature. That kept the branch in a coherent state — everything committed is working, nothing is half-built.
+
+The through-line: you made UX calls faster than implementation calls — approving structural fixes quickly, staying skeptical about interaction timing, and knowing when the design problem required a different architecture rather than more tuning.
+
+## What to bring to Claude Chat
+
+- Single-element compact header refactor — the plan is documented. Before starting, worth confirming the visual design: does the profile header animate (padding, opacity fade between states) or snap instantly? What does the transition feel like at different scroll speeds?
+- Tabs bar sticky on committee.html and race.html — now that .tabs-bar is sticky sitewide, worth checking both pages on the preview to confirm the stacking behavior feels right there too (no compact header on those pages, so the tabs bar just sticks at 56px without offset logic).
+- Mobile behavior of compact header — functional but not tested on a real device. Worth a look on narrow viewports before merging to main.
