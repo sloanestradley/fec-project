@@ -16,13 +16,7 @@
       text-transform:none; color:var(--muted); align-self:center; white-space:nowrap; margin-left:auto; }
     #year-select.cycle-select { margin-left:0; }
 
-    .race-content { padding:var(--space-32) var(--page-gutter); opacity:0; transition:opacity 0.3s ease; }
-    .race-content.visible { opacity:1; }
     .race-list { display:flex; flex-direction:column; margin-bottom:var(--space-24); }
-
-    @media (max-width:860px) {
-      .race-content { padding:var(--space-24) var(--page-gutter); }
-    }
   </style>
 </head>
 <body>
@@ -87,7 +81,7 @@
     </div>
 
     <div class="race-header page-header page-header-reveal" id="race-header" style="display:none">
-      <div class="race-title page-title" id="race-title">—</div>
+      <div class="page-title" id="race-title">—</div>
     </div>
 
   </div><!-- /.main-inner -->
@@ -100,7 +94,7 @@
   </div>
 
   <div class="main-inner">
-    <div class="race-content" id="race-content" style="display:none">
+    <div class="profile-content" id="race-content" style="display:none">
       <div id="tab-candidates">
         <div class="section-title" id="race-candidates-label"></div>
         <div class="race-list" id="race-list"></div>

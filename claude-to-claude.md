@@ -2670,3 +2670,56 @@ The through-line: you're managing the redesign like a directed series of commits
 – Candidate header on mobile: .candidate-race-label is now a full line above the name. Worth checking the Netlify preview at narrow viewports to confirm it wraps gracefully and the spacing feels right.
 – Committee header next steps: back-link is gone, assoc-section intact. Does committee.html need its own long-form label treatment (parallel to candidate.html and race.html), or is the committee name sufficient as the primary header identifier?
 – The redesign branch now has substantially different header structure across all three profile pages. Is there a milestone at which some or all of this gets merged to main, or does the redesign branch stay separate until a full visual pass is complete?
+
+---
+2026-04-08 End of session (3)
+
+## Process log draft
+
+Title: Making the family resemble itself
+
+Date: 2026-04-08
+Tags: css, cleanup, design-system
+
+The session started with a simple question: why is .main-inner on race.html a different height than committee.html? The answer led to a consolidation pass across all three profile pages. What looked like a layout debugging task turned out to be CSS archaeology — three content wrappers doing the same thing under three different names, two header row wrappers with identical rules, three title classes that were pure aliases for .page-title. None of it was broken. It just accumulated across sessions built independently.
+
+The consolidation produced four new shared classes in styles.css (.profile-content, .profile-header-row, and .profile-header-row .page-title for min-width:0) and eliminated about 30 lines of duplicated inline CSS. The margin-bottom removals — from .candidate-race-label and from the old row wrappers — were motivated by the same principle: if race.html doesn't have it and the pages should feel like a family, resolve the inconsistency by removing the unnecessary spacing, not by adding it everywhere.
+
+### Changelog
+- styles.css: .profile-content added (padding:--space-32, opacity:0 reveal, mobile --space-24); .profile-header-row added (flex row, no margin-bottom); .profile-header-row .page-title gets min-width:0
+- styles.css: .page-header bottom padding --space-16 → --space-32
+- styles.css: display type clamp updated: clamp(1.6rem,5vw,5rem) → clamp(2rem,5vw,4.5rem)
+- candidate.html: .content → .profile-content; .candidate-row → .profile-header-row; .candidate-name stripped to .page-title; .candidate-race-label margin-bottom removed; inline CSS rules removed
+- committee.html: .committee-content → .profile-content; .committee-header-row → .profile-header-row; .committee-name-display stripped to .page-title; inline CSS rules removed
+- race.html: .race-content → .profile-content; .race-title stripped to .page-title; inline CSS rules removed; content padding aligned
+- design-system.html: candidate header demo updated; display specimen clamp updated; type specimen class list updated
+- CLAUDE.md: shared files section updated (.profile-content/.profile-header-row); spacing token descriptions corrected; .page-title clamp updated
+- tests/pages.spec.js + smoke.spec.js: 2 class → ID selector updates (.committee-name-display → #committee-name)
+
+### Field notes
+The consolidation revealed something worth naming: when pages are built in separate sessions without a shared pattern to reach for, the same idea gets independently invented two or three times under different names. None of the duplicates were wrong — they just existed in parallel. The design system's job is to notice this and give it one name. That's what .profile-content and .profile-header-row are: not new features, just a recognition that three identical things should be one thing. The cleanup also enforced a useful constraint: if race.html doesn't have a margin-bottom on its header elements, then the pages that do have row wrappers should lose theirs too. Consistency by subtraction.
+
+## How Sloane steered the work
+
+**Starting with a diagnostic question, not a fix request**
+"Investigate why .main-inner on race.html is a different height" — not "fix the height difference." The framing invited a full investigation rather than a patch, which is what surfaced the broader consolidation opportunity.
+
+**Asking about consolidation before approving changes**
+"What's the purpose of .race-content vs .committee-content?" opened the conversation about whether these classes should exist at all. That question turned a one-line padding fix into a proper cleanup session.
+
+**Driving the cleanup deeper each time**
+The pattern repeated three times: content wrappers → header row wrappers → title classes. Each "what about this?" pushed the audit one level further. By the end, three separate classes per concept had been reduced to one.
+
+**"Can we also remove the margin-bottom?"**
+This was a design instinct, not a refactoring instinct. Race.html has no row wrapper so it has no margin. If the pages should feel like a family, resolve the inconsistency by removal. The framing — "as long as it's not doing any important work" — showed awareness that consequences were worth checking first.
+
+**Asking for a summary before edits**
+When the first edit was attempted without a prior summary, immediate correction: "please summarize the edits before moving forward." Saved to memory so it holds across sessions.
+
+The through-line: Sloane consistently turns single-file investigations into system-level improvements by asking one more layer of "what about this?" — and catches unintended consequences before they land.
+
+## What to bring to Claude Chat
+
+- **Next redesign surface** — nav, tabs bar, typography, spacing, header cleanup, and CSS consolidation are all done. What's the next highest-leverage visual target? Candidate cards, stats grid, or overall page-level surface treatment?
+- **`.profile-content` padding rhythm** — all three profile pages now use --space-32 top padding after the tabs bar, but candidate also has #race-context-bar adding --space-16 above it. Worth checking whether the candidate effective gap feels right relative to committee and race on the preview.
+- **Display type clamp settled at `clamp(2rem,5vw,4.5rem)`** — worth confirming at both ends: mobile (2rem floor) and ultrawide (4.5rem ceiling). The 5vw midpoint hits the ceiling at ~1440px.

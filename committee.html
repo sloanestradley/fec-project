@@ -17,20 +17,13 @@
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     /* Committee header */
-    .committee-header-row { display:flex; align-items:center; gap:var(--space-8); margin-bottom:var(--space-8); flex-wrap:wrap; }
     .designation-label { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
       color:var(--muted); margin-left:var(--space-4); }
     /* Content area */
-    .committee-content { padding:var(--space-40) var(--page-gutter);
-      opacity:0; transition:opacity 0.3s ease; }
-    .committee-content.visible { opacity:1; }
 
     /* Associated candidates */
     .assoc-list { display:flex; flex-direction:column; }
 
-    @media (max-width:860px) {
-      .committee-content { padding:var(--space-24) var(--page-gutter); }
-    }
   </style>
 </head>
 <body>
@@ -96,8 +89,8 @@
 
     <!-- Committee header — revealed after load -->
     <div class="committee-header page-header page-header-reveal" id="committee-header" style="display:none">
-      <div class="committee-header-row">
-        <div class="committee-name-display page-title" id="committee-name">—</div>
+      <div class="profile-header-row">
+        <div class="page-title" id="committee-name">—</div>
         <div class="meta-row" id="meta-row"></div>
       </div>
     </div>
@@ -113,7 +106,7 @@
   <div class="main-inner">
 
     <!-- Committee content — revealed after load -->
-    <div class="committee-content" id="committee-content" style="display:none">
+    <div class="profile-content" id="committee-content" style="display:none">
 
       <div id="tab-summary">
         <!-- Financial summary -->

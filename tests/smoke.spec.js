@@ -99,7 +99,7 @@ test('@smoke: committee C00775668 (Marie for Congress) loads with financials', a
   await page.waitForSelector('.committee-header.visible', { timeout: 30000 });
 
   // Committee name should appear
-  const name = await page.locator('.committee-name-display').textContent();
+  const name = await page.locator('#committee-name').textContent();
   expect(name?.trim().length).toBeGreaterThan(3);
   expect(name?.toUpperCase()).toContain('MARIE');
 

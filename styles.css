@@ -30,7 +30,7 @@
   /*
    * Named type styles (10 canonical styles — all component classes reference one of these):
    *
-   *  display       Oswald      clamp(1.6–5rem)  600  uppercase  --ls-tight    --lh-tight
+   *  display       Oswald      clamp(2–4.5rem)  600  uppercase  --ls-tight    --lh-tight
    *  stat          Oswald      2rem             600  —          —             --lh-tight
    *  heading       Oswald      1.25rem          400  uppercase  —             —
    *  tab           Oswald      1.25rem          400  none       —             —
@@ -430,15 +430,18 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 
 
 /* ── Page header — shared by candidate, committee, race profile pages ─────── */
-.page-header { padding:var(--space-40) var(--page-gutter) var(--space-16); }
+.page-header { padding:var(--space-40) var(--page-gutter) var(--space-32); }
 .page-header-reveal { opacity:0; transition:opacity 0.4s ease; }
 .page-header-reveal.visible { opacity:1; }
+.profile-header-row { display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
+.profile-content { padding:var(--space-32) var(--page-gutter); opacity:0; transition:opacity 0.3s ease; }
+.profile-content.visible { opacity:1; }
 
 .page-title { font-family:'Oswald',sans-serif;
-  font-size:clamp(1.6rem,5vw,5rem); font-weight:600; line-height:var(--lh-tight);
+  font-size:clamp(2rem,5vw,4.5rem); font-weight:600; line-height:var(--lh-tight);
   letter-spacing:var(--ls-tight); text-transform:uppercase; margin-bottom:var(--space-8);
   color:var(--color-navy-950); }
-.candidate-name { min-width:0; }
+.profile-header-row .page-title { min-width:0; }
 
 /* ── P: Form controls ── */
 .form-select, .form-input { padding:var(--space-8); font-family:'IBM Plex Sans',sans-serif;
@@ -621,6 +624,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   .top-nav-search { display:none; }
   .top-nav-mobile-controls { display:flex; }
   .page-header { padding:var(--space-24) var(--page-gutter); }
+  .profile-content { padding:var(--space-24) var(--page-gutter); }
   .global-banner-text { padding:0 var(--page-gutter); }
   .committee-row { grid-template-columns:1fr; gap:var(--space-4); }
   .committee-type,.committee-id { text-align:left; }

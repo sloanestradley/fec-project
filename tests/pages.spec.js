@@ -34,7 +34,7 @@ test.describe('committee.html', () => {
   });
 
   test('committee name is displayed', async ({ page }) => {
-    const name = page.locator('.committee-name-display');
+    const name = page.locator('#committee-name');
     await expect(name).toBeVisible();
     const text = await name.textContent();
     expect(text?.trim().length).toBeGreaterThan(3);
@@ -46,7 +46,7 @@ test.describe('committee.html', () => {
 
   test('stats grid shows financial figures (not $0)', async ({ page }) => {
     // Wait for content to become visible
-    await page.waitForSelector('.committee-content.visible', { timeout: 10000 });
+    await page.waitForSelector('.profile-content.visible', { timeout: 10000 });
     const statsGrid = page.locator('.stats-grid');
     await expect(statsGrid).toBeVisible();
     const values = statsGrid.locator('.stat-value');
@@ -66,7 +66,7 @@ test.describe('committee.html', () => {
   });
 
   test('committee content area is present (scaffold)', async ({ page }) => {
-    const content = page.locator('.committee-content');
+    const content = page.locator('.profile-content');
     await expect(content).toBeAttached();
   });
 
