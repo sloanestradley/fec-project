@@ -20,12 +20,6 @@
     .committee-header-row { display:flex; align-items:center; gap:var(--space-8); margin-bottom:var(--space-8); flex-wrap:wrap; }
     .designation-label { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
       color:var(--muted); margin-left:var(--space-4); }
-    .back-link-area { margin-top:var(--space-16); }
-    .back-link-area a { font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem;
-      color:var(--subtle); text-decoration:underline; text-decoration-color:transparent;
-      text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
-    .back-link-area a:hover { color:var(--accent); text-decoration-color:var(--accent); }
-
     /* Content area */
     .committee-content { padding:var(--space-40) var(--page-gutter);
       opacity:0; transition:opacity 0.3s ease; }
@@ -106,7 +100,6 @@
         <div class="committee-name-display page-title" id="committee-name">—</div>
         <div class="meta-row" id="meta-row"></div>
       </div>
-      <div class="back-link-area" id="back-link-area" style="display:none"></div>
     </div>
 
   </div><!-- /main-inner -->
@@ -387,7 +380,7 @@ async function init() {
     var allCandIds    = [].concat(sponsorIds, authorizedIds).filter(Boolean);
     if (allCandIds.length) {
       var relType = sponsorIds.indexOf(allCandIds[0]) !== -1 ? 'sponsor' : 'authorized';
-      fetchAndRenderBackLink(allCandIds[0], relType);
+      fetchAndRenderAssocSection(allCandIds[0], relType);
     }
 
     document.getElementById('state-msg').style.display       = 'none';
@@ -1258,17 +1251,13 @@ async function renderSpentIfReady() {
   }
 }
 
-async function fetchAndRenderBackLink(candidateId, relType) {
+
+async function fetchAndRenderAssocSection(candidateId, relType) {
   try {
     var res  = await apiFetch('/candidate/' + candidateId + '/');
     var cand = (res.results || [])[0];
     if (!cand) return;
     var displayName = toTitleCase(cand.name);
-    var backEl = document.getElementById('back-link-area');
-    backEl.innerHTML = '<a href="/candidate/' + candidateId + '">← Candidate: ' + displayName + '</a>';
-    backEl.style.display = 'block';
-
-    // Also show in associated section
     var assocSection = document.getElementById('assoc-section');
     var assocList    = document.getElementById('assoc-list');
     var pcls = partyClass(cand.party);
@@ -1286,7 +1275,7 @@ async function fetchAndRenderBackLink(candidateId, relType) {
       + '</div></a>';
     assocSection.style.display = 'block';
   } catch(e) {
-    // Non-fatal — back-link just won't appear
+    // Non-fatal — assoc section just won't appear
   }
 }
 
