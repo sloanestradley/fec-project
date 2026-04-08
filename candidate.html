@@ -1350,10 +1350,10 @@ async function loadCycle(cycle) {
         ? '&district=' + CAND_DIST : '';
       var raceHref = '/race?state=' + encodeURIComponent(CAND_STATE)
         + distParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + cycle;
-      var viewRaceLink = '\u00a0<a href="' + raceHref + '">View race \u2192</a>';
+      var viewRaceLink = '<a href="' + raceHref + '">View race \u2192</a>';
 
       if (!electionsData.length) {
-        raceCtx.innerHTML = '<span class="tag-context">' + viewRaceLink.trim() + '</span>';
+        raceCtx.innerHTML = '<span class="tag-context"><span class="tag-context-text"></span>' + viewRaceLink + '</span>';
         return;
       }
 
@@ -1379,7 +1379,7 @@ async function loadCycle(cycle) {
         }
       }
 
-      raceCtx.innerHTML = '<span class="tag-context">' + sentence + viewRaceLink + '</span>';
+      raceCtx.innerHTML = '<span class="tag-context"><span class="tag-context-text">' + sentence + '</span>' + viewRaceLink + '</span>';
     })();
 
     // ── Incumbent tag ──────────────────────────────────────────────

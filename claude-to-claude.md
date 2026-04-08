@@ -2563,3 +2563,62 @@ The through-line: you're editing the design by subtraction — removing elements
 – The candidate header is now name + tags + committees link, no avatar. Worth checking the Netlify preview to see if the header feels balanced without the avatar at different viewport sizes, or if something else should anchor the left side.
 – Next redesign surface: with nav, tabs bar, typography, spacing, and now header cleanup all done — what's the next highest-leverage visual target? Cards/rows, the stats grid, chart styling, or the overall page chrome?
 – The heading weight at 400 is noticeably lighter than before. Check the preview to confirm it reads well for the nav logo and error states — if it feels too light, 500 might be the sweet spot (would require adding weight to the Google Fonts import).
+
+---
+2026-04-08 End of session
+
+## Process log draft
+
+Title: The type system, fully audited
+
+Date: 2026-04-08
+Tags: css, typography, design-system, cleanup
+
+What started as a single correction — the logo inheriting the wrong weight after last session's heading update — became a full audit of every font-family declaration in the codebase. The Oswald audit from last session was thorough but only covered one family. Sweeping IBM Plex Mono and Sans revealed a second layer of drift: hardcoded sizes that predated the named type system, rules missing weights, and inline style blocks on individual pages duplicating what belonged in styles.css.
+
+The audit surfaced about a dozen corrections across both styles.css and inline blocks in six HTML files. Most were straightforward mappings to existing named styles. A few required judgment calls — modal-title to heading, modal-tab-btn to body-emphasis, committees-link from Mono to body. Each decision is now reflected in the type specimen usage lists in design-system.html, which had never been updated to track actual component usage.
+
+The session also resolved a long-standing layout tension in the race context bar: the "View race →" link now sits inline with the sentence on wide viewports (pill hugs content via width:fit-content) and right-aligns via margin-left:auto when the sentence wraps on narrow screens.
+
+### Changelog
+- `.top-nav-logo` weight restored to 600 — documented deviation from heading style (400)
+- `.top-nav-inner` padding updated from `--space-32` to `--page-gutter` for content alignment
+- Type audit — styles.css: `.modal-title`, `.banner-label`, `.chart-title`, `.donors-head`, `.donors-table .da`, `.donut-center-val`, `.candidate-card-stat-val`, `.retry-btn`, `.committees-link`, `.modal-tab-btn` all corrected to named type styles; `.form-search-btn` font properties stripped (sr-only, never rendered)
+- Type audit — inline blocks: `race.html` `.race-meta` + `.year-select`, `committee.html` `.back-link-area a`, `process-log.html` `.view-btn` → body; `search.html` `.no-results strong` → heading
+- `.results-header` promoted from three duplicate inline blocks to `styles.css`
+- `.cycle-select` stray `margin-right:var(--space-16)` removed
+- `.tag-context` layout: `display:flex; width:fit-content; max-width:100%; flex-wrap:wrap` — hugs content on wide viewports, right-aligns link on narrow via `margin-left:auto` on `.tag-context a`
+- design-system.html: all type specimen usage lists updated; search combo demos updated to icon-leading pattern; tag-context component demo and notes updated; form controls classes updated
+- CLAUDE.md end-of-session ritual: design-system.html audit expanded to four explicit sub-items (token table, type specimen lists, component demos, component notes)
+- +1 Playwright test: tag-context flex structure (`.tag-context-text` + `<a>`)
+
+### Field notes
+The type audit exposed something structural: the design system reference and the actual CSS had diverged silently. The specimen usage lists in design-system.html were never treated as a living record — they documented what was true when each component was first built, then stopped being updated. The fix wasn't just correcting the CSS; it was establishing that the usage lists need to be maintained like code. That's now written into the end-of-session ritual with specific instructions, so future sessions have a checklist rather than a vague directive.
+
+## How Sloane steered the work
+
+**"The logo was impacted" — catching an unintended consequence**
+Last session's heading weight change was intentional for content headings but knocked the logo weight down as a side effect. You caught it on inspection and named it precisely: return the logo to 600, document it as a deviation. That framing — "this is a deliberate exception, not a bug" — is exactly the right way to handle type system divergences.
+
+**Pushing the audit further each time**
+After fixing the modal title, you asked: "Do we need a second audit for other cases like this?" After fixing the Oswald cases, you asked: "Let's do a pass on all font families." Each question extended the scope at the right moment — not speculatively up front, but after seeing evidence that more existed. The result was a genuinely complete audit rather than a patchwork of individual fixes.
+
+**Judgment calls on every type mapping**
+You made every mapping decision: modal-tab-btn to body-emphasis, committees-link to body, .no-results strong to heading, .donors-table .da to subheading, .donut-center-val to heading. These weren't defaults — each one required reading the component in context and choosing the right register.
+
+**"There's no reason for race.html to have that slight variation"**
+When .results-header had a spacing difference between pages, you cut the variation rather than preserving it. Simpler system, one fewer divergence to track.
+
+**Race context layout — three iterations to the right answer**
+The "View race →" link went through three CSS approaches before landing. You tested each on the preview, described exactly what was wrong, and gave a clear direction each time. "I want them to sit side-by-side but not have the entire module appear full-width" was a precise enough brief that it pointed directly to the CSS solution.
+
+**Strengthening the end-of-session ritual**
+Rather than accepting that documentation keeps getting missed, you asked for the ritual itself to be improved — identifying the root cause (vague instructions) and fixing the process rather than just the current gap.
+
+The through-line: you're treating the design system as a contract, not a reference — when something drifts from it, the fix includes updating the contract, not just the code.
+
+## What to bring to Claude Chat
+
+- **Type system is now fully audited** — every font-family declaration maps to a named style or documented deviation. Worth noting as a milestone before moving to the next visual surface.
+- **Next redesign priority** — nav, tabs bar, typography, spacing, and header cleanup are all done. What's the next highest-leverage surface: cards/rows, stats grid, or something else?
+- **Race context bar padding** — now that the pill hugs its content, the `#race-context-bar` padding may need a look at different breakpoints. Worth eyeballing on the preview.
