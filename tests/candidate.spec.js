@@ -78,6 +78,19 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#race-context .tag-context a')).toBeAttached();
   });
 
+  test('compact header exists and is initially hidden', async ({ page }) => {
+    await setup(page);
+    await expect(page.locator('#compact-header')).toBeAttached();
+    await expect(page.locator('#compact-header')).toHaveCSS('display', 'none');
+  });
+
+  test('compact header contains race label, separator, and name spans', async ({ page }) => {
+    await setup(page);
+    await expect(page.locator('#compact-race-label')).toBeAttached();
+    await expect(page.locator('.compact-sep')).toBeAttached();
+    await expect(page.locator('#compact-name')).toBeAttached();
+  });
+
   test('incumbent tag shown for incumbent candidate', async ({ page }) => {
     await setup(page);
     const tag = page.locator('#meta-row .incumbent-tag');

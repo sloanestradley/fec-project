@@ -108,7 +108,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 
 /* ── Layout ── */
 .layout { min-height:100vh; }
-.main { overflow-x:hidden; min-width:0; }
+.main { overflow-x:clip; min-width:0; }
 .main-inner { max-width:1600px; margin-left:auto; margin-right:auto; width:100%; }
 
 /* ── Top nav ── */
@@ -209,7 +209,8 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   border-radius:3px; background:color-mix(in srgb, var(--amber) 5%, transparent); line-height:var(--lh-expanded); }
 
 /* ── A: Tab bar ── */
-.tabs-bar { border-bottom:2px solid var(--color-navy-950);
+.tabs-bar { position:sticky; top:var(--header-h); z-index:185;
+  background:var(--bg); border-bottom:2px solid var(--color-navy-950);
   padding-left:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
   padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
   display:flex; gap:var(--space-16); overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
