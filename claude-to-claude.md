@@ -2622,3 +2622,51 @@ The through-line: you're treating the design system as a contract, not a referen
 - **Type system is now fully audited** — every font-family declaration maps to a named style or documented deviation. Worth noting as a milestone before moving to the next visual surface.
 - **Next redesign priority** — nav, tabs bar, typography, spacing, and header cleanup are all done. What's the next highest-leverage surface: cards/rows, stats grid, or something else?
 - **Race context bar padding** — now that the pill hugs its content, the `#race-context-bar` padding may need a look at different breakpoints. Worth eyeballing on the preview.
+
+---
+2026-04-08 End of session (2)
+
+## Process log draft
+
+Title: Headers with intent
+
+This session gave profile headers a clear visual hierarchy — race context above the name, not beside it. The work introduced a new formatting function (formatRaceLabelLong) shared across three pages, restructured the race page to finally have a tabs bar, and cleaned up the committee header. The most consequential moment was discovering mid-session that removing fetchAndRenderBackLink() would also kill the assoc-section card — a dependency that wasn't visible from the function name or its call site alone.
+
+Changelog:
+– utils.js: STATE_NAMES (50 states + DC), toOrdinal(), formatRaceLabelLong() — long-form race labels for profile headers
+– candidate.html: .candidate-race-label above name (red-700, Oswald uppercase, links to race page); race tag removed from meta-row; party tag only remains
+– styles.css: .page-title color → var(--color-navy-950) sitewide
+– race.html: long-form title via formatRaceLabelLong(); tabs bar (Candidates/Insights) with split main-inner structure; year-select moved into tabs bar; Senate class label → #race-seat-class in tabs bar; candidate count removed; showTab() added
+– committee.html: #back-link-area removed from header and CSS; fetchAndRenderBackLink() split into fetchAndRenderAssocSection() — back-link gone, assoc-section card in Summary tab preserved
+– CLAUDE.md, design-system.html, test-cases.md: fully updated
+– Tests: 330 → 341 (+11 new, 2 stale corrected)
+
+Field notes: The flag-before-proceeding pattern paid off. "fetchAndRenderBackLink does two things" — that came from reading the whole function body before removing it, not just the name and the call site. The rule is simple: when removing a function, read the full implementation. A function name tells you what it was intended to do; the body tells you what it actually does. In this case, those were different.
+
+Stack tags: CSS · JavaScript · refactor · design system
+
+## How Sloane steered the work
+
+**"Confirm branch" as a standing gate**
+Every prompt opened with an explicit branch check. This isn't just a safety check — it signals that the redesign branch is intentional and protected, and that no change lands without a visible stop. The discipline is the message.
+
+**"Read race.html fully before making changes"**
+Rather than trusting prior knowledge of the file, you required a complete read before touching anything. That's what surfaced the fetchAndRenderBackLink dependency — a connection that wouldn't have appeared from a partial read or a targeted grep.
+
+**The flag-and-respond pattern**
+When flagged about the assoc-section: "Shit. I just saw your flag. Can you revert?" — immediate, clear, no ambiguity. And the correction was precise: not a full revert but a surgical fix that preserved the assoc-section while removing the back-link. That's a different thing than reverting.
+
+**"Update to tab text style" — working from the system**
+Rather than specifying pixel values, you referenced the named type style. That's working from the design system, not around it. It means the change is self-documenting and consistent with everything else in the tabs bar.
+
+**Scope discipline throughout**
+Every prompt had an explicit scope statement: "No other header changes this session", "No global styles changes this session", "No page changes this session." These constraints kept each piece of work from bleeding into adjacent work before it was solid. The redesign is a sequence of intentional changes, not a free-form refactor.
+
+The through-line: you're managing the redesign like a directed series of commits — each one scoped, confirmed, and closed before the next begins. The flag response ("Shit. I just saw your flag.") shows that the discipline holds even when it creates a detour. That's how complex redesigns stay coherent across sessions.
+
+## What to bring to Claude Chat
+
+– Insights tab on race.html is a coming-soon placeholder. What belongs there eventually — IE data, AI-generated race narrative, aggregate committee spending, something else? Worth deciding before it becomes a build prompt.
+– Candidate header on mobile: .candidate-race-label is now a full line above the name. Worth checking the Netlify preview at narrow viewports to confirm it wraps gracefully and the spacing feels right.
+– Committee header next steps: back-link is gone, assoc-section intact. Does committee.html need its own long-form label treatment (parallel to candidate.html and race.html), or is the committee name sufficient as the primary header identifier?
+– The redesign branch now has substantially different header structure across all three profile pages. Is there a milestone at which some or all of this gets merged to main, or does the redesign branch stay separate until a full visual pass is complete?
