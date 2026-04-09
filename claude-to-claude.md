@@ -2772,3 +2772,47 @@ The through-line: you made UX calls faster than implementation calls — approvi
 - Single-element compact header refactor — the plan is documented. Before starting, worth confirming the visual design: does the profile header animate (padding, opacity fade between states) or snap instantly? What does the transition feel like at different scroll speeds?
 - Tabs bar sticky on committee.html and race.html — now that .tabs-bar is sticky sitewide, worth checking both pages on the preview to confirm the stacking behavior feels right there too (no compact header on those pages, so the tabs bar just sticks at 56px without offset logic).
 - Mobile behavior of compact header — functional but not tested on a real device. Worth a look on narrow viewports before merging to main.
+
+---
+2026-04-08 — Single-element compact header ported to all three profile pages
+
+## Process log draft
+
+Title: The header that learns to shrink
+
+This one was a multi-session puzzle — two failed architectures before landing on the right abstraction. The lesson turned out to be simple once you understood the constraint: a sticky element can't observe its own position, but a zero-height sibling in normal flow can tell you exactly when the threshold was crossed.
+
+Changelog:
+- Replaced two-element compact header (full header + separate #compact-header strip) with a single sticky element that transitions between full and compact states
+- #profile-header, #committee-header, and #race-header now use position:sticky always — no toggling, no JS-managed positioning
+- .compact class on scroll changes only flex-direction and padding; display never changes, eliminating flash
+- Reveal code now uses removeProperty('display') instead of setting display:'block', letting CSS own the flex value entirely
+- max() padding trick applied to profile headers so content aligns with .main-inner constraint at all viewport widths
+- Pattern ported to committee.html and race.html; fixed duplicate removeProperty bug in committee.html's rAF block; fixed race.html's lingering display:'block' assignment
+
+Field notes:
+Three failed architectures in two sessions before this worked. First attempt: IntersectionObserver on a sentinel inside the sticky header — sentinel moves with the parent, IO fires once and never again. Second: sentinel outside but in the wrong container — fired immediately because the containing block was too short. Third: dynamically adding position:sticky via .compact class — sticky doesn't snap an element back once it's scrolled past. The fix was to always apply position:sticky (it behaves as relative before the threshold fires) and only toggle layout properties in .compact. The other half: display:flex always, removeProperty() in reveal code. Two small bugs, both the same root cause — inline styles override CSS class rules. The architectural decision was made; the bugs were just residue from the previous approach's cleanup not being complete.
+
+Stack tags: CSS (position:sticky, flex), scroll listener, single-element state machine
+
+## How Sloane steered the work
+
+### Snap first, animate later
+
+You explicitly chose to defer animation and just get the snapping behavior solid first. This kept the scope from growing into a polish problem before the mechanics were proven — the right call given how many architecture revisions this feature needed.
+
+### Most complex first
+
+The strategy from last session carried forward: nail candidate.html (the hardest, most test-covered page) before porting to the others. You held that scope discipline even when it meant deferring committee.html and race.html to this session. It meant bugs were caught on the most observable surface before propagating.
+
+### No alternate route
+
+When the bugs kept coming, you asked "do we need to go an alternate route here?" and held your ground when told no — trusting that the issues were small residual bugs, not a broken architecture. The display:flex fix and max() padding trick resolved both without any structural change.
+
+The through-line: you're consistently making the call to prove the mechanics before pursuing polish, and to exhaust the current approach before switching strategies. That pattern is why this feature landed cleanly instead of spiraling into increasing complexity.
+
+## What to bring to Claude Chat
+
+- Animation pass: Now that snap works cleanly on all three pages, what animation do you want? A CSS transition on the compact properties (padding, font-size) would be a single rule — but decide whether you want it to feel mechanical/instant or whether a short ease adds value. Worth a quick visual conversation before writing CSS.
+- Race page compact header content: The race header in compact mode only shows the race title (e.g. "House • WA-03"). Candidate and committee pages show [race label] / [name]. Is that the right hierarchy for race.html, or should the compact strip show something else — office/state/year?
+- Playwright coverage gap: The sentinel and .compact assertions were written for candidate.html in the prior session, but committee.html and race.html have no equivalent tests. Worth adding 2 tests to pages.spec.js covering these pages before shipping the redesign branch.

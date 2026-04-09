@@ -82,20 +82,18 @@
 <!-- Main -->
   <div class="main">
   <div class="main-inner">
-
     <div class="state-msg" id="state-msg">
       <div class="loader"></div><span>Fetching committee data from FEC…</span>
     </div>
-
-    <!-- Committee header — revealed after load -->
-    <div class="committee-header page-header page-header-reveal" id="committee-header" style="display:none">
-      <div class="profile-header-row">
-        <div class="page-title" id="committee-name">—</div>
-        <div class="meta-row" id="meta-row"></div>
-      </div>
-    </div>
-
   </div><!-- /main-inner -->
+  <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
+  <!-- Committee header — revealed after load -->
+  <div class="committee-header page-header page-header-reveal" id="committee-header" style="display:none">
+    <div class="profile-header-row">
+      <div class="page-title" id="committee-name">—</div>
+      <div class="meta-row" id="meta-row"></div>
+    </div>
+  </div>
   <!-- Tabs bar — revealed after load -->
   <div class="tabs-bar" id="tabs-bar" style="display:none">
     <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
@@ -377,7 +375,7 @@ async function init() {
     }
 
     document.getElementById('state-msg').style.display       = 'none';
-    document.getElementById('committee-header').style.display = 'block';
+    document.getElementById('committee-header').style.removeProperty('display');
     document.getElementById('tabs-bar').style.display         = 'flex';
     document.getElementById('committee-content').style.display = 'block';
     requestAnimationFrame(function() {
@@ -385,6 +383,21 @@ async function init() {
       document.getElementById('tabs-bar').classList.add('visible');
       document.getElementById('committee-content').classList.add('visible');
     });
+
+    // Compact header — scroll listener on sentinel
+    (function() {
+      var headerEl   = document.getElementById('committee-header');
+      var tabsBarEl  = document.getElementById('tabs-bar');
+      var sentinelEl = document.getElementById('profile-header-sentinel');
+      var headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+      function update() {
+        var compact = sentinelEl.getBoundingClientRect().top < headerH;
+        headerEl.classList.toggle('compact', compact);
+        tabsBarEl.style.top = compact ? (headerH + headerEl.offsetHeight) + 'px' : headerH + 'px';
+      }
+      window.addEventListener('scroll', update, { passive: true });
+      update();
+    })();
 
     // Restore tab from hash after reveal
     if (['summary', 'raised', 'spent'].indexOf(hashTab) !== -1) showTab(hashTab);

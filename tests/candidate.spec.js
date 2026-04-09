@@ -78,17 +78,15 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#race-context .tag-context a')).toBeAttached();
   });
 
-  test('compact header exists and is initially hidden', async ({ page }) => {
+  test('profile header sentinel exists for compact observer', async ({ page }) => {
     await setup(page);
-    await expect(page.locator('#compact-header')).toBeAttached();
-    await expect(page.locator('#compact-header')).toHaveCSS('display', 'none');
+    await expect(page.locator('#profile-header-sentinel')).toBeAttached();
   });
 
-  test('compact header contains race label, separator, and name spans', async ({ page }) => {
+  test('compact sep is inside profile header and hidden in full mode', async ({ page }) => {
     await setup(page);
-    await expect(page.locator('#compact-race-label')).toBeAttached();
-    await expect(page.locator('.compact-sep')).toBeAttached();
-    await expect(page.locator('#compact-name')).toBeAttached();
+    await expect(page.locator('#profile-header .compact-sep')).toBeAttached();
+    await expect(page.locator('#profile-header')).not.toHaveClass(/compact/);
   });
 
   test('incumbent tag shown for incumbent candidate', async ({ page }) => {

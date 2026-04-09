@@ -444,6 +444,41 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   color:var(--color-navy-950); }
 .profile-header-row .page-title { min-width:0; }
 
+/* ── Sticky profile headers (candidate, committee, race) ─────────────────── */
+/* Full mode: sticky but position only engages when scrolled to threshold.
+   display:flex + flex-direction:column replicates block stacking while avoiding
+   a layout-shift flash when compact switches to row direction.
+   Horizontal padding mirrors .tabs-bar alignment (max() handles ultrawide). */
+#profile-header, #committee-header, #race-header {
+  position:sticky; top:var(--header-h); z-index:195; background:var(--bg);
+  display:flex; flex-direction:column;
+  padding-left:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
+  padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter))); }
+
+/* Compact mode — slim one-line strip, triggered by scroll listener */
+#profile-header.compact, #committee-header.compact, #race-header.compact {
+  flex-direction:row; align-items:center;
+  padding-top:var(--space-8); padding-bottom:var(--space-8); }
+#profile-header.compact .page-title,
+#committee-header.compact .page-title,
+#race-header.compact .page-title {
+  font-size:1.25rem; font-weight:400; letter-spacing:0;
+  margin-bottom:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Candidate compact: [race label] / [name] */
+#profile-header .compact-sep { display:none; color:var(--muted); padding:0 var(--space-8); flex-shrink:0; }
+#profile-header.compact .candidate-race-label { font-size:1.25rem; margin-bottom:0; flex-shrink:0; white-space:nowrap; }
+#profile-header.compact .compact-sep { display:block; }
+#profile-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; gap:0; }
+#profile-header.compact .meta-row { display:none; }
+#profile-header.compact #committees-trigger { display:none; }
+
+/* Committee compact: name only */
+#committee-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; }
+#committee-header.compact .meta-row { display:none; }
+
+/* Race compact: title only (no meta-row in race header) */
+
 /* ── P: Form controls ── */
 .form-select, .form-input { padding:var(--space-8); font-family:'IBM Plex Sans',sans-serif;
   font-size:0.75rem; background:var(--bg); border:1px solid var(--border-strong);

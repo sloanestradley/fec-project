@@ -75,16 +75,14 @@
 <!-- Main -->
   <div class="main">
   <div class="main-inner">
-
     <div class="state-msg" id="state-msg">
       <div class="loader"></div><span>Fetching race data from FEC…</span>
     </div>
-
-    <div class="race-header page-header page-header-reveal" id="race-header" style="display:none">
-      <div class="page-title" id="race-title">—</div>
-    </div>
-
   </div><!-- /.main-inner -->
+  <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
+  <div class="race-header page-header page-header-reveal" id="race-header" style="display:none">
+    <div class="page-title" id="race-title">—</div>
+  </div>
 
   <div class="tabs-bar" id="tabs-bar" style="display:none">
     <a class="tab active" href="#candidates" onclick="showTab('candidates',event)">Candidates</a>
@@ -338,7 +336,7 @@ async function init() {
     var headerEl  = document.getElementById('race-header');
     var tabsBarEl = document.getElementById('tabs-bar');
     var contentEl = document.getElementById('race-content');
-    headerEl.style.display  = 'block';
+    headerEl.style.removeProperty('display');
     tabsBarEl.style.display = 'flex';
     contentEl.style.display = 'block';
     requestAnimationFrame(function(){
@@ -346,6 +344,19 @@ async function init() {
       tabsBarEl.classList.add('visible');
       contentEl.classList.add('visible');
     });
+
+    // Compact header — scroll listener on sentinel
+    (function() {
+      var sentinelEl = document.getElementById('profile-header-sentinel');
+      var headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+      function update() {
+        var compact = sentinelEl.getBoundingClientRect().top < headerH;
+        headerEl.classList.toggle('compact', compact);
+        tabsBarEl.style.top = compact ? (headerH + headerEl.offsetHeight) + 'px' : headerH + 'px';
+      }
+      window.addEventListener('scroll', update, { passive: true });
+      update();
+    })();
 
   } catch(err) {
     var el = document.getElementById('state-msg');

@@ -24,18 +24,6 @@
     #race-context-bar { padding:var(--space-16) var(--page-gutter) 0;
       opacity:0; transition:opacity 0.4s ease; min-height:var(--space-32); }
     #race-context-bar.visible { opacity:1; }
-    /* Compact sticky header */
-    #compact-header { position:sticky; top:var(--header-h); z-index:190;
-      background:var(--bg);
-      padding-top:var(--space-8); padding-bottom:var(--space-8);
-      padding-left:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
-      padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
-      display:none; align-items:center;
-      font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;
-      text-transform:uppercase; line-height:1; }
-    #compact-race-label { color:var(--color-red-700); }
-    .compact-sep { color:var(--muted); padding:0 var(--space-8); }
-    #compact-name { color:var(--color-navy-950); }
 
   </style>
 </head>
@@ -97,23 +85,18 @@
     <div class="state-msg" id="state-msg">
       <div class="loader"></div><span>Fetching candidate data from FEC…</span>
     </div>
-
-    <div class="profile-header page-header page-header-reveal" id="profile-header" style="display:none">
-      <div class="candidate-race-label" id="race-label"></div>
-      <div class="profile-header-row" id="profile-header-row">
-        <div class="page-title" id="candidate-name">—</div>
-        <div class="meta-row" id="meta-row"></div>
-        <div id="committees-trigger" style="display:none;margin-left:auto;align-self:center">
-          <button class="committees-link" onclick="openCommitteesModal()">Committees →</button>
-        </div>
+  </div><!-- /main-inner -->
+  <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
+  <div class="page-header page-header-reveal" id="profile-header" style="display:none">
+    <div class="candidate-race-label" id="race-label"></div>
+    <span class="compact-sep" aria-hidden="true"> / </span>
+    <div class="profile-header-row" id="profile-header-row">
+      <div class="page-title" id="candidate-name">—</div>
+      <div class="meta-row" id="meta-row"></div>
+      <div id="committees-trigger" style="display:none;margin-left:auto;align-self:center">
+        <button class="committees-link" onclick="openCommitteesModal()">Committees →</button>
       </div>
     </div>
-
-  </div><!-- /main-inner -->
-  <div id="compact-header" style="display:none">
-    <span id="compact-race-label"></span>
-    <span class="compact-sep"> / </span>
-    <span id="compact-name"></span>
   </div>
   <div class="tabs-bar" id="tabs-bar" style="display:none">
     <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
@@ -1530,9 +1513,6 @@ async function init() {
         + distParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + activeCycle;
       labelEl.innerHTML = '<a href="' + href + '">' + formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST) + '</a>';
     })();
-    // Populate compact header — must happen before observer is wired
-    document.getElementById('compact-race-label').textContent = formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST);
-    document.getElementById('compact-name').textContent = displayName;
     amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null });
 
     var sw = document.getElementById('cycle-switcher');
@@ -1551,7 +1531,7 @@ async function init() {
 
     // Reveal UI
     document.getElementById('state-msg').style.display       = 'none';
-    document.getElementById('profile-header').style.display  = 'block';
+    document.getElementById('profile-header').style.removeProperty('display');
     document.getElementById('tabs-bar').style.display        = 'flex';
     document.getElementById('race-context-bar').style.display = 'block';
     document.getElementById('content').style.display         = 'block';
@@ -1562,25 +1542,19 @@ async function init() {
       document.getElementById('content').classList.add('visible');
     });
 
-    // Compact header — appears when name row clears the nav (no overlap with full header)
+    // Compact header — scroll listener on sentinel (normal-flow sibling before header)
     (function() {
-      var compactEl  = document.getElementById('compact-header');
+      var headerEl   = document.getElementById('profile-header');
       var tabsBarEl  = document.getElementById('tabs-bar');
-      var nameRowEl  = document.getElementById('profile-header-row');
+      var sentinelEl = document.getElementById('profile-header-sentinel');
       var headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
-      function showCompact() {
-        compactEl.style.display = 'flex';
-        tabsBarEl.style.top = (headerH + compactEl.offsetHeight) + 'px';
-      }
-      function hideCompact() {
-        compactEl.style.display = 'none';
-        tabsBarEl.style.top = headerH + 'px';
-      }
       function update() {
-        nameRowEl.getBoundingClientRect().bottom <= headerH ? showCompact() : hideCompact();
+        var compact = sentinelEl.getBoundingClientRect().top < headerH;
+        headerEl.classList.toggle('compact', compact);
+        tabsBarEl.style.top = compact ? (headerH + headerEl.offsetHeight) + 'px' : headerH + 'px';
       }
       window.addEventListener('scroll', update, { passive: true });
-      update(); // handle case where page loads already scrolled
+      update();
     })();
 
     // Load data
