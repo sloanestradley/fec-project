@@ -375,7 +375,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .map-tt-val  { font-size:0.625rem; color:var(--muted); margin-top:var(--space-2); /* micro: tooltip value sits flush beneath state name */ }
 
 /* ── K1: Raised tab grid layout (candidate + committee) ── */
-.raised-grid { display:grid; grid-template-columns:1fr 1fr; margin-bottom:var(--section-gap); }
+.raised-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-64); margin-bottom:var(--section-gap); }
 .raised-cell { padding-top:var(--space-24); min-width:0; }
 .raised-cell-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;
   text-transform:uppercase; color:var(--subtle); margin-bottom:var(--space-24); }
