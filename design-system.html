@@ -660,6 +660,7 @@
             <a class="nav-link active" href="#" style="height:auto;padding:0.25rem 0.75rem">Candidates</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Committees</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Races</a>
+            <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Feed</a>
           </div>
         </div>
         <div class="ds-component-notes">Desktop: logo + nav links + search bar. Mobile ≤860px: logo + search icon + hamburger. Hamburger drawer uses .mobile-nav + .nav-item. Note: .top-nav-logo uses Oswald 600 — explicit deviation from the heading type style (400). Weight set directly on the component rule.</div>
@@ -1153,7 +1154,7 @@
           </div>
 
         </div>
-        <div class="ds-component-notes"><code>.filter-bar-wrap</code> and <code>.filter-chips-wrap</code> use <code>var(--page-gutter)</code> for horizontal padding in production — overridden with a fixed value above for demo context. Page-specific extensions stay inline: <code>position:relative; z-index:10</code> on <code>races.html</code> <code>.filter-bar-wrap</code> (stacking context for dropdowns); <code>.form-select.wide</code> (min-width:200px) on <code>committees.html</code>. The <code>.combo-wrap</code> pattern for filter selects is documented in the Form Controls card.</div>
+        <div class="ds-component-notes"><code>.filter-bar-wrap</code> and <code>.filter-chips-wrap</code> use <code>var(--page-gutter)</code> for horizontal padding in production — overridden with a fixed value above for demo context. Page-specific extensions stay inline: <code>position:relative; z-index:10</code> on <code>races.html</code> <code>.filter-bar-wrap</code> (stacking context for dropdowns); <code>.form-select.wide</code> (min-width:200px) on <code>committees.html</code>. The <code>.combo-wrap</code> pattern for filter selects is documented in the Form Controls card. State-wrapper pattern: each page uses four sibling divs — <code>#state-loading</code>, <code>#state-results</code>, <code>#state-no-results</code>, <code>#state-error</code> — all <code>display:none</code> by default. A local <code>showState(name)</code> function switches between them by toggling <code>style.display</code>. This is the canonical async state pattern on <code>candidates.html</code>, <code>committees.html</code>, <code>races.html</code>, and <code>feed.html</code>. <code>search.html</code> uses a 3-state variant (no <code>#state-error</code>).</div>
       </div>
 
       <!-- 11. Button group -->

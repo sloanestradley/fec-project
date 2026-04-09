@@ -443,10 +443,6 @@
 
       renderAllRows();
       updateResultsHeader(); renderChips();
-
-      if (window.amplitude) {
-        amplitude.track('Page Viewed', { page: 'feed' });
-      }
     }).catch(function() {
       showState('error');
     });
@@ -549,6 +545,9 @@
 
   // ── Init ──
   init();
+  if (window.amplitude) {
+    amplitude.track('Page Viewed', { page: 'feed' });
+  }
 })();
 </script>
 </body>

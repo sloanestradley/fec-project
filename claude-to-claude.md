@@ -2876,3 +2876,44 @@ The through-line: Sloane consistently caught structural inconsistencies that wou
 - Committee name casing — toTitleCase was removed because it mangles acronyms (PAC → Pac). A smarter approach would preserve known acronyms while title-casing the rest. Worth discussing whether this is worth building (it'd touch every page that renders committee names) or whether raw API casing is acceptable for the target audience.
 - Feed as a nav-level page — Feed is now a primary nav item alongside Candidates, Committees, and Races. Is that the right long-term placement, or should it be more prominent (e.g. a dashboard entry point) or less prominent (e.g. a tool accessible from a toolbar but not the main nav)?
 - Time window controls — the current 24h/48h/7d options are date-based (not hour-based), computed from the user's device timezone. Worth confirming with John whether these windows match how strategists actually think about filing deadlines ("what landed since yesterday" vs "what landed in the last 24 hours").
+
+---
+2026-04-09 Maintenance session
+
+## Process log draft
+
+Title: Small fixes, sharp eyes
+
+Date: 2026-04-09
+Tags: amplitude, design-system, documentation
+
+A short session, but two of the three changes came from reviewing Claude Chat feedback rather than building new features — which is its own kind of work. The Amplitude bug was subtle: Page Viewed lived inside init(), which gets called both on page load and every time a user changes the time window. Every window change was inflating pageview counts. The fix was a one-liner, but the bug would have silently corrupted analytics data for however long the page ran before someone noticed.
+
+The design-system audit surfaced a stale nav demo (three links, not four) and a missing pattern note on the Browse Page Chrome card. The state-wrapper pattern (#state-loading / #state-results / #state-no-results / #state-error + showState()) has been the canonical async state approach across five pages since the feed session, but the design system hadn't acknowledged it. It's documented now.
+
+Changelog:
+- feed.html: moved amplitude.track('Page Viewed') out of init() — was firing on every time-window change; now fires once at IIFE bottom after initial init() call
+- design-system.html: Feed link added to Top Nav component demo (was showing Candidates / Committees / Races only)
+- design-system.html: Browse Page Chrome card notes extended with state-wrapper pattern documentation
+- filter-chips-wrap vs #filter-chips inconsistency investigated — confirmed non-issue; feed already carries both class and id, consistent with all four browse pages
+
+Field notes:
+The Amplitude bug is a good example of why call-site context matters. init() looks like an initialization function — and it is — but it's also the re-fetch trigger for time-window changes, which makes it a dual-purpose function. Page Viewed belongs to the initialization path, not the re-fetch path. The fix isn't complicated; knowing where to look is the whole thing. The design-system gap is the same pattern at a different scale: a pattern that's been canonical for weeks, but the reference document for the project didn't reflect it. Both fixes are about keeping the documented state of the project honest against the actual state.
+
+## How Sloane steered the work
+
+**Bringing Claude Chat feedback back as scoped tasks**
+Rather than describing the feedback loosely, each item arrived as a precise question: "fix the Amplitude bug," "review this feedback as it relates to design-system.html." That framing meant each task had a clear done-state and didn't expand into adjacent work.
+
+**Pushing back on the filter-chips false alarm — but correctly**
+When the filter-chips inconsistency was dismissed as a non-issue, you didn't accept that at face value — you sent it back with tighter scope: "as it relates to design-system.html specifically." That's the right move. The code was consistent; the question was whether the design system card was documenting the pattern accurately. Separate concerns, one of which was actually worth checking.
+
+**Approving the state-wrapper note before it was written**
+Asking to see the proposed note before the edit landed is a lightweight review gate that's paid off across multiple sessions. Here it caught a phrasing preference — naming the pages explicitly rather than "all browse pages and feed.html" — before the file was touched.
+
+The through-line: short sessions deserve the same rigor as long ones. The Amplitude bug and the stale nav demo are small, but both would have been quietly wrong indefinitely without the review pass.
+
+## What to bring to Claude Chat
+
+- Next redesign session: candidate.html and committee.html card surfaces — worth a quick visual alignment before starting: what specifically about the card surfaces needs work? Stats grid, contributor cards, chart containers, vendor table rows? Knowing the target surface avoids a broad sweep.
+- Compact header animation — still deferred. The snap behavior is solid; the animation question (instant vs. short ease) is a design call that's easier to make in Claude Chat with a visual in front of you.
