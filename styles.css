@@ -271,7 +271,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .chart-card { padding-top:var(--space-24); margin-bottom:var(--section-gap); min-width:0; overflow:hidden; }
 .chart-header { display:flex; justify-content:space-between; align-items:flex-start;
   margin-bottom:var(--space-24); gap:var(--space-16); flex-wrap:wrap; }
-.chart-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--subtle); }
+.chart-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--text); }
 .chart-legend { display:flex; gap:var(--space-16); flex-wrap:wrap; }
 .legend-item { font-family:'IBM Plex Mono',monospace; display:flex; align-items:center; gap:var(--space-8); font-size:0.625rem; color:var(--muted); }
 .legend-swatch { width:18px; height:2px; flex-shrink:0; }
@@ -294,7 +294,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 /* ── F: Data table ── */
 .donors-card { padding-top:var(--space-24); margin-bottom:var(--section-gap); }
 .donors-head { padding-bottom:var(--space-16); border-bottom:1px solid var(--border);
-  font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--subtle); }
+  font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--text); }
 .donors-table { width:100%; border-collapse:collapse; }
 .donors-table th { padding:var(--space-8) var(--space-16); font-family:'IBM Plex Mono',monospace; font-size:0.625rem; text-transform:uppercase; color:var(--muted); text-align:left; border-bottom:1px solid var(--border); }
 .donors-table th.r { text-align:right; }
@@ -378,7 +378,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .raised-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-64); margin-bottom:var(--section-gap); }
 .raised-cell { padding-top:var(--space-24); min-width:0; }
 .raised-cell-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;
-  text-transform:uppercase; color:var(--subtle); margin-bottom:var(--space-24); }
+  text-transform:uppercase; color:var(--text); margin-bottom:var(--space-24); }
 
 /* ── K: Stats grid ── */
 .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
