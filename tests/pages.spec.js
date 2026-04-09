@@ -142,6 +142,14 @@ test.describe('committee.html', () => {
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
     await expect(page).toHaveURL(/#(all|\d{4})#raised/);
   });
+
+  test('profile-header-sentinel exists for compact scroll observer', async ({ page }) => {
+    await expect(page.locator('#profile-header-sentinel')).toBeAttached();
+  });
+
+  test('committee-header starts without .compact class (full mode on load)', async ({ page }) => {
+    await expect(page.locator('#committee-header')).not.toHaveClass(/compact/);
+  });
 });
 
 // ── committee.html — Raised tab sections ──────────────────────────────────────
@@ -480,6 +488,14 @@ test.describe('race.html', () => {
 
   test('#race-meta is not present in DOM (candidate count removed)', async ({ page }) => {
     await expect(page.locator('#race-meta')).toHaveCount(0);
+  });
+
+  test('profile-header-sentinel exists for compact scroll observer', async ({ page }) => {
+    await expect(page.locator('#profile-header-sentinel')).toBeAttached();
+  });
+
+  test('race-header starts without .compact class (full mode on load)', async ({ page }) => {
+    await expect(page.locator('#race-header')).not.toHaveClass(/compact/);
   });
 });
 
