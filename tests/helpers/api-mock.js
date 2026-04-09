@@ -321,6 +321,55 @@ const SCHEDULE_A = SCHEDULE_A_COMMITTEES;
 // Schedule B alias — general opex fixture (routed when no entity_type param)
 const SCHEDULE_B = DISBURSEMENTS;
 
+// Filings (/filings/ endpoint — used by feed.html)
+const FILINGS = {
+  results: [
+    {
+      file_number: 1234567,
+      committee_id: 'C00775668',
+      committee_name: 'MARIE FOR CONGRESS',
+      committee_type: 'H',
+      office: 'H',
+      report_type: 'Q1',
+      report_type_full: 'APRIL QUARTERLY',
+      total_receipts: 1200000,
+      total_disbursements: 900000,
+      cash_on_hand_end_period: 450000,
+      receipt_date: '2026-04-07',
+      html_url: 'https://docquery.fec.gov/cgi-bin/forms/C00775668/1234567/',
+    },
+    {
+      file_number: 1234568,
+      committee_id: 'C00123456',
+      committee_name: 'KENT FOR CONGRESS',
+      committee_type: 'H',
+      office: 'H',
+      report_type: 'TER',
+      report_type_full: 'TERMINATION REPORT',
+      total_receipts: 800000,
+      total_disbursements: 650000,
+      cash_on_hand_end_period: 200000,
+      receipt_date: '2026-04-06',
+      html_url: 'https://docquery.fec.gov/cgi-bin/forms/C00123456/1234568/',
+    },
+    {
+      file_number: 1234569,
+      committee_id: 'C00999999',
+      committee_name: 'FRIENDS OF SENATE',
+      committee_type: 'S',
+      office: 'S',
+      report_type: 'Q1',
+      report_type_full: 'APRIL QUARTERLY',
+      total_receipts: 5000000,
+      total_disbursements: 4200000,
+      cash_on_hand_end_period: 1200000,
+      receipt_date: '2026-04-05',
+      html_url: 'https://docquery.fec.gov/cgi-bin/forms/C00999999/1234569/',
+    },
+  ],
+  pagination: { count: 3, pages: 1, per_page: 100, page: 1 },
+};
+
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 /**
@@ -374,6 +423,9 @@ function resolveFixture(path, params) {
 
   // elections/ (race candidates)
   if (/\/elections\//.test(path)) return ELECTIONS;
+
+  // filings/ (feed page)
+  if (/\/filings\//.test(path)) return FILINGS;
 
   // candidates/totals/ (races browse page — aggregated financial data)
   if (/\/candidates\/totals\//.test(path)) return CANDIDATES_TOTALS;

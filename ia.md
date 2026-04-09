@@ -1,6 +1,6 @@
 # FECLedger — Information Architecture
 
-*Last updated: 2026-03-20. Update this file whenever pages are added, renamed, or promoted in phase.*
+*Last updated: 2026-04-09. Update this file whenever pages are added, renamed, or promoted in phase.*
 
 ---
 
@@ -16,6 +16,7 @@
 | `committee.html` | Single committee profile | `/committee/{fec_committee_id}` | Scaffold+ (tabs + cycle switcher live; Raised tab live; Spent tab live; filing history stub) | 3 |
 | `races.html` | Browse races by year, office, state | `/races` | Live | 3 |
 | `race.html` | Single race view — all candidates in a contest | `/race?state=WA&district=03&year=2026&office=H` | Scaffold | 3 |
+| `feed.html` | Live filing feed — recent candidate committee filings | `/feed` | Live | 3 |
 | `process-log.html` | Living case study / dev diary | `/process-log.html` | Live | 1 |
 | `design-system.html` | Design token and component reference | `/design-system.html` | Live | 1 |
 
@@ -35,7 +36,8 @@ FECLedger (logo → /)        [top-nav-logo]
 Nav links (desktop, always visible)
 ├── Candidates  → /candidates   (browse landing)
 ├── Committees  → /committees   (browse landing)
-└── Races       → /races        (browse landing)
+├── Races       → /races        (browse landing)
+└── Feed        → /feed         (filing feed)
 
 Search bar (desktop, inline right of nav links)
 └── text input → submits to /search?q=
@@ -47,13 +49,14 @@ Mobile controls (hidden at desktop)
 Mobile nav drawer (.mobile-nav)
 ├── Candidates
 ├── Committees
-└── Races
+├── Races
+└── Feed
 ```
 
 Search, Process Log, and Design System are **not** nav link items. Search is accessible via the inline search bar (desktop) or search toggle (mobile). Process Log and Design System have no nav presence.
 
 **Active state logic:**
-- Browse landing pages (`candidates.html`, `committees.html`, `races.html`) activate their own nav item
+- Browse landing pages (`candidates.html`, `committees.html`, `races.html`, `feed.html`) activate their own nav item
 - Profile pages (`candidate.html`, `committee.html`, `race.html`) activate their parent section's nav item (Candidates, Committees, Races respectively)
 - `search.html`, `process-log.html`, `design-system.html` have no active nav link
 
@@ -109,6 +112,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 | `races.html` | `/races` | — | `cycle`, `office`, `state` | URL sync on all three filters — `pushState` on every filter change, params restored on init. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). |
 | `candidates.html` | `/candidates` | — | `state`, `office`, `party`, `cycle`, `q` | All params are unified — filter bar always visible, results auto-load on page visit. `?q=` populates the inline search field and pre-fires search. All result cards link to `/candidate/{id}`. Filter chips + URL sync on every change. |
 | `committees.html` | `/committees` | — | `state`, `type`, `q` | Same unified control surface as candidates. Filter bar always visible; `?q=` populates search field. All rows link to `/committee/{id}`. Treasurer always shown. |
+| `feed.html` | `/feed` | — | — | No URL sync yet. Client-side filters: office (button group), report type (select), time window (button group). Default: All offices, All types, 24h. |
 | `search.html` | `/search` | — | `q` | If `q` present, auto-fires search on load |
 
 **FEC candidate_id format:** `H2WA03217` — office (H/S/P) + cycle digits + state + district + sequence

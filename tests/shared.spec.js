@@ -65,6 +65,12 @@ const PAGES = [
     needsApiMock: true,
   },
   {
+    name: 'feed.html',
+    url: '/feed.html',
+    activeNavText: 'Feed',
+    needsApiMock: true,
+  },
+  {
     name: 'process-log.html',
     url: '/process-log.html',
     activeNavText: null,

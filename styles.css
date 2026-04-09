@@ -480,7 +480,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 /* Race compact: title only (no meta-row in race header) */
 
 /* ── P: Form controls ── */
-.form-select, .form-input { padding:var(--space-8); font-family:'IBM Plex Sans',sans-serif;
+.form-select, .form-input { height:34px; padding:var(--space-8); font-family:'IBM Plex Sans',sans-serif;
   font-size:0.75rem; background:var(--bg); border:1px solid var(--border-strong);
   color:var(--text); outline:none; transition:border-color 0.15s; border-radius:0; }
 .form-select:focus, .form-input:focus { border-color:var(--accent); }
@@ -639,9 +639,25 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   padding:var(--space-4) var(--space-8); text-transform:uppercase; }
 .chip-clear-all:hover { color:var(--text); border-color:var(--text); }
 
+/* ── Button group (toggle buttons) ── */
+.button-group { display:inline-flex; }
+.button-group-btn { height:34px; font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
+  text-transform:uppercase; letter-spacing:var(--ls-expanded);
+  padding:var(--space-8); background:none;
+  border:1px solid var(--border-strong); cursor:pointer;
+  color:var(--muted); transition:background 0.15s, color 0.15s, border-color 0.15s; }
+.button-group-btn + .button-group-btn { border-left:none; }
+.button-group-btn:hover { color:var(--text); }
+.button-group-btn.active { background:var(--color-navy-950); color:var(--bg);
+  border-color:var(--color-navy-950); }
+.button-group-btn.active + .button-group-btn { border-left:none; }
+
 .results-area { padding:var(--space-32) var(--page-gutter); }
 .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
   text-transform:uppercase; color:var(--muted); padding-bottom:var(--space-8); }
+.end-of-results { display:none; padding:var(--space-16) var(--page-gutter);
+  font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted);
+  text-transform:uppercase; border-top:1px solid var(--border); text-align:center; }
 
 .no-results { padding:var(--space-40) var(--page-gutter); color:var(--muted); font-size:0.75rem; }
 .error-prompt { padding:var(--space-48) var(--page-gutter); color:var(--muted); font-size:0.75rem; }

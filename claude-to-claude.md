@@ -2816,3 +2816,63 @@ The through-line: you're consistently making the call to prove the mechanics bef
 - Animation pass: Now that snap works cleanly on all three pages, what animation do you want? A CSS transition on the compact properties (padding, font-size) would be a single rule — but decide whether you want it to feel mechanical/instant or whether a short ease adds value. Worth a quick visual conversation before writing CSS.
 - Race page compact header content: The race header in compact mode only shows the race title (e.g. "House • WA-03"). Candidate and committee pages show [race label] / [name]. Is that the right hierarchy for race.html, or should the compact strip show something else — office/state/year?
 - Playwright coverage gap: The sentinel and .compact assertions were written for candidate.html in the prior session, but committee.html and race.html have no equivalent tests. Worth adding 2 tests to pages.spec.js covering these pages before shipping the redesign branch.
+
+---
+2026-04-09 End of session
+
+## Process log draft
+
+Title: The feed that had to learn what it was filtering
+
+This session built feed.html from scratch — a live filing feed that shows recent FEC filings from candidate campaign committees. The initial build went fast, but the real work was in the three architectural pivots that followed: discovering that the FEC API silently ignores repeated `committee_type` params (requiring a switch to `form_type`-only scoping), realizing that paginated infinite scroll is fundamentally incompatible with client-side filtering on a partial dataset (requiring a load-all-upfront architecture), and restructuring the page to match the browse page state-wrapper pattern after the no-results and error states kept leaking padding and showing column headers they shouldn't.
+
+Changelog:
+- New page: feed.html — live filing feed with office, report type, and time window filters
+- Feed nav link added to all 10 HTML pages + _redirects
+- Load-all-upfront architecture: fetches all pages (per_page=100) in parallel behind skeleton, then renders
+- Client-side filtering: office (button group), report type (select dropdown with grouped FEC codes), time window (24h/48h/7d button group)
+- Filter chips matching browse page pattern (office + report type + time period)
+- Refresh with dedup by file_number, highlight animation on new rows, three-state button feedback (Refreshing → ✓ Refreshed → Refresh feed)
+- Null-office filtering at data ingestion layer (excludes PACs that filed F3 incorrectly)
+- State-wrapper refactor: #state-loading / #state-results / #state-no-results / #state-error matching browse pages
+- CSS consolidation: .button-group + .button-group-btn and .end-of-results promoted to styles.css
+- Explicit height:34px on .form-select, .form-input, and .button-group-btn for cross-control alignment
+- "Try broadening your search" removed from all browse page no-results states
+- toTitleCase removed from committee names (feed + committees browse) — FEC names have intentional caps (PAC, LLC)
+- 7 Amplitude events including Feed Filing Clicked and Feed FEC Link Clicked
+- 30 new Playwright tests (14 shared + 16 page-specific)
+- Two FEC API quirks documented: /filings/ committee_type repeated param silently ignored; F3/F3P includes non-candidate committees with office:null
+
+Field notes:
+The most instructive failure was the client-side filtering on paginated data. The architecture looked correct on paper — load 25 at a time, filter in the browser, scroll for more. But when 215 of 271 results are House filings, the first 10 pages contain zero Senate or Presidential results. The filter buttons worked perfectly on the data they had; they just didn't have the data. The fix — loading everything upfront — felt like giving up on pagination, but for ~300 results at 100/page it's 3 API calls behind a skeleton. The lesson is that client-side filtering and progressive loading are only compatible when the data distribution is roughly uniform across pages, or when you're willing to show "loading more results for this filter" states. For a filing feed where the whole point is showing everything that landed, loading everything is the honest architecture.
+
+Stack tags: HTML · CSS · JavaScript · FEC API · Amplitude · Playwright
+
+## How Sloane steered the work
+
+### Catching the filtering architecture failure before it shipped
+When the feed showed 266 results under "All" but 266 under "House" and 0 under "Senate," Sloane diagnosed the problem precisely: "There's no indication there are senate or president results and no way to load them in. Is this feature architected correctly?" That question — framed as an architecture question, not a bug report — forced a rethink of the entire loading strategy rather than a patch.
+
+### Scoping the feed through a Claude Chat session
+After discovering the null-office results and the committee_type API quirk, Sloane took the broader product question ("should this show all filing types?") to Claude Chat rather than deciding in code. The result — three targeted changes (filter nulls, surface the scope, document the quirks) with no architecture changes — was surgical. Came back with clear intent and let the implementation stay focused.
+
+### Insisting on browse page alignment at every level
+Every time the feed diverged from existing patterns — the no-results state sitting inside .results-area, the padding stacking from nested divs, the missing filter chips, the lack of a results header count — Sloane caught it and asked for alignment. The state-wrapper refactor, the filter chip addition, and the results header all came from noticing inconsistencies with the browse pages, not from a checklist.
+
+### The "refresh feedback" sequence — knowing exactly how much UX to add
+Sloane asked for refresh feedback, agreed to the minimum-duration approach, then shaped the three-state sequence (Refreshing → ✓ Refreshed → Refresh feed) and tuned the timing (500ms check, 1s confirmation). Also killed the "Last checked" timestamp when the refresh button alone was sufficient. That's editing by subtraction — adding just enough feedback, then removing what doesn't earn its space.
+
+### Removing toTitleCase — choosing data honesty over visual polish
+When committee names rendered in ALL CAPS, the instinct was to title-case them. But Sloane caught that "PAC" and "LLC" in committee names are intentionally capitalized, and the title-case transform produces "Pac" and "Llc." Rather than building an exception list, removed the transform entirely. Raw data over cosmetic normalization — the right call for a tool that professionals use to read real filings.
+
+### Report type filter — grouping by strategist mental model
+When presented with the raw FEC report type codes, Sloane chose the grouped approach (Quarterly / Pre-election / Post-election / Termination) over a flat list. That's a product decision that maps the data to how a strategist thinks about filing deadlines, not how the FEC organizes its database.
+
+The through-line: Sloane consistently caught structural inconsistencies that would have been invisible to a user testing the happy path, and made UX decisions based on how the tool would actually be used in practice — not how it looked in a demo.
+
+## What to bring to Claude Chat
+
+- Feed scope expansion — the current feed shows candidate committee filings only (F3/F3P). The Claude Chat discussion identified that strategists want visibility into PAC activity, super PAC IEs, and party committee filings too. The API cost math changes significantly with broader scope (~5,000+ filings vs ~300). Worth discussing: what's the right phased approach to expanding scope without overwhelming the page or the API budget?
+- Committee name casing — toTitleCase was removed because it mangles acronyms (PAC → Pac). A smarter approach would preserve known acronyms while title-casing the rest. Worth discussing whether this is worth building (it'd touch every page that renders committee names) or whether raw API casing is acceptable for the target audience.
+- Feed as a nav-level page — Feed is now a primary nav item alongside Candidates, Committees, and Races. Is that the right long-term placement, or should it be more prominent (e.g. a dashboard entry point) or less prominent (e.g. a tool accessible from a toolbar but not the main nav)?
+- Time window controls — the current 24h/48h/7d options are date-based (not hour-based), computed from the user's device timezone. Worth confirming with John whether these windows match how strategists actually think about filing deadlines ("what landed since yesterday" vs "what landed in the last 24 hours").

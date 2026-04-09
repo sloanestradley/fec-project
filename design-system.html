@@ -204,6 +204,7 @@
       <a class="nav-link" href="/candidates">Candidates</a>
       <a class="nav-link" href="/committees">Committees</a>
       <a class="nav-link" href="/races">Races</a>
+      <a class="nav-link" href="/feed">Feed</a>
     </div>
     <div class="top-nav-search" style="position:relative">
       <form class="top-nav-search-form" id="top-nav-search-form">
@@ -242,6 +243,7 @@
   <a class="nav-item" href="/candidates">Candidates</a>
   <a class="nav-item" href="/committees">Committees</a>
   <a class="nav-item" href="/races">Races</a>
+  <a class="nav-item" href="/feed">Feed</a>
 </nav>
 
 <!-- Main -->
@@ -1106,7 +1108,7 @@
           <span class="ds-component-name">Browse Page Chrome</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.filter-bar-wrap · .filter-bar · .form-field · .form-label · .filter-chips-wrap · .filter-chip · .chip-x · .chip-clear-all · .results-area · .no-results · .error-prompt · .retry-btn — used on candidates.html, committees.html, races.html</div>
+        <div class="ds-component-classes">.filter-bar-wrap · .filter-bar · .form-field · .form-label · .filter-chips-wrap · .filter-chip · .chip-x · .chip-clear-all · .results-area · .results-header · .no-results · .error-prompt · .retry-btn — used on candidates.html, committees.html, races.html, feed.html</div>
         <div class="ds-component-demo" style="padding:0">
 
           <!-- Filter bar -->
@@ -1154,7 +1156,51 @@
         <div class="ds-component-notes"><code>.filter-bar-wrap</code> and <code>.filter-chips-wrap</code> use <code>var(--page-gutter)</code> for horizontal padding in production — overridden with a fixed value above for demo context. Page-specific extensions stay inline: <code>position:relative; z-index:10</code> on <code>races.html</code> <code>.filter-bar-wrap</code> (stacking context for dropdowns); <code>.form-select.wide</code> (min-width:200px) on <code>committees.html</code>. The <code>.combo-wrap</code> pattern for filter selects is documented in the Form Controls card.</div>
       </div>
 
-      <!-- 11. Toggle switch -->
+      <!-- 11. Button group -->
+      <div class="ds-component" id="comp-button-group" data-status="feed-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">button-group</span>
+          <span class="ds-status feed-only">feed-only</span>
+        </div>
+        <div class="ds-component-classes">.button-group · .button-group-btn — inline-flex toggle button group; mono label style, height:34px (matches .form-input/.form-select), collapsed borders, active state navy-950 fill</div>
+        <div class="ds-component-demo">
+          <div style="display:flex;gap:var(--space-16);align-items:flex-end;flex-wrap:wrap">
+            <div class="form-field">
+              <label class="form-label">Office</label>
+              <div class="button-group">
+                <button class="button-group-btn active">All</button>
+                <button class="button-group-btn">House</button>
+                <button class="button-group-btn">Senate</button>
+                <button class="button-group-btn">President</button>
+              </div>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Time period</label>
+              <div class="button-group">
+                <button class="button-group-btn active">24h</button>
+                <button class="button-group-btn">48h</button>
+                <button class="button-group-btn">7 days</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ds-component-notes">Used on <code>feed.html</code> for office and time window filters. Wraps in <code>.form-field</code> with <code>.form-label</code> above — same structure as other filter controls. <code>height:34px</code> explicitly matches <code>.form-select</code> and <code>.form-input</code>. Adjacent buttons collapse shared borders via <code>.button-group-btn + .button-group-btn { border-left:none }</code>. Promote to <code>stable</code> when used on a second page.</div>
+      </div>
+
+      <!-- 12. End of results -->
+      <div class="ds-component" id="comp-end-of-results" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">end-of-results</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.end-of-results — mono label style, centered, border-top, display:none default; JS toggles via style.display</div>
+        <div class="ds-component-demo">
+          <div class="end-of-results" style="display:block">End of results</div>
+        </div>
+        <div class="ds-component-notes">Used on <code>candidates.html</code>, <code>committees.html</code>, and <code>feed.html</code>. Shown by JS (<code>style.display = 'block'</code>) when all results have loaded. Sits at the bottom of <code>.results-area</code> inside the <code>#state-results</code> wrapper.</div>
+      </div>
+
+      <!-- 13. Toggle switch -->
       <div class="ds-component" id="comp-toggle-switch" data-status="stable">
         <div class="ds-component-header">
           <span class="ds-component-name">toggle-switch</span>

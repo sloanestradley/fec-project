@@ -73,6 +73,10 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **Shared form controls:** `.form-input`, `.form-select`, `.form-search-btn` (and their focus/disabled variants) are defined in `styles.css` and used across search.html, candidates.html, and committees.html. `.toggle-switch` (CSS-only pill toggle: hidden checkbox + `.toggle-track` + `.toggle-knob` + `.toggle-label`) is also defined in `styles.css` — used on committees.html filter bar for "Show terminated". `.toggle-label` uses DM Sans 0.8rem to match form input value text. Also in `styles.css` (promoted from candidates.html/committees.html): `.search-combo` (position:relative; display:flex — the search input + button row), `.search-combo .form-input` (flex:1; min-width:160px; border-right:none), `.state-combo`, `.state-combo .form-input`, `.filter-bar-wrap`, `.filter-bar`, `.form-field`, `.form-label`, `.filter-chips-wrap`, `.filter-chip`, `.chip-x`, `.chip-clear-all`, `.results-area`, `.no-results`, `.error-prompt`, `.retry-btn`. Page-specific extensions stay inline: `.form-select.wide` (committees only), `.search-bar .form-input` (search.html flex + border-right). **Custom combo dropdowns:** `.combo-wrap` + `.combo-trigger` (in `styles.css`) + `initComboDropdown(config)` (in `utils.js`) implement the accessible filter dropdown pattern used for office/party/cycle on candidates.html, type on committees.html, and year/office on races.html. The trigger `<button>` carries both `combo-trigger` and `form-select` classes for visual consistency — **critical:** the hide/show CSS for native selects inside `.combo-wrap` must use `select.form-select` (type-qualified), not `.form-select`, to avoid hiding the button via specificity. At ≤860px, `.combo-wrap .combo-trigger { display:none }` and `.combo-wrap select.form-select { display:block }` swap in the native `<select>` for mobile. `initComboDropdown` returns `{ setValue(v), setDisabled(bool) }` — use these in `clearFilter`, `clearAllFilters`, and `init` to keep combo state in sync with `activeFilters`. **CSS consolidation (2026-04-01):** `.combo-wrap` is now the single source for `position:relative` and `select.form-select { display:none }` (desktop) / `select.form-select { display:block }` (mobile) / `.typeahead-dropdown { display:none !important }` (mobile). `.state-combo` retains only its unique rules: `.form-input { width:120px }`, `.typeahead-dropdown { min-width:200px }`, mobile `.form-input { display:none }`, mobile `select.form-select { width:120px }`. All three state-combo divs in HTML carry both `state-combo` and `combo-wrap` classes.
 
+**Button group (`.button-group` + `.button-group-btn`):** Defined in `styles.css`. Inline-flex toggle button group — mono 0.625rem uppercase with `--ls-expanded`, `height:34px` (matches `.form-input`/`.form-select`), shared collapsed borders, active state with `--color-navy-950` fill. Used on feed.html for office and time window filters. Reusable anywhere a segmented toggle control is needed.
+
+**End-of-results (`.end-of-results`):** Defined in `styles.css`. Mono 0.625rem uppercase muted, centered, `border-top:1px solid var(--border)`, `display:none` default. Used on candidates.html, committees.html, and feed.html. JS toggles via `style.display = 'block'`.
+
 **`.sr-only` utility:** Defined in `styles.css`. Standard visually-hidden pattern (`position:absolute; width:1px; height:1px; ...`). Use for submit buttons that are visually replaced by icon affordances — keeps the button DOM-present and keyboard/screen-reader accessible while invisible.
 
 **Icon-leading search pattern (`.search-field`):** All search inputs on the site use this pattern. `.search-field` is `position:relative; display:flex; align-items:center`. `.search-field-icon` is `position:absolute; left:var(--space-8); color:var(--muted); pointer-events:none`. The input inside gets `padding-left:calc(var(--space-8) + 14px + var(--space-8))` (8 + icon + 8 = 30px). Icon SVGs use `aria-hidden="true" focusable="false"`. Submit buttons use `.form-search-btn.sr-only` with `type="submit"` and `aria-label="Search"`. **Critical:** The sr-only button must live *inside* `.search-field` (not as a sibling outside it) — placing it outside breaks the visual pattern and makes it visible. Context-specific flex rules: `.search-combo .search-field { flex:1; min-width:0 }`, `.top-nav-mobile-search-form .search-field { flex:1 }`. Page-level search.html uses `.search-bar .search-field { flex:1 }` in inline styles. **Browse page filter bar search** (`.search-combo`) uses `type="button"` (not `type="submit"`) with `id="search-btn"` wired via `addEventListener('click', submitSearch)` — Enter is handled via a `keydown` listener on the input; the sr-only button enables keyboard accessibility without form submission.
@@ -214,6 +218,7 @@ committees.html   — Unified browse+search (live): auto-load, inline search + t
 committee.html    — Single committee profile (tabs bar + cycle switcher live; Raised tab live; Spent tab live — donut by category, purpose bars, vendors table, contributions to candidates & committees; filing history removed from scope)
 races.html        — Browse races by year, office, state (live — progressive enrichment from /elections/; URL sync on cycle/office/state filters)
 race.html         — Single race view — all candidates in a contest (scaffold)
+feed.html         — Filing feed — recent candidate committee filings (live): load-all-upfront, client-side office/report-type/time-window filters, filter chips, refresh with dedup, Amplitude tracking
 process-log.html  — Living case study / dev diary
 design-system.html — Token and component reference (live)
 project-brief.md  — Full product vision and open questions
@@ -227,10 +232,10 @@ _redirects        — Netlify clean URL rewrites (200 rewrites; HTML files stay 
 tests/
   helpers/amp-mock.js  — Amplitude mock (blocks CDN, stubs sessionReplay, reads _q queue)
   helpers/api-mock.js  — FEC API mock (route intercept + fixture data for all endpoints)
-  shared.spec.js       — 63 structural tests × all 9 pages (nav, CSS, Amplitude, background)
+  shared.spec.js       — 14 structural tests × all 10 pages (nav, CSS, Amplitude, background)
   candidate.spec.js    — candidate.html tests (stats, modal, chart, tabs, Amplitude events)
   search.spec.js       — search.html tests (states, interaction, Amplitude events)
-  pages.spec.js        — all other pages + mobile layout
+  pages.spec.js        — all other pages + mobile layout + feed.html (16 feed-specific tests)
   smoke.spec.js        — 5 live-API smoke tests (@smoke tagged)
 ```
 
@@ -284,6 +289,7 @@ GET /elections/search/?state=&office=&district=&per_page= — available election
 GET /candidates/search/?q=&per_page=&sort=    — name-based candidate search
 GET /candidates/?state=&office=&party=&election_year= — browse candidates by filter
 GET /committees/?state=&committee_type=       — browse committees by filter
+GET /filings/?form_type=F3&form_type=F3P&is_amended=false&sort=-receipt_date&min_receipt_date=&per_page=100 — candidate committee filings (feed page)
 ```
 
 **Critical — `/elections/` office param:** This endpoint requires `office` as a **lowercase full word** (`house`, `senate`, `president`), NOT the single-letter code (`H`, `S`, `P`) used by other endpoints. Passing `H`/`S`/`P` returns a 422 error. Use a conversion function:
@@ -382,6 +388,8 @@ See `project-brief.md` for the full phased roadmap. Short version:
 - **`disbursement_purpose_category` field values (verified from live `/schedules/schedule_b/` response):** `'CONTRIBUTIONS'` (political contributions to other committees), `'REFUNDS'` (contribution refunds to donors — money returned, not a vendor payment), `'ADVERTISING'`, `'ADMINISTRATIVE'`, `'FUNDRAISING'`, `'TRAVEL'`, `'OTHER'`. Vendor table should exclude `CONTRIBUTIONS` and `REFUNDS`. Note: `disbursement_purpose_description` (the human-readable label field) is always null in live responses — use `disbursement_description` for keyword-based purpose mapping.
 - **`.spend-note` CSS class — removed:** Was a dead class in candidate.html with no CSS definition. Replaced with `.data-note` (the shared equivalent, defined in `styles.css`). Removed 2026-03-20.
 - **`/committee/{id}/totals/` spending field names (verified 2026-03-20):** The transfers field is `transfers_to_affiliated_committee` — NOT `transfers_to_other_authorized_committee` (which doesn't exist). PACs may have zero `operating_expenditures` with spending in `shared_nonfed_operating_expenditures`, `independent_expenditures`, or `fed_candidate_committee_contributions` instead. The committee.html spent donut computes "Other Disbursements" as `totalSpent - sum(named categories)` to ensure 100% coverage regardless of committee type.
+- **`/filings/` endpoint silently ignores repeated `committee_type` params (verified 2026-04-09):** Passing `committee_type=H&committee_type=S&committee_type=P` returns only the last value's results — the repeated param is not treated as an array. Scope candidate committee filings via `form_type=F3&form_type=F3P` instead (repeated `form_type` does work). Use the `office` field on results for client-side H/S/P discrimination.
+- **F3/F3P results include non-candidate committees with `office: null` (verified 2026-04-09):** A small number of results (~10 per week) have `committee_type: N` (Non-Qualified PAC), `Q` (Qualified PAC), or `null` with `office: null` — likely data entry errors or committees that changed affiliation after initial registration. Filter on `office != null` to exclude when intent is candidate-committee scope. If feed scope expands to all committee types in the future, these will reappear and need an explicit display decision.
 - **Mock/live field shape gap risk:** Some FEC endpoints return different field names or value types than their mock counterparts — the `/elections/` endpoint returns `party_full` (full name) instead of `party` (short code); `/elections/` returns `incumbent_challenge_full` (full string) not `incumbent_challenge` (short code) — mock corrected 2026-03-16; `total_receipts_ytd` in reports is a string in the live API but was mocked as a number; `/schedule_a/by_state/` returns `{state, state_full, total, count}` while the individual `/schedule_a/` endpoint returns `{contributor_state, contribution_receipt_amount, ...}`; `/committee/{id}/totals/` uses `transfers_to_affiliated_committee` not `transfers_to_other_authorized_committee` — fixed 2026-03-20. Rule: when adding a new endpoint, fetch one live response and verify field names against the mock before writing assertions. Utilities should always accept both short and full-form values where the API may vary by endpoint.
 
 ## Committee modal architecture
@@ -435,6 +443,21 @@ Progressive loading pattern — instant race list, then viewport-gated enrichmen
 - **`needsApiMock: true`** in `shared.spec.js` — makes API calls on load.
 - **Long-term solution:** A Netlify Function proxy with server-side caching would move the API key off the client entirely and collapse all visitor traffic into one cold fetch per TTL period. See "Remaining architectural debt" for the full note.
 
+## Filing feed architecture (feed.html)
+
+Live filing feed showing recent FEC filings from candidate campaign committees (House, Senate, Presidential). Scoped to F3/F3P form types. Monitoring tool — users return to check what's landed.
+
+- **Load-all-upfront pattern:** `fetchAllFilings()` fetches page 1 (per_page=100) to get `pagination.pages`, then fires all remaining pages in parallel. Skeleton shows until complete dataset is in memory. ~3 API calls for ~330 filings (7-day window).
+- **Client-side filtering:** Three filters — office (H/S/P button group), report type (select: Quarterly/Pre-election/Post-election/Termination), time window (24h/48h/7d button group). All filter `allFilings` in memory. No additional API calls on filter change.
+- **Time window re-fetch:** Changing the time window calls `init()` which re-fetches the full dataset for the new `min_receipt_date`. Office and report type filters are client-side only.
+- **Null-office filtering:** Results with `office: null` (PAC types N/Q filing F3 incorrectly) are excluded at the data ingestion layer in `fetchAllFilings()`.
+- **Refresh with dedup:** "Refresh feed" button re-fetches all pages, deduplicates by `file_number`, prepends new rows with `.feed-new` highlight animation (2s). Minimum 500ms "Refreshing..." + 1s "✓ Refreshed" feedback states.
+- **State wrappers:** Uses `#state-loading`/`#state-results`/`#state-no-results`/`#state-error` pattern matching browse pages. `showState(name)` toggles between them.
+- **Filter chips:** Always visible. Time period chip always shown. Office chip shown when not "All". Report type chip shown when not "All types". Matches `.filter-chips-wrap` pattern from browse pages.
+- **Report type groups:** `REPORT_TYPES` config maps groups to FEC `report_type` codes: Quarterly (Q1/Q2/Q3/YE), Pre-election (12P/12G/12C/12S), Post-election (30G), Termination (TER).
+- **Amplitude events:** `Page Viewed`, `feed_filter_office`, `feed_filter_window`, `feed_filter_report_type`, `feed_refresh`, `Feed Filing Clicked`, `Feed FEC Link Clicked`.
+- **`needsApiMock: true`** in `shared.spec.js` — makes API calls on load.
+
 ## Navigation and IA architecture
 
 The nav has a browse/profile split that must be preserved as new pages are added:
@@ -447,10 +470,11 @@ Nav link targets (all pages must use these — absolute paths, no stubs):
 - Candidates → `/candidates`
 - Committees → `/committees`
 - Races → `/races`
+- Feed → `/feed`
 
 Search, Process Log, and Design System are **not** in the top nav. No active link on those pages.
 
-**Top nav structure (`.top-nav`):** Fixed below the global banner (`top:var(--banner-h)`), full-width, `z-index:200`. Inner: logo left → nav links (`Candidates`, `Committees`, `Races`) → search bar (desktop, `margin-left:auto`) → mobile controls (hidden at desktop: search toggle icon + hamburger). Mobile nav drawer (`.mobile-nav`) drops down from below the nav bar (not from the side). Search toggle expands `.top-nav-mobile-search` panel inline below the nav bar. No `.sidebar`, no `.layout` grid wrapper — `.main` is a direct child of `<body>`.
+**Top nav structure (`.top-nav`):** Fixed below the global banner (`top:var(--banner-h)`), full-width, `z-index:200`. Inner: logo left → nav links (`Candidates`, `Committees`, `Races`, `Feed`) → search bar (desktop, `margin-left:auto`) → mobile controls (hidden at desktop: search toggle icon + hamburger). Mobile nav drawer (`.mobile-nav`) drops down from below the nav bar (not from the side). Search toggle expands `.top-nav-mobile-search` panel inline below the nav bar. No `.sidebar`, no `.layout` grid wrapper — `.main` is a direct child of `<body>`.
 
 **Active state:** `.nav-link.active` on the correct `<a>` in `.top-nav-links`, plus `.nav-item` with active class in `.mobile-nav` for browse pages. Profile pages activate their parent browse page's link.
 

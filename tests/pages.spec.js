@@ -1,7 +1,7 @@
 /**
  * pages.spec.js — Structural tests for all remaining pages:
  *   committee.html, races.html, race.html, candidates.html,
- *   committees.html, process-log.html, design-system.html, index.html
+ *   committees.html, feed.html, process-log.html, design-system.html, index.html
  *
  * Covers: nav active states, key structural elements, Amplitude events,
  * and scaffold-level presence checks for not-yet-built sections.
@@ -1099,4 +1099,136 @@ test.describe('no horizontal overflow at 390px', () => {
       expect(scrollWidth).toBeLessThanOrEqual(390);
     });
   }
+});
+
+// ── feed.html ────────────────────────────────────────────────────────────────
+
+test.describe('feed.html', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/feed.html');
+    await page.waitForLoadState('networkidle');
+  });
+
+  // ── Structural: results render on load ──
+
+  test('results state is visible after load', async ({ page }) => {
+    await expect(page.locator('#state-results')).toBeVisible();
+    await expect(page.locator('#state-loading')).not.toBeVisible();
+  });
+
+  test('feed list has feed-row children', async ({ page }) => {
+    const rows = page.locator('#feed-list .feed-row');
+    await expect(rows).toHaveCount(3);
+  });
+
+  test('results header shows count', async ({ page }) => {
+    const header = page.locator('#results-header');
+    const text = await header.textContent();
+    expect(text).toMatch(/\d+ filing/);
+  });
+
+  // ── Structural: column headers ──
+
+  test('column headers present with expected labels', async ({ page }) => {
+    const header = page.locator('#state-results .feed-row-header');
+    await expect(header).toBeVisible();
+    const text = await header.textContent();
+    expect(text).toContain('Committee');
+    expect(text).toContain('Report');
+    expect(text).toContain('Office');
+    expect(text).toContain('Raised');
+    expect(text).toContain('Spent');
+    expect(text).toContain('COH');
+    expect(text).toContain('Filed');
+  });
+
+  // ── Structural: feed row content ──
+
+  test('feed rows have committee link with clean URL', async ({ page }) => {
+    const link = page.locator('#feed-list .feed-row .feed-name a').first();
+    await expect(link).toBeVisible();
+    const href = await link.getAttribute('href');
+    expect(href).toMatch(/^\/committee\/C\d+/);
+  });
+
+  test('feed rows have report type tag', async ({ page }) => {
+    const tag = page.locator('#feed-list .feed-row .feed-report-col .tag').first();
+    await expect(tag).toBeVisible();
+  });
+
+  test('feed rows have FEC external link with target _blank', async ({ page }) => {
+    const fecLink = page.locator('#feed-list .feed-row .feed-fec a').first();
+    await expect(fecLink).toBeVisible();
+    expect(await fecLink.getAttribute('target')).toBe('_blank');
+    expect(await fecLink.getAttribute('rel')).toBe('noopener');
+  });
+
+  // ── Structural: filter controls ──
+
+  test('office filter has 4 buttons (All, House, Senate, President)', async ({ page }) => {
+    const btns = page.locator('#office-group .button-group-btn');
+    await expect(btns).toHaveCount(4);
+    const texts = await btns.allTextContents();
+    expect(texts).toEqual(['All', 'House', 'Senate', 'President']);
+  });
+
+  test('time window has 3 buttons (24h, 48h, 7 days)', async ({ page }) => {
+    const btns = page.locator('#window-group .button-group-btn');
+    await expect(btns).toHaveCount(3);
+    const texts = await btns.allTextContents();
+    expect(texts).toEqual(['24h', '48h', '7 days']);
+  });
+
+  test('report type select has 5 options', async ({ page }) => {
+    const options = page.locator('#f-report-type option');
+    await expect(options).toHaveCount(5);
+  });
+
+  test('refresh button is present', async ({ page }) => {
+    await expect(page.locator('#feed-refresh-btn')).toBeVisible();
+  });
+
+  // ── Structural: filter chips ──
+
+  test('filter chips visible on load with time period chip', async ({ page }) => {
+    const chips = page.locator('#filter-chips');
+    await expect(chips).toBeVisible();
+    const text = await chips.textContent();
+    expect(text).toContain('Last');
+  });
+
+  // ── Structural: end of results ──
+
+  test('end of results visible after data loads', async ({ page }) => {
+    await expect(page.locator('#end-of-results')).toBeVisible();
+  });
+
+  // ── Structural: error and empty hidden on success ──
+
+  test('error and no-results states hidden on successful load', async ({ page }) => {
+    await expect(page.locator('#state-error')).not.toBeVisible();
+    await expect(page.locator('#state-no-results')).not.toBeVisible();
+  });
+
+  // ── Interaction: office filter ──
+
+  test('clicking Senate filter updates active state and filters rows', async ({ page }) => {
+    await page.locator('#office-group .button-group-btn[data-office="S"]').click();
+    const activeBtn = page.locator('#office-group .button-group-btn.active');
+    await expect(activeBtn).toHaveText('Senate');
+    // Mock has 1 Senate filing
+    const rows = page.locator('#feed-list .feed-row');
+    await expect(rows).toHaveCount(1);
+  });
+
+  // ── Interaction: report type filter ──
+
+  test('selecting Termination report type filters rows', async ({ page }) => {
+    await page.locator('#f-report-type').selectOption('termination');
+    // Mock has 1 TER filing
+    const rows = page.locator('#feed-list .feed-row');
+    await expect(rows).toHaveCount(1);
+  });
 });

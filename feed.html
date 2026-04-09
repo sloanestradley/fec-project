@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Filing Feed — FECLedger</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Amplitude Analytics -->
+  <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
+  <style>
+    /* ── Feed controls ── */
+    .feed-controls { display:flex; align-items:flex-end; gap:var(--space-8); flex-wrap:wrap; }
+    .feed-meta { margin-left:auto; display:flex; align-items:center; gap:var(--space-8); }
+
+    /* ── Feed table ── */
+    .feed-row { display:grid;
+      grid-template-columns:1fr 130px 70px 90px 90px 90px 60px 40px;
+      gap:var(--space-8); align-items:center;
+      padding:var(--space-8) 0; border-bottom:1px solid var(--border); }
+    .feed-row-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
+      text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--muted);
+      border-bottom:1px solid var(--border-strong); }
+    .feed-name { font-size:0.75rem; min-width:0; overflow:hidden;
+      text-overflow:ellipsis; white-space:nowrap; }
+    .feed-name a { color:var(--text); text-decoration:none;
+      transition:color 0.15s; }
+    .feed-name a:hover { color:var(--accent); }
+    .feed-report-col .tag { font-size:0.625rem; padding:var(--space-2) var(--space-4); /* micro: tight report label */ }
+    .feed-office { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
+    .feed-money { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
+      text-align:right; white-space:nowrap; }
+    .feed-date { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
+    .feed-fec { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; }
+    .feed-fec a { color:var(--accent); text-decoration:none; transition:color 0.15s; }
+    .feed-fec a:hover { text-decoration:underline; }
+    .feed-new { animation:feed-new-highlight 2s ease-out; }
+    @keyframes feed-new-highlight {
+      from { background:var(--accent-dim); }
+      to   { background:transparent; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width:860px) {
+      .feed-row .feed-coh-col { display:none; }
+      .feed-controls { gap:var(--space-4); }
+      .feed-meta { margin-left:0; width:100%; justify-content:flex-end; }
+    }
+    @media (max-width:600px) {
+      .feed-row .feed-report-col,
+      .feed-row .feed-office-col,
+      .feed-row .feed-raised-col,
+      .feed-row .feed-spent-col,
+      .feed-row .feed-coh-col { display:none; }
+      .feed-name { white-space:normal; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top nav -->
+<div class="global-banner">
+  <p class="global-banner-text">Early build, actively evolving. All data sourced from the FEC public API. Non-partisan by design.</p>
+</div>
+<nav class="top-nav" id="top-nav">
+  <div class="top-nav-inner">
+    <a class="top-nav-logo" href="/"><span class="logo-fec">FEC</span><span class="logo-ledger">Ledger</span></a>
+    <div class="top-nav-links">
+      <a class="nav-link" href="/candidates">Candidates</a>
+      <a class="nav-link" href="/committees">Committees</a>
+      <a class="nav-link" href="/races">Races</a>
+      <a class="nav-link active" href="/feed">Feed</a>
+    </div>
+    <div class="top-nav-search" style="position:relative">
+      <form class="top-nav-search-form" id="top-nav-search-form">
+        <div class="search-field">
+          <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-search-input" aria-label="Search candidates and committees">
+        </div>
+        <button class="form-search-btn sr-only" type="submit" aria-label="Search"></button>
+      </form>
+      <div id="nav-typeahead-dropdown" class="typeahead-dropdown"
+           style="right:0;left:auto;min-width:360px"
+           role="listbox" aria-label="Search suggestions"></div>
+    </div>
+    <div class="top-nav-mobile-controls">
+      <button class="top-nav-search-toggle" id="top-nav-search-toggle" aria-label="Toggle search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="top-nav-mobile-search" id="top-nav-mobile-search">
+    <form class="top-nav-mobile-search-form" id="top-nav-mobile-search-form">
+      <div class="search-field">
+        <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-mobile-search-input" aria-label="Search candidates and committees">
+      </div>
+      <button class="form-search-btn sr-only" type="submit" aria-label="Search"></button>
+    </form>
+  </div>
+</nav>
+
+<!-- Mobile nav drawer -->
+<nav class="mobile-nav" id="mobile-nav">
+  <a class="nav-item" href="/candidates">Candidates</a>
+  <a class="nav-item" href="/committees">Committees</a>
+  <a class="nav-item" href="/races">Races</a>
+  <a class="nav-item active" href="/feed">Feed</a>
+</nav>
+
+<!-- Main -->
+<div class="main">
+<div class="main-inner">
+
+  <div class="page-header">
+    <div class="page-title">Filing Feed</div>
+  </div>
+
+  <!-- Controls row -->
+  <div class="filter-bar-wrap">
+    <div class="feed-controls">
+      <div class="form-field">
+        <label class="form-label">Office</label>
+        <div class="button-group" id="office-group">
+          <button class="button-group-btn active" data-office="all">All</button>
+          <button class="button-group-btn" data-office="H">House</button>
+          <button class="button-group-btn" data-office="S">Senate</button>
+          <button class="button-group-btn" data-office="P">President</button>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Report type</label>
+        <select class="form-select" id="f-report-type">
+          <option value="all">All types</option>
+          <option value="quarterly">Quarterly</option>
+          <option value="pre-election">Pre-election</option>
+          <option value="post-election">Post-election</option>
+          <option value="termination">Termination</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Time period</label>
+        <div class="button-group" id="window-group">
+          <button class="button-group-btn active" data-window="24h">24h</button>
+          <button class="button-group-btn" data-window="48h">48h</button>
+          <button class="button-group-btn" data-window="7d">7 days</button>
+        </div>
+      </div>
+      <div class="feed-meta">
+        <button class="retry-btn" id="feed-refresh-btn">Refresh feed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter chips -->
+  <div id="filter-chips" class="filter-chips-wrap" style="display:none"></div>
+
+  <!-- State: loading -->
+  <div id="state-loading" style="display:none">
+    <div class="results-area">
+      <div class="feed-row feed-row-header">
+        <span>Committee</span>
+        <span class="feed-report-col">Report</span>
+        <span class="feed-office-col">Office</span>
+        <span class="feed-money feed-raised-col">Raised</span>
+        <span class="feed-money feed-spent-col">Spent</span>
+        <span class="feed-money feed-coh-col">COH</span>
+        <span>Filed</span>
+        <span></span>
+      </div>
+      <div class="feed-row"><span><span class="skeleton" style="width:180px;height:12px"></span></span><span class="feed-report-col"><span class="skeleton" style="width:90px;height:16px"></span></span><span class="feed-office-col"><span class="skeleton" style="width:45px;height:12px"></span></span><span class="feed-money feed-raised-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span class="feed-money feed-spent-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span class="feed-money feed-coh-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span><span class="skeleton" style="width:35px;height:12px"></span></span><span></span></div>
+      <div class="feed-row"><span><span class="skeleton" style="width:200px;height:12px"></span></span><span class="feed-report-col"><span class="skeleton" style="width:80px;height:16px"></span></span><span class="feed-office-col"><span class="skeleton" style="width:50px;height:12px"></span></span><span class="feed-money feed-raised-col"><span class="skeleton" style="width:60px;height:12px"></span></span><span class="feed-money feed-spent-col"><span class="skeleton" style="width:50px;height:12px"></span></span><span class="feed-money feed-coh-col"><span class="skeleton" style="width:60px;height:12px"></span></span><span><span class="skeleton" style="width:35px;height:12px"></span></span><span></span></div>
+      <div class="feed-row"><span><span class="skeleton" style="width:160px;height:12px"></span></span><span class="feed-report-col"><span class="skeleton" style="width:100px;height:16px"></span></span><span class="feed-office-col"><span class="skeleton" style="width:40px;height:12px"></span></span><span class="feed-money feed-raised-col"><span class="skeleton" style="width:50px;height:12px"></span></span><span class="feed-money feed-spent-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span class="feed-money feed-coh-col"><span class="skeleton" style="width:50px;height:12px"></span></span><span><span class="skeleton" style="width:35px;height:12px"></span></span><span></span></div>
+      <div class="feed-row"><span><span class="skeleton" style="width:190px;height:12px"></span></span><span class="feed-report-col"><span class="skeleton" style="width:85px;height:16px"></span></span><span class="feed-office-col"><span class="skeleton" style="width:50px;height:12px"></span></span><span class="feed-money feed-raised-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span class="feed-money feed-spent-col"><span class="skeleton" style="width:60px;height:12px"></span></span><span class="feed-money feed-coh-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span><span class="skeleton" style="width:35px;height:12px"></span></span><span></span></div>
+      <div class="feed-row"><span><span class="skeleton" style="width:170px;height:12px"></span></span><span class="feed-report-col"><span class="skeleton" style="width:95px;height:16px"></span></span><span class="feed-office-col"><span class="skeleton" style="width:45px;height:12px"></span></span><span class="feed-money feed-raised-col"><span class="skeleton" style="width:60px;height:12px"></span></span><span class="feed-money feed-spent-col"><span class="skeleton" style="width:50px;height:12px"></span></span><span class="feed-money feed-coh-col"><span class="skeleton" style="width:60px;height:12px"></span></span><span><span class="skeleton" style="width:35px;height:12px"></span></span><span></span></div>
+      <div class="feed-row"><span><span class="skeleton" style="width:210px;height:12px"></span></span><span class="feed-report-col"><span class="skeleton" style="width:75px;height:16px"></span></span><span class="feed-office-col"><span class="skeleton" style="width:50px;height:12px"></span></span><span class="feed-money feed-raised-col"><span class="skeleton" style="width:50px;height:12px"></span></span><span class="feed-money feed-spent-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span class="feed-money feed-coh-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span><span class="skeleton" style="width:35px;height:12px"></span></span><span></span></div>
+      <div class="feed-row"><span><span class="skeleton" style="width:185px;height:12px"></span></span><span class="feed-report-col"><span class="skeleton" style="width:90px;height:16px"></span></span><span class="feed-office-col"><span class="skeleton" style="width:45px;height:12px"></span></span><span class="feed-money feed-raised-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span class="feed-money feed-spent-col"><span class="skeleton" style="width:60px;height:12px"></span></span><span class="feed-money feed-coh-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span><span class="skeleton" style="width:35px;height:12px"></span></span><span></span></div>
+      <div class="feed-row"><span><span class="skeleton" style="width:175px;height:12px"></span></span><span class="feed-report-col"><span class="skeleton" style="width:85px;height:16px"></span></span><span class="feed-office-col"><span class="skeleton" style="width:50px;height:12px"></span></span><span class="feed-money feed-raised-col"><span class="skeleton" style="width:60px;height:12px"></span></span><span class="feed-money feed-spent-col"><span class="skeleton" style="width:55px;height:12px"></span></span><span class="feed-money feed-coh-col"><span class="skeleton" style="width:60px;height:12px"></span></span><span><span class="skeleton" style="width:35px;height:12px"></span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- State: results -->
+  <div id="state-results" style="display:none">
+    <div class="results-area">
+      <div class="results-header" id="results-header"></div>
+      <div class="feed-row feed-row-header">
+        <span>Committee</span>
+        <span class="feed-report-col">Report</span>
+        <span class="feed-office-col">Office</span>
+        <span class="feed-money feed-raised-col">Raised</span>
+        <span class="feed-money feed-spent-col">Spent</span>
+        <span class="feed-money feed-coh-col">COH</span>
+        <span>Filed</span>
+        <span></span>
+      </div>
+      <div id="feed-list"></div>
+      <div id="end-of-results" class="end-of-results">End of results</div>
+    </div>
+  </div>
+
+  <!-- State: no results -->
+  <div id="state-no-results" style="display:none">
+    <div class="no-results" id="feed-empty">No filings found matching those filters.</div>
+  </div>
+
+  <!-- State: error -->
+  <div id="state-error" style="display:none">
+    <div class="error-prompt">
+      <strong>Couldn't load filings</strong>
+      There was a problem fetching data from the FEC API.
+      <div><button class="retry-btn" onclick="init()">Retry</button></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="main.js"></script>
+<script src="utils.js"></script>
+<script>
+(function() {
+  // ── State ──
+  var allFilings = [];
+  var displayedFileNumbers = {};
+  var activeOffice = 'all';
+  var activeReportType = 'all';
+  var activeWindow = '24h';
+
+  var REPORT_TYPES = {
+    'all':           { codes: null, label: 'All types' },
+    'quarterly':     { codes: ['Q1','Q2','Q3','YE'], label: 'Quarterly' },
+    'pre-election':  { codes: ['12P','12G','12C','12S'], label: 'Pre-election' },
+    'post-election': { codes: ['30G'], label: 'Post-election' },
+    'termination':   { codes: ['TER'], label: 'Termination' }
+  };
+
+  var WINDOWS = {
+    '24h': { days: 1, label: '24 hours', chipLabel: '24 hrs' },
+    '48h': { days: 2, label: '48 hours', chipLabel: '48 hrs' },
+    '7d':  { days: 7, label: '7 days',   chipLabel: '7 days' }
+  };
+
+  // ── DOM refs ──
+  var elList          = document.getElementById('feed-list');
+  var elEmpty         = document.getElementById('feed-empty');
+  var elResultsHeader = document.getElementById('results-header');
+  var elChips         = document.getElementById('filter-chips');
+  var elEndOfResults  = document.getElementById('end-of-results');
+  var elRefreshBtn    = document.getElementById('feed-refresh-btn');
+  var elReportType    = document.getElementById('f-report-type');
+  var officeBtns      = document.querySelectorAll('#office-group .button-group-btn');
+  var windowBtns      = document.querySelectorAll('#window-group .button-group-btn');
+
+  // ── Helpers ──
+
+  function getMinDate() {
+    var d = new Date();
+    d.setDate(d.getDate() - WINDOWS[activeWindow].days);
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function fmtShortDate(s) {
+    if (!s) return '';
+    var parts = s.split('T')[0].split('-');
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[parseInt(parts[1]) - 1] + ' ' + parseInt(parts[2]);
+  }
+
+  function fmtMoney(v) {
+    if (v === null || v === undefined) return '\u2014';
+    if (v === 0) return '$0';
+    return fmt(v);
+  }
+
+  function showState(name) {
+    document.getElementById('state-loading').style.display    = name === 'loading'    ? 'block' : 'none';
+    document.getElementById('state-results').style.display    = name === 'results'    ? 'block' : 'none';
+    document.getElementById('state-no-results').style.display = name === 'no-results' ? 'block' : 'none';
+    document.getElementById('state-error').style.display      = name === 'error'      ? 'block' : 'none';
+  }
+
+  function officeLabel(o) {
+    if (o === 'H') return 'House';
+    if (o === 'S') return 'Senate';
+    if (o === 'P') return 'President';
+    return o || '\u2014';
+  }
+
+  // ── API ──
+
+  function fetchFilingsPage(page) {
+    return apiFetch('/filings/', {
+      form_type: ['F3', 'F3P'],
+      is_amended: false,
+      sort: '-receipt_date',
+      min_receipt_date: getMinDate(),
+      per_page: 100,
+      page: page || 1
+    });
+  }
+
+  // Fetch page 1, then all remaining pages in parallel. Returns the full dataset.
+  function fetchAllFilings() {
+    return fetchFilingsPage(1).then(function(data) {
+      var raw = data.results || [];
+      var pagination = data.pagination || {};
+      var pages = pagination.pages || 1;
+      // Exclude non-candidate committees (office null) — PAC types N/Q that filed F3 incorrectly
+      var results = raw.filter(function(f) { return f.office; });
+      if (pages <= 1) return results;
+      // Fire remaining pages in parallel
+      var remaining = [];
+      for (var p = 2; p <= pages; p++) remaining.push(fetchFilingsPage(p));
+      return Promise.all(remaining).then(function(responses) {
+        responses.forEach(function(d) {
+          var filtered = (d.results || []).filter(function(f) { return f.office; });
+          results = results.concat(filtered);
+        });
+        return results;
+      });
+    });
+  }
+
+  // ── Rendering ──
+
+  function renderRow(f, isNew) {
+    var cls = 'feed-row' + (isNew ? ' feed-new' : '');
+    var name = f.committee_name || '';
+    var cid = f.committee_id || '';
+    var report = toTitleCase(f.report_type_full || '');
+    var office = officeLabel(f.office);
+    var raised = fmtMoney(f.total_receipts);
+    var spent = fmtMoney(f.total_disbursements);
+    var coh = fmtMoney(f.cash_on_hand_end_period);
+    var date = fmtShortDate(f.receipt_date);
+    var fecUrl = f.html_url || '';
+
+    var nameAttr = name.replace(/'/g, "\\'");
+    return '<div class="' + cls + '">' +
+      '<span class="feed-name"><a href="/committee/' + cid + '"'
+        + ' onclick="amplitude&&amplitude.track(\'Feed Filing Clicked\',{committee_id:\'' + cid + '\',committee_name:\'' + nameAttr + '\',office:\'' + (f.office || '') + '\',report_type:\'' + (f.report_type || '') + '\'})"'
+        + '>' + name + '</a></span>' +
+      '<span class="feed-report-col"><span class="tag tag-neutral">' + report + '</span></span>' +
+      '<span class="feed-office feed-office-col">' + office + '</span>' +
+      '<span class="feed-money feed-raised-col">' + raised + '</span>' +
+      '<span class="feed-money feed-spent-col">' + spent + '</span>' +
+      '<span class="feed-money feed-coh-col">' + coh + '</span>' +
+      '<span class="feed-date">' + date + '</span>' +
+      '<span class="feed-fec">' + (fecUrl ? '<a href="' + fecUrl + '" target="_blank" rel="noopener"'
+        + ' onclick="amplitude&&amplitude.track(\'Feed FEC Link Clicked\',{committee_id:\'' + cid + '\',file_number:' + (f.file_number || 0) + '})"'
+        + '>\u2197</a>' : '') + '</span>' +
+      '</div>';
+  }
+
+  function getFilteredFilings() {
+    return allFilings.filter(function(f) {
+      if (activeOffice !== 'all' && f.office !== activeOffice) return false;
+      if (activeReportType !== 'all') {
+        var codes = REPORT_TYPES[activeReportType].codes;
+        if (codes && codes.indexOf(f.report_type) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderAllRows() {
+    var filtered = getFilteredFilings();
+    if (filtered.length === 0 && allFilings.length > 0) {
+      elEmpty.textContent = 'No candidate campaign committee filings in the last ' + WINDOWS[activeWindow].label + '.';
+      showState('no-results');
+    } else {
+      elList.innerHTML = filtered.map(function(f) { return renderRow(f, false); }).join('');
+      elEndOfResults.style.display = (filtered.length > 0) ? 'block' : 'none';
+      showState('results');
+    }
+  }
+
+  function updateResultsHeader() {
+    var filtered = getFilteredFilings();
+    var count = filtered.length;
+    var label = activeOffice === 'all' ? '' : officeLabel(activeOffice).toLowerCase() + ' ';
+    elResultsHeader.textContent = count.toLocaleString() + ' ' + label + 'filing' + (count !== 1 ? 's' : '') + ' from candidate campaign committees only';
+  }
+
+  function renderChips() {
+    var chips = [];
+    if (activeOffice !== 'all') chips.push({ key: 'office', label: officeLabel(activeOffice) });
+    if (activeReportType !== 'all') chips.push({ key: 'reportType', label: REPORT_TYPES[activeReportType].label });
+    chips.push({ key: 'window', label: 'Last ' + WINDOWS[activeWindow].chipLabel });
+
+    var html = chips.map(function(chip) {
+      return '<span class="filter-chip">' + chip.label
+        + '<button class="chip-x" onclick="clearFilter(\'' + chip.key + '\')" aria-label="Remove filter">\u00d7</button>'
+        + '</span>';
+    }).join('');
+    if (chips.length >= 2) {
+      html += '<button class="chip-clear-all" onclick="clearAllFilters()">Clear all</button>';
+    }
+    elChips.innerHTML = html;
+    elChips.style.display = 'flex';
+  }
+
+  function clearFilter(key) {
+    if (key === 'office') {
+      applyFilter('all');
+    } else if (key === 'reportType') {
+      activeReportType = 'all';
+      elReportType.value = 'all';
+      renderAllRows();
+      updateResultsHeader(); renderChips();
+    } else if (key === 'window') {
+      applyWindow('24h');
+    }
+  }
+
+  function clearAllFilters() {
+    activeOffice = 'all';
+    activeReportType = 'all';
+    officeBtns.forEach(function(btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-office') === 'all');
+    });
+    elReportType.value = 'all';
+    applyWindow('24h');
+  }
+
+  // ── Actions ──
+
+  function init() {
+    showState('loading');
+
+    fetchAllFilings().then(function(results) {
+      allFilings = results;
+      displayedFileNumbers = {};
+      results.forEach(function(f) { displayedFileNumbers[f.file_number] = true; });
+
+      renderAllRows();
+      updateResultsHeader(); renderChips();
+
+      if (window.amplitude) {
+        amplitude.track('Page Viewed', { page: 'feed' });
+      }
+    }).catch(function() {
+      showState('error');
+    });
+  }
+
+  function applyFilter(office) {
+    activeOffice = office;
+    officeBtns.forEach(function(btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-office') === office);
+    });
+    renderAllRows();
+    updateResultsHeader(); renderChips();
+
+    if (window.amplitude) {
+      amplitude.track('feed_filter_office', { office: office });
+    }
+  }
+
+  function applyWindow(win) {
+    activeWindow = win;
+    windowBtns.forEach(function(btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-window') === win);
+    });
+    // Re-fetch full dataset for the new time window
+    init();
+
+    if (window.amplitude) {
+      amplitude.track('feed_filter_window', { window: win });
+    }
+  }
+
+  function refresh() {
+    elRefreshBtn.disabled = true;
+    elRefreshBtn.textContent = 'Refreshing\u2026';
+
+    Promise.all([fetchAllFilings(), new Promise(function(r) { setTimeout(r, 500); })]).then(function(res) {
+      var results = res[0];
+      var newFilings = results.filter(function(f) { return !displayedFileNumbers[f.file_number]; });
+
+      // Add new filings to front, preserve existing order
+      newFilings.forEach(function(f) { displayedFileNumbers[f.file_number] = true; });
+      allFilings = newFilings.concat(allFilings);
+
+      // Re-render full list (new rows get highlight)
+      var filtered = getFilteredFilings();
+      var newNumbers = {};
+      newFilings.forEach(function(f) { newNumbers[f.file_number] = true; });
+      elList.innerHTML = filtered.map(function(f) {
+        return renderRow(f, !!newNumbers[f.file_number]);
+      }).join('');
+      elEndOfResults.style.display = (filtered.length > 0) ? 'block' : 'none';
+
+      updateResultsHeader(); renderChips();
+
+      elRefreshBtn.textContent = '\u2713 Refreshed';
+
+      if (window.amplitude) {
+        amplitude.track('feed_refresh', { new_filings: newFilings.length });
+      }
+
+      setTimeout(function() {
+        elRefreshBtn.disabled = false;
+        elRefreshBtn.textContent = 'Refresh feed';
+      }, 1000);
+    }).catch(function() {
+      elRefreshBtn.disabled = false;
+      elRefreshBtn.textContent = 'Refresh feed';
+    });
+  }
+
+  // ── Event bindings ──
+
+  officeBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      applyFilter(btn.getAttribute('data-office'));
+    });
+  });
+
+  windowBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      applyWindow(btn.getAttribute('data-window'));
+    });
+  });
+
+  elReportType.addEventListener('change', function() {
+    activeReportType = elReportType.value;
+    renderAllRows();
+    updateResultsHeader(); renderChips();
+    if (window.amplitude) {
+      amplitude.track('feed_filter_report_type', { report_type: activeReportType });
+    }
+  });
+
+  elRefreshBtn.addEventListener('click', refresh);
+
+  // Expose for onclick handlers in chip HTML
+  window.clearFilter = clearFilter;
+  window.clearAllFilters = clearAllFilters;
+  window.init = init;
+
+  // ── Init ──
+  init();
+})();
+</script>
+</body>
+</html>
