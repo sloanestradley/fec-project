@@ -120,26 +120,11 @@
       text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
     .committees-link:hover { color:var(--text); text-decoration-color:var(--subtle); }
 
-    /* Stats */
-    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
-      gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:0; }
-    .stat-card  { background:var(--surface); padding:var(--space-16) var(--space-24); }
-    .stat-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
-      color:var(--muted); margin-bottom:var(--space-4); }
-    .stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:600;
-      line-height:1; margin-bottom:var(--space-4); }
-    .stat-sub   { font-size:0.625rem; color:var(--muted); }
-    .stat-sub.pos  { color:var(--green); }
-    .stat-sub.neg  { color:var(--red); }
-    .stat-sub.warn { color:var(--amber); }
+    /* Stats — demo: suppress margin-bottom so demo panel doesn't add section spacing */
+    .stats-grid { margin-bottom:0; }
 
-    /* Raised tab grid */
-    .raised-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-24);
-      margin-bottom:var(--space-24); }
-    .raised-cell { background:var(--surface); border:1px solid var(--border);
-      padding:var(--space-32); min-width:0; overflow:hidden; }
-    .raised-cell-title { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
-      color:var(--subtle); margin-bottom:var(--space-24); }
+    /* Raised tab grid — demo: suppress margin-bottom */
+    .raised-grid { margin-bottom:0; }
 
     /* Donut center overlay */
     .donut-canvas-placeholder { width:100%; height:100%; border-radius:50%;
@@ -346,7 +331,7 @@
             <tr><td class="ds-token-name">--space-64</td><td>—</td><td class="ds-token-hex">4rem (64px)</td><td>Full-bleed empty state padding (.state-msg)</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Layout tokens:</td></tr>
             <tr><td class="ds-token-name">--page-gutter</td><td>--space-48</td><td class="ds-token-hex">3rem / 1rem</td><td>Horizontal content padding — <code style="font-size:0.625rem">var(--space-48)</code> desktop, <code style="font-size:0.625rem">var(--space-16)</code> mobile (≤860px). Use <code style="font-size:0.625rem">padding: &lt;v&gt; var(--page-gutter)</code> on all content sections.</td></tr>
-            <tr><td class="ds-token-name">--section-gap</td><td>--space-24</td><td class="ds-token-hex">1.5rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.625rem">margin-bottom</code> on: <code style="font-size:0.625rem">.banner</code>, <code style="font-size:0.625rem">.chart-card</code>, <code style="font-size:0.625rem">.donors-card</code>, <code style="font-size:0.625rem">.stats-grid</code>, <code style="font-size:0.625rem">.raised-grid</code>.</td></tr>
+            <tr><td class="ds-token-name">--section-gap</td><td>--space-32</td><td class="ds-token-hex">2rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.625rem">margin-bottom</code> on: <code style="font-size:0.625rem">.banner</code>, <code style="font-size:0.625rem">.chart-card</code>, <code style="font-size:0.625rem">.donors-card</code>, <code style="font-size:0.625rem">.stats-grid</code>, <code style="font-size:0.625rem">.raised-grid</code>.</td></tr>
             <tr><td class="ds-token-name">--header-h</td><td>—</td><td class="ds-token-hex">56px</td><td>Sticky nav height. Content follows naturally in flow — no explicit offset needed.</td></tr>
             <tr><td class="ds-token-name">--banner-h</td><td>—</td><td class="ds-token-hex">32px</td><td>Global banner height. Banner is not fixed — scrolls with page. Token retained for height reference.</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Line-height tokens:</td></tr>
@@ -527,15 +512,15 @@
         </div>
         <div class="ds-type-row">
           <span class="ds-section-title" style="margin-bottom:0;padding-bottom:0;border-bottom:none">Committee Ecosystem</span>
-          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .candidate-race-label (candidate header race label — red-700, redesign branch)</span>
+          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .candidate-race-label · .banner-label · .chart-title · .donors-head · .raised-cell-title</span>
         </div>
         <div class="ds-type-row">
           <span class="tab" style="padding:0;border-bottom:none;margin-bottom:0;cursor:default">Summary</span>
           <span class="ds-type-meta"><strong>tab</strong><br>Oswald 400 · 1.25rem<br>.tab · .cycle-select · .race-seat-class (Senate seat class in race.html tabs bar — muted color)</span>
         </div>
         <div class="ds-type-row">
-          <span class="banner-label">Total Raised</span>
-          <span class="ds-type-meta"><strong>subheading</strong><br>Oswald 600 · 0.875rem · uppercase<br>.banner-label · .chart-title · .donors-head · .donors-table .da · .section-title</span>
+          <span style="font-family:'Oswald',sans-serif;font-size:0.875rem;font-weight:600;text-transform:uppercase">$1.2M</span>
+          <span class="ds-type-meta"><strong>subheading</strong><br>Oswald 600 · 0.875rem · uppercase<br>.donors-table .da</span>
         </div>
         <div class="ds-type-row">
           <span class="stat-label" style="margin-bottom:0">Total Raised</span>

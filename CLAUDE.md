@@ -117,14 +117,14 @@ Off-grid values map to nearest token as follows:
 --space-4:  0.25rem  tag padding, chip gap, form-field label gap, entry-date margin, icon fine-tune
 --space-8:  0.5rem   meta gaps, form control padding, tight component rows, badge padding, swatch gaps
 --space-16: 1rem     standard component padding, card internals, table cells, insight/field-notes padding
---space-24: 1.5rem   section subgaps, modal padding, nav inner, content area padding, raised grid gap
---space-32: 2rem     card body padding, results area, timeline indent, entry margin, raised-cell padding, profile-content top padding, page-header bottom padding
+--space-24: 1.5rem   section subgaps, modal padding, nav inner, content area padding, card/cell top padding
+--space-32: 2rem     section gap (--section-gap), results area, timeline indent, entry margin, profile-content top padding, page-header bottom padding
 --space-40: 2.5rem   page-header top
 --space-48: 3rem     page gutter (desktop) — use via var(--page-gutter)
 --space-64: 4rem     DS section margin, timeline entry gap, hero state padding
 ```
 
-Documented non-token exceptions: `gap:1px` in `.stats-grid` (hairline border technique); `margin-bottom:-1px` in `.tab` (border-offset technique); `calc(-1 * var(--space-24))` for the negative modal committee-row flush margin. Inline block exception: `margin-top:0.05rem` on `.changelog-bullet` in `process-log.html` (0.8px — below mapping floor, fine-tune only).
+Documented non-token exceptions: `margin-bottom:-1px` in `.tab` (border-offset technique); `calc(-1 * var(--space-24))` for the negative modal committee-row flush margin. Inline block exception: `margin-top:0.05rem` on `.changelog-bullet` in `process-log.html` (0.8px — below mapping floor, fine-tune only).
 
 **Page gutter pattern:** All content sections use `var(--page-gutter)` for horizontal padding — resolves to `var(--space-48)` (48px) on desktop, `var(--space-16)` (16px) on mobile (≤860px). Mobile value is overridden in `:root` inside `@media (max-width:860px)`. When adding a new page or content section, use `padding: <vertical> var(--page-gutter)`. Component-internal padding (buttons, cards, modals) uses `--space-*` tokens directly, not `--page-gutter`.
 
@@ -174,7 +174,7 @@ Light "broadsheet" theme. Key CSS variables:
 
 Layout tokens (reference --space-* scale):
 --page-gutter: var(--space-48)   (48px desktop / var(--space-16) 16px mobile ≤860px)
---section-gap: var(--space-24)   (24px — vertical margin-bottom between stacked content sections)
+--section-gap: var(--space-32)   (32px — vertical margin-bottom between stacked content sections)
 --header-h: 56px                 (sticky top nav height)
 --banner-h: 32px                 (in-flow global banner height; banner scrolls away naturally before nav sticks)
 

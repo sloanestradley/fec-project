@@ -2917,3 +2917,50 @@ The through-line: short sessions deserve the same rigor as long ones. The Amplit
 
 - Next redesign session: candidate.html and committee.html card surfaces — worth a quick visual alignment before starting: what specifically about the card surfaces needs work? Stats grid, contributor cards, chart containers, vendor table rows? Knowing the target surface avoids a broad sweep.
 - Compact header animation — still deferred. The snap behavior is solid; the animation question (instant vs. short ease) is a design call that's easier to make in Claude Chat with a visual in front of you.
+
+---
+2026-04-09 Card surface strip session
+
+## Process log draft
+
+Title: Stripping the cards — toward a flatland profile page
+
+This session removed the surface layer from the profile page content components on the redesign branch. `.banner`, `.chart-card`, `.donors-card`, `.raised-cell`, and `.raised-grid` were all carrying background fills, borders, and inset padding that created a nested-box visual language at odds with the broadsheet direction. Stripping them down to structure only flattened the hierarchy. The stats row got a parallel treatment: the 1px-gap trick (a grey grid background bleeding through 1px gaps between white cells) was replaced with explicit ruled borders in navy — top, bottom, and vertical dividers — giving the row a clean typographic frame rather than a card.
+
+The most instructive moment was the padding-top correction. The initial approach put `padding-top` on the title elements themselves to restore breathing room after the card padding was removed. That worked for single-element sections but broke wherever a title shared a row with a sibling — the chart legend was misaligned from the title and butting against the stats row. Moving the padding-top to the containers fixed the whole class of problem at once. The section titles themselves also got promoted from the subheading type style (Oswald 600 0.875rem) to heading (Oswald 400 1.25rem), aligning them with the rest of the page's heading vocabulary.
+
+Changelog:
+- `.banner`, `.chart-card`, `.donors-card`, `.raised-cell`: background, border, and padding removed; `padding-top:var(--space-24)` added to each container for top breathing room
+- `.raised-grid`: gap removed (cells need no gutter without card borders); later set to `--space-64` for visual air between content columns
+- `.stats-grid`: 1px-gap-trick replaced with `border-top` + `border-bottom` + per-cell `border-right` (`:last-child` removes trailing right border); all borders `#05234f` (navy-950); `margin-bottom:var(--section-gap)` added
+- `.raised-cell-title`, `.donors-head`, `.chart-title`, `.banner-label`: promoted from subheading (Oswald 600 · 0.875rem) to heading type style (Oswald 400 · 1.25rem); color updated to `--text`
+- `--section-gap` increased from `--space-24` to `--space-32`
+- design-system.html: stale inline overrides removed/updated; type specimen heading/subheading rows corrected; `--section-gap` token row updated
+- CLAUDE.md: `--section-gap`, `--space-24`, `--space-32` usage notes updated; hairline gap exception removed from documented non-token exceptions
+
+Stack tags: CSS · design-system
+
+## How Sloane steered the work
+
+**Planning as two commits before touching anything**
+Specifying the two-commit structure upfront — surfaces in one, stats grid and typography in the other — shaped how the work was organized and reviewed. It also surfaced the question of whether `.banner-label` belonged in commit 2, which it did. The plan caught that before anything was written.
+
+**Catching the padding-top mistake immediately**
+"The chart legend is misaligned from the title and butting up against the stat cards" was a precise read of the symptom. It pointed directly at the architectural problem — padding on the title only offsets the title — and the fix was moving it to the container. A vague "the spacing looks off" would have sent the debugging in circles.
+
+**Asking about --section-gap impact before changing it**
+Before approving the token change, asking "what UI exactly would be impacted?" was the right systems question. It confirmed the change was scoped to the four profile page margin-bottom declarations and nothing else before touching the token. That's the right order of operations for a global token change.
+
+**The navy border on the stats row**
+`#05234f` on the stats grid borders instead of `var(--border)` (warm grey) was a specific design call — using the brand navy to give the stats row more presence as a structural frame. It's a different register from the standard content borders on the page.
+
+**Directing the bottom border on stats-grid**
+The initial stats row had only a top border. Asking for the matching bottom border completed the row as a contained unit rather than a ledge. Small call, significant visual consequence.
+
+The through-line: Sloane caught the structural mistake (padding on titles), approved the token change only after understanding its scope, and made deliberate color calls rather than defaulting to system tokens. Each decision was surgical.
+
+## What to bring to Claude Chat
+
+- The flatland pass is underway on the redesign branch — what's the intended end state? Are there other surface elements (page header, tabs bar, mobile nav) that should get the same treatment, or is this scoped to the profile content area?
+- Section titles are now heading-sized (Oswald 400 1.25rem), same as modal titles and the tab labels. Does that feel right at scale, or do section titles need their own size to differentiate from tab labels?
+- The stats row navy borders feel intentional but are the only element on the page using a hardcoded `#05234f` outside of the logo/banner. Worth deciding whether stats-grid borders should use `--color-navy-950` as a semantic variable reference rather than a hardcoded hex — or whether hardcoding it here is fine given it's the only instance.
