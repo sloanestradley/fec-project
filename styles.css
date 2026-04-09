@@ -382,8 +382,8 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 
 /* ── K: Stats grid ── */
 .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
-  gap:0; border-top:1px solid var(--border); }
-.stat-card { padding:var(--space-16) var(--space-24); border-right:1px solid var(--border); }
+  gap:0; border-top:1px solid #05234f; border-bottom:1px solid #05234f; }
+.stat-card { padding:var(--space-16) var(--space-24); border-right:1px solid #05234f; }
 .stat-card:last-child { border-right:none; }
 .stat-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
   color:var(--muted); margin-bottom:var(--space-4); }
