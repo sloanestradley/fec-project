@@ -155,7 +155,7 @@ Light "broadsheet" theme. Key CSS variables:
 --bg: #F8F5EC        (page background + nav)
 --surface: #ffffff   (cards, panels)
 --surface2: #eee9e1  (chart interiors, inset elements)
---border: #cdc7bc
+--border: #D7D1C7
 --border-strong: #a8a099  (strong borders, nav dots default)
 --text: #1a1510
 --muted: #625b52

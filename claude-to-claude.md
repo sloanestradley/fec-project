@@ -2964,3 +2964,42 @@ The through-line: Sloane caught the structural mistake (padding on titles), appr
 - The flatland pass is underway on the redesign branch — what's the intended end state? Are there other surface elements (page header, tabs bar, mobile nav) that should get the same treatment, or is this scoped to the profile content area?
 - Section titles are now heading-sized (Oswald 400 1.25rem), same as modal titles and the tab labels. Does that feel right at scale, or do section titles need their own size to differentiate from tab labels?
 - The stats row navy borders feel intentional but are the only element on the page using a hardcoded `#05234f` outside of the logo/banner. Worth deciding whether stats-grid borders should use `--color-navy-950` as a semantic variable reference rather than a hardcoded hex — or whether hardcoding it here is fine given it's the only instance.
+---
+2026-04-09 Token audit + --border update
+
+## Process log draft
+
+Title: Reading the palette before touching it
+
+A short session, all audit and one token change. Before updating --border, the work was to trace exactly where #cdc7bc, #eee9e1, and #46403a appear — not just in styles.css, but in every file type including CLAUDE.md and test fixtures. The audit confirmed the right thing: --border is referenced only via var(--border) in functional code, with the raw hex living only in the token definition and its documentation. Once the scope was clear, the update was three files and six lines.
+
+Changelog:
+– Audited three color tokens (--subtle/#46403a, --border/#cdc7bc, --surface2/#eee9e1) across all .html/.css/.js/.md files
+– Updated --border primitive and semantic token: #cdc7bc → #D7D1C7
+– styles.css :root: --border updated
+– CLAUDE.md CSS vars reference block: --border updated
+– design-system.html: Tier 1 primitive table (3 swatch border attributes + warm-rule row), semantic token table hex cell, swatch data-hex attribute and display text — all updated
+
+Field notes:
+The audit pattern that emerged across three tokens is worth naming: every functional use goes through the CSS variable, the raw hex only appears in the token definition and the design system documentation. That's the system working correctly — a single point of change that propagates everywhere. The CLAUDE.md reference block is the only "surprise" location that isn't obviously part of the design system documentation loop, and it's easy to miss. Adding it to the audit checklist is the right takeaway.
+
+Stack tags: CSS custom properties · design tokens
+
+## How Sloane steered the work
+
+**Auditing before deciding**
+Rather than just issuing the color update directly, you asked for a full audit of where the token appears first — across all file types, not just CSS. That produced a complete picture (including the CLAUDE.md reference) before a single file was touched, which is the right order of operations for a token that touches every border on the site.
+
+**Catching the wrong token on the first audit**
+The initial audit was for #46403a (--subtle), not the intended target. When that came back with no matches in page inline styles, you recognized it wasn't what you were looking for and redirected. That kind of quick calibration — checking the result against the intent before declaring done — is what kept the session from going sideways.
+
+**Including the primitive in the update**
+When the question came up about whether to update the Tier 1 primitive alongside the semantic token, you answered with a clear principle: if the primitive isn't used anywhere else, update it too. That's the right systems call — keeping the primitive and the semantic token in sync so the documentation tells a coherent story.
+
+The through-line: methodical before decisive. Every change in this session was preceded by a complete picture of the scope, and the changes themselves were minimal because the scope was understood first.
+
+## What to bring to Claude Chat
+
+– --border lightened, what's next? The audit revealed three tokens in the palette neighborhood (#46403a, #cdc7bc, #eee9e1). Was this change isolated, or is there a broader palette refinement pass planned? Worth knowing the intended end state before continuing cleanup on candidate/committee pages.
+– --surface2 vs --bg on the stripped profile page — now that card surfaces are gone, #eee9e1 is no longer used in the profile page content area. The chart interior still uses it via CHART_COLORS. Is --surface2 pulling its weight elsewhere, or is it also a candidate for adjustment?
+– Stats-grid navy borders (#05234f hardcoded) — still the only hardcoded hex on the profile page outside the logo/banner. Prior session left an open question: should this be var(--color-navy-950) for semantic consistency? A quick decision before the next session avoids it becoming permanent debt.
