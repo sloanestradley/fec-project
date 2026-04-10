@@ -89,6 +89,42 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#profile-header')).not.toHaveClass(/compact/);
   });
 
+  test('scrolling down adds .compact to profile header', async ({ page }) => {
+    await setupWithContent(page);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await page.waitForTimeout(200); // wait past suppressUntil (100ms)
+    await expect(page.locator('#profile-header')).toHaveClass(/compact/);
+  });
+
+  test('scrolling back to top removes .compact from profile header', async ({ page }) => {
+    await setupWithContent(page);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await page.waitForTimeout(200);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(200);
+    await expect(page.locator('#profile-header')).not.toHaveClass(/compact/);
+  });
+
+  test('.main has paddingBottom set when compact is active', async ({ page }) => {
+    await setupWithContent(page);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await page.waitForTimeout(200);
+    const pb = await page.locator('.main').evaluate(el => el.style.paddingBottom);
+    const val = parseInt(pb);
+    expect(val).toBeGreaterThan(0);
+    expect(val).toBeLessThanOrEqual(80);
+  });
+
+  test('.main paddingBottom is cleared when compact disengages', async ({ page }) => {
+    await setupWithContent(page);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await page.waitForTimeout(200);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(200);
+    const pb = await page.locator('.main').evaluate(el => el.style.paddingBottom);
+    expect(pb).toBe('');
+  });
+
   test('incumbent tag shown for incumbent candidate', async ({ page }) => {
     await setup(page);
     const tag = page.locator('#meta-row .incumbent-tag');

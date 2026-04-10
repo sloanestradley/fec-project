@@ -103,8 +103,9 @@
 .ds-component-preview .global-banner { position:static; width:100%; border-radius:3px; }
 
 /* ── Base ── */
+html { overflow-anchor: none; } /* prevent scroll anchoring feedback loop on compact header transition */
 body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif;
-  font-size:14px; line-height:var(--lh-normal); min-height:100vh; overflow-x:hidden; }
+  font-size:14px; line-height:var(--lh-normal); min-height:100vh; overflow-x:clip; }
 
 /* ── Layout ── */
 .layout { min-height:100vh; }

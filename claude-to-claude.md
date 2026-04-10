@@ -3062,3 +3062,44 @@ The through-line: you consistently redirect the work toward cleaner architecture
 – Mobile 2x2 stats layout: we explicitly chose to keep this rather than stacking 1-col to get edge-to-edge row dividers. Worth a light check on device that the 2x2 reads cleanly at 390px (MGP page, all 4 cards visible). The nth-child border rules we added today handle the corner cases but weren't pixel-verified in the session.
 
 – Committee.html has no health banner — only candidate.html does. Is there a useful committee-level health signal that could go in a parallel summary strip row? For leadership PACs especially, something like "funding flow direction" (inbound vs outbound) or "active vs dormant filing cadence" could be meaningful. Product question for later.
+
+---
+2026-04-10 14:00
+
+## Process log draft
+Title: Four bugs, one scroll handler — debugging the sticky header that wouldn't stick
+
+Summary: We spent this session tracking down a cascade of scroll-related bugs that appeared after the compact header was switched to a single-element approach in a prior session. The bugs were subtle enough to require real browser testing at a specific viewport height — automated tests alone couldn't have caught them. The fix ended up being four layered defenses, each targeting a different browser behavior.
+
+Changelog:
+– candidate.html, committee.html, race.html: suppressUntil 100ms cooldown added to scroll listeners — absorbs clamping-triggered scroll events during layout settling after a state transition
+– candidate.html, committee.html, race.html: paddingBottom compensation added to .main when compact engages (Math.min(80, fullH - compactHeaderH)) — keeps document height stable so scrollY is never clamped below the un-compact threshold; cleared on un-compact
+– styles.css: body { overflow-x: clip } (was hidden) — prevents body from creating an implicit scroll container that would break overflow-anchor targeting
+– candidate.html, committee.html: showTab now locks .main minHeight to document.body.scrollHeight before switching to an unrendered Raised/Spent tab — prevents content height collapse during the loading spinner phase from snapping the page to the top; cleared after renderRaisedIfReady/renderSpentIfReady resolves or rejects
+– tests/candidate.spec.js: 4 new scroll behavior tests (compact engages on scroll down, disengages on scroll to top, .main paddingBottom set when compact, cleared when un-compact)
+– CLAUDE.md: compact header section updated with suppressUntil, paddingBottom, minHeight lock, and body overflow-x:clip
+– TESTING.md: test count 381 → 385
+
+Field notes: The breakthrough was recognizing that the same surface symptom — header bouncing between compact and full — had three distinct causes, each needing a different fix. Scroll anchoring, scroll clamping, and tab-switch height collapse all looked identical from the outside. The diagnostic clue was the viewport height dependency: "if I make the browser 40px shorter, the bug disappears." That pointed directly to the document height math. Once the geometry was visible, each fix was obvious. The paddingBottom approach is the structural one — it removes the condition that caused clamping in the first place. suppressUntil catches the events that arrive during the 16ms window between the state change and the layout settling. The minHeight lock is the same idea applied to tab switches. Three fixes already in place from the previous session plus two new ones: the header is now genuinely stable.
+
+Stack tags: none
+
+## How Sloane steered the work
+**"Let me try debugging before we revert" — betting on the single-element approach**
+When the compact header arrived in a broken state from a prior session, Sloane chose to debug rather than revert to V1 (separate #compact-header element). This was the right call: V1 was architecturally messier and had less animation potential. The debugging session produced a solid, documented implementation. The decision to invest in the fix rather than the shortcut paid off.
+
+**Viewport height as a diagnostic tool**
+Sloane reported a specific, reproducible condition: "if I slim my browser height by ~40px, this bug doesn't happen at all." That sentence contained the entire root cause. Without it, the scroll clamping geometry might have stayed elusive for much longer. The specificity — a concrete viewport size, a clean reproduction case, and knowledge of which tabs were affected — made the diagnosis tractable.
+
+**"The bottom padding feels a bit much" — iterating on the fix**
+After the paddingBottom compensation was applied (136px), Sloane caught that the dead space at the bottom of the page was too prominent. Adjusting it to 80px — which the user confirmed still held the fix — was a UX judgment: less visual noise while maintaining enough margin for the scroll geometry to work. The willingness to tune a functional value rather than accept the first number that worked is the difference between "it works" and "it feels right."
+
+**Granular tab-by-tab bug reports**
+When describing the remaining bug (header snapping to default on first tab visit), Sloane isolated it precisely: "first time only, after visiting all tabs once the interaction works as expected." That level of detail pointed immediately to the lazy-render pattern and cut debugging time in half.
+
+Through-line: Sloane's feedback throughout was precise and patient. Each bug report came with a reproduction condition, an observation about when it didn't happen, and a sense of which tabs were affected. That kind of structured observation transforms a vague visual complaint into a tractable engineering problem.
+
+## What to bring to Claude Chat
+– The 80px paddingBottom cap is empirical. Should it be a named constant or comment in the code, or is it fine as an inline value?
+– The "first-tab-visit" minHeight lock surfaces a design question: should profile pages reset scroll position on tab switch, or always try to maintain it? Currently they maintain it — but is there a case (e.g. switching from a long Raised tab back to the short Summary tab) where resetting to top would feel more natural?
+– The compact header scroll behavior tests are only on candidate.html. Worth porting the 4 scroll behavior tests to pages.spec.js for committee.html and race.html in a future session.

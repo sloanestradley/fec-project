@@ -487,6 +487,11 @@ function getSubCycles(cycle) {
 // ── Tab routing ─────────────────────────────────────
 function showTab(name, e) {
   if (e) e.preventDefault();
+  // Lock document height before switching to an unrendered tab to prevent scroll clamping
+  var mainEl = document.querySelector('.main');
+  if ((name === 'raised' && !raisedRendered) || (name === 'spent' && !spentRendered)) {
+    mainEl.style.minHeight = document.body.scrollHeight + 'px';
+  }
   ['summary','raised','spent'].forEach(function(t) {
     document.getElementById('tab-'+t).style.display = t===name ? 'block' : 'none';
   });
@@ -984,7 +989,9 @@ async function renderRaisedIfReady() {
     document.getElementById('raised-data-note').innerHTML = note;
 
     raisedRendered = true;
+    document.querySelector('.main').style.minHeight = '';
   } catch(e) {
+    document.querySelector('.main').style.minHeight = '';
     loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading contributor data: ' + e.message + '</span>';
     console.error('renderRaisedIfReady:', e);
   }
@@ -1204,7 +1211,9 @@ async function renderSpentIfReady() {
     document.getElementById('spent-data-note').innerHTML = note;
 
     spentRendered = true;
+    document.querySelector('.main').style.minHeight = '';
   } catch(e) {
+    document.querySelector('.main').style.minHeight = '';
     loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading spending data: ' + e.message + '</span>';
     console.error('renderSpentIfReady:', e);
   }
@@ -1562,14 +1571,31 @@ async function init() {
 
     // Compact header — scroll listener on sentinel (normal-flow sibling before header)
     (function() {
-      var headerEl   = document.getElementById('profile-header');
-      var tabsBarEl  = document.getElementById('tabs-bar');
-      var sentinelEl = document.getElementById('profile-header-sentinel');
-      var headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+      var headerEl      = document.getElementById('profile-header');
+      var tabsBarEl     = document.getElementById('tabs-bar');
+      var sentinelEl    = document.getElementById('profile-header-sentinel');
+      var mainEl        = document.querySelector('.main');
+      var headerH       = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+      var isCompact      = false;
+      var compactHeaderH = null;
+      var suppressUntil  = 0;
       function update() {
+        if (Date.now() < suppressUntil) return;
         var compact = sentinelEl.getBoundingClientRect().top < headerH;
-        headerEl.classList.toggle('compact', compact);
-        tabsBarEl.style.top = compact ? (headerH + headerEl.offsetHeight) + 'px' : headerH + 'px';
+        if (compact === isCompact) return;
+        isCompact = compact;
+        suppressUntil = Date.now() + 100;
+        if (compact) {
+          var fullH = headerEl.offsetHeight;
+          headerEl.classList.add('compact');
+          if (compactHeaderH === null) compactHeaderH = headerEl.offsetHeight;
+          mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
+          tabsBarEl.style.top = (headerH + compactHeaderH) + 'px';
+        } else {
+          headerEl.classList.remove('compact');
+          mainEl.style.paddingBottom = '';
+          tabsBarEl.style.top = headerH + 'px';
+        }
       }
       window.addEventListener('scroll', update, { passive: true });
       update();

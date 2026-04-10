@@ -349,12 +349,29 @@ async function init() {
 
     // Compact header — scroll listener on sentinel
     (function() {
-      var sentinelEl = document.getElementById('profile-header-sentinel');
-      var headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+      var sentinelEl    = document.getElementById('profile-header-sentinel');
+      var mainEl        = document.querySelector('.main');
+      var headerH       = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+      var isCompact      = false;
+      var compactHeaderH = null;
+      var suppressUntil  = 0;
       function update() {
+        if (Date.now() < suppressUntil) return;
         var compact = sentinelEl.getBoundingClientRect().top < headerH;
-        headerEl.classList.toggle('compact', compact);
-        tabsBarEl.style.top = compact ? (headerH + headerEl.offsetHeight) + 'px' : headerH + 'px';
+        if (compact === isCompact) return;
+        isCompact = compact;
+        suppressUntil = Date.now() + 100;
+        if (compact) {
+          var fullH = headerEl.offsetHeight;
+          headerEl.classList.add('compact');
+          if (compactHeaderH === null) compactHeaderH = headerEl.offsetHeight;
+          mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
+          tabsBarEl.style.top = (headerH + compactHeaderH) + 'px';
+        } else {
+          headerEl.classList.remove('compact');
+          mainEl.style.paddingBottom = '';
+          tabsBarEl.style.top = headerH + 'px';
+        }
       }
       window.addEventListener('scroll', update, { passive: true });
       update();
