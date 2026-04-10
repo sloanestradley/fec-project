@@ -21,9 +21,21 @@
     .candidate-race-label a { color:inherit; text-decoration:none; }
     .candidate-race-label a:hover { text-decoration:underline; }
     /* Race context bar */
-    #race-context-bar { padding:var(--space-16) var(--page-gutter) 0;
+    #race-context-bar { padding:var(--space-16) var(--page-gutter);
       opacity:0; transition:opacity 0.4s ease; min-height:var(--space-32); }
     #race-context-bar.visible { opacity:1; }
+    /* Summary strip — persistent banner + stats across tabs.
+       Strip is full-width inside .main-inner so the navy borders on .banner
+       and .stats-grid extend edge-to-edge; horizontal gutter padding is
+       applied to the bordered children so their content stays flush with
+       the rest of the page's gutter-aligned content. */
+    #summary-strip { opacity:0; transition:opacity 0.3s ease; }
+    #summary-strip.visible { opacity:1; }
+    #summary-strip .banner { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+    /* Remove .profile-content top padding on candidate.html since #summary-strip
+       now provides the top vertical rhythm; stats-grid margin-bottom handles the gap. */
+    .profile-content { padding-top:0; }
 
   </style>
 </head>
@@ -110,40 +122,43 @@
 
     <div id="race-context-bar" style="display:none"><span id="race-context"></span></div>
 
+    <!-- Persistent across all tabs: health banner + cycle stats -->
+    <div id="summary-strip" style="display:none">
+      <div class="banner" id="banner">
+        <div class="health-signal" id="health-signal"></div>
+        <div class="banner-label"  id="banner-label">—</div>
+        <div class="banner-desc"   id="banner-desc">—</div>
+        <div class="banner-note"   id="banner-note"></div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Raised-to-Spent Ratio</div>
+          <div class="stat-value" id="stat-ratio">—</div>
+          <div class="stat-sub"   id="stat-ratio-sub">Raised ÷ Spent</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cash on Hand</div>
+          <div class="stat-value" id="stat-coh">—</div>
+          <div class="stat-sub" id="stat-coh-sub">End of last report</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Raised</div>
+          <div class="stat-value" id="stat-raised">—</div>
+          <div class="stat-sub">Cycle total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Spent</div>
+          <div class="stat-value" id="stat-spent">—</div>
+          <div class="stat-sub">Cycle total</div>
+        </div>
+      </div>
+    </div>
+
     <div class="profile-content" id="content" style="display:none">
 
       <!-- Summary tab -->
       <div id="tab-summary">
-        <div class="banner" id="banner">
-          <div class="health-signal" id="health-signal"></div>
-          <div class="banner-label"  id="banner-label">—</div>
-          <div class="banner-desc"   id="banner-desc">—</div>
-          <div class="banner-note"   id="banner-note"></div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total Raised</div>
-            <div class="stat-value" id="stat-raised">—</div>
-            <div class="stat-sub">Cycle total</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Total Spent</div>
-            <div class="stat-value" id="stat-spent">—</div>
-            <div class="stat-sub">Cycle total</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Cash on Hand</div>
-            <div class="stat-value" id="stat-coh">—</div>
-            <div class="stat-sub" id="stat-coh-sub">End of last report</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Raised-to-Spent Ratio</div>
-            <div class="stat-value" id="stat-ratio">—</div>
-            <div class="stat-sub"   id="stat-ratio-sub">Raised ÷ Spent</div>
-          </div>
-        </div>
-
         <div class="chart-card">
           <div class="chart-header">
             <div class="chart-title" id="chart-title">Raised · Spent · Cash on Hand over cycle</div>
@@ -488,7 +503,7 @@ function showTab(name, e) {
 function assessHealth(raised, spent, coh, debt) {
   var ratio    = spent > 0 ? raised/spent : null;
   var dToCoh   = coh > 0 && debt > 0 ? debt/coh : 0;
-  if (!raised && !spent) return { s:'grey',  label:'No Data', desc:'No filings found for this cycle.' };
+  if (!raised && !spent) return { s:'grey',  label:'No Data', desc:'No filings this cycle.' };
   if (spent > raised || dToCoh > 1) return {
     s:'red', label:'Financially Stressed',
     desc: spent > raised
@@ -1445,12 +1460,11 @@ async function loadCycle(cycle) {
     } else {
       sig.className  = 'health-signal grey';
       lbl.textContent = 'Cycle Complete';
-      var summary = cycle+' cycle concluded.';
-      if (debt > 0) summary += ' Ended with '+fmt(debt)+' in outstanding debt.';
-      else summary += ' No outstanding debt reported.';
-      if (covDate) summary += ' Final coverage: '+fmtDate(covDate)+'.';
+      var summary = 'Cycle concluded with ';
+      if (debt > 0) summary += fmt(debt)+' in outstanding debt.';
+      else summary += 'no outstanding debt reported.';
       desc.textContent = summary;
-      note.textContent = 'Closed cycle — real-time health indicator not applicable.';
+      note.textContent = covDate ? 'Final coverage: '+fmtDate(covDate) : '';
     }
 
     // ── Step 5: chart ──
@@ -1536,11 +1550,13 @@ async function init() {
     document.getElementById('profile-header').style.removeProperty('display');
     document.getElementById('tabs-bar').style.display        = 'flex';
     document.getElementById('race-context-bar').style.display = 'block';
+    document.getElementById('summary-strip').style.display   = 'block';
     document.getElementById('content').style.display         = 'block';
     requestAnimationFrame(function() {
       document.getElementById('profile-header').classList.add('visible');
       document.getElementById('tabs-bar').classList.add('visible');
       document.getElementById('race-context-bar').classList.add('visible');
+      document.getElementById('summary-strip').classList.add('visible');
       document.getElementById('content').classList.add('visible');
     });
 

@@ -12,7 +12,7 @@
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     /* ── Main ── */
-    .main { max-width: 900px; padding: var(--page-gutter); overflow-x:hidden; }
+    .main { max-width: 1600px; margin-left:auto; margin-right:auto; padding: var(--page-gutter); overflow-x:hidden; }
 
     /* ── Design system layout ── */
     .ds-section { margin-bottom: var(--space-64); }
@@ -512,7 +512,7 @@
         </div>
         <div class="ds-type-row">
           <span class="ds-section-title" style="margin-bottom:0;padding-bottom:0;border-bottom:none">Committee Ecosystem</span>
-          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .candidate-race-label · .banner-label · .chart-title · .donors-head · .raised-cell-title</span>
+          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .candidate-race-label · .chart-title · .donors-head · .raised-cell-title</span>
         </div>
         <div class="ds-type-row">
           <span class="tab" style="padding:0;border-bottom:none;margin-bottom:0;cursor:default">Summary</span>
@@ -531,27 +531,27 @@
           <span class="ds-type-meta"><strong>caption</strong><br>Plex Mono 400 · 0.625rem<br>.legend-item · .banner-note · .donut-center-lbl</span>
         </div>
         <div class="ds-type-row">
-          <span class="banner-desc">Raised-to-spent ratio of 3.84× with positive cash on hand.</span>
-          <span class="ds-type-meta"><strong>body</strong><br>Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .banner-desc · .nav-item · .committees-link · .retry-btn</span>
+          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem">Navigate to Candidates</span>
+          <span class="ds-type-meta"><strong>body</strong><br>Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .nav-item · .committees-link · .retry-btn</span>
         </div>
         <div class="ds-type-row">
           <span class="candidate-card-name" style="margin-bottom:0">Marie Gluesenkamp Perez</span>
           <span class="ds-type-meta"><strong>body-emphasis</strong><br>Plex Sans 500 · 0.875rem<br>.candidate-card-name · .committee-name · .modal-tab-btn</span>
         </div>
         <div class="ds-type-row">
-          <span class="tag-context" style="background:none;padding:0;border-radius:0"><span class="tag-context-text">Smith is the incumbent with 2 challengers.</span> <a href="#" style="color:var(--subtle);white-space:nowrap">View race →</a></span>
-          <span class="ds-type-meta"><strong>prose</strong><br>Plex Serif 400 · 0.875rem<br>.tag-context — sentence-format editorial content</span>
+          <span class="tag-context"><span class="tag-context-text">Smith is the incumbent with 2 challengers.</span> <a href="#" style="color:var(--subtle);white-space:nowrap">View race →</a></span>
+          <span class="ds-type-meta"><strong>prose</strong><br>Plex Serif 400 · 0.875rem<br>.tag-context · .banner-label · .banner-desc — sentence-format editorial content</span>
         </div>
       </div>
 
       <div class="ds-type-group">
         <div class="ds-type-group-label">Line-height system</div>
         <div class="ds-type-row">
-          <span class="tag-context" style="background:none;padding:0;border-radius:0;line-height:var(--lh-expanded);max-width:320px">Smith is the incumbent with 2 challengers in the 2024 race for House WA-03. View race →</span>
+          <span class="tag-context" style="line-height:var(--lh-expanded);max-width:320px">Smith is the incumbent with 2 challengers in the 2024 race for House WA-03. View race →</span>
           <span class="ds-type-meta"><code>--lh-expanded: 1.75</code><br>prose / notes<br>.data-note · .callout · log entries</span>
         </div>
         <div class="ds-type-row">
-          <span class="banner-desc" style="line-height:var(--lh-normal);max-width:320px">Raised-to-spent ratio of 3.84× with positive cash on hand of $412k as of Q3 2024.</span>
+          <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;line-height:var(--lh-normal);max-width:320px;display:inline-block">Most navigation labels, form inputs, and general readable body copy uses this default line-height for comfortable reading.</span>
           <span class="ds-type-meta"><code>--lh-normal: 1.5</code><br>body default<br>general readable text</span>
         </div>
         <div class="ds-type-row">
@@ -673,7 +673,7 @@
           <span class="ds-status stable">stable</span>
         </div>
         <div class="ds-component-classes">.page-header · .page-title</div>
-        <div class="ds-component-demo" style="padding:0">
+        <div class="ds-component-demo">
           <div class="page-header" style="padding:2rem">
             <div class="page-title">Marie Gluesenkamp Perez</div>
             <div class="meta-row" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
@@ -694,7 +694,7 @@
           <span class="ds-status stable">stable</span>
         </div>
         <div class="ds-component-classes">extends .page-header · .candidate-race-label · .profile-header-row · .page-title · .cycle-select · .committees-link</div>
-        <div class="ds-component-demo" style="padding:0">
+        <div class="ds-component-demo">
           <div class="profile-header page-header" style="padding:2rem">
             <div style="font-family:'Oswald',sans-serif;font-size:1.25rem;font-weight:400;text-transform:uppercase;color:var(--color-red-700)"><a href="#" style="color:inherit;text-decoration:none">US House: Washington's 3rd District</a></div>
             <div class="profile-header-row">
@@ -711,24 +711,25 @@
       </div>
 
       <!-- 7. Health banner (interactive) -->
-      <div class="ds-component" id="comp-banner" data-status="stable">
+      <div class="ds-component" id="comp-banner" data-status="candidate-only">
         <div class="ds-component-header">
           <span class="ds-component-name">Health Banner</span>
-          <span class="ds-status stable">stable</span>
+          <span class="ds-status candidate-only">candidate-only</span>
         </div>
-        <div class="ds-component-classes">.banner · .health-signal · .banner-label · .banner-desc · .banner-note — click to switch states</div>
+        <div class="ds-component-classes">.banner · .health-signal · .banner-label · .banner-desc · .banner-note — navy #05234f border-top (matches .stats-grid rules); label and desc use prose type (Plex Serif 0.875rem); note uses caption (Plex Mono 0.625rem). On candidate.html lives inside #summary-strip with the stats-grid, persistent across all tabs. Click buttons to switch states.</div>
         <div class="ds-component-demo">
           <div class="ds-state-controls">
             <button class="ds-state-btn ds-health-btn active" data-state="healthy">Healthy</button>
             <button class="ds-state-btn ds-health-btn" data-state="watch">Watch</button>
             <button class="ds-state-btn ds-health-btn" data-state="stressed">Stressed</button>
+            <button class="ds-state-btn ds-health-btn" data-state="nodata">No Data</button>
             <button class="ds-state-btn ds-health-btn" data-state="closed">Closed</button>
           </div>
           <div class="banner">
             <div class="health-signal green" id="demo-health-signal"></div>
-            <div class="banner-label" id="demo-health-label">On Track</div>
-            <div class="banner-desc" id="demo-health-desc">Raised-to-spent ratio above 1.0. Cash on hand covers remaining quarters.</div>
-            <div class="banner-note" id="demo-health-note">Data through Q3 2024 · Coverage end: Sep 30, 2024</div>
+            <div class="banner-label" id="demo-health-label">Financially Healthy</div>
+            <div class="banner-desc" id="demo-health-desc">Raised-to-spent ratio of 3.84x with positive cash on hand.</div>
+            <div class="banner-note" id="demo-health-note">Best-guess assessment · Thresholds to be validated with domain expert</div>
           </div>
         </div>
       </div>
@@ -853,8 +854,18 @@
           <span class="ds-status stable">stable</span>
         </div>
         <div class="ds-component-classes">.stats-grid · .stat-card · .stat-label · .stat-value · .stat-sub · .stat-sub.pos / .neg / .warn</div>
-        <div class="ds-component-demo" style="padding:0">
+        <div class="ds-component-demo">
           <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Raised-to-Spent Ratio</div>
+              <div class="stat-value">1.08×</div>
+              <div class="stat-sub pos">Raised ÷ Spent</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Cash on Hand</div>
+              <div class="stat-value">$312K</div>
+              <div class="stat-sub">End of last report</div>
+            </div>
             <div class="stat-card">
               <div class="stat-label">Total Raised</div>
               <div class="stat-value">$4.1M</div>
@@ -865,17 +876,10 @@
               <div class="stat-value">$3.8M</div>
               <div class="stat-sub">Cycle total</div>
             </div>
-            <div class="stat-card">
-              <div class="stat-label">Cash on Hand</div>
-              <div class="stat-value">$312K</div>
-              <div class="stat-sub">End of last report</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Raised-to-Spent</div>
-              <div class="stat-value">1.08×</div>
-              <div class="stat-sub pos">Raised ÷ Spent</div>
-            </div>
           </div>
+        </div>
+        <div class="ds-component-notes">
+          4-column grid on desktop with navy <code>#05234f</code> top/bottom borders and vertical <code>border-right</code> dividers between cells (the <code>:last-child</code> has no right border). Responsive: at <code>≤860px</code> the grid collapses to 2×2 with <code>:nth-child(even) { border-right:none }</code> suppressing the stray outer border on the top-right card, and <code>:nth-child(-n+2) { border-bottom:1px solid #05234f }</code> adding the row divider between top and bottom rows. Card order differs by page — candidate.html uses Ratio / COH / Raised / Spent; committee.html uses Coverage / COH / Raised / Spent. On both profile pages, <code>.stats-grid</code> lives inside <code>#summary-strip</code> — a persistent wrapper sibling to <code>#content</code>, visible on all tabs. Horizontal gutter padding is applied to <code>.stats-grid</code> inside the strip (via scoped selector) so the navy top/bottom borders extend edge-to-edge within <code>.main-inner</code> while stat card content stays aligned with the page gutter.
         </div>
       </div>
 
@@ -886,7 +890,7 @@
           <span class="ds-status stable">stable</span>
         </div>
         <div class="ds-component-classes">.raised-grid · .raised-cell · .raised-cell-title</div>
-        <div class="ds-component-demo" style="padding:0">
+        <div class="ds-component-demo">
           <div class="raised-grid">
             <div class="raised-cell">
               <div class="raised-cell-title">Contributor Types</div>
@@ -925,7 +929,7 @@
           <span class="ds-status stable">stable</span>
         </div>
         <div class="ds-component-classes">.tabs-bar · .tab · .tab.active · .cycle-select · .chart-card · .chart-header · .chart-title · .chart-legend · .legend-item · .legend-swatch · .legend-dashed · .legend-amber-dashed</div>
-        <div class="ds-component-demo" style="padding:0">
+        <div class="ds-component-demo">
           <div class="tabs-bar" id="demo-tabs">
             <a class="tab active" href="#">Summary</a>
             <a class="tab" href="#">Raised</a>
@@ -1095,7 +1099,7 @@
           <span class="ds-status stable">stable</span>
         </div>
         <div class="ds-component-classes">.filter-bar-wrap · .filter-bar · .form-field · .form-label · .filter-chips-wrap · .filter-chip · .chip-x · .chip-clear-all · .results-area · .results-header · .no-results · .error-prompt · .retry-btn — used on candidates.html, committees.html, races.html, feed.html</div>
-        <div class="ds-component-demo" style="padding:0">
+        <div class="ds-component-demo">
 
           <!-- Filter bar -->
           <div class="filter-bar-wrap" style="padding:1.5rem 1rem">
@@ -1285,7 +1289,7 @@
           <span class="ds-status stable">stable</span>
         </div>
         <div class="ds-component-classes">.donors-card · .donors-head · .donors-table · .dn · .ds · .da</div>
-        <div class="ds-component-demo" style="padding:0">
+        <div class="ds-component-demo">
           <div class="donors-card">
             <div class="donors-head">Top Committee Contributors · Most recent sub-cycle</div>
             <table class="donors-table">
@@ -1491,7 +1495,7 @@
           <span class="tag-context"><span class="tag-context-text">Smith is the incumbent with 2 challengers.</span><a href="#">View race →</a></span>
         </div>
         <div class="ds-component-notes">
-          Editorial prose pill — IBM Plex Serif 0.875rem, filled background (<code>var(--border)</code>), no border, no uppercase. <code>display:flex; width:fit-content; max-width:100%; flex-wrap:wrap</code> — hugs content on wide viewports; when constrained by <code>max-width:100%</code> at narrow widths, <code>.tag-context-text</code> (flex:1) fills the row and the link wraps to its own row right-aligned via <code>margin-left:auto</code>. The link always has <code>white-space:nowrap</code>. Lives inside <code>#race-context-bar</code> — a persistent strip between the tab bar and content, visible on all tabs. Promote to <code>stable</code> when used on a second page.
+          Editorial prose — IBM Plex Serif 0.875rem, sentence-format copy with a trailing link. No background, no padding, no border, no uppercase. <code>display:flex; width:fit-content; max-width:100%; flex-wrap:wrap</code> — hugs content on wide viewports; when constrained by <code>max-width:100%</code> at narrow widths, <code>.tag-context-text</code> (flex:1) fills the row and the link wraps to its own row right-aligned via <code>margin-left:auto</code>. The link always has <code>white-space:nowrap</code>. Lives inside <code>#race-context-bar</code> on candidate.html — a persistent strip between the tab bar and content, visible on all tabs. Promote to <code>stable</code> when used on a second page.
         </div>
       </div>
 
@@ -1599,10 +1603,11 @@
 
   // Health state switcher
   var healthStates = {
-    healthy:  { signal:'green', label:'On Track',       desc:'Raised-to-spent ratio above 1.0. Cash on hand covers remaining quarters.',       note:'Best-guess assessment · Thresholds to be validated with domain expert' },
-    watch:    { signal:'amber', label:'Watch',           desc:'Cash on hand declining. Burn rate elevated entering final quarter.',              note:'Best-guess assessment · Thresholds to be validated with domain expert' },
-    stressed: { signal:'red',   label:'Stressed',        desc:'Disbursements exceed receipts this cycle. Drawing on prior-cycle reserves.',      note:'Best-guess assessment · Thresholds to be validated with domain expert' },
-    closed:   { signal:'grey',  label:'Cycle Complete',  desc:'2022 cycle concluded. No outstanding debt reported. Final coverage: Dec 31, 2022.', note:'Closed cycle — real-time health indicator not applicable.' }
+    healthy:  { signal:'green', label:'Financially Healthy', desc:'Raised-to-spent ratio of 3.84x with positive cash on hand.',                     note:'Best-guess assessment · Thresholds to be validated with domain expert' },
+    watch:    { signal:'amber', label:'Watch',               desc:'Raised-to-spent ratio of 1.12x. Limited financial cushion.',                      note:'Best-guess assessment · Thresholds to be validated with domain expert' },
+    stressed: { signal:'red',   label:'Financially Stressed', desc:'Disbursements exceed receipts — spending beyond what was raised this cycle.',     note:'Best-guess assessment · Thresholds to be validated with domain expert' },
+    nodata:   { signal:'grey',  label:'No Data',             desc:'No filings this cycle.',                                                          note:'' },
+    closed:   { signal:'grey',  label:'Cycle Complete',      desc:'Cycle concluded with no outstanding debt reported.',                                 note:'Final coverage: Dec 31, 2024' }
   };
   document.querySelectorAll('.ds-health-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {

@@ -168,6 +168,30 @@ test.describe('candidate.html — health banner', () => {
     const text = await desc.textContent();
     expect(text?.trim().length).toBeGreaterThan(0);
   });
+
+  test('summary-strip (banner + stats) persists across Summary/Raised/Spent tabs', async ({ page }) => {
+    await setupWithContent(page);
+    // Summary tab (default): both visible
+    await expect(page.locator('#summary-strip')).toBeVisible();
+    await expect(page.locator('#summary-strip .banner')).toBeVisible();
+    await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
+    // Raised tab
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#summary-strip')).toBeVisible();
+    await expect(page.locator('#summary-strip .banner')).toBeVisible();
+    await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
+    // Spent tab
+    await page.locator('.tab').filter({ hasText: 'Spent' }).click();
+    await expect(page.locator('#summary-strip')).toBeVisible();
+    await expect(page.locator('#summary-strip .banner')).toBeVisible();
+    await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
+  });
+
+  test('first stat card is Raised-to-Spent Ratio', async ({ page }) => {
+    await setupWithContent(page);
+    const firstLabel = page.locator('.stats-grid .stat-card').first().locator('.stat-label');
+    await expect(firstLabel).toHaveText('Raised-to-Spent Ratio');
+  });
 });
 
 // ── Chart ─────────────────────────────────────────────────────────────────────

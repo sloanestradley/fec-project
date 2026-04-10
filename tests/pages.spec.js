@@ -96,6 +96,25 @@ test.describe('committee.html', () => {
     await expect(page.locator('#tab-summary')).toBeHidden();
   });
 
+  test('summary-strip stats persist across Summary/Raised/Spent tabs', async ({ page }) => {
+    // Summary tab (default): stats visible
+    await expect(page.locator('#summary-strip')).toBeVisible();
+    await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
+    // Raised tab: stats still visible
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#summary-strip')).toBeVisible();
+    await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
+    // Spent tab: stats still visible
+    await page.locator('.tab').filter({ hasText: 'Spent' }).click();
+    await expect(page.locator('#summary-strip')).toBeVisible();
+    await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
+  });
+
+  test('first stat card is Coverage Through', async ({ page }) => {
+    const firstLabel = page.locator('.stats-grid .stat-card').first().locator('.stat-label');
+    await expect(firstLabel).toHaveText('Coverage Through');
+  });
+
   test('cycle switcher is present inside .tabs-bar', async ({ page }) => {
     await expect(page.locator('.tabs-bar #cycle-switcher')).toBeAttached();
   });

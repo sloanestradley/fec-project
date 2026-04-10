@@ -21,6 +21,17 @@
       color:var(--muted); margin-left:var(--space-4); }
     /* Content area */
 
+    /* Summary strip — persistent stats across tabs. Strip is full-width
+       inside .main-inner so the navy borders on .stats-grid extend
+       edge-to-edge; horizontal gutter padding is applied to .stats-grid
+       so its content stays flush with the rest of the page's content. */
+    #summary-strip { opacity:0; transition:opacity 0.3s ease; }
+    #summary-strip.visible { opacity:1; }
+    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+    /* Remove .profile-content top padding on committee.html since #summary-strip
+       now provides the top vertical rhythm; stats-grid margin-bottom handles the gap. */
+    .profile-content { padding-top:0; }
+
     /* Associated candidates */
     .assoc-list { display:flex; flex-direction:column; }
 
@@ -105,35 +116,36 @@
   </div>
   <div class="main-inner">
 
+    <!-- Persistent across all tabs: cycle stats -->
+    <div id="summary-strip" style="display:none">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Coverage Through</div>
+          <div class="stat-value" id="stat-coverage" style="font-size:1.25rem;padding-top:0.4rem">—</div>
+          <div class="stat-sub">Most recent report</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cash on Hand</div>
+          <div class="stat-value" id="stat-coh">—</div>
+          <div class="stat-sub" id="stat-coh-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Raised</div>
+          <div class="stat-value" id="stat-raised">—</div>
+          <div class="stat-sub" id="stat-raised-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Spent</div>
+          <div class="stat-value" id="stat-spent">—</div>
+          <div class="stat-sub" id="stat-spent-sub"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Committee content — revealed after load -->
     <div class="profile-content" id="committee-content" style="display:none">
 
       <div id="tab-summary">
-        <!-- Financial summary -->
-        <div class="section-title">Financial Summary</div>
-        <div class="stats-grid" id="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total Raised</div>
-            <div class="stat-value" id="stat-raised">—</div>
-            <div class="stat-sub" id="stat-raised-sub"></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Total Spent</div>
-            <div class="stat-value" id="stat-spent">—</div>
-            <div class="stat-sub" id="stat-spent-sub"></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Cash on Hand</div>
-            <div class="stat-value" id="stat-coh">—</div>
-            <div class="stat-sub" id="stat-coh-sub"></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Coverage Through</div>
-            <div class="stat-value" id="stat-coverage" style="font-size:1.25rem;padding-top:0.4rem">—</div>
-            <div class="stat-sub">Most recent report</div>
-          </div>
-        </div>
-
         <!-- Overspend note -->
         <div id="overspend-note" style="display:none" class="callout">
           ⚠ Disbursements exceed receipts this cycle — this committee spent beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.
@@ -379,10 +391,12 @@ async function init() {
     document.getElementById('state-msg').style.display       = 'none';
     document.getElementById('committee-header').style.removeProperty('display');
     document.getElementById('tabs-bar').style.display         = 'flex';
+    document.getElementById('summary-strip').style.display    = 'block';
     document.getElementById('committee-content').style.display = 'block';
     requestAnimationFrame(function() {
       document.getElementById('committee-header').classList.add('visible');
       document.getElementById('tabs-bar').classList.add('visible');
+      document.getElementById('summary-strip').classList.add('visible');
       document.getElementById('committee-content').classList.add('visible');
     });
 

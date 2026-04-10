@@ -3003,3 +3003,62 @@ The through-line: methodical before decisive. Every change in this session was p
 – --border lightened, what's next? The audit revealed three tokens in the palette neighborhood (#46403a, #cdc7bc, #eee9e1). Was this change isolated, or is there a broader palette refinement pass planned? Worth knowing the intended end state before continuing cleanup on candidate/committee pages.
 – --surface2 vs --bg on the stripped profile page — now that card surfaces are gone, #eee9e1 is no longer used in the profile page content area. The chart interior still uses it via CHART_COLORS. Is --surface2 pulling its weight elsewhere, or is it also a candidate for adjustment?
 – Stats-grid navy borders (#05234f hardcoded) — still the only hardcoded hex on the profile page outside the logo/banner. Prior session left an open question: should this be var(--color-navy-950) for semantic consistency? A quick decision before the next session avoids it becoming permanent debt.
+
+---
+2026-04-10 — Summary strip + health banner refinements
+
+## Process log draft
+
+Title: Making the top of the profile page hold still
+
+The health banner and stats grid used to vanish when you switched from Summary to Raised or Spent. You'd drill into spending data and lose sight of whether the campaign was financially healthy, what the cash on hand was, and how the ratio was trending. This session made both persistent — they now sit above the tab content on all three tabs, with edge-to-edge navy rules and a reordered card sequence that leads with the synthesizing metrics (ratio and COH) before the raw totals.
+
+The work rippled across a bunch of adjacent refinements: banner copy for No-Data and Cycle-Complete states tightened up, banner label/desc moved to prose type for a softer read, a navy top border added to match the stats-grid rules, the tag context sentence stripped of its background pill to become inline serif prose. The design system caught up to all of it — type specimen lists fixed, component notes updated, demo padding cleanup, health banner status demoted from stable to candidate-only.
+
+Changelog:
+– #summary-strip wrapper introduced on candidate.html and committee.html — persistent banner + stats-grid (candidate) or stats-grid alone (committee) across all three tabs
+– .profile-content { padding-top:0 } scoped override; stats-grid margin-bottom provides the gap to tab content
+– Edge-to-edge border pattern: #summary-strip full-width inside .main-inner; horizontal gutter padding moved onto .banner and .stats-grid children so navy rules extend to the container edges while content stays gutter-aligned
+– Banner: navy border-top (#05234f), margin-bottom → --space-16, label and desc use prose type (Plex Serif 0.875rem)
+– Banner state copy: "No filings this cycle" (No Data); "Cycle concluded with [X in outstanding debt | no outstanding debt reported]" with "Final coverage: {date}" moved into the banner-note
+– Tag context: padding, background, border-radius removed — now inline serif prose with flex layout preserved
+– Stat card reorder: candidate (Ratio/COH/Raised/Spent); committee (Coverage/COH/Raised/Spent)
+– Committee.html "Financial Summary" section title removed
+– Mobile stats-grid borders: :nth-child(even) { border-right:none } and :nth-child(-n+2) { border-bottom:1px solid #05234f } for the 2x2 layout
+– design-system.html: Health Banner status demoted stable → candidate-only; type specimen lists updated; Health Banner, Tag Context, and Stats Grid component notes rewritten; Stats Grid demo reordered and "Raised-to-Spent Ratio" label corrected; 7 instances of style="padding:0" removed from .ds-component-demo containers; .main max-width → 1600px + centered
+– process-log.html: .main max-width → 1600px + centered; #view-reflections and #view-build capped at 724px
+– +4 Playwright tests covering summary-strip persistence and first-card order on both pages (381/381 passing)
+
+Field notes:
+The interesting thread this session was how many times the right move was "take something away" rather than "add something." The tag context lost its pill background. The banner lost its uppercase heading treatment. The "Financial Summary" section title came off committee.html. The 5 padding:0 demo overrides in design-system.html were all acts of letting defaults do the work. Even the persistence itself was achieved by pulling elements out of a tab wrapper, not by adding new sync logic. There's something disciplining about a session where the diff removes more lines than it adds. The summary strip is now structurally simpler than the old layout — fewer nested containers, fewer scoped rules — and it does more.
+
+Stack tags: CSS grid, IBM Plex Serif, CSS nth-child selectors
+
+## How Sloane steered the work
+
+**"Is there a cleaner way? What are we giving up?"**
+When I proposed the scoped-padding-swap approach for the edge-to-edge border pattern, you didn't just accept it — you pushed me to lay out the alternatives and the trade-offs explicitly. That surfaced negative margins, full-bleed 100vw, display:contents, utility classes, and DOM-restructuring as options and forced me to articulate why the scoped CSS override was cleanest. The plan got stronger because you refused to let me propose without comparing.
+
+**"That solution isn't acceptable for the UX"**
+On the mobile stats-grid work, I proposed switching to a 1-col stack to make the between-row border span edge-to-edge. You said no, quickly and firmly, without needing to explain the reasoning. That kind of immediate product judgment — "this would cost too much vertical real estate on mobile to earn that alignment" — is what keeps the work from wandering into clever-but-wrong territory. We kept the 2x2 and shipped the targeted nth-child fixes instead.
+
+**Catching the committee stat card reorder ambiguity**
+When you asked to reorder stat cards on both candidate and committee, I noticed committee doesn't have a Ratio card (it has Coverage Through) and stopped to ask. You picked "Coverage, COH, Raised, Spent" — symmetric with candidate's layout. Worth noting: the question itself was the right move, not just the answer. An automated "apply to both pages" would have quietly dropped Coverage off the end or worse.
+
+**Inverting the goal on the summary strip**
+The first iteration of the persistence work hoisted .banner and .stats-grid into #content (the profile-content wrapper). You came back with "I actually wanted them outside .profile-content entirely, mirroring #race-context-bar." That was a meaningful architectural distinction — not cosmetic. The second iteration separates "persistent cycle framing" from "tab-switching content," which is a cleaner mental model for what belongs where. The first iteration worked; the second is what the page should have been all along.
+
+**Asking about design system edge cases**
+At two points you asked "what else needs updating in design-system.html based on this session?" — prompting me to find the Health Banner's stale "stable" status tag (it's only on candidate.html, should be candidate-only) and the "Raised-to-Spent" vs "Raised-to-Spent Ratio" label inconsistency in the demo. Both of those would have survived the session unnoticed if you hadn't explicitly asked the question.
+
+The through-line: you consistently redirect the work toward cleaner architecture and challenge me when a proposed solution has a simpler alternative. The pattern isn't "make Claude do more" — it's "make Claude justify less."
+
+## What to bring to Claude Chat
+
+– The summary strip pattern now exists on candidate.html and committee.html. Should race.html get the same treatment? It currently has its own layout that doesn't follow the tab structure of the other profile pages. Worth a design conversation about whether race.html should have a persistent header strip of some kind (and what would go in it).
+
+– The banner's "best-guess assessment" note is still showing on every active-cycle render. Worth validating with John whether the current thresholds (ratio < 1.25 = amber, spent > raised = red, etc.) actually reflect how a strategist would read financial health at different points in the cycle. Once validated, the caveat note can be removed and the thresholds promoted from "best-guess" to "calibrated with domain expert."
+
+– Mobile 2x2 stats layout: we explicitly chose to keep this rather than stacking 1-col to get edge-to-edge row dividers. Worth a light check on device that the 2x2 reads cleanly at 390px (MGP page, all 4 cards visible). The nth-child border rules we added today handle the corner cases but weren't pixel-verified in the session.
+
+– Committee.html has no health banner — only candidate.html does. Is there a useful committee-level health signal that could go in a parallel summary strip row? For leadership PACs especially, something like "funding flow direction" (inbound vs outbound) or "active vs dormant filing cadence" could be meaningful. Product question for later.

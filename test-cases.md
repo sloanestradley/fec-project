@@ -111,14 +111,24 @@
 - [ ] `localhost:8080/candidate.html?id=H2WA03217#2022#raised` pre-selects 2022 cycle and Raised tab on load
 
 ### Stats row
+- [ ] Card order (left to right): Raised-to-Spent Ratio → Cash on Hand → Total Raised → Total Spent
+- [ ] Raised-to-Spent Ratio shows a value (first card)
+- [ ] Cash on Hand shows a formatted dollar amount
 - [ ] Total Raised shows a formatted dollar amount (not $0, not blank)
 - [ ] Total Spent shows a formatted dollar amount
-- [ ] Cash on Hand shows a formatted dollar amount
-- [ ] Raised-to-Spent Ratio shows a value
 
 ### Health banner
 - [ ] Active cycle: green/amber/red signal visible with descriptive text
-- [ ] Closed cycle: "Cycle Complete" summary shown instead of health signal
+- [ ] Closed cycle: "Cycle Complete" label, desc reads "Cycle concluded with [X in outstanding debt | no outstanding debt reported]", note reads "Final coverage: {date}"
+- [ ] No-data cycle: "No Data" label, desc reads "No filings this cycle.", note is empty
+- [ ] Label and desc render in prose type (IBM Plex Serif, not uppercase Oswald)
+- [ ] Navy top border visible above the banner
+
+### Summary strip persistence
+- [ ] Banner and stats grid visible on Summary tab
+- [ ] Click Raised tab — banner and stats grid still visible above the Raised content
+- [ ] Click Spent tab — banner and stats grid still visible above the Spent content
+- [ ] Navy top/bottom borders on stats grid extend to .main-inner edges (wide viewport); stat card text aligned with page gutter
 
 ### Summary tab — chart
 - [ ] Chart renders with data (lines are visible, not flat at $0)
@@ -237,12 +247,20 @@
 
 ### Stats grid
 - [ ] ✅ Stats grid shows financial figures (not $0 or blank)
+- [ ] Card order (left to right): Coverage Through → Cash on Hand → Total Raised → Total Spent
+- [ ] Coverage date shows a real date (first card)
+- [ ] Cash on Hand shows a formatted dollar amount
 - [ ] Total Raised shows a formatted dollar amount (not $0 or blank) — "All time" default sums all cycles
 - [ ] Total Spent shows a formatted dollar amount
-- [ ] Cash on Hand shows a formatted dollar amount
-- [ ] Coverage date shows a real date
 - [ ] Raised and Spent sub-labels show "All cycles" in All time mode; "{year–year} cycle" in per-cycle mode
 - [ ] Overspend note hidden in "All time" mode even when disbursements > receipts
+- [ ] "Financial Summary" section title is NOT present above the stats grid (removed in summary-strip refactor)
+
+### Summary strip persistence (committee.html)
+- [ ] Stats grid visible on Summary tab
+- [ ] Click Raised tab — stats grid still visible above the Raised content
+- [ ] Click Spent tab — stats grid still visible above the Spent content
+- [ ] Navy top/bottom borders on stats grid extend to .main-inner edges (wide viewport); stat card text aligned with page gutter
 - [ ] Overspend note hidden when disbursements ≤ receipts for a selected cycle
 - [ ] Overspend note visible when disbursements > receipts for a selected cycle
 
@@ -745,3 +763,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-04-09 | Maintenance + design-system.html audit (redesign branch): Amplitude Page Viewed bug fix on feed.html (moved out of init() — was firing on every window change; now fires once at IIFE bottom); design-system.html nav demo updated (Feed link added, was showing only 3 links); Browse Page Chrome card notes updated with state-wrapper pattern documentation (#state-loading/#state-results/#state-no-results/#state-error + showState()); filter-chips-wrap vs #filter-chips inconsistency investigated — confirmed non-issue (feed already has both class and id, consistent with all browse pages) | feed.html, design-system.html | None | 377/377 Track 1 passing |
 | 2026-04-09 | Card surface strip (redesign branch, styles.css only): removed background/border/padding from .banner, .chart-card, .donors-card, .raised-cell, .raised-grid; replaced .stats-grid 1px-gap-trick with border-top/bottom (#05234f) + per-cell border-right; promoted .raised-cell-title/.donors-head/.chart-title/.banner-label to heading type style (Oswald 400 1.25rem); --section-gap increased to --space-32; .raised-grid gap set to --space-64; padding-top moved from title elements to parent containers; design-system.html inline overrides + type specimen + token table updated; CLAUDE.md spacing token notes updated | styles.css, design-system.html, CLAUDE.md, test-cases.md (redesign branch — no HTML/JS changes) | None | 377/377 Track 1 passing |
 | 2026-04-09 | Token audit + --border update (redesign branch): audited --subtle (#46403a), --border (#cdc7bc), --surface2 (#eee9e1) across all files (html/css/js/md); updated --border → #D7D1C7 and warm-rule primitive; updated styles.css :root, CLAUDE.md, design-system.html (Tier 1 table, semantic token table, swatch data-hex + display) | styles.css, CLAUDE.md, design-system.html (redesign branch — no DOM changes) | None | 377/377 Track 1 passing |
+| 2026-04-10 | Summary strip + health banner refinements (redesign branch): banner copy updates ("No filings this cycle"; "Cycle concluded with..." + "Final coverage: {date}" moved to banner-note); .banner-label + .banner-desc promoted to prose type (IBM Plex Serif 0.875rem, no uppercase); navy border-top (#05234f) added to .banner; .banner margin-bottom → --space-16; .tag-context padding/background/border-radius removed (now inline serif prose with flex layout preserved); .banner + .stats-grid hoisted out of #tab-summary into new persistent #summary-strip wrapper on candidate.html; same pattern mirrored on committee.html (stats-grid only, "Financial Summary" section title removed); edge-to-edge navy borders via scoped gutter padding on .banner/.stats-grid children (strip itself full-width inside .main-inner); mobile stats-grid :nth-child(even)/border-right:none and :nth-child(-n+2)/border-bottom rules for 2x2 layout; stat card reorder (candidate: Ratio/COH/Raised/Spent; committee: Coverage/COH/Raised/Spent); .profile-content padding-top:0 scoped override; reveal JS wires #summary-strip alongside #race-context-bar + #content; design-system.html type specimen lists updated (banner-label/desc moved heading/body → prose), Health Banner status demoted stable → candidate-only, Stats Grid demo reordered + "Raised-to-Spent Ratio" label corrected, component notes updated (banner, tag context, stats grid), 5 demo padding:0 inline overrides removed (Page Header, Candidate Header, Stats Grid, Raised/Spent Grid, Browse Page Chrome), Tab Bar + Data Table padding:0 removed; design-system.html + process-log.html .main max-width → 1600px + centered; process-log #view-reflections/#view-build capped at 724px; +4 Playwright tests (candidate + committee summary-strip persistence across tabs; first stat card label assertion on both) | styles.css, candidate.html, committee.html, design-system.html, process-log.html, CLAUDE.md, TESTING.md, test-cases.md, tests/candidate.spec.js, tests/pages.spec.js (redesign branch) | None | 381/381 Track 1 passing |

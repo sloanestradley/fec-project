@@ -243,11 +243,8 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   gap: var(--space-16);
   width: fit-content;
   max-width: 100%;
-  padding: var(--space-4) var(--space-8);
   font-family: 'IBM Plex Serif', serif;
   font-size: 0.875rem;
-  background: var(--border);
-  border-radius: 2px;
   color: var(--subtle);
 }
 .tag-context-text { flex: 1; min-width: 0; }
@@ -255,16 +252,16 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .tag-context a:hover { color: var(--text); }
 
 /* ── C: Health banner ── */
-.banner { margin-bottom:var(--section-gap); padding-top:var(--space-16);
+.banner { margin-bottom:var(--space-16); padding-top:var(--space-16); border-top:1px solid #05234f;
   display:flex; align-items:center; gap:var(--space-16); flex-wrap:wrap; }
 .health-signal { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 .health-signal.green { background:var(--green); }
 .health-signal.amber { background:var(--amber); }
 .health-signal.red { background:var(--red); }
 .health-signal.grey { background:var(--muted); }
-.banner-label { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase;
+.banner-label { font-family:'IBM Plex Serif','Georgia',serif; font-size:0.875rem; font-weight:400;
   color:var(--text); flex-shrink:0; }
-.banner-desc { font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem; color:var(--muted); flex:1; min-width:160px; }
+.banner-desc { font-family:'IBM Plex Serif','Georgia',serif; font-size:0.875rem; color:var(--muted); flex:1; min-width:160px; }
 .banner-note { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--subtle); }
 
 /* ── D: Chart card + legend ── */
@@ -681,6 +678,9 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   .donors-table th:nth-child(3), .donors-table td:nth-child(3) { display:none; }
   .raised-grid { grid-template-columns:1fr; }
   .stats-grid { grid-template-columns:repeat(2,1fr); }
+  /* 2-column grid: right border only between columns, bottom border between rows */
+  .stats-grid .stat-card:nth-child(even) { border-right:none; }
+  .stats-grid .stat-card:nth-child(-n+2) { border-bottom:1px solid #05234f; }
   .typeahead-dropdown { max-width:100%; }
   .state-combo .form-input { display:none; }
   .state-combo select.form-select { width:120px; }
