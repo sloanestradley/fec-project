@@ -280,11 +280,10 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 
 /* ── E: Committee rows ── */
 .committee-row { display:grid; grid-template-columns:1fr auto auto;
-  align-items:center; gap:var(--space-16); padding:var(--space-16);
-  background:var(--surface); border:1px solid var(--border); transition:border-color 0.15s;
+  align-items:center; gap:var(--space-16); padding:var(--space-16) 0;
+  border-bottom:1px solid var(--border); transition:background 0.15s;
   text-decoration:none; color:inherit; }
-.committee-row + .committee-row { border-top:none; }
-.committee-row:hover { border-color:var(--border-strong); }
+.committee-row:hover { background:var(--surface2); }
 .committee-name { font-size:0.875rem; font-weight:500; }
 .committee-type { font-size:0.625rem; color:var(--muted); text-align:right; }
 .committee-id { font-size:0.625rem; color:var(--muted); }
@@ -355,8 +354,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .modal-tab-btn.active { color:var(--text); border-bottom-color:var(--accent); }
 .modal-tab-btn:hover:not(.active) { color:var(--subtle); }
 .modal-body { overflow-y:auto; padding:var(--space-24); flex:1; }
-.modal-body .committee-row { margin-bottom:var(--space-24); }
-.modal-body .committee-row + .committee-row { margin-top:calc(-1 * var(--space-24)); }
 
 /* ── J: Choropleth map ── */
 .map-svg-wrap { width:100%; line-height:0; }
@@ -402,10 +399,9 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 
 /* ── M: Candidate card (search results, race page) ── */
 .candidate-card { display:block; text-decoration:none;
-  background:var(--surface); border:1px solid var(--border);
-  padding:var(--space-16) var(--space-24); transition:border-color 0.15s; }
-.candidate-card + .candidate-card { border-top:none; }
-.candidate-card:hover { border-color:var(--border-strong); }
+  border-bottom:1px solid var(--border);
+  padding:var(--space-16) 0; transition:background 0.15s; }
+.candidate-card:hover { background:var(--surface2); }
 .candidate-card-name { font-family:'IBM Plex Sans',sans-serif; font-weight:500; color:var(--text);
   margin-bottom:var(--space-8); font-size:0.875rem; display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
 .candidate-card-meta { display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
@@ -571,12 +567,11 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .results-view-all:hover { text-decoration:underline; }
 .committee-result-row {
   display:flex; align-items:center; justify-content:space-between;
-  gap:var(--space-16); padding:var(--space-16); background:var(--surface);
-  border:1px solid var(--border);
-  text-decoration:none; transition:border-color 0.15s;
+  gap:var(--space-16); padding:var(--space-16) 0;
+  border-bottom:1px solid var(--border);
+  text-decoration:none; transition:background 0.15s;
   color:inherit; }
-.committee-result-row + .committee-result-row { border-top:none; }
-.committee-result-row:hover { border-color:var(--border-strong); }
+.committee-result-row:hover { background:var(--surface2); }
 .committee-result-name {
   font-size:0.75rem; color:var(--text); font-weight:500;
   flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
