@@ -3186,3 +3186,38 @@ The through-line: you're maintaining standards on both sides — correctness and
 - The iOS auto-zoom fix (`font-size:1rem` on inputs at ≤860px) is deferred. Question to resolve: does bumping input text to 16px on mobile require a design pass on the filter bar and search fields, or is it acceptable as-is? Might be worth a quick mobile visual review first.
 - Mobile browse page: now that filter fields wrap naturally instead of stacking, worth a device check to confirm the wrap pattern reads well — especially with labels above each field.
 - Remaining mobile improvements to prioritize: are there other touch target or layout issues on the session roadmap beyond what was done today?
+
+---
+2026-04-13 End of session — merge
+
+## Process log draft
+
+Title: Ship it — merging the redesign
+
+After months on a long-running branch, the redesign landed on main today. 410 tests, clean fast-forward, no conflicts. The live site now reflects FECLedger branding, the new type system, and all the structural work from the redesign branch.
+
+Changelog:
+– git merge redesign → main (fast-forward, 54 commits, 27 files)
+– 410/410 Playwright tests passed pre-merge
+– CLAUDE.md: removed "do not merge" constraint and all stale "redesign branch only" qualifiers
+– test-cases.md: test log row appended
+
+Field notes:
+Merge sessions are their own kind of verification — running the tests before touching git felt right. The pre-merge checklist (branch state, test suite, commit list, test log) is exactly the kind of ritual that prevents a confident push from becoming a regretful one. Nothing broke. The branch is gone from the constraint list, and the live site is current.
+
+Stack tags: none
+
+## How Sloane steered the work
+
+**Specifying the verification order upfront**
+The prompt defined the exact sequence — confirm state, run tests, review commits, then merge — rather than leaving the order to judgment. That structure prevented any "just merge it" shortcuts.
+
+**"Verify before merging, not after"**
+One sentence that set the entire tone of the session. The instinct to front-load confidence rather than chase problems post-deploy is the right one for a live site.
+
+The through-line: Sloane treats merges as events, not commands. The ceremony is the point.
+
+## What to bring to Claude Chat
+
+– Phase 4 is next. The redesign is live — worth a quick look at the live site to confirm it reads as intended before diving into feature work.
+– The iOS auto-zoom fix (font-size:1rem on inputs at ≤860px) is still deferred. Decide whether to handle it as a quick follow-on or defer to a dedicated mobile polish pass.
