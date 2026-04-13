@@ -354,6 +354,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .modal-tab-btn.active { color:var(--text); border-bottom-color:var(--accent); }
 .modal-tab-btn:hover:not(.active) { color:var(--subtle); }
 .modal-body { overflow-y:auto; padding:var(--space-24); flex:1; }
+.modal-body .committee-row { margin-bottom:var(--space-24); }
 
 /* ── J: Choropleth map ── */
 .map-svg-wrap { width:100%; line-height:0; }
