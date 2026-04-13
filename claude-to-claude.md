@@ -3148,3 +3148,41 @@ The through-line: you're guarding finished work. Every steering move this sessio
 - Mobile nav color polish: .nav-item is now var(--text) at rest / var(--muted) on hover. Worth a visual check against the mockup — does the mobile drawer need its own active state treatment to match desktop?
 - Mobile nav active state parity: desktop .nav-link.active and mobile .nav-item.active — verify both are being applied correctly on profile pages that inherit the parent browse page's active link.
 - Phase 4 priority: now that redesign branch structural bugs are resolved, is there remaining visual work before focusing back on Phase 4 feature work on main?
+---
+2026-04-13 Mobile CSS polish
+
+## Process log draft
+
+Title: Small surface, big difference — five mobile CSS fixes
+
+A short session, all CSS. Five targeted fixes to the mobile experience: the compact header's committees trigger was showing through (JS inline style beating a stylesheet rule — fixed with !important); the "/" separator in compact mode was in body font instead of Oswald to match the name beside it; filter fields on browse pages were being forced into a single column at 480px when flex-wrap was already doing the right job; the mobile nav had extra bottom padding creating visual gap before the border; and tap targets on nav items were too small. Each fix was one rule, one file.
+
+Changelog:
+– styles.css: `#profile-header.compact #committees-trigger { display:none !important }` — JS-set inline style was overriding the existing stylesheet rule
+– styles.css: `.compact-sep` in compact mode now explicitly Oswald 1.25rem/400 to match the compact `.page-title`
+– styles.css: Removed `.filter-bar { flex-direction:column; align-items:flex-start }` from `@media (max-width:480px)` — base rule already has `flex-wrap:wrap`; stacking was unnecessarily forced
+– styles.css: `.mobile-nav` padding changed to `var(--space-8) 0 0` — removes gap between last nav item and bottom border
+– styles.css: `.nav-item` padding increased to `var(--space-16) var(--space-24)` — larger vertical tap target
+– design-system.html: Top Nav component notes updated with mobile-nav and nav-item padding values
+– test-cases.md: test log row appended
+
+Field notes:
+The !important fix on the committees trigger is a classic CSS specificity trap — a stylesheet rule is invisible the moment JS writes an inline style on the same element. The existing rule was correct in intent, just undershooting in specificity. The filter-bar fix is the opposite of that: a rule that was correct once but survived past its purpose. At 480px, flex-wrap already handles the layout. The column override was protecting against a problem that no longer exists. Removing it restored the intended behavior with zero new code. These are the two failure modes of CSS: too little specificity, and too much control.
+
+Stack tags: CSS / Mobile
+
+## How Sloane steered the work
+
+**Holding on the font-size fix**
+When the anti-zoom solution came down to `font-size:1rem` on form inputs in the mobile breakpoint, you paused — "I'm not ready for that change yet, 25% increase in input styling." That's a meaningful product instinct: the fix is technically correct but has visible design consequences that deserve a deliberate decision, not a bug-fix reflex. Deferring it rather than accepting it keeps the design system intentional.
+
+**Knowing when to stop**
+This session was a sequence of targeted, contained fixes. No scope creep, no "while we're in there" additions. That discipline — fix the thing, stop, move on — is what kept all changes in a single file.
+
+The through-line: you're maintaining standards on both sides — correctness and design intent. The zoom fix is the right answer technically; it needed more consideration before shipping.
+
+## What to bring to Claude Chat
+
+- The iOS auto-zoom fix (`font-size:1rem` on inputs at ≤860px) is deferred. Question to resolve: does bumping input text to 16px on mobile require a design pass on the filter bar and search fields, or is it acceptable as-is? Might be worth a quick mobile visual review first.
+- Mobile browse page: now that filter fields wrap naturally instead of stacking, worth a device check to confirm the wrap pattern reads well — especially with labels above each field.
+- Remaining mobile improvements to prioritize: are there other touch target or layout issues on the session roadmap beyond what was done today?
