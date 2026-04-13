@@ -181,7 +181,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 /* ── Utilities ── */
 .section-title { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; text-transform:uppercase;
   color:var(--muted); padding-bottom:var(--space-8); }
-.state-msg { display:flex; align-items:center; gap:var(--space-16);
+.state-msg { display:flex; align-items:center; justify-content:center; gap:var(--space-16);
   padding:var(--space-64) var(--space-48); color:var(--muted); font-size:0.75rem; }
 .state-msg.error { color:var(--red); }
 .loader { width:16px; height:16px; border:1.5px solid var(--border);
@@ -653,7 +653,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   text-transform:uppercase; color:var(--muted); padding-bottom:var(--space-8); }
 .end-of-results { display:none; padding:var(--space-16) var(--page-gutter);
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted);
-  text-transform:uppercase; border-top:1px solid var(--border); text-align:center; }
+  text-transform:uppercase; text-align:center; }
 
 .no-results { padding:var(--space-40) var(--page-gutter); color:var(--muted); font-size:0.75rem; }
 .error-prompt { padding:var(--space-48) var(--page-gutter); color:var(--muted); font-size:0.75rem; }

@@ -1182,7 +1182,7 @@
           <span class="ds-component-name">end-of-results</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.end-of-results — mono label style, centered, border-top, display:none default; JS toggles via style.display</div>
+        <div class="ds-component-classes">.end-of-results — mono label style, centered, display:none default; JS toggles via style.display</div>
         <div class="ds-component-demo">
           <div class="end-of-results" style="display:block">End of results</div>
         </div>
@@ -1464,6 +1464,7 @@
             <span>⚠ Could not load data: Network error</span>
           </div>
         </div>
+        <div class="ds-component-notes"><code>.state-msg</code> is <code>display:flex; align-items:center; justify-content:center</code> — spinner and label are centered horizontally. Default padding is <code>var(--space-64) var(--space-48)</code>; override inline when a tighter vertical spacing is needed (e.g. tab loading states use <code>padding:var(--space-48) 0</code>). Used on all browse pages (initial load), all profile pages (initial fetch + tab transitions), and search.html.</div>
       </div>
 
       <!-- 19. Skeleton loading -->

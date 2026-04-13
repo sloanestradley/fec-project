@@ -3221,3 +3221,41 @@ The through-line: Sloane treats merges as events, not commands. The ceremony is 
 
 – Phase 4 is next. The redesign is live — worth a quick look at the live site to confirm it reads as intended before diving into feature work.
 – The iOS auto-zoom fix (font-size:1rem on inputs at ≤860px) is still deferred. Decide whether to handle it as a quick follow-on or defer to a dedicated mobile polish pass.
+
+---
+2026-04-13 Loader polish
+
+## Process log draft
+
+Title: Sweating the small stuff — loader polish
+
+A handful of small CSS fixes this session, all targeting loading states and the end-of-results strip. The `.state-msg` loader wasn't centered anywhere it appeared — initial load states on browse pages, tab loaders on candidate and committee pages. Adding `justify-content:center` to the shared class fixed it everywhere at once. The tab loaders on candidate.html and committee.html were hand-rolled inline styles duplicating `.state-msg` — converted them to use the class properly, which cleaned up four messy inline style blocks in the process. And the `border-top` on `.end-of-results` was creating a doubled border — removed.
+
+Changelog:
+– styles.css: `border-top` removed from `.end-of-results`
+– styles.css: `justify-content:center` added to `.state-msg`
+– candidate.html, committee.html: `#raised-loading` and `#spent-loading` converted from inline `display:flex` style blocks to `class="state-msg"` with `style="padding:var(--space-48) 0"` override
+– design-system.html: `.end-of-results` component description updated (removed "border-top" from class list)
+
+Field notes:
+The `.state-msg` change is a good example of why a shared class is worth maintaining. One line in one file, and centering propagated to every loading state on the site simultaneously — browse pages, profile pages, tab transitions. The tab loaders on candidate and committee were the interesting case: they'd been written as one-off inline styles that recreated `.state-msg` from scratch but missed `justify-content:center`. Converting them to use the class wasn't just DRY housekeeping — it ensured they'll pick up any future `.state-msg` updates automatically. The constraint "this is a shared component" did the design work.
+
+Stack tags: none
+
+## How Sloane steered the work
+
+**Starting small before the bigger task**
+You opened the session with a small scoped task — check which pages use `.end-of-results`, then remove the border — before moving to the main redesign item. That sequencing is a good habit: warm up on something low-risk and self-contained before diving into something with more surface area.
+
+**Catching that "centering the loader" needed scoping**
+When you asked to center the loader in `#end-of-results`, the question led to discovering `#end-of-results` only contains text (already centered). You recognized quickly that you meant `.state-msg` — and asking "what does `.state-msg` affect exactly?" before changing it was the right move. That one question surfaced that it would affect profile page tab loaders and browse page initial states alike, which shaped the decision to change the shared rule rather than patch individual elements.
+
+**Option 2 over option 1**
+When presented with "add `justify-content:center` to 4 inline styles" vs. "convert them to `.state-msg`", you chose the architecturally cleaner path without hesitation. The inline styles were hand-rolled duplicates of `.state-msg` — converting them pays down debt and future-proofs the component.
+
+The through-line: you consistently prefer the fix that strengthens the system over the fix that just solves the immediate problem.
+
+## What to bring to Claude Chat
+
+- You mentioned there's a bigger redesign item to work on this session — we never got to it. What is it?
+- The iOS auto-zoom fix (`font-size:1rem` on inputs at ≤860px) remains deferred — worth deciding whether to handle it before or after the bigger redesign task.
