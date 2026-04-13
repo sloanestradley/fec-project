@@ -1092,6 +1092,49 @@ test.describe('mobile layout — sidebar hidden, header visible', () => {
   }
 });
 
+// ── Mobile nav toggle behavior ────────────────────────────────────────────────
+
+test.describe('mobile nav toggle behavior', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/search.html');
+    await page.waitForLoadState('load');
+  });
+
+  test('hamburger click opens mobile nav drawer', async ({ page }) => {
+    await page.click('#hamburger');
+    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
+  });
+
+  test('hamburger click closes mobile nav drawer on second click', async ({ page }) => {
+    await page.click('#hamburger');
+    await page.click('#hamburger');
+    await expect(page.locator('#mobile-nav')).not.toHaveClass(/open/);
+  });
+
+  test('search toggle click opens mobile search panel', async ({ page }) => {
+    await page.click('#top-nav-search-toggle');
+    await expect(page.locator('#top-nav-mobile-search')).toHaveClass(/open/);
+  });
+
+  test('opening hamburger closes search panel', async ({ page }) => {
+    await page.click('#top-nav-search-toggle');
+    await expect(page.locator('#top-nav-mobile-search')).toHaveClass(/open/);
+    await page.click('#hamburger');
+    await expect(page.locator('#top-nav-mobile-search')).not.toHaveClass(/open/);
+    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
+  });
+
+  test('opening search panel closes hamburger drawer', async ({ page }) => {
+    await page.click('#hamburger');
+    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
+    await page.click('#top-nav-search-toggle');
+    await expect(page.locator('#mobile-nav')).not.toHaveClass(/open/);
+    await expect(page.locator('#top-nav-mobile-search')).toHaveClass(/open/);
+  });
+});
+
 // ── No horizontal overflow at mobile ─────────────────────────────────────────
 
 test.describe('no horizontal overflow at 390px', () => {

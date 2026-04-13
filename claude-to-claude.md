@@ -3103,3 +3103,48 @@ Through-line: Sloane's feedback throughout was precise and patient. Each bug rep
 – The 80px paddingBottom cap is empirical. Should it be a named constant or comment in the code, or is it fine as an inline value?
 – The "first-tab-visit" minHeight lock surfaces a design question: should profile pages reset scroll position on tab switch, or always try to maintain it? Currently they maintain it — but is there a case (e.g. switching from a long Raised tab back to the short Summary tab) where resetting to top would feel more natural?
 – The compact header scroll behavior tests are only on candidate.html. Worth porting the 4 scroll behavior tests to pages.spec.js for committee.html and race.html in a future session.
+
+---
+2026-04-13 End of session
+
+## Process log draft
+
+**Title: The nav drawer that hid itself — and the fix hiding in plain sight**
+
+The mobile hamburger menu was opening (the icon changed to an ×) but the drawer was invisible — sitting behind the profile headers at z-index 195. The search panel had the opposite problem: it appeared, but it covered the top of the nav rather than dropping below it. Two different symptoms, same root cause: both panels were siblings of .top-nav, positioned fixed at top:56px, and that doesn't account for the in-flow banner still occupying the viewport above the nav.
+
+Changelog:
+- Fixed mobile nav drawer sitting behind sticky profile headers: root cause was z-index:99 (far below profile headers at 195)
+- Fixed mobile search panel covering the top nav: root cause was position:fixed top:56px — when the in-flow banner (32px) is visible, the nav sits at 32–88px in the viewport so fixed panels at top:56px land inside the nav area
+- Fix: moved both #mobile-nav and #top-nav-mobile-search inside <nav class="top-nav"> as position:absolute; top:100% — "directly below the nav's bottom edge" always resolves correctly, and being inside the nav's stacking context provides automatic elevation above all page content
+- .nav-item default color updated from var(--muted) → var(--text) to match desktop .nav-link treatment; hover inverts to var(--muted)
+- shared.spec.js: "top nav has three main nav links" renamed to four, scoped to .top-nav-links; +2 structural tests × 10 pages
+- pages.spec.js: +5 mobile nav toggle behavior tests at 390×844 viewport
+- CLAUDE.md, TESTING.md, test-cases.md, design-system.html updated
+
+Field notes:
+The bug was embarrassingly visual — the hamburger icon toggled but nothing appeared. I assumed a z-index race, raised the z-index, and created a new bug. The real issue was positioning. Fixed panels at a hardcoded pixel offset fail when there's an in-flow element (the banner) shifting the coordinate frame. The absolute + top:100% approach is more semantically honest: "below my parent" rather than "56px from the top of the screen." It's also self-correcting — if the banner height ever changes, nothing breaks. The lesson: CSS stacking contexts mean you don't need to win a z-index arms race. Get inside the right context and you win by default.
+
+Stack tags: CSS / Playwright / Mobile Nav
+
+## How Sloane steered the work
+
+**Grounding the fix before touching code**
+Before any edit was made, you asked whether the proposed fix would negatively affect the already-settled interaction design — sticky banner, sticky nav, compact profile headers. That question exposed the first attempt's flaw (fixed panels at top:56px) before it shipped.
+
+**Correcting the test count in real time**
+When the test suite failed because of the nav link count mismatch, you caught the root cause immediately: the test was wrong about four links, not three. You rejected the proposed fix that still said "three" and corrected it on the spot.
+
+**Deferring nav Amplitude audit to a fast no-change ruling**
+The nav HTML changes touched structure but not event instrumentation, so no new tracking was warranted. Knowing where not to add metrics is as important as knowing where to add them.
+
+**Calling for screenshots before documentation**
+Rather than letting documentation proceed from memory alone, you asked to review the session screenshots first — a healthy forcing function to ensure docs reflect what actually shipped, not what was intended.
+
+The through-line: you're guarding finished work. Every steering move this session was about protecting something already working rather than expanding scope. That's the right instinct when fixing bugs.
+
+## What to bring to Claude Chat
+
+- Mobile nav color polish: .nav-item is now var(--text) at rest / var(--muted) on hover. Worth a visual check against the mockup — does the mobile drawer need its own active state treatment to match desktop?
+- Mobile nav active state parity: desktop .nav-link.active and mobile .nav-item.active — verify both are being applied correctly on profile pages that inherit the parent browse page's active link.
+- Phase 4 priority: now that redesign branch structural bugs are resolved, is there remaining visual work before focusing back on Phase 4 feature work on main?

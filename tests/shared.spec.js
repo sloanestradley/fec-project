@@ -106,12 +106,15 @@ for (const pageConfig of PAGES) {
       await expect(script).toHaveCount(1);
     });
 
-    test('top nav has three main nav links', async ({ page }) => {
+    test('top nav has four main nav links', async ({ page }) => {
       const topNav = page.locator('.top-nav');
       await expect(topNav).toBeVisible();
-      await expect(topNav.locator('a[href*="candidates"]')).toHaveCount(1);
-      await expect(topNav.locator('a[href*="committees"]')).toHaveCount(1);
-      await expect(topNav.locator('a[href*="races"]')).toHaveCount(1);
+      // Scope to .top-nav-links (desktop) — mobile nav is inside .top-nav so each link appears twice in total
+      const desktopLinks = topNav.locator('.top-nav-links');
+      await expect(desktopLinks.locator('a[href*="candidates"]')).toHaveCount(1);
+      await expect(desktopLinks.locator('a[href*="committees"]')).toHaveCount(1);
+      await expect(desktopLinks.locator('a[href*="races"]')).toHaveCount(1);
+      await expect(desktopLinks.locator('a[href*="feed"]')).toHaveCount(1);
     });
 
     test('top nav is present in DOM', async ({ page }) => {
@@ -154,6 +157,25 @@ for (const pageConfig of PAGES) {
       const logo = page.locator('.top-nav .top-nav-logo');
       await expect(logo.locator('.logo-fec')).toHaveCount(1);
       await expect(logo.locator('.logo-ledger')).toHaveCount(1);
+    });
+
+    test('mobile nav and search panel are children of .top-nav', async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const topNav = document.querySelector('.top-nav');
+        const mobileNav = document.querySelector('#mobile-nav');
+        const mobileSearch = document.querySelector('#top-nav-mobile-search');
+        return topNav && mobileNav && mobileSearch &&
+          topNav.contains(mobileNav) && topNav.contains(mobileSearch);
+      });
+      expect(result).toBe(true);
+    });
+
+    test('mobile nav has four links', async ({ page }) => {
+      const mobileNav = page.locator('#mobile-nav');
+      await expect(mobileNav.locator('a[href*="candidates"]')).toHaveCount(1);
+      await expect(mobileNav.locator('a[href*="committees"]')).toHaveCount(1);
+      await expect(mobileNav.locator('a[href*="races"]')).toHaveCount(1);
+      await expect(mobileNav.locator('a[href*="feed"]')).toHaveCount(1);
     });
 
     test('.global-banner precedes .top-nav in the DOM', async ({ page }) => {
