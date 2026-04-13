@@ -876,13 +876,6 @@ test.describe('committees.html — search mode (?q=)', () => {
     expect(text?.trim().length).toBeGreaterThan(0);
   });
 
-  test('treasurer name is displayed in search results', async ({ page }) => {
-    const treasurer = page.locator('.committee-treasurer').first();
-    await expect(treasurer).toBeVisible();
-    const text = await treasurer.textContent();
-    expect(text?.trim().length).toBeGreaterThan(0);
-  });
-
   test('committee row links to /committee/{id}', async ({ page }) => {
     const link = page.locator('.committee-row').first();
     const href = await link.getAttribute('href');

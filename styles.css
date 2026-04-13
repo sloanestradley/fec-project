@@ -287,9 +287,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .committee-name,
 .committee-result-name { font-size:0.875rem; font-weight:500; color:var(--text); }
 .committee-result-name { flex:1; min-width:0; }
-.committee-card-meta {
-  display:flex; align-items:center; gap:var(--space-8);
-  flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
 
 /* ── F: Data table ── */
 .donors-card { padding-top:var(--space-24); margin-bottom:var(--section-gap); }
@@ -402,15 +399,20 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .committees-link:hover { color:var(--text); text-decoration-color:var(--subtle); }
 
 /* ── M: Candidate card (search results, race page) ── */
-.candidate-card { display:block; text-decoration:none;
+.candidate-card { display:grid; grid-template-columns:1fr auto; align-items:flex-start;
+  gap:var(--space-8) var(--space-16); text-decoration:none;
   border-bottom:1px solid var(--border);
   padding:var(--space-16) var(--space-8); transition:background 0.15s; }
 .candidate-card:hover { background:var(--surface2); }
 .candidate-card-name { font-family:'IBM Plex Sans',sans-serif; font-weight:500; color:var(--text);
-  margin-bottom:var(--space-8); font-size:0.875rem; display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
-.candidate-card-meta { display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
+  font-size:0.875rem; display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
+.candidate-card-meta,
+.committee-card-meta {
+  display:flex; align-items:center; gap:var(--space-8);
+  flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
 .candidate-card-stats { display:flex; gap:var(--space-24); margin-top:var(--space-8);
-  padding-top:var(--space-8); border-top:1px solid var(--border); flex-wrap:wrap; }
+  padding-top:var(--space-8); border-top:1px solid var(--border); flex-wrap:wrap;
+  grid-column: 1 / -1; }
 .candidate-card-stat { display:flex; flex-direction:column; gap:var(--space-2); /* micro: tight label/value pairing within stat cell */ }
 .candidate-card-stat-lbl { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
   text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--muted); }
@@ -664,7 +666,9 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   .profile-content { padding:var(--space-24) var(--page-gutter); }
   .global-banner-text { padding:0 var(--page-gutter); }
   .committee-row { grid-template-columns:1fr; gap:var(--space-4); }
+  .candidate-card { grid-template-columns:1fr; }
   .committee-result-row { flex-wrap:wrap; }
+  .candidate-card-meta,
   .committee-card-meta { justify-content:flex-start; width:100%; }
 
   .donors-table th:nth-child(3), .donors-table td:nth-child(3) { display:none; }

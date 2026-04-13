@@ -220,9 +220,9 @@ function renderCandidateGroup(candidates, total, query) {
       + 'from_page:\'search\'})">'
       + '<div class="candidate-card-name">' + name + '</div>'
       + '<div class="candidate-card-meta">'
-      + (office ? '<span class="tag tag-neutral" style="font-size:0.625rem">' + office + '</span>' : '')
+      + (office ? '<span class="tag tag-neutral">' + office + '</span>' : '')
       + '<span class="tag ' + pcls + '" title="' + partyTooltip(c.party, c.party_full) + '">' + plbl + '</span>'
-      + (latestCycle ? '<span class="tag tag-neutral" style="font-size:0.625rem">' + latestCycle + '</span>' : '')
+      + (latestCycle ? '<span class="tag tag-neutral">' + latestCycle + '</span>' : '')
       + '</div>'
       + '</a>';
   }).join('');
