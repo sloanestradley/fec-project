@@ -395,7 +395,7 @@ function buildCard(c, i, fromPage) {
     + '<div class="candidate-card-meta">'
     + (office ? '<span class="tag tag-neutral" style="font-size:0.625rem">' + office + '</span>' : '')
     + '<span class="tag ' + pcls + '" title="' + partyTooltip(c.party, c.party_full) + '">' + plbl + '</span>'
-    + (latestCycle ? '<span class="candidate-card-cycle">' + latestCycle + '</span>' : '')
+    + (latestCycle ? '<span class="tag tag-neutral" style="font-size:0.625rem">' + latestCycle + '</span>' : '')
     + '</div></a>';
 }
 
