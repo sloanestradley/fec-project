@@ -19,10 +19,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 **Repo:** GitHub (ask Sloane for the repo URL if you don't have it)  
 **Deployment:** Netlify, auto-deploys on push to main. **Pretty URLs is enabled** (site setting) — Netlify automatically strips `.html` from URLs and redirects to clean paths.
 
-**`redesign` branch:** An active long-running branch for visual redesign exploration. It has a separate Netlify branch preview (auto-deployed on push). **Do not merge to main and do not use it for feature/bugfix work** — Phase 4 and any functional changes go on main. If you open a session and `git branch --show-current` shows `redesign`, all work in that session should be visual/design work scoped to the branch. Intentional divergences from main on this branch:
-- Project name: `FECLedger` (main still uses `ledger.fec`)
-- Font system: Oswald + IBM Plex Sans + IBM Plex Serif (main uses Barlow Condensed + DM Sans)
-- Typography specimens in design-system.html updated to reflect the new font system
+**`redesign` branch:** Merged into main on 2026-04-13. The redesign is now the live design on main. All feature/bugfix work goes on main going forward. The `redesign` branch no longer diverges from main.
 **Analytics:** Amplitude
 - Integrated on the original FRED proof-of-concept index page; may not be present on all current pages — audit before assuming
 - Pageview tracking is the baseline expectation on every page
@@ -35,7 +32,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 - Vanilla HTML/CSS/JS — no framework, intentional for this stage
 - Chart.js 4.4.0 + chartjs-adapter-date-fns 3.0.0 (time scale support)
-- Google Fonts: Oswald (display/headings) + IBM Plex Sans (body/nav) + IBM Plex Serif (editorial/narrative prose) + IBM Plex Mono (labels/data) — **redesign branch only**; main still uses Barlow Condensed + DM Sans
+- Google Fonts: Oswald (display/headings) + IBM Plex Sans (body/nav) + IBM Plex Serif (editorial/narrative prose) + IBM Plex Mono (labels/data)
 - FEC public API: `https://api.open.fec.gov/v1`
 - Netlify Functions for any server-side API proxying needed
 - No build step — files are served directly
@@ -67,7 +64,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 
 **`.committee-name-link` — active in modal, removed from committees.html:** The `.committee-row` in committees.html converted to a full `<a>` tag — the inner `.committee-name-link` anchor is gone there. However, the class is still in use in `candidate.html`'s committees modal (`renderCommitteeGroups()`) as the link on each committee name. The CSS rule in `styles.css` should stay. Remove only after that modal render is refactored.
 
-**Party tag render order:** Race tag first, party tag second — on candidates.html and search.html. This is the canonical order for browse/search results. On candidate.html (redesign branch), the race tag has been removed from the header meta-row entirely — only the party tag remains there, with the race context moved to `.candidate-race-label` above the name. Party tag always includes `title="..."` via `partyTooltip(c.party, c.party_full)` — native browser tooltip on desktop hover.
+**Party tag render order:** Race tag first, party tag second — on candidates.html and search.html. This is the canonical order for browse/search results. On candidate.html, the race tag has been removed from the header meta-row entirely — only the party tag remains there, with the race context moved to `.candidate-race-label` above the name. Party tag always includes `title="..."` via `partyTooltip(c.party, c.party_full)` — native browser tooltip on desktop hover.
 
 **Office/race display in candidate cards:** Use `formatRaceName(c.office, c.state, c.district)` + `<span class="tag tag-neutral" style="font-size:0.625rem">` to render the race/seat label in candidate card meta rows. This is the canonical pattern on all three browse pages.
 
@@ -182,7 +179,7 @@ Nav tokens:
 --nav-active-bg: #d4cdc3  (nav active state background — currently unused, reserved)
 ```
 
-**Typography — named type styles (redesign branch):** All text must use one of these 10 canonical styles. Do not introduce new font-family/font-size/font-weight combinations — map to the closest existing style. The styles are documented in `styles.css :root` (comment block) and rendered as live specimens in `design-system.html`.
+**Typography — named type styles:** All text must use one of these 10 canonical styles. Do not introduce new font-family/font-size/font-weight combinations — map to the closest existing style. The styles are documented in `styles.css :root` (comment block) and rendered as live specimens in `design-system.html`.
 
 | Style | Family | Size | Weight | Transform | Spacing | Line-height |
 |---|---|---|---|---|---|---|
@@ -252,7 +249,7 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 - **Local dev:** `python3 -m http.server 8080` from project root, then `localhost:8080/candidate.html?id=H2WA03217`
 
 ### What's working
-- Profile header: `.candidate-race-label` div above `.profile-header-row` renders a long-form race label (`formatRaceLabelLong()`) in red-700 Oswald 400 uppercase, linking to the race page; `.profile-header-row` below has candidate name + party tag (race tag removed from redesign branch) + "Committees (N) →" trigger floating right via `margin-left:auto`
+- Profile header: `.candidate-race-label` div above `.profile-header-row` renders a long-form race label (`formatRaceLabelLong()`) in red-700 Oswald 400 uppercase, linking to the race page; `.profile-header-row` below has candidate name + party tag (race tag removed from header meta-row) + "Committees (N) →" trigger floating right via `margin-left:auto`
 - Race context sentence (`.tag-context` pill sourced from `/elections/`, skeleton while loading) lives in a persistent `#race-context-bar` strip between the tab bar and content — visible on all tabs
 - Cycle switcher is a `<select>` element, first child of `.tabs-bar`, populated from `election_years` — `loadCycle()` updates `select.value` in sync; Amplitude `Cycle Switched` fires on `onchange`
 - URL anchor encodes cycle + tab: `candidate.html#2024#summary`
@@ -367,7 +364,7 @@ See `project-brief.md` for the full phased roadmap. Short version:
 **Phase 2 (complete):** Search + navigation — search.html, candidates.html, committees.html, index redirect.
 
 **Phase 3 (scaffold):** Committee and race pages.
-- ~~committee.html~~ ✅ structural parity — tabs bar (Summary/Raised/Spent) + cycle switcher, cycle-aware stats (All time / per-cycle), overspend callout, title-cased name, relType-aware associated candidate section (`fetchAndRenderAssocSection()` — back-link removed from header on redesign branch), .candidate-card-office removed, URL hash encoding (`#cycleOrAll#tab`), `Tab Switched` Amplitude event
+- ~~committee.html~~ ✅ structural parity — tabs bar (Summary/Raised/Spent) + cycle switcher, cycle-aware stats (All time / per-cycle), overspend callout, title-cased name, relType-aware associated candidate section (`fetchAndRenderAssocSection()` — back-link removed from header), .candidate-card-office removed, URL hash encoding (`#cycleOrAll#tab`), `Tab Switched` Amplitude event
 - ~~committees.html~~ ✅ unified browse+search — auto-load, inline search + typeahead, state combo, filter chips, URL sync, error state, treasurer always shown
 - ~~races.html~~ ✅ browse page — filter bar (Year/Office/State), results area, state combo, filter chips, all UI states; data fetching with progressive enrichment via /elections/; URL sync on all three filters
 - ~~race.html~~ ✅ scaffold — single race view, candidate cards with financials, cycle-anchored links, dynamic cycle dropdown from `/elections/search/`, Senate class indicator, URL param validation
