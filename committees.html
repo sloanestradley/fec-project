@@ -12,11 +12,6 @@
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     .main { overflow-x:hidden; min-width:0; }
-    /* Override committee-row grid for unified 4-column layout (name + type + treasurer + status) */
-    #results-list .committee-row { grid-template-columns:1fr auto auto auto; }
-    @media (max-width:860px) {
-      #results-list .committee-row { grid-template-columns:1fr; gap:var(--space-4); }
-    }
   </style>
 </head>
 <body>
@@ -342,8 +337,6 @@ function buildRow(c, i, fromPage) {
     + JSON.stringify(c.committee_id) + ',from_page:' + JSON.stringify(fromPage || 'committees')
     + ',result_position:' + i + '})">'
     + '<div class="committee-name">' + (c.name || '—') + '</div>'
-    + '<div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">'
-    +   (c.treasurer_name || '—') + '</div>'
     + '<div class="committee-type">' + committeeTypeLabel(c.committee_type) + '</div>'
     + '<div class="committee-id"><span class="tag tag-neutral" style="font-size:0.625rem">'
     + '<span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span></div>'
