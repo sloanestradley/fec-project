@@ -963,30 +963,32 @@
           <span class="ds-component-name">Section Title + Committee Rows</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.section-title · .committee-row · .committee-name · .committee-treasurer · .committee-type · .committee-id — column order: name → treasurer → type → status. LP variant: amber border-left inline style</div>
+        <div class="ds-component-classes">.section-title · .committee-row · .committee-name · .committee-card-meta — grid: 1fr auto (name left, meta right). Used in candidate.html committee modal. No treasurer, no .committee-type, no .committee-id — type and status rendered as tag tag-neutral inside .committee-card-meta</div>
         <div class="ds-component-demo">
           <div class="section-title">Principal Committee</div>
-          <div class="committee-row" style="grid-template-columns:1fr auto auto auto">
+          <div class="committee-row">
             <div class="committee-name">MGP for Congress</div>
-            <div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">Jane Smith</div>
-            <div class="committee-type">Principal CC</div>
-            <div class="committee-id"><span class="tag tag-neutral" style="font-size:0.625rem"><span class="status-dot dot-active"></span>Quarterly Filer</span></div>
+            <div class="committee-card-meta">
+              <span class="tag tag-neutral">Principal CC</span>
+              <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Quarterly Filer</span>
+            </div>
           </div>
-          <div class="section-title" style="margin-top:1rem">Joint Fundraising</div>
-          <div class="committee-row" style="grid-template-columns:1fr auto auto auto">
+          <div class="section-title" style="margin-top:var(--space-16)">Joint Fundraising</div>
+          <div class="committee-row">
             <div class="committee-name">WA Democratic Victory Fund</div>
-            <div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">Tom Lee</div>
-            <div class="committee-type">JFA</div>
-            <div class="committee-id"><span class="tag tag-neutral" style="font-size:0.625rem"><span class="status-dot dot-active"></span>Quarterly Filer</span></div>
+            <div class="committee-card-meta">
+              <span class="tag tag-neutral">JFA</span>
+              <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Quarterly Filer</span>
+            </div>
           </div>
-          <div class="section-title" style="margin-top:1rem">Leadership PAC</div>
-          <div class="committee-row" style="grid-template-columns:1fr auto auto auto;border-left:2px solid var(--amber);padding-left:0.75rem">
+          <div class="section-title" style="margin-top:var(--space-16)">Leadership PAC</div>
+          <div class="committee-row">
             <div class="committee-name">MGP Leadership Fund</div>
-            <div class="committee-treasurer" style="font-size:0.75rem;color:var(--muted)">Maria Chen</div>
-            <div class="committee-type">Leadership PAC</div>
-            <div class="committee-id"><span class="tag tag-neutral" style="font-size:0.625rem"><span class="status-dot dot-active"></span>Monthly Filer</span></div>
+            <div class="committee-card-meta">
+              <span class="tag tag-neutral">Leadership PAC</span>
+              <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Monthly Filer</span>
+            </div>
           </div>
-          <div style="font-size:0.625rem;color:var(--muted);margin-top:0.5rem">↑ Leadership PAC variant — amber left border applied via inline style in <code style="font-size:0.625rem">renderCommitteeGroups()</code></div>
         </div>
       </div>
 
@@ -996,22 +998,22 @@
           <span class="ds-component-name">candidate-card</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.candidate-card · .candidate-card-name · .candidate-card-meta · .candidate-card-cycle · .candidate-card-stats · .candidate-card-stat · .candidate-card-stat-lbl · .candidate-card-stat-val — used on candidates.html, search.html, race.html</div>
+        <div class="ds-component-classes">.candidate-card · .candidate-card-name · .candidate-card-meta · .candidate-card-stats · .candidate-card-stat · .candidate-card-stat-lbl · .candidate-card-stat-val — grid: 1fr auto (name left, meta right). .candidate-card-meta comma-grouped with .committee-card-meta (shared flex rules). .candidate-card-stats uses grid-column:1/-1 to span full width. Used on candidates.html, search.html, race.html</div>
         <div class="ds-component-demo">
-          <a class="candidate-card" href="#" style="display:block;max-width:480px;text-decoration:none">
+          <a class="candidate-card" href="#">
             <div class="candidate-card-name">Maria Cantwell</div>
             <div class="candidate-card-meta">
-              <span class="tag tag-neutral" style="font-size:0.625rem">Senate · WA</span>
+              <span class="tag tag-neutral">Senate · WA</span>
               <span class="tag tag-dem">Democrat</span>
-              <span class="candidate-card-cycle">2026</span>
+              <span class="tag tag-neutral">2026</span>
             </div>
           </a>
-          <a class="candidate-card" href="#" style="display:block;max-width:480px;text-decoration:none;margin-top:0">
+          <a class="candidate-card" href="#">
             <div class="candidate-card-name">Gluesenkamp Perez, Marie</div>
             <div class="candidate-card-meta">
-              <span class="tag tag-neutral" style="font-size:0.625rem">House · WA-03</span>
+              <span class="tag tag-neutral">House · WA-03</span>
               <span class="tag tag-dem">Democrat</span>
-              <span class="candidate-card-cycle">2024</span>
+              <span class="tag tag-neutral">2024</span>
             </div>
             <div class="candidate-card-stats">
               <div class="candidate-card-stat">
@@ -1037,13 +1039,13 @@
           <span class="ds-component-name">committee-result-row</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.committee-result-row · .committee-result-name · .committee-result-meta · .committee-result-type — used on search.html</div>
+        <div class="ds-component-classes">.committee-result-row · .committee-result-name · .committee-card-meta — flex row: name left (flex:1), meta right. .committee-card-meta is the shared wrapper (comma-grouped with .candidate-card-meta). Type and status rendered as tag tag-neutral. Used on search.html</div>
         <div class="ds-component-demo" style="max-width:560px">
-          <a class="committee-result-row" href="#" style="display:flex">
+          <a class="committee-result-row" href="#">
             <span class="committee-result-name">Cantwell for Senate</span>
-            <span class="committee-result-meta">
-              <span class="committee-result-type">Principal CC</span>
-              <span class="tag tag-neutral" style="font-size:0.625rem">
+            <span class="committee-card-meta">
+              <span class="tag tag-neutral">Principal CC</span>
+              <span class="tag tag-neutral">
                 <span class="status-dot dot-active"></span>Monthly
               </span>
             </span>
@@ -1065,12 +1067,12 @@
                 Candidates
                 <a class="results-view-all" href="#">View all →</a>
               </div>
-              <a class="candidate-card" href="#" style="display:block;text-decoration:none">
+              <a class="candidate-card" href="#">
                 <div class="candidate-card-name">Gluesenkamp Perez, Marie</div>
                 <div class="candidate-card-meta">
-                  <span class="tag tag-neutral" style="font-size:0.625rem">House · WA-03</span>
+                  <span class="tag tag-neutral">House · WA-03</span>
                   <span class="tag tag-dem">Democrat</span>
-                  <span class="candidate-card-cycle">2024</span>
+                  <span class="tag tag-neutral">2024</span>
                 </div>
               </a>
             </div>
@@ -1079,11 +1081,11 @@
                 Committees
                 <a class="results-view-all" href="#">View all →</a>
               </div>
-              <a class="committee-result-row" href="#" style="display:flex">
+              <a class="committee-result-row" href="#">
                 <span class="committee-result-name">MGP for Congress</span>
-                <span class="committee-result-meta">
-                  <span class="committee-result-type">Principal CC</span>
-                  <span class="tag tag-neutral" style="font-size:0.625rem"><span class="status-dot dot-active"></span>Monthly</span>
+                <span class="committee-card-meta">
+                  <span class="tag tag-neutral">Principal CC</span>
+                  <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Monthly</span>
                 </span>
               </a>
             </div>

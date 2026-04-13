@@ -3259,3 +3259,58 @@ The through-line: you consistently prefer the fix that strengthens the system ov
 
 - You mentioned there's a bigger redesign item to work on this session — we never got to it. What is it?
 - The iOS auto-zoom fix (`font-size:1rem` on inputs at ≤860px) remains deferred — worth deciding whether to handle it before or after the bigger redesign task.
+
+---
+2026-04-13 end of session
+
+## Process log draft
+
+**Title:** Stripping the card — browse results become data, not containers
+
+Browse result rows across candidates.html, committees.html, and search.html used to look like cards: distinct backgrounds, full borders, extra padding. This session stripped all of that away — what's left is a clean data row with a bottom border, a breathing-room hover tint, and a consistent name-left / meta-right grid. The visual weight dropped considerably, and the three row types now feel like they come from the same system.
+
+**Changelog:**
+- `styles.css`: removed card background, full border → border-bottom only, adjacent-sibling `border-top:none` rules removed; `var(--space-8)` horizontal padding added to `.candidate-card`, `.committee-row`, `.committee-result-row` for hover tint breathing room; `background:var(--surface2)` hover on all three
+- `styles.css`: `.committee-row` `align-items:center` → `align-items:flex-start`; grid stays `1fr auto`
+- `styles.css`: `.committee-card-meta` added as unified meta wrapper (comma-grouped with `.candidate-card-meta`); `.committee-type`, `.committee-result-type`, `.committee-id`, `.committee-result-meta` rules removed
+- `styles.css`: `.candidate-card` converted from `display:block` to `display:grid; grid-template-columns:1fr auto; align-items:flex-start; gap:var(--space-8) var(--space-16)`; `margin-bottom` on `.candidate-card-name` removed (grid row-gap handles it); `.candidate-card-stats` gets `grid-column:1/-1`
+- `styles.css` mobile: `.committee-row` and `.candidate-card` collapse to `grid-template-columns:1fr`; `.candidate-card-meta` + `.committee-card-meta` drop below, `justify-content:flex-start; width:100%`
+- `committees.html`: treasurer div removed from browse row render; committee type rendered as `<span class="tag tag-neutral">`; meta wrapped in `.committee-card-meta`; 4-col grid override removed
+- `search.html`: committee type → `tag tag-neutral`; `.committee-result-meta` → `.committee-card-meta`; candidate cycle `latestCycle` added as `tag tag-neutral`; redundant `style="font-size:0.625rem"` removed from candidate tags
+- `candidates.html`: `.candidate-card-cycle` span → `tag tag-neutral`; redundant `style="font-size:0.625rem"` removed from office and cycle tags
+- `candidate.html`: removed inline `border-left:2px solid var(--amber); padding-left:0.75rem` from Leadership PAC rows in committee modal
+- `tests/pages.spec.js`: removed stale `.committee-treasurer` test
+
+**Field notes:**
+The "card vs. row" question turned out to be a question about information hierarchy, not just aesthetics. Cards say "here's a thing with context around it." Rows say "here's a thing in a list." Browse results are lists — the card styling was adding visual weight that competed with the data itself. Once the surfaces came off, the name/meta grid layout became the design, and it reads much faster. The system also got cleaner: three row types that used to have divergent layout approaches now share a single meta wrapper class and the same grid structure. That's the kind of consolidation that makes future changes cheaper.
+
+**Stack tags:** CSS Grid, CSS Flexbox, design systems
+
+---
+
+## How Sloane steered the work
+
+**The surfaces have to go — your call, set the direction**
+The session opened with a precise spec: strip card surfaces from all three browse row types, set consistent padding, hover state, and border treatment. That wasn't a "here's a problem, help me solve it" — it was a clear design direction with specific values. The implementation decisions (grid vs. flex, how to handle the meta wrapper) came from the spec, not from Claude proposing alternatives.
+
+**Treasurer removal — a scope-widening catch**
+While working on committee row formatting, you noticed that the treasurer was showing on committees.html browse rows but not on search.html — and made the call to remove it from committees.html to achieve parity. That was a judgment call about what belongs in a browse row (name + type + status) vs. what's detail-level (treasurer). The result is a cleaner, more consistent row across both pages.
+
+**"Should these be inside a .committee-card-meta?"**
+When the committee type tags landed on committees.html and search.html, you asked the question that unlocked the CSS consolidation: should both pages use the same wrapper class? That question led directly to retiring `.committee-result-meta` and creating the unified `.committee-card-meta` shared with `.candidate-card-meta`. You saw the structural redundancy before it was explicitly named.
+
+**Aligning candidates to committees**
+After getting committees right, you explicitly requested that candidates.html and search.html candidate results follow the same grid layout — not as an afterthought but as a stated goal ("no reason for candidates and committees results to vary here"). That framing pushed the session toward genuine consolidation rather than piecemeal fixes.
+
+**"The only place where card meta is vertically centered"**
+A sharp observation near the end of the session: candidates.html had `align-items:center` on `.candidate-card` while everything else used `align-items:flex-start`. You caught it, named it precisely, and asked for it to be matched. Small detail, but it's the kind of thing that shows the system is being held to a standard.
+
+The through-line: you're consistently making design decisions by comparing components against each other — not evaluating each in isolation. When something is inconsistent across pages, you notice it and name it. That's what makes the system cohere.
+
+---
+
+## What to bring to Claude Chat
+
+- **race.html candidate cards** — these should also get the grid layout (1fr auto) to match candidates.html and search.html. Worth verifying the stats row (grid-column:1/-1) renders correctly with the new grid, since race.html candidate cards can include financial stats.
+- **Typeahead result formatting** — typeahead results on candidates.html and committees.html currently render as a different component from browse rows. Should they share the same tag treatment and visual language, or stay differentiated as a "preview" pattern?
+- **Committee modal rows** — the modal `.committee-row` still has `margin-bottom:var(--space-24)` as a scoped override. Now that browse rows use bottom-border-only, should the modal follow the same pattern, or does the modal context warrant the spacing?
