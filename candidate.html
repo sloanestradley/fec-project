@@ -372,9 +372,8 @@ function renderCommitteeGroups(comms, muted) {
   return groups.map(function(g) {
     return '<div class="section-title">'+g.label+'</div>' +
       g.items.map(function(c) {
-        var lpac = c._isLeadershipPac || c.leadership_pac === true;
         var nameStyle = muted ? 'color:var(--muted)' : '';
-        return '<div class="committee-row"'+(lpac?' style="border-left:2px solid var(--amber);padding-left:0.75rem"':'')+'>'+
+        return '<div class="committee-row">'+
           '<div class="committee-name"'+(nameStyle?' style="'+nameStyle+'"':'')+'>'+
             (c.committee_id
               ? '<a href="/committee/'+c.committee_id+'" class="committee-name-link">'+( c.name||'—')+'</a>'
