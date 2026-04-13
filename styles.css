@@ -284,8 +284,12 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   border-bottom:1px solid var(--border); transition:background 0.15s;
   text-decoration:none; color:inherit; }
 .committee-row:hover { background:var(--surface2); }
-.committee-name { font-size:0.875rem; font-weight:500; }
-.committee-type { font-size:0.625rem; color:var(--muted); text-align:right; }
+.committee-name,
+.committee-result-name { font-size:0.875rem; font-weight:500; color:var(--text); }
+.committee-result-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.committee-type,
+.committee-result-type { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
+.committee-type { text-align:right; }
 .committee-id { font-size:0.625rem; color:var(--muted); }
 
 /* ── F: Data table ── */
@@ -573,15 +577,9 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   text-decoration:none; transition:background 0.15s;
   color:inherit; }
 .committee-result-row:hover { background:var(--surface2); }
-.committee-result-name {
-  font-size:0.75rem; color:var(--text); font-weight:500;
-  flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;
-  white-space:nowrap; }
 .committee-result-meta {
   display:flex; align-items:center; gap:var(--space-8);
   flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
-.committee-result-type {
-  font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
 
 /* ── R: Browse page chrome ── */
 .filter-bar-wrap { padding:var(--space-24) var(--page-gutter); border-bottom:1px solid var(--border); }
