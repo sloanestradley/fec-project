@@ -279,7 +279,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   to right,var(--chart-overlay-election) 0,var(--chart-overlay-election) 2px,transparent 2px,transparent 5px); }
 
 /* ── E: Committee rows ── */
-.committee-row { display:grid; grid-template-columns:1fr auto auto;
+.committee-row { display:grid; grid-template-columns:1fr auto;
   align-items:center; gap:var(--space-16); padding:var(--space-16) var(--space-8);
   border-bottom:1px solid var(--border); transition:background 0.15s;
   text-decoration:none; color:inherit; }
@@ -287,7 +287,9 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .committee-name,
 .committee-result-name { font-size:0.875rem; font-weight:500; color:var(--text); }
 .committee-result-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.committee-id { font-size:0.625rem; color:var(--muted); }
+.committee-card-meta {
+  display:flex; align-items:center; gap:var(--space-8);
+  flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
 
 /* ── F: Data table ── */
 .donors-card { padding-top:var(--space-24); margin-bottom:var(--section-gap); }
@@ -573,9 +575,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   text-decoration:none; transition:background 0.15s;
   color:inherit; }
 .committee-result-row:hover { background:var(--surface2); }
-.committee-result-meta {
-  display:flex; align-items:center; gap:var(--space-8);
-  flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
 
 /* ── R: Browse page chrome ── */
 .filter-bar-wrap { padding:var(--space-24) var(--page-gutter); border-bottom:1px solid var(--border); }
@@ -665,7 +664,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   .profile-content { padding:var(--space-24) var(--page-gutter); }
   .global-banner-text { padding:0 var(--page-gutter); }
   .committee-row { grid-template-columns:1fr; gap:var(--space-4); }
-  .committee-id { text-align:left; }
+
   .donors-table th:nth-child(3), .donors-table td:nth-child(3) { display:none; }
   .raised-grid { grid-template-columns:1fr; }
   .stats-grid { grid-template-columns:repeat(2,1fr); }

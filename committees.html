@@ -337,9 +337,10 @@ function buildRow(c, i, fromPage) {
     + JSON.stringify(c.committee_id) + ',from_page:' + JSON.stringify(fromPage || 'committees')
     + ',result_position:' + i + '})">'
     + '<div class="committee-name">' + (c.name || '—') + '</div>'
+    + '<div class="committee-card-meta">'
     + '<span class="tag tag-neutral">' + committeeTypeLabel(c.committee_type) + '</span>'
-    + '<div class="committee-id"><span class="tag tag-neutral" style="font-size:0.625rem">'
-    + '<span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span></div>'
+    + '<span class="tag tag-neutral"><span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span>'
+    + '</div>'
     + '</a>';
 }
 
