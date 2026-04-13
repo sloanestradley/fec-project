@@ -287,9 +287,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .committee-name,
 .committee-result-name { font-size:0.875rem; font-weight:500; color:var(--text); }
 .committee-result-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.committee-type,
-.committee-result-type { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
-.committee-type { text-align:right; }
 .committee-id { font-size:0.625rem; color:var(--muted); }
 
 /* ── F: Data table ── */
@@ -669,7 +666,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   .profile-content { padding:var(--space-24) var(--page-gutter); }
   .global-banner-text { padding:0 var(--page-gutter); }
   .committee-row { grid-template-columns:1fr; gap:var(--space-4); }
-  .committee-type,.committee-id { text-align:left; }
+  .committee-id { text-align:left; }
   .donors-table th:nth-child(3), .donors-table td:nth-child(3) { display:none; }
   .raised-grid { grid-template-columns:1fr; }
   .stats-grid { grid-template-columns:repeat(2,1fr); }
