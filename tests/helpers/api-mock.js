@@ -381,7 +381,7 @@ const FILINGS = {
  * Returns mock data based on URL path pattern matching.
  */
 export async function mockFecApi(page) {
-  await page.route('**/api.open.fec.gov/**', (route) => {
+  await page.route('**/api/fec/**', (route) => {
     const url = route.request().url();
     const { pathname, searchParams } = new URL(url);
 

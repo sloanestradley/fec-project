@@ -189,7 +189,7 @@ test.describe('search.html — View all links', () => {
     await mockAmplitude(page);
     await mockFecApi(page);
     // Override to return count > 5 for candidate search
-    await page.route('**/api.open.fec.gov/v1/candidates/**', (route) => {
+    await page.route('**/api/fec/candidates/**', (route) => {
       const url = route.request().url();
       if (url.includes('q=')) {
         route.fulfill({
@@ -217,7 +217,7 @@ test.describe('search.html — View all links', () => {
     await mockAmplitude(page);
     await mockFecApi(page);
     // Override to return count > 5 for committee search
-    await page.route('**/api.open.fec.gov/v1/committees/**', (route) => {
+    await page.route('**/api/fec/committees/**', (route) => {
       const url = route.request().url();
       if (url.includes('q=')) {
         route.fulfill({
@@ -258,7 +258,7 @@ test.describe('search.html — ?q= auto-search', () => {
 test.describe('search.html — empty / error states', () => {
   test('query with no results shows no-results state', async ({ page }) => {
     await mockAmplitude(page);
-    await page.route('**/api.open.fec.gov/**', route =>
+    await page.route('**/api/fec/**', route =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',

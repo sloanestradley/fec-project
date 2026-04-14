@@ -1,13 +1,11 @@
-# Netlify clean URL rewrites
-# These are 200 rewrites (not redirects) — the HTML files stay in root,
-# but users see clean paths in the browser. Query params are passed through automatically.
-# Netlify _redirects syntax: /source  /destination  status-code
+# Netlify clean URL rewrites for parameterized profile routes.
+# Both Netlify (Pretty URLs enabled) and Cloudflare natively serve simple pages
+# like /search, /candidates, /races, /feed at their clean URLs — no rules needed.
+#
+# Cloudflare overrides these rules with Pages Functions in:
+#   functions/candidate/[[catchall]].js
+#   functions/committee/[[catchall]].js
+# (needed because Cloudflare's Pretty URL layer conflicts with .html rewrite targets)
 
 /candidate/:id    /candidate.html    200
 /committee/:id    /committee.html    200
-/race             /race.html                200
-/search           /search.html              200
-/candidates       /candidates.html          200
-/committees       /committees.html          200
-/races            /races.html               200
-/feed             /feed.html                200

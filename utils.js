@@ -10,8 +10,7 @@
 
 // ── FEC API config ───────────────────────────────────────────────────────────
 
-var BASE    = 'https://api.open.fec.gov/v1';
-var API_KEY = 'Y7CL6AyMB9NPbwuuMWHduJ6LVu6OWsv49TDZcXZT';
+var BASE = '/api/fec';
 
 // ── API fetch (concurrency-limited) ──────────────────────────────────────────
 
@@ -28,7 +27,7 @@ function _drain() {
 
 function _execute(path, params, resolve, reject) {
   _inFlight++;
-  var p  = Object.assign({ api_key: API_KEY }, params || {});
+  var p  = params || {};
   var qs = Object.keys(p).map(function(k) {
     var v = p[k];
     if (Array.isArray(v)) return v.map(function(item) { return k + '=' + encodeURIComponent(item); }).join('&');

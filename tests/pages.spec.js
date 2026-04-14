@@ -453,7 +453,7 @@ test.describe('race.html', () => {
     // This is verified by inspecting requests during the load
     const errors422 = [];
     page.on('response', res => {
-      if (res.url().includes('api.open.fec.gov') && res.status() === 422) {
+      if (res.url().includes('/api/fec/') && res.status() === 422) {
         errors422.push(res.url());
       }
     });
@@ -684,7 +684,7 @@ test.describe('candidates.html', () => {
   });
 
   test('error state renders when API fails', async ({ page }) => {
-    await page.route('**/api.open.fec.gov/**', route => route.fulfill({ status: 500, body: 'error' }));
+    await page.route('**/api/fec/**', route => route.fulfill({ status: 500, body: 'error' }));
     await page.reload();
     await page.waitForSelector('#state-error', { state: 'visible', timeout: 8000 });
     await expect(page.locator('.retry-btn')).toBeVisible();
@@ -788,7 +788,7 @@ test.describe('committees.html', () => {
   });
 
   test('error state renders when API fails', async ({ page }) => {
-    await page.route('**/api.open.fec.gov/**', route => route.fulfill({ status: 500, body: 'error' }));
+    await page.route('**/api/fec/**', route => route.fulfill({ status: 500, body: 'error' }));
     await page.reload();
     await page.waitForSelector('#state-error', { state: 'visible', timeout: 8000 });
     await expect(page.locator('.retry-btn')).toBeVisible();
