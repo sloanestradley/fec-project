@@ -10,17 +10,10 @@ export default defineConfig({
   timeout: 45000,
 
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL: 'https://fecledger.pages.dev',
     headless: true,
     viewport: { width: 1280, height: 800 },
     screenshot: 'only-on-failure',
-  },
-
-  webServer: {
-    command: 'python3 -m http.server 8080',
-    port: 8080,
-    reuseExistingServer: true,
-    timeout: 10000,
   },
 
   reporter: [['list'], ['html', { open: 'never' }]],

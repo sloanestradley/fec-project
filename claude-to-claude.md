@@ -3468,3 +3468,46 @@ The through-line: you were making product-truth judgments at every turn. The cap
 - **Individual contributors table on committee.html** has the same silent "All time → most recent cycle" fallback that this session fixed for committees. Symmetric bug, scoped out today.
 - **Top Individual Contributors / Top Vendors memo audit** — both surfaces aggregate Schedule A/B transactions directly and should be checked for the same memo_code='X' double-counting bug that the committee contributors table had.
 - **Validate the conduit framing with John.** The decision to split committee contributors from conduit sources is a design call made on legal-category grounds. It's defensible, but a practicing campaign manager might want them combined for different reasons. Worth a "is this how a strategist wants to see it?" check before treating the split as settled.
+
+---
+2026-04-14 (session 2)
+
+## Process log draft
+
+**Title:** Moving the key to the server, and then fixing the tests that noticed
+
+We migrated FECLedger from Netlify to Cloudflare Pages and built a server-side FEC API proxy so the API key no longer lives in client-side source. Most of the session was routing triage — Cloudflare's Pretty URL feature and `_redirects` rewrites were creating 308 redirect loops, and the fix (`ASSETS.fetch` with clean URLs instead of `.html` extensions) took careful tracing to land. Once the site was live and serving data, we turned to the smoke tests and found they'd been written against assumptions that no longer held: wrong committee ID (C00775668 was John Beatty, not Marie), wrong selectors for the search and cycle switcher UI, and a missing `waitForFunction` gap between profile header reveal and stat population. All five smoke tests now pass against the live Cloudflare URL.
+
+**Changelog:**
+- Migrated from Netlify to Cloudflare Pages (fecledger.pages.dev, auto-deploys on push to main)
+- Created `functions/api/fec/[[path]].js`: Cloudflare Pages Function that proxies `/api/fec/*` → `api.open.fec.gov/v1/*`, injecting API key from Cloudflare secret
+- `utils.js`: BASE changed to `/api/fec`, API_KEY variable removed entirely
+- Created `functions/candidate/[[catchall]].js` and `functions/committee/[[catchall]].js`: serve candidate.html and committee.html for clean-URL profile routes using `ASSETS.fetch` (clean URL, no .html extension — avoids Pretty URL 308 loop)
+- `_redirects`: removed 6 simple rules (served natively by both platforms), kept 2 parameterized rules for Netlify fallback
+- Playwright mocks updated from `api.open.fec.gov` to `/api/fec` pattern in `api-mock.js`, `pages.spec.js`, `search.spec.js`
+- `playwright.smoke.config.js`: baseURL changed to `https://fecledger.pages.dev`, webServer block removed
+- Smoke test fixes: committee ID C00775668 → C00806174 (Marie for Congress); candidate test pins to #2024#summary + waitForFunction for stat population; cycle switcher selector fixed (select element, not option children); search selector fixed (.results-list → #group-candidates); race link selector fixed (candidate.html → /candidate/)
+- CLAUDE.md, TESTING.md, test-cases.md, design-system.html updated with correct committee ID and deployment notes
+
+**Field notes:**
+Cloudflare's Pretty URL feature is elegant for normal static sites and brutal when you're also doing URL rewrites. The 308 loop was subtle — `_redirects` said "serve candidate.html for /candidate/:id" but Cloudflare's own layer then turned `candidate.html` back into `/candidate`, creating an infinite chain. The fix was to stop naming the HTML file explicitly and instead let ASSETS resolve the clean URL (`/candidate`) natively. That's the pattern you want anyway; the `.html` naming was always a leaky abstraction. The bigger lesson: the smoke tests caught things integration tests can't — wrong committee ID, a real timing gap in the stat reveal flow, and a selector that matched the intent but not the actual DOM. Running against live is the only way to know you actually shipped what you think you shipped.
+
+**Stack tags:** Cloudflare Pages, Cloudflare Workers, Pages Functions, ASSETS.fetch, Playwright smoke tests
+
+## How Sloane steered the work
+
+**"Push first"** — Before touching the migration, Sloane directed us to push the uncommitted project-brief.md change from the previous session. A small thing, but intentional: don't carry forward invisible state from a prior session when you're about to do something large and potentially breaking.
+
+**Keeping Netlify untouched until verified** — Sloane explicitly scoped the migration as "deploy to Cloudflare, don't touch Netlify." When Netlify auto-deployed the migration commit anyway (breaking it), Sloane rolled it back immediately and stopped builds. The instinct to roll back rather than forward-fix on a broken production deploy was clean judgment.
+
+**Amplitude as verification** — When it wasn't obvious whether the Cloudflare proxy was actually working (data was slow to appear), Sloane checked the Amplitude Network tab. That's a thoughtful proxy for "is the page actually running its JavaScript and making API calls?" rather than just "does the HTML load?"
+
+**Smoke tests as the integration gate** — Sloane explicitly asked to run the smoke tests before closing the session, following the Claude Chat recommendation. This surfaced the wrong committee ID, the timing gap in stat rendering, and the race page link format — none of which would have been caught by the structural tests. The instinct to test against live before declaring done is the right discipline.
+
+**The through-line:** Sloane treats verification as a first-class step, not an afterthought. Push the prior state clean, deploy without breaking production, confirm the integration layer works with real traffic. The pattern is: do the work in isolation, verify end-to-end before calling it done.
+
+## What to bring to Claude Chat
+
+- **Netlify future**: Should Netlify stay paused indefinitely, or is there a reason to keep it as a backup deployment? The `_redirects` file still has the parameterized rules for Netlify — if we're committed to Cloudflare, should we clean those out to reduce confusion?
+- **Rate limit visibility**: With the API key now server-side, there's no easy way to monitor rate-limit consumption. Worth building a simple counter/logging layer in the proxy function before traffic grows?
+- **Smoke test cadence**: The smoke tests pass but take ~5s on a warm Worker. Worth adding them to CI (GitHub Actions) as a post-deploy check, or keep manual-only?

@@ -62,7 +62,7 @@ All tests mock the FEC API (instant responses, no network) and the Amplitude SDK
 | MGP candidate page | Financials are non-zero, name matches, chart canvas renders, no 422 errors |
 | Gillibrand (Senate) | Page loads with Senate-sized cycle switcher |
 | Search for "Gillibrand" | At least one result, name in result text |
-| Committee C00775668 | Committee name appears, financial figures non-zero |
+| Committee C00806174 (Marie for Congress) | Committee name appears, financial figures non-zero |
 | WA-03 2024 race | Candidate cards render, MGP name appears, cycle-anchored links present |
 
 ### FEC API rate limits

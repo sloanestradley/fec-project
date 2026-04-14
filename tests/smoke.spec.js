@@ -20,7 +20,8 @@ test.setTimeout(45000);
 
 test('@smoke: candidate page loads Marie Gluesenkamp Perez with non-zero financials', async ({ page }) => {
   // No API mock — real FEC calls
-  await page.goto('/candidate.html?id=H2WA03217');
+  // Pin to 2024 cycle: confirmed data; 2026 Q1 reports not yet due as of smoke-test baseline
+  await page.goto('/candidate/H2WA03217#2024#summary');
 
   // Wait for the profile to actually load (not just the loading spinner)
   await page.waitForSelector('#profile-header.visible', { timeout: 30000 });
@@ -29,6 +30,12 @@ test('@smoke: candidate page loads Marie Gluesenkamp Perez with non-zero financi
   // Candidate name should appear
   const name = await page.locator('#candidate-name').textContent();
   expect(name?.trim()).toMatch(/GLUESENKAMP|PEREZ/i);
+
+  // Wait for stats to populate — loadCycle() is async after profile reveal
+  await page.waitForFunction(() => {
+    const el = document.querySelector('#stat-raised');
+    return el && el.textContent.trim() !== '—';
+  }, { timeout: 30000 });
 
   // Total Raised should be a non-zero dollar amount
   const raised = await page.locator('#stat-raised').textContent();
@@ -47,7 +54,7 @@ test('@smoke: candidate page loads Marie Gluesenkamp Perez with non-zero financi
   // No 422 errors in API calls
   const errors422 = [];
   page.on('response', res => {
-    if (res.url().includes('api.open.fec.gov') && res.status() === 422) {
+    if (res.url().includes('/api/fec/') && res.status() === 422) {
       errors422.push(res.url());
     }
   });
@@ -57,14 +64,15 @@ test('@smoke: candidate page loads Marie Gluesenkamp Perez with non-zero financi
 // ── @smoke: candidate page — Kirsten Gillibrand (Senate, 6-year cycle) ────────
 
 test('@smoke: Gillibrand (Senate) page loads with 6-year cycle switcher', async ({ page }) => {
-  await page.goto('/candidate.html?id=S0NY00410');
+  await page.goto('/candidate/S0NY00410');
   await page.waitForSelector('#profile-header.visible', { timeout: 30000 });
 
   const name = await page.locator('#candidate-name').textContent();
   expect(name?.trim()).toMatch(/GILLIBRAND/i);
 
-  // Cycle switcher should show Senate cycles
-  await page.waitForSelector('select#cycle-switcher option');
+  // Cycle switcher should show Senate cycles — wait for the <select> itself (not <option>
+  // children, which Playwright cannot check for visibility individually)
+  await page.waitForSelector('select#cycle-switcher', { state: 'visible' });
   const cycles = page.locator('select#cycle-switcher option');
   const count = await cycles.count();
   expect(count).toBeGreaterThanOrEqual(1);
@@ -77,12 +85,12 @@ test('@smoke: Gillibrand (Senate) page loads with 6-year cycle switcher', async 
 // ── @smoke: search for "Gillibrand" returns real results ──────────────────────
 
 test('@smoke: search for "Gillibrand" returns at least one result', async ({ page }) => {
-  await page.goto('/search.html?q=Gillibrand');
+  await page.goto('/search?q=Gillibrand');
 
-  // Wait for results to appear
-  await page.waitForSelector('.results-list', { timeout: 30000 });
+  // Wait for results to appear — search.html uses .results-group, not .results-list
+  await page.waitForSelector('#group-candidates a[href*="/candidate/"]', { timeout: 30000 });
 
-  const links = page.locator('.results-list a[href*="candidate.html"]');
+  const links = page.locator('#group-candidates a[href*="/candidate/"]');
   const count = await links.count();
   expect(count).toBeGreaterThanOrEqual(1);
 
@@ -93,10 +101,11 @@ test('@smoke: search for "Gillibrand" returns at least one result', async ({ pag
 
 // ── @smoke: committee page loads known active committee ───────────────────────
 
-test('@smoke: committee C00775668 (Marie for Congress) loads with financials', async ({ page }) => {
-  // C00775668 is verified active in design-system.html demo data
-  await page.goto('/committee.html?id=C00775668');
-  await page.waitForSelector('.committee-header.visible', { timeout: 30000 });
+test('@smoke: committee C00806174 (Marie for Congress) loads with financials', async ({ page }) => {
+  // C00806174 is Marie Gluesenkamp Perez's principal committee (verified via /candidate/H2WA03217/committees/)
+  await page.goto('/committee/C00806174');
+  // Give the proxy and FEC API extra time — cold Worker start can add ~10–15s
+  await page.waitForSelector('.committee-header.visible', { timeout: 40000 });
 
   // Committee name should appear
   const name = await page.locator('#committee-name').textContent();
@@ -122,7 +131,7 @@ test('@smoke: committee C00775668 (Marie for Congress) loads with financials', a
 // ── @smoke: race page loads WA-03 2024 with real candidate cards ──────────────
 
 test('@smoke: WA-03 2024 race page loads candidate cards with financials', async ({ page }) => {
-  await page.goto('/race.html?state=WA&district=03&year=2024&office=H');
+  await page.goto('/race?state=WA&district=03&year=2024&office=H');
 
   // Wait for candidate cards to appear
   await page.waitForSelector('.race-card, .candidate-card', { timeout: 30000 });
@@ -135,8 +144,8 @@ test('@smoke: WA-03 2024 race page loads candidate cards with financials', async
   const allText = await page.evaluate(() => document.body.textContent);
   expect(allText?.toUpperCase()).toContain('GLUESENKAMP');
 
-  // Candidate cards should link to candidate pages with cycle anchors
-  const links = page.locator('a[href*="candidate.html"]');
+  // Candidate cards should link to candidate pages (clean URLs) with cycle anchors
+  const links = page.locator('a[href*="/candidate/"]');
   const linkCount = await links.count();
   expect(linkCount).toBeGreaterThanOrEqual(1);
 
