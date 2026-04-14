@@ -335,10 +335,25 @@ Reporting-dates endpoint (`/reporting-dates/`) returns:
 - **Correct approach:** 4 parallel calls per cycle year, one each for Q1, Q2, Q3, YE — each returns exactly 1 record, sidestepping pagination and false positives entirely
 
 Candidate totals endpoint returns:
-- `receipts` — cycle total raised
+- `receipts` — cycle total raised (sum of ALL receipt categories below)
 - `disbursements` — cycle total spent
 - `last_cash_on_hand_end_period` — most recent COH
 - `coverage_end_date` — most recent coverage date
+- **Receipt breakdown fields** (all summed into `receipts`; used by "Raised breakdown" donut on candidate.html):
+  - `individual_itemized_contributions` — itemized individual donations (>$200 required; ≤$200 permitted)
+  - `individual_unitemized_contributions` — lump-sum unitemized individual donations (always ≤$200)
+  - `other_political_committee_contributions` — PAC and other non-party committee contributions
+  - `political_party_committee_contributions` — contributions from official party committees
+  - `transfers_from_other_authorized_committee` — transfers between candidate-authorized committees
+  - `candidate_contribution` — direct contribution (gift) from candidate to own committee
+  - `loans_made_by_candidate` — loans from candidate to own committee (creates repayable debt)
+  - `all_other_loans` — third-party loans (banks, etc.)
+  - `federal_funds` — presidential public financing only; always 0 for House/Senate
+  - `offsets_to_operating_expenditures` — vendor refunds credited back as receipts
+  - `offsets_to_fundraising_expenditures` — fundraising expense credits
+  - `offsets_to_legal_accounting` — legal/accounting expense credits
+  - `other_receipts` — named FEC line item for miscellaneous receipts (interest, dividends, etc.)
+  - **Note:** `candidate_contribution` + `loans_made_by_candidate` are merged into "Candidate self-funding" in the donut. Offsets are grouped as "Refunds & offsets". These fields are confirmed present (may be 0) on live responses.
 
 Committee totals endpoint (`/committee/{id}/totals/`) — amendment safety (verified from live response, C00806174 "Marie for Congress"):
 - Returns one record **per cycle** — 4 records for a multi-cycle committee, not one record by design. `per_page=1` with no cycle filter returns the most recent cycle only.

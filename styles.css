@@ -326,6 +326,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .donut-row { display:flex; align-items:center; gap:var(--space-8); padding:var(--space-4) 0;
   font-size:0.625rem; border-bottom:1px solid var(--border); }
 .donut-row:last-child { border-bottom:none; }
+.donut-info { color:var(--muted); cursor:help; margin-left:var(--space-4); font-style:normal; }
 .donut-sw { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
 .donut-lbl { color:var(--subtle); flex:1; min-width:0; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }

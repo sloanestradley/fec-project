@@ -3314,3 +3314,48 @@ The through-line: you're consistently making design decisions by comparing compo
 - **race.html candidate cards** — these should also get the grid layout (1fr auto) to match candidates.html and search.html. Worth verifying the stats row (grid-column:1/-1) renders correctly with the new grid, since race.html candidate cards can include financial stats.
 - **Typeahead result formatting** — typeahead results on candidates.html and committees.html currently render as a different component from browse rows. Should they share the same tag treatment and visual language, or stay differentiated as a "preview" pattern?
 - **Committee modal rows** — the modal `.committee-row` still has `margin-bottom:var(--space-24)` as a scoped override. Now that browse rows use bottom-border-only, should the modal follow the same pattern, or does the modal context warrant the spacing?
+
+---
+2026-04-13 end of session (2)
+
+## Process log draft
+
+Title: The donut that didn't add up
+
+The "Raised breakdown" donut on the candidate page has been quietly wrong for self-funded candidates since it shipped. The center figure showed total receipts — correct — but the segments only covered 7 of the 13 fields that flow into receipts. Loans from the candidate, third-party loans, federal funds, and vendor offsets were all missing. For a candidate like H6WI07249 with $1M in self-loans and $34K in everything else, the donut showed the candidate contributing 99% of a $34K total while the center read $1.03M. A real bug, invisible until you looked at the right candidate.
+
+The session was mostly diagnostic — understanding the FEC's receipt model, confirming which fields exist on the live endpoint, distinguishing offsets (inbound vendor refunds) from contribution refunds (outbound disbursements), and verifying that `other_receipts` is a named line item, not a residual catch-all. The fix itself was small: extend `totalsBreakdown` to accumulate all 13 receipt fields, pre-compute two multi-field values (candidate self-funding, offsets), update the cats array with new segments and info tooltips on ambiguous labels, and rename the section from "Contributor Types" to "Raised breakdown."
+
+Changelog:
+– candidate.html `totalsBreakdown`: extended from 7 to 13 keys; `Object.keys()` accumulator loop picks up new keys automatically
+– candidate.html `renderContributorDonut()`: pre-computed `candidateSelfFunding` and `offsets`; `vals` computation updated to support `val` property alongside `key`; cats array updated with 3 new entries (Loans, Federal funds, Refunds & offsets), relabeled 4 existing entries, added `tooltip` field to 7 entries
+– styles.css: `.donut-info` rule added for info icon styling
+– candidate.html HTML: raised-cell-title changed from "Contributor Types" to "Raised breakdown"
+– candidate.html raised-data-note copy: "Contributor type breakdown" → "Raised breakdown"
+– tests/candidate.spec.js: 1 new assertion — raised-cell-title reads "Raised breakdown"
+– CLAUDE.md: candidate totals endpoint receipt breakdown fields fully documented
+– 410/410 Playwright tests passing
+
+Field notes:
+The most clarifying moment in the session was the question "are offsets a part of total raised or money spent?" — it reframed the entire category. Offsets are inbound (vendor credits the campaign) and therefore receipts, but they don't represent new money raised. The current fix groups them as "Refunds & offsets" with a tooltip explaining the distinction. Whether they deserve to be excluded from the `totalRaised` center figure is a separate design question — for now, the segments are complete and the math closes.
+
+Stack tags: FEC API · Chart.js
+
+## How Sloane steered the work
+
+**Diagnostic-first, build-second**
+The entire first half of the session was questions — what does each breakdown field mean, are offsets inbound or outbound, can unitemized contributions exceed $200. Sloane established a complete mental model of the FEC receipt taxonomy before writing a single line, which meant the plan was correct on the first pass.
+
+**"What other types are just completely missing?"**
+After the loans diagnosis, the immediate question was whether there were other gaps — not just the one that was visible. That question produced the full 6-field audit. Without it, the fix would have closed the loans gap and left federal funds and offsets still broken.
+
+**Precision on offset directionality**
+"Are refunds a negative amount?" and "Do refunds include refunds to individuals?" were both questions that could have gone wrong and established that offsets are positive inbound receipts and that contribution refunds to donors are entirely separate disbursements. Both distinctions matter for the tooltip copy.
+
+The through-line: Sloane treated this as a domain accuracy problem before a code problem. Understanding the FEC receipt model fully — not just enough to ship — is what makes the fix correct rather than approximately correct.
+
+## What to bring to Claude Chat
+
+- **committee.html donut** — the parallel raised breakdown donut on committee.html has the same 7-field gap. Carry the fix forward next session. Worth confirming whether committee.html uses the same receipt field names (`/committee/{id}/totals/` vs `/candidate/{id}/totals/`).
+- **`.donut-info` tooltip UX** — the `title` attribute has the ~1s browser delay noted in CLAUDE.md's Open items. CSS pseudo-element tooltips were already planned for a mobile polish pass. Worth deciding whether to build that for `.donut-info` now or defer to the global pass.
+- **Disbursements breakdown audit** — the same gap probably exists on the Spent tab. `disbursementsBreakdown` uses 5 fields; worth auditing what flows into `disbursements` that isn't currently represented.

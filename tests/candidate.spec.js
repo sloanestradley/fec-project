@@ -300,6 +300,10 @@ test.describe('candidate.html — Raised tab sections', () => {
     const rows = page.locator('#donors-tbody tr');
     await expect(rows).not.toHaveCount(0);
   });
+
+  test('raised breakdown cell title reads "Raised breakdown"', async ({ page }) => {
+    await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
+  });
 });
 
 // ── Committees modal ──────────────────────────────────────────────────────────
