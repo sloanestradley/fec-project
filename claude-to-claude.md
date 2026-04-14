@@ -3359,3 +3359,50 @@ The through-line: Sloane treated this as a domain accuracy problem before a code
 - **committee.html donut** — the parallel raised breakdown donut on committee.html has the same 7-field gap. Carry the fix forward next session. Worth confirming whether committee.html uses the same receipt field names (`/committee/{id}/totals/` vs `/candidate/{id}/totals/`).
 - **`.donut-info` tooltip UX** — the `title` attribute has the ~1s browser delay noted in CLAUDE.md's Open items. CSS pseudo-element tooltips were already planned for a mobile polish pass. Worth deciding whether to build that for `.donut-info` now or defer to the global pass.
 - **Disbursements breakdown audit** — the same gap probably exists on the Spent tab. `disbursementsBreakdown` uses 5 fields; worth auditing what flows into `disbursements` that isn't currently represented.
+
+---
+2026-04-13 Committee donut parity
+
+## Process log draft
+
+Title: Parity, with one word that reframed the segment
+
+Committee.html's "Raised breakdown" donut was carrying an older seven-field model while candidate.html had just been expanded to thirteen. This session ported the fix across — new breakdown fields, tooltip legend spans, the copy refresh — with one committee-specific adjustment: the candidate-funding segment got renamed from "Candidate self-funding" to "Candidate contributions & loans" because the "self-funding" framing is misleading on leadership PACs, super PACs, and joint fundraising committees where the candidate's money isn't really "self." The math stayed identical (candidate_contribution + loans_made_by_candidate) — only the label changed. A small copy fix, but it changes what the chart says about committees that aren't principal campaign committees.
+
+Changelog:
+– committee.html fetchRaisedData(): breakdown object expanded from 7 → 13 receipt keys (loans_made_by_candidate, all_other_loans, federal_funds, and three offsets fields)
+– committee.html renderContributorDonut(): pre-computes candidateContribLoans + offsets aggregates; cats array rewritten to 10 segments with tooltip properties; vals mapping supports both `key` and `val` properties; legend render includes .donut-info tooltip span conditionally
+– committee.html: "Contributor Types" → "Raised breakdown" cell title + data-note copy
+– Committee-specific label: "Candidate contributions & loans" (keeps math identical to candidate.html's "Candidate self-funding", changes only the label + tooltip)
+– Committee-specific tooltip: "Candidate authorized committees" now reads "Money transferred in from committees authorized by the same candidate." — also backported to candidate.html for parity
+– "Refunds & offsets" tooltip reads "this committee" on committee.html (vs "the campaign" on candidate.html)
+– design-system.html Raised/Spent Grid demo updated to "Raised breakdown"
+– tests/pages.spec.js: +1 assertion — committee.html raised-cell-title reads "Raised breakdown"
+– TESTING.md + test-cases.md test counts updated
+– CLAUDE.md candidate totals receipt breakdown fields note updated to reflect both-page coverage
+– 411/411 Playwright tests passing
+
+Field notes:
+The interesting move was choosing what "Candidate contributions & loans" should actually mean. The spec said "change the label to 'Candidate contributions' and update the tooltip to match" — which could have been read as narrowing the segment to candidate_contribution only, leaving loans_made_by_candidate orphaned. Asking before writing surfaced that the right answer was "rename, don't narrow": the segment value stays the same, only the label gets more honest about what committees can actually contain. That's a vocabulary fix, not a math fix — but it's the kind of label rewrite that a non-designer would probably either skip or do silently in a way that changed the underlying data. Naming things accurately for the general case (not just the prototypical case) is design work.
+
+Stack tags: FEC API · Chart.js
+
+## How Sloane steered the work
+
+**Catching the framing on "Candidate self-funding"**
+The most consequential call this session wasn't about code — it was about vocabulary. "Candidate self-funding" is fine on a principal campaign committee, but on a leadership PAC or super PAC the label is quietly wrong: the candidate isn't "funding themselves," because the committee isn't them. You flagged this upfront as a committee-specific adjustment, which meant the port wasn't a straight copy-paste but a small language refresh where it mattered.
+
+**"Rename, don't narrow"**
+When I surfaced the ambiguity about what should happen to `loans_made_by_candidate`, you chose the rename that kept the math intact — "Candidate contributions & loans" — rather than narrowing the segment to just contributions. That preserved the money accounting while making the label honest about what it contains. It's the right answer, but only because you were treating this as a labeling problem first and a code problem second.
+
+**Backporting the tooltip to candidate.html**
+After the committee.html tooltip went in ("Money transferred in from committees authorized by the same candidate."), you noticed the candidate.html tooltip was still the older, more confusing "between committees" phrasing — and asked for the improved copy to carry back. That's a small but telling move: once you'd improved the wording for one context, you wanted the other page brought up to it rather than letting the two diverge.
+
+The through-line: you're treating language as a primary surface in the design system. The segments, the tooltips, the section titles — these are components just as real as the CSS classes, and you're holding them to the same consistency bar.
+
+## What to bring to Claude Chat
+
+- **Committee donut empty states.** For a super PAC where candidate_contribution + loans_made_by_candidate are both zero, the "Candidate contributions & loans" segment suppresses and everything works — but is a donut still the right chart for a committee whose receipts are 98% from a single source (individuals itemized, or PACs)? At some point a stacked bar or a top-contributor list might communicate more than a nearly-solid donut.
+- **Raised center figure vs. offsets question.** Same open question that exists on candidate.html: should "Refunds & offsets" be excluded from the `Total Raised` center value, since they're money credited back rather than money raised? Deferred on candidate.html; would be cleaner to decide once and apply to both pages.
+- **Tooltip UX.** Both pages now have multiple legend entries with `title`-attribute tooltips — the ~1s browser delay is increasingly visible the more tooltips there are. This is noted in CLAUDE.md Open Items as a mobile-polish follow-on; worth deciding whether to address it before or after the next Phase 4 feature so it doesn't pile up further.
+- **Manual browser verification.** I couldn't visually confirm the new segments render against a real principal campaign committee with candidate self-loans. Worth spinning up the dev server and loading C00806174 to confirm the segments appear and the tooltips read clearly, before the commit lands on the live site.

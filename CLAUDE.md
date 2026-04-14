@@ -339,7 +339,7 @@ Candidate totals endpoint returns:
 - `disbursements` — cycle total spent
 - `last_cash_on_hand_end_period` — most recent COH
 - `coverage_end_date` — most recent coverage date
-- **Receipt breakdown fields** (all summed into `receipts`; used by "Raised breakdown" donut on candidate.html):
+- **Receipt breakdown fields** (all summed into `receipts`; used by "Raised breakdown" donut on candidate.html and committee.html — both pages now surface the full 13-field breakdown):
   - `individual_itemized_contributions` — itemized individual donations (>$200 required; ≤$200 permitted)
   - `individual_unitemized_contributions` — lump-sum unitemized individual donations (always ≤$200)
   - `other_political_committee_contributions` — PAC and other non-party committee contributions

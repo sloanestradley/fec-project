@@ -194,6 +194,10 @@ test.describe('committee.html — Raised tab sections', () => {
     await expect(page.locator('#chart-donut')).toBeVisible();
   });
 
+  test('raised breakdown cell title reads "Raised breakdown"', async ({ page }) => {
+    await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
+  });
+
   test('map container is present in raised tab', async ({ page }) => {
     await expect(page.locator('#map-container')).toBeAttached();
   });

@@ -167,7 +167,7 @@
         <div id="raised-content" style="display:none">
           <div class="raised-grid">
             <div class="raised-cell">
-              <div class="raised-cell-title">Contributor Types</div>
+              <div class="raised-cell-title">Raised breakdown</div>
               <div class="donut-wrap">
                 <div class="donut-chart-wrap">
                   <canvas id="chart-donut"></canvas>
@@ -604,7 +604,13 @@ async function fetchRaisedData(cycleOrAll) {
     political_party_committee_contributions: 0,
     transfers_from_other_authorized_committee: 0,
     candidate_contribution: 0,
-    other_receipts: 0
+    other_receipts: 0,
+    loans_made_by_candidate: 0,
+    all_other_loans: 0,
+    federal_funds: 0,
+    offsets_to_operating_expenditures: 0,
+    offsets_to_fundraising_expenditures: 0,
+    offsets_to_legal_accounting: 0
   };
   var totalRaised = 0;
   var covDate = null;
@@ -720,17 +726,32 @@ function renderContributorDonut(breakdown, totalRaised) {
     .getContext('2d')
     .createPattern(makeStripePattern('rgba(74,144,217,0.7)', 'rgba(74,144,217,0.12)'), 'repeat');
 
+  var candidateContribLoans = (breakdown.candidate_contribution || 0)
+                            + (breakdown.loans_made_by_candidate || 0);
+  var offsets = (breakdown.offsets_to_operating_expenditures || 0)
+              + (breakdown.offsets_to_fundraising_expenditures || 0)
+              + (breakdown.offsets_to_legal_accounting || 0);
+
   var cats = [
-    { label:'Individual (itemized)',    key:'individual_itemized_contributions',          color:'rgba(74,144,217,1)' },
-    { label:'Individual (unitemized)',  key:'individual_unitemized_contributions',         color: unitemizedPattern, legendColor:'rgba(74,144,217,0.65)' },
-    { label:'PAC / Other committees',  key:'other_political_committee_contributions',     color:'rgba(232,160,32,0.9)' },
-    { label:'Party committees',        key:'political_party_committee_contributions',     color:'rgba(61,191,122,0.85)' },
-    { label:'Transfers in',            key:'transfers_from_other_authorized_committee',   color:'rgba(155,142,212,0.85)' },
-    { label:'Candidate self-funding',  key:'candidate_contribution',                     color:'rgba(90,96,112,0.8)' },
-    { label:'Other',                   key:'other_receipts',                             color:'rgba(90,96,112,0.4)' },
+    { label:'Individuals (itemized)',          key:'individual_itemized_contributions',        color:'rgba(74,144,217,1)' },
+    { label:'Individuals (unitemized)',        key:'individual_unitemized_contributions',       color: unitemizedPattern, legendColor:'rgba(74,144,217,0.65)' },
+    { label:'PACs & other committees',         key:'other_political_committee_contributions',   color:'rgba(232,160,32,0.9)' },
+    { label:'Party committees',                key:'political_party_committee_contributions',   color:'rgba(61,191,122,0.85)' },
+    { label:'Candidate authorized committees', key:'transfers_from_other_authorized_committee', color:'rgba(155,142,212,0.85)',
+      tooltip:'Money transferred in from committees authorized by the same candidate.' },
+    { label:'Candidate contributions & loans', val:candidateContribLoans,                      color:'rgba(90,96,112,0.8)',
+      tooltip:'Direct contributions and loans from the candidate to this committee. Contributions are gifts; loans create a debt the committee owes back to the candidate.' },
+    { label:'Other receipts',                  key:'other_receipts',                           color:'rgba(90,96,112,0.4)',
+      tooltip:"Miscellaneous receipts that don't fit other categories — interest on bank accounts, dividends, and similar incidental income." },
+    { label:'Loans',                           key:'all_other_loans',                          color:'rgba(200,150,80,0.75)',
+      tooltip:'Loans from banks or other third parties — not funded by the candidate.' },
+    { label:'Federal funds',                   key:'federal_funds',                            color:'rgba(61,191,122,0.5)',
+      tooltip:'Public financing from the Presidential Election Campaign Fund. Only available to presidential candidates.' },
+    { label:'Refunds & offsets',               val:offsets,                                    color:'rgba(90,96,112,0.25)',
+      tooltip:"Vendor refunds, returned deposits, and other amounts credited back to the committee. These are recorded as receipts by the FEC but don't represent new money raised." },
   ];
 
-  var vals   = cats.map(function(c){ return Math.max(0, breakdown[c.key] || 0); });
+  var vals   = cats.map(function(c){ return Math.max(0, c.val !== undefined ? c.val : (breakdown[c.key] || 0)); });
   var total  = vals.reduce(function(s,v){ return s+v; }, 0) || totalRaised || 1;
   var active = cats.filter(function(_,i){ return vals[i] > 0; });
   var aVals  = vals.filter(function(v){ return v > 0; });
@@ -774,7 +795,7 @@ function renderContributorDonut(breakdown, totalRaised) {
     var pct = total > 0 ? (aVals[i]/total*100).toFixed(1) : '0';
     return '<div class="donut-row">' +
       '<div class="donut-sw" style="background:'+(c.legendColor || c.color)+'"></div>' +
-      '<div class="donut-lbl">'+c.label+'</div>' +
+      '<div class="donut-lbl">'+c.label+(c.tooltip ? '<span class="donut-info" title="'+c.tooltip+'">ⓘ</span>' : '')+'</div>' +
       '<div class="donut-pct">'+pct+'%</div>' +
       '<div class="donut-val">'+fmt(aVals[i])+'</div>' +
     '</div>';
@@ -931,7 +952,7 @@ async function renderRaisedIfReady() {
     document.querySelector('#individual-donors-tbody').closest('.donors-card').querySelector('.donors-head')
       .textContent = 'Top Individual Contributors · ' + cycleLabel;
 
-    var note = 'Contributor type breakdown from FEC totals endpoint. ' +
+    var note = 'Raised breakdown from FEC totals endpoint. ' +
       'Geography reflects itemized individual contributions by state (Schedule A). ' +
       'State totals may differ from summary figures due to FEC amendment processing. ' +
       'Contributor tables: ' + cycleLabel + '.';
