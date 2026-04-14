@@ -438,7 +438,7 @@ test.describe('candidate.html — API correctness', () => {
   test('no 422 errors (office param check)', async ({ page }) => {
     const errors422 = [];
     page.on('response', res => {
-      if (res.url().includes('api.open.fec.gov') && res.status() === 422) {
+      if (res.url().includes('/api/fec/') && res.status() === 422) {
         errors422.push(res.url());
       }
     });

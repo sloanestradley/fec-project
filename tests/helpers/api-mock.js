@@ -1,8 +1,8 @@
 /**
  * FEC API mock for Playwright structural tests.
  *
- * Intercepts all requests to api.open.fec.gov and returns minimal but
- * shape-correct mock data so pages render without real network calls.
+ * Intercepts all requests to /api/fec/* (the Cloudflare proxy path) and returns
+ * minimal but shape-correct mock data so pages render without real network calls.
  *
  * Call mockFecApi(page) before page.goto() to activate the intercept.
  * Override individual endpoints by calling page.route() after mockFecApi()

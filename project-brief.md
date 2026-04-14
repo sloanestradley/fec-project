@@ -229,7 +229,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 
 ## Infrastructure / Architecture debt
 
-- **Netlify Function proxy** - the API key is currently exposed client-side in utils.js; the fix is a Netlify serverless function that proxies all FEC requests server-side, holds the key as an environment variable, and optionally adds response caching for repeat lookups. Worth a dedicated session — it touches utils.js, requires a netlify/functions/ directory, a netlify.toml, and Netlify environment variable configuration. - *FLAG: this is a pre-launch priority, not a polish item.*
+- ~~**Server-side API proxy**~~ — ✅ **Done (2026-04-14).** Migrated from Netlify to Cloudflare Pages. FEC API calls now route through `functions/api/fec/[[path]].js`; API key stored as a Cloudflare secret, no longer client-visible. Remaining work: server-side *caching* for races.html enrichment calls (Cloudflare KV) and a scheduled Worker for the mega-committee Schedule A aggregation problem — see architectural debt in CLAUDE.md.
 
 ---
 

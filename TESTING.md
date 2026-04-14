@@ -43,7 +43,7 @@ All tests mock the FEC API (instant responses, no network) and the Amplitude SDK
 
 ### How mocking works
 
-**FEC API:** `tests/helpers/api-mock.js` intercepts all `api.open.fec.gov` requests and returns shape-correct fixture data. Pages render fully without hitting the real API. The `SCHEDULE_A_COMMITTEES` fixture includes a 3rd row with `memo_code: 'X'` (mocked as ActBlue) so both aggregation paths are exercised — the committee contributors dedup which excludes memos, and the conduit sources dedup which only includes memos.
+**FEC API:** `tests/helpers/api-mock.js` intercepts all `/api/fec/*` requests (the Cloudflare proxy path used by `utils.js`) and returns shape-correct fixture data. Pages render fully without hitting the real API. The `SCHEDULE_A_COMMITTEES` fixture includes a 3rd row with `memo_code: 'X'` (mocked as ActBlue) so both aggregation paths are exercised — the committee contributors dedup which excludes memos, and the conduit sources dedup which only includes memos.
 
 **Amplitude:** `tests/helpers/amp-mock.js` blocks the Amplitude CDN (SDK never loads, but the snippet's queue still works), and provides a stub `window.sessionReplay`. All `amplitude.track()` calls queue up in `window.amplitude._q`, which tests read via `page.evaluate()`.
 
