@@ -84,7 +84,7 @@ const COMMITTEE_TOTALS = {
   results: [
     {
       cycle: 2024,
-      receipts: 3500000, disbursements: 3100000,
+      receipts: 3700000, disbursements: 3100000,
       last_cash_on_hand_end_period: 450000, coverage_end_date: '2024-12-31T00:00:00',
       // Raised breakdown
       individual_itemized_contributions: 2000000,
@@ -94,6 +94,7 @@ const COMMITTEE_TOTALS = {
       transfers_from_other_authorized_committee: 100000,
       candidate_contribution: 0,
       other_receipts: 50000,
+      loans_made_by_candidate: 200000,
       // Spent breakdown
       operating_expenditures: 2500000,
       transfers_to_affiliated_committee: 200000,

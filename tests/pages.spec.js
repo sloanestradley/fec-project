@@ -198,6 +198,19 @@ test.describe('committee.html — Raised tab sections', () => {
     await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
   });
 
+  test('donut legend renders "Candidate contributions & loans" segment with tooltip', async ({ page }) => {
+    const row = page.locator('#donut-legend .donut-row', {
+      has: page.locator('.donut-lbl', { hasText: 'Candidate contributions & loans' }),
+    });
+    await expect(row).toHaveCount(1);
+    const info = row.locator('.donut-info');
+    await expect(info).toHaveCount(1);
+    await expect(info).toHaveAttribute(
+      'title',
+      'Direct contributions and loans from the candidate to this committee. Contributions are gifts; loans create a debt the committee owes back to the candidate.'
+    );
+  });
+
   test('map container is present in raised tab', async ({ page }) => {
     await expect(page.locator('#map-container')).toBeAttached();
   });
