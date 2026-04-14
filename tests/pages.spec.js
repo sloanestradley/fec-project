@@ -220,9 +220,46 @@ test.describe('committee.html — Raised tab sections', () => {
     await expect(rows).not.toHaveCount(0);
   });
 
-  test('committee donors tbody is present and has at least one row', async ({ page }) => {
+  test('committee donors tbody has rows when a specific cycle is selected', async ({ page }) => {
+    // Default page load lands on "All time", which hides the committee donors card.
+    // Switch to a specific cycle so the card renders and populates.
+    await page.locator('#cycle-switcher').selectOption({ index: 1 });
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById('raised-content');
+        return el && el.style.display !== 'none';
+      },
+      { timeout: 15000 }
+    );
+    await expect(page.locator('#committee-donors-card')).toBeVisible();
     const rows = page.locator('#committee-donors-tbody tr');
     await expect(rows).not.toHaveCount(0);
+  });
+
+  test('committee donors card is hidden on All time', async ({ page }) => {
+    // beforeEach leaves the page on "All time" by default
+    await expect(page.locator('#cycle-switcher')).toHaveValue('all');
+    await expect(page.locator('#committee-donors-card')).toBeHidden();
+  });
+
+  test('conduits card is visible and populated when a specific cycle is selected', async ({ page }) => {
+    await page.locator('#cycle-switcher').selectOption({ index: 1 });
+    await page.waitForFunction(
+      () => {
+        const el = document.getElementById('raised-content');
+        return el && el.style.display !== 'none';
+      },
+      { timeout: 15000 }
+    );
+    await expect(page.locator('#conduits-card')).toBeVisible();
+    const rows = page.locator('#conduits-tbody tr');
+    await expect(rows).not.toHaveCount(0);
+    await expect(page.locator('#conduits-tbody')).toContainText(/Actblue/i);
+  });
+
+  test('conduits card is hidden on All time', async ({ page }) => {
+    await expect(page.locator('#cycle-switcher')).toHaveValue('all');
+    await expect(page.locator('#conduits-card')).toBeHidden();
   });
 });
 

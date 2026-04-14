@@ -158,9 +158,16 @@
 - [ ] "Today" marker visible on active cycles
 
 ### Raised tab
-- [ ] Contributor breakdown section renders with data
+- [ ] Contributor breakdown donut renders with legend + percentage labels
 - [ ] Geography section renders (choropleth or placeholder)
-- [ ] Top committee contributors section renders
+- [ ] "Top Committee Contributors" card renders with at least one row
+- [ ] Top Committee Contributors header reads year-range format: `· 2025–2026` (House), `· 2021–2026` (Senate), `· 2023–2026` (Presidential)
+- [ ] "Top Conduit Sources" card renders below Top Committee Contributors with at least one row (Democrats should show ActBlue; Republicans should show WinRed)
+- [ ] Top Conduit Sources header reads the same year-range format as Top Committee Contributors
+- [ ] Memo filter verification: ActBlue does NOT appear in Top Committee Contributors table (it's a conduit, not a committee contributor) — only in Top Conduit Sources
+- [ ] Cycle switcher change → both table headers and data refresh to the new cycle window (year-range label updates)
+- [ ] Data note mentions both "Top committee contributors" and "Top conduit sources" with explanation that conduit amounts represent individuals' money
+- [ ] Spent tab: Network tab shows Schedule B pagination advancing past page 1 without 422 errors (cursor key is `last_disbursement_amount`)
 
 ### Committees modal
 - [ ] Opens on clicking "Committees (N) →"
@@ -321,6 +328,12 @@
 - [ ] State tooltip value for WA should not exceed total raised shown on Summary tab for the same cycle selection
 - [ ] Timber PAC (C00833574): map uses neutral/purple color (no party affiliation)
 - [ ] DEM committee (C00806174): map uses blue color
+- [ ] **All time default:** `#committee-donors-card` AND `#conduits-card` both hidden (`display:none`) on initial page load (cycle defaults to "all"); only Top Individual Contributors card visible
+- [ ] **Specific cycle:** both `#committee-donors-card` and `#conduits-card` become visible after selecting a specific cycle from the cycle switcher
+- [ ] **Top Conduit Sources** renders with at least one row on a specific cycle for a committee that receives conduit flow (e.g. Marie for Congress C00806174)
+- [ ] **Mega-committee empty state:** viewing ActBlue (C00401224) on a specific cycle shows "Unable to show top committees due to high transaction volume." in `#committee-donors-tbody` and an analogous message in `#conduits-tbody` (both hit the 100-page adaptive gate)
+- [ ] Memo filter: no ActBlue-as-contributor rows bubble up into the Top Committee Contributors table on any committee (they're always conduit memos, routed to Top Conduit Sources instead)
+- [ ] Spent tab: Network tab shows Schedule B pagination advancing past page 1 without 422 errors (cursor key is `last_disbursement_amount` — verified live 2026-04-14)
 
 ### Spent tab
 - [ ] ✅ Clicking Spent tab shows #tab-spent, hides #tab-summary
@@ -711,7 +724,6 @@ Expected failures — not bugs to fix now. Remove a row when the issue is resolv
 | Issue | Page | Added |
 |-------|------|-------|
 | Ad hoc race comparison mode not yet built | race.html | 2026-03-10 |
-| Schedule B 422s — Schedule B fetch failed: FEC 422 — /schedules/schedule_b/ — Fires 3–7 times per candidate page load. Predates the browse/search overhaul. FEC's /schedules/schedule_b/ endpoint requires committee_id as a mandatory param; at least some calls are firing without it. Contained to the Spent tab. Silently handled (console warning, no user-facing error). Non-blocking — fix before any work that touches the Spent tab. | candidate.html | 2026-03-12 |
 
 ---
 
@@ -791,3 +803,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-04-13 | Loader/state-msg polish: `border-top` removed from `.end-of-results`; `justify-content:center` added to `.state-msg`; `#raised-loading` + `#spent-loading` on candidate.html and committee.html converted from inline styles to `.state-msg` class (with `padding:var(--space-48) 0` override) | styles.css, candidate.html, committee.html, design-system.html | None | 410/410 Track 1 passing |
 | 2026-04-13 | Browse row surface strip: removed background/full-border from .candidate-card, .committee-row, .committee-result-row; border-bottom only, var(--space-8) horizontal padding, surface2 hover; adjacent-sibling border-top:none rules removed; .committee-card-meta unified wrapper for committees browse + search; .committee-row/.committee-result-row align-items:flex-start; type/status/cycle labels converted to tag tag-neutral; .candidate-card converted to display:grid (1fr auto) matching .committee-row; .candidate-card-meta comma-grouped with .committee-card-meta; .candidate-card-stats gets grid-column:1/-1; treasurer removed from committees.html browse; LP amber inline style removed from candidate.html modal; stale .committee-treasurer Playwright test removed | styles.css, committees.html, search.html, candidates.html, candidate.html, tests/pages.spec.js, design-system.html, CLAUDE.md, TESTING.md | None | 409/409 Track 1 passing |
 | 2026-04-13 | Committee donut parity with candidate page: committee.html fetchRaisedData() breakdown expanded from 7 → 13 receipt keys (loans_made_by_candidate, all_other_loans, federal_funds, 3 offsets fields); renderContributorDonut() pre-computes candidateContribLoans + offsets; cats array rewritten to 10 segments with tooltips via .donut-info legend spans; vals mapping supports both `key` and `val` properties; "Contributor Types" → "Raised breakdown" cell title + data-note copy; committee-specific label "Candidate contributions & loans" (math same as candidate self-funding); committee-specific "Candidate authorized committees" tooltip ("Money transferred in from committees authorized by the same candidate.") also backported to candidate.html for parity; "Refunds & offsets" tooltip reads "this committee"; design-system.html Raised/Spent Grid demo title updated; +1 Playwright assertion for committee.html raised-cell-title | committee.html, candidate.html, tests/pages.spec.js, design-system.html, test-cases.md, CLAUDE.md, TESTING.md | None | 411/411 Track 1 passing |
+| 2026-04-14 | Top Committee Contributors refactor (uncap via cursor pagination to exhaustion; aggregate across all sub-cycles on candidate.html; adaptive 100-page gate on committee.html with "Unable to show top committees due to high transaction volume" empty state for mega-committees; hidden entirely on committee.html All time); memo_code='X' filter excludes conduit itemization from committee dedup (prevents double-counting); new Top Conduit Sources surface on both pages (second aggregation pass over the same Schedule A fetch, collecting memo_code='X' rows only — surfaces ActBlue, WinRed, etc. as a separate legally-honest category); year-range cycle label format unified across candidate.html and committee.html ((subCycles[0] - 1) + '–' + subCycles[last] dynamic on cycle-switch); Schedule B cursor bug fix — last_disbursement_amount replaces last_disbursement_date in 3 places (candidate.html fetchSpentData + 2 loops in committee.html fetchSpentData) — resolves pre-existing Known open issue; mock fixture SCHEDULE_A_COMMITTEES gained a 3rd row with memo_code='X' so both aggregation paths have coverage; strategy/hosting-migration.md writeup created for Claude Chat discussion of server-side migration | candidate.html, committee.html, tests/candidate.spec.js, tests/pages.spec.js, tests/helpers/api-mock.js, CLAUDE.md, test-cases.md, TESTING.md, design-system.html, project-brief.md, strategy/hosting-migration.md (new) | Schedule B 422s resolved (pre-existing cursor key bug); no new failures | 416/416 Track 1 passing |

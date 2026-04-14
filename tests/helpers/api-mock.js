@@ -307,13 +307,16 @@ const SCHEDULE_A_INDIVIDUALS = {
 };
 
 // Schedule A — committee contributors (is_individual=false)
-// Fields: contributor_name, contribution_receipt_amount, entity_type, contributor_committee_id
+// Fields: contributor_name, contribution_receipt_amount, entity_type, contributor_committee_id, memo_code
+// Includes one memo_code='X' conduit row so both the committee contributors dedup (which
+// excludes memos) and the conduit sources dedup (which only includes memos) have coverage.
 const SCHEDULE_A_COMMITTEES = {
   results: [
     { contributor_name: 'SEIU POLITICAL EDUCATION ACTION FUND', contribution_receipt_amount: 10000, contributor_committee_id: 'C00004036', entity_type: 'PAC' },
     { contributor_name: 'WASHINGTON STATE DEMOCRATIC CENTRAL COMMITTEE', contribution_receipt_amount: 5000, contributor_committee_id: 'C00106500', entity_type: 'PTY' },
+    { contributor_name: 'ACTBLUE', contribution_receipt_amount: 50, contributor_committee_id: 'C00401224', entity_type: 'PAC', memo_code: 'X' },
   ],
-  pagination: { count: 2 },
+  pagination: { count: 3 },
 };
 
 // Schedule A — legacy alias (used when no is_individual param; keeps candidate.html tests working)

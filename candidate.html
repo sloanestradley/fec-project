@@ -211,7 +211,7 @@
             </div>
           </div>
           <div class="donors-card">
-            <div class="donors-head">Top Committee Contributors · Most recent sub-cycle</div>
+            <div class="donors-head">Top Committee Contributors</div>
             <table class="donors-table">
               <thead><tr>
                 <th style="width:2rem">#</th>
@@ -220,6 +220,18 @@
                 <th class="r">Total</th>
               </tr></thead>
               <tbody id="donors-tbody"></tbody>
+            </table>
+          </div>
+          <div class="donors-card" id="conduits-card">
+            <div class="donors-head">Top Conduit Sources</div>
+            <table class="donors-table">
+              <thead><tr>
+                <th style="width:2rem">#</th>
+                <th>Source</th>
+                <th>Type</th>
+                <th class="r">Total</th>
+              </tr></thead>
+              <tbody id="conduits-tbody"></tbody>
             </table>
           </div>
           <div class="data-note" id="raised-data-note"></div>
@@ -757,19 +769,61 @@ async function fetchRaisedData(committeeId, subCycles, totalsBreakdown, totalRai
     byState = Object.values(stateMap).sort(function(a,b){ return b.total - a.total; });
   } catch(e) { console.warn('by_state fetch failed:', e.message); }
 
-  // Top donors — largest individual transactions from most recent sub-cycle, deduped by name
-  // Top committee contributors — PAC/party/other committee transactions, most recent sub-cycle
+  // Top committee contributors — PAC/party/other committee transactions, aggregated across
+  // all sub-cycles (House: 1; Senate: 3; Presidential: 2). Paginated per sub-cycle via cursor
+  // to full exhaustion — no artificial cap, since candidate committees have bounded committee-
+  // to-committee transfer volume (worst case ~100 pages for a heavily-funded Senate cycle).
+  // apiFetch's MAX_CONCURRENT=4 queue bounds parallelism across sub-cycles.
+  // Top conduit sources — same fetch, second aggregation over memo_code='X' rows. These are
+  // conduit platforms (ActBlue, WinRed, etc.) forwarding individual contributions. Not new
+  // API calls — same `allRows` data, different filter.
   var topDonors = [];
+  var topConduits = [];
   try {
-    var committeeRes = await apiFetch('/schedules/schedule_a/', {
-      committee_id: committeeId,
-      two_year_transaction_period: subCycles[subCycles.length - 1],
-      is_individual: false,
-      sort: '-contribution_receipt_amount',
-      per_page: 100
-    });
+    async function fetchSubCycleCommittees(sc) {
+      var params = {
+        committee_id: committeeId,
+        two_year_transaction_period: sc,
+        is_individual: false,
+        sort: '-contribution_receipt_amount',
+        per_page: 100
+      };
+      var rows = [];
+      while (true) {
+        var res = await apiFetch('/schedules/schedule_a/', params);
+        rows = rows.concat(res.results || []);
+        var pagination = res.pagination || {};
+        if (rows.length >= (pagination.count || 0)) break;
+        var idx = pagination.last_indexes || {};
+        if (!idx.last_index) break;
+        params = Object.assign({}, params, {
+          last_index: idx.last_index,
+          last_contribution_receipt_amount: idx.last_contribution_receipt_amount
+        });
+      }
+      return rows;
+    }
+    var perCycle = await Promise.all(subCycles.map(fetchSubCycleCommittees));
+    var allRows = [];
+    perCycle.forEach(function(rows) { allRows = allRows.concat(rows); });
     var seen = {};
-    (committeeRes.results || []).forEach(function(d) {
+    var seenConduits = {};
+    allRows.forEach(function(d) {
+      var amt = d.contribution_receipt_amount || 0;
+      if (d.memo_code === 'X') {
+        // Memo entries annotate conduit platforms forwarding individual contributions.
+        // Aggregate separately for the Top Conduit Sources surface.
+        var ckey = d.contributor_committee_id || (d.contributor_name || '').trim().toUpperCase();
+        if (!ckey) return;
+        if (!seenConduits[ckey]) seenConduits[ckey] = {
+          name: d.contributor_name || '—',
+          entity_type: d.entity_type || '',
+          total: 0
+        };
+        seenConduits[ckey].total += amt;
+        return;
+      }
+      // Non-memo committee-to-committee contributions — the "real" committee contributor rows.
       var key = d.contributor_committee_id || (d.contributor_name || '').trim().toUpperCase();
       if (!key) return;
       if (!seen[key]) seen[key] = {
@@ -777,15 +831,19 @@ async function fetchRaisedData(committeeId, subCycles, totalsBreakdown, totalRai
         entity_type: d.entity_type || '',
         total: 0
       };
-      seen[key].total += (d.contribution_receipt_amount || 0);
+      seen[key].total += amt;
     });
     topDonors = Object.values(seen)
+      .sort(function(a,b){ return b.total - a.total; })
+      .slice(0, 10);
+    topConduits = Object.values(seenConduits)
       .sort(function(a,b){ return b.total - a.total; })
       .slice(0, 10);
   } catch(e) { console.warn('Top committee contributors fetch failed:', e.message); }
 
   return { byState: byState, breakdown: totalsBreakdown,
-           topDonors: topDonors, totalRaised: totalRaised,
+           topDonors: topDonors, topConduits: topConduits,
+           totalRaised: totalRaised,
            covDate: covDate, subCycles: subCycles };
 }
 
@@ -975,6 +1033,31 @@ function renderTopDonors(donors) {
   }).join('');
 }
 
+// ── Raised tab: top conduit sources table ────────────
+// Conduits are platforms (ActBlue, WinRed, Anedot) that forward individual contributions
+// to committees. Reported on Schedule A via memo_code='X' entries. Distinct from committee
+// contributors (who give their own money) — this table answers "where is the money being
+// platform-routed from?" which committee contributors alone don't reveal.
+function renderTopConduits(conduits) {
+  var tbody = document.getElementById('conduits-tbody');
+  if (!conduits.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">No conduit sources on record for this cycle.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = conduits.map(function(d, i) {
+    var name  = d.name
+      ? d.name.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
+      : '—';
+    var label = ENTITY_TYPE_LABELS[d.entity_type] || 'Committee';
+    return '<tr>' +
+      '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
+      '<td><div class="dn">' + name + '</div></td>' +
+      '<td style="font-size:0.625rem;color:var(--muted)">' + label + '</td>' +
+      '<td class="da">' + fmtFull(d.total) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
 // ── Raised tab: orchestrate render ──────────────────
 async function renderRaisedIfReady() {
   if (raisedRendered) return;
@@ -991,13 +1074,22 @@ async function renderRaisedIfReady() {
     renderContributorDonut(data.breakdown, data.totalRaised);
     await renderChoropleth(data.byState);
     renderTopDonors(data.topDonors);
+    renderTopConduits(data.topConduits);
 
-    var cycleLabel = data.subCycles.length > 1
-      ? data.subCycles[0] + '–' + data.subCycles[data.subCycles.length-1]
-      : String(data.subCycles[0]);
+    // Year range spanning the full data window: start year of the earliest sub-cycle
+    // through end year of the latest sub-cycle. House: 2-year (e.g. "2025–2026").
+    // Senate: 6-year (e.g. "2021–2026"). Presidential: 4-year (e.g. "2023–2026").
+    // Recomputed on every render so cycle-switcher changes propagate (loadCycle resets
+    // raisedRendered/spentRendered, then renderRaisedIfReady/renderSpentIfReady re-run).
+    var cycleLabel = (data.subCycles[0] - 1) + '–' + data.subCycles[data.subCycles.length - 1];
+    document.querySelector('#donors-tbody').closest('.donors-card').querySelector('.donors-head')
+      .textContent = 'Top Committee Contributors · ' + cycleLabel;
+    document.querySelector('#conduits-tbody').closest('.donors-card').querySelector('.donors-head')
+      .textContent = 'Top Conduit Sources · ' + cycleLabel;
+
     var note = 'Raised breakdown from FEC totals endpoint. Choropleth shows individual contributions by state (Schedule A). ' +
-      'Top committee contributors: largest PAC, party, and other committee contributions in the ' + cycleLabel + ' sub-cycle, deduplicated by committee ID.';
-    if (data.subCycles.length > 1) note += ' Senate cycle aggregated across sub-cycles.';
+      'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID and summed across sub-cycles. ' +
+      'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions to this committee — amounts reflect the individuals\' money, not the platforms\' own funds.';
     if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
     note += ' Small-dollar contributions ≤$200 are not itemized.';
     document.getElementById('raised-data-note').innerHTML = note;
@@ -1037,7 +1129,7 @@ async function fetchSpentData(committeeId, subCycles, disbursementsBreakdown, to
       if (!idx.last_index) break;
       params = Object.assign({}, params, {
         last_index: idx.last_index,
-        last_disbursement_date: idx.last_disbursement_date
+        last_disbursement_amount: idx.last_disbursement_amount
       });
     }
   } catch(e) { console.warn('Schedule B fetch failed:', e.message); }
@@ -1213,9 +1305,12 @@ async function renderSpentIfReady() {
     renderSpentDonut(data.breakdown, data.totalSpent);
     renderTopVendors(data.topVendors);
 
-    var cycleLabel = data.subCycles.length > 1
-      ? data.subCycles[0] + '–' + data.subCycles[data.subCycles.length-1]
-      : String(data.subCycles[0]);
+    // Year range spanning the full data window: start year of the earliest sub-cycle
+    // through end year of the latest sub-cycle. House: 2-year (e.g. "2025–2026").
+    // Senate: 6-year (e.g. "2021–2026"). Presidential: 4-year (e.g. "2023–2026").
+    // Recomputed on every render so cycle-switcher changes propagate (loadCycle resets
+    // raisedRendered/spentRendered, then renderRaisedIfReady/renderSpentIfReady re-run).
+    var cycleLabel = (data.subCycles[0] - 1) + '–' + data.subCycles[data.subCycles.length - 1];
     var note = 'Spending by Purpose: keyword mapping of FEC disbursement descriptions from Schedule B, most recent sub-cycle' +
       (data.capped ? ' (capped at 500 transactions)' : '') + '. ' +
       'Spending by Category: FEC totals endpoint. ' +

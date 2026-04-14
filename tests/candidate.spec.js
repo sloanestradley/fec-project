@@ -301,6 +301,15 @@ test.describe('candidate.html — Raised tab sections', () => {
     await expect(rows).not.toHaveCount(0);
   });
 
+  test('top conduit sources table exists and renders the mocked memo row', async ({ page }) => {
+    const card = page.locator('#conduits-card');
+    await expect(card).toBeVisible();
+    const rows = page.locator('#conduits-tbody tr');
+    await expect(rows).not.toHaveCount(0);
+    // The mock includes one ActBlue row with memo_code='X'; it must land in the conduit table
+    await expect(page.locator('#conduits-tbody')).toContainText(/Actblue/i);
+  });
+
   test('raised breakdown cell title reads "Raised breakdown"', async ({ page }) => {
     await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
   });

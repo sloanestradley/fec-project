@@ -3406,3 +3406,65 @@ The through-line: you're treating language as a primary surface in the design sy
 - **Raised center figure vs. offsets question.** Same open question that exists on candidate.html: should "Refunds & offsets" be excluded from the `Total Raised` center value, since they're money credited back rather than money raised? Deferred on candidate.html; would be cleaner to decide once and apply to both pages.
 - **Tooltip UX.** Both pages now have multiple legend entries with `title`-attribute tooltips — the ~1s browser delay is increasingly visible the more tooltips there are. This is noted in CLAUDE.md Open Items as a mobile-polish follow-on; worth deciding whether to address it before or after the next Phase 4 feature so it doesn't pile up further.
 - **Manual browser verification.** I couldn't visually confirm the new segments render against a real principal campaign committee with candidate self-loans. Worth spinning up the dev server and loading C00806174 to confirm the segments appear and the tooltips read clearly, before the commit lands on the live site.
+
+---
+2026-04-14 End of session
+
+## Process log draft
+
+**Title:** What ActBlue actually is, and what to do about it
+
+A question about a capped-at-100-transactions ceiling turned into a full rebuild of the Top Committee Contributors surface end-to-end — pagination to exhaustion, sub-cycle aggregation for Senate and Presidential, an adaptive gate for mega-committees, and a memo filter to stop double-counting. The session also surfaced and fixed a latent Schedule B cursor bug, introduced a new Top Conduit Sources table to honor the legal distinction between committee money and conduit-routed individual money, and produced a hosting migration strategy writeup for Claude Chat.
+
+Changelog:
+– Top Committee Contributors 100-transaction ceiling removed; cursor pagination walks Schedule A to exhaustion for correct totals
+– candidate.html: aggregated across all sub-cycles on Senate (6-year) and Presidential (4-year) cycles; Promise.all bounded by apiFetch MAX_CONCURRENT=4
+– committee.html: adaptive 100-page gate for mega-committees shows "Unable to show top committees due to high transaction volume" empty state; hidden entirely on "All time"
+– Memo filter (memo_code='X'): prevents FEC conduit memo rows from being summed into Top Committee Contributors totals — MGP's "MGP Victory Fund" total was being inflated by ~$394k of duplicated rows before the fix
+– Top Conduit Sources: new .donors-card on both candidate.html and committee.html — second aggregation pass over the same fetch, no new API calls, surfaces ActBlue / WinRed / Anedot as a legally-distinct category from committee contributors
+– Cycle label format unified across both pages as year-range ((subCycles[0] - 1) + '–' + subCycles[last]) — House "2025–2026", Senate "2021–2026", Presidential "2023–2026", dynamic on cycle-switch
+– Schedule B cursor bug fix: last_disbursement_amount replaces last_disbursement_date in 3 places (candidate.html fetchSpentData + 2 loops in committee.html) — resolves pre-existing 422 errors on Spent tab pagination beyond page 1
+– Strategy writeup at strategy/hosting-migration.md — reframes the proxy decision as an architectural fork (API-only vs. bulk + hybrid) and evaluates hosts against each path
+– Tests: +5 Playwright assertions (3 conduit card, 1 adaptive-gate hide, 1 committee contributors visibility); mock fixture SCHEDULE_A_COMMITTEES gained a memo_code='X' row to exercise both aggregation paths; 411 → 416 passing
+– Docs: CLAUDE.md (memo rule, architectural debt, year-range convention, cursor pagination keys, architecture notes), test-cases.md (resolved Schedule B 422 known issue, expanded candidate Raised tab parity with committee, new committee cases, test log row), TESTING.md (count + coverage descriptions), project-brief.md (Raised tab description, 3 new definitions: Conduit platform, Memoed transaction, Mega-committee), design-system.html (donors-card demo label updated to "2025–2026")
+
+Field notes:
+The most important moment of the session wasn't a code change — it was realizing "Top Committee Contributors" was labeling a dishonest aggregation. The table was conflating committees-giving-their-own-money with platforms-routing-individual-money. The answer wasn't to include ActBlue, it was to split the question. "Legally honest" became the organizing principle: one table telling the truth about one category, another table telling the truth about the other. Every subsequent decision flowed from that reframing.
+
+The second clarifying moment was the FEC bulk data question. For most of the session I was operating in a world where "server-side aggregation" meant "walk the same API from a server." That's still the pattern on the adaptive gate — we walk as many pages as we reasonably can, and above 100 we show an empty state. But the permanent fix is to stop walking the API for aggregation entirely. Bulk data flips the cost model from per-visit to per-refresh; mature tools in this space ingest bulk and serve from a database. That's where the project is headed, and naming it explicitly in the strategy writeup gives Claude Chat a real decision to make instead of "pick a host."
+
+Third thing, smaller but worth recording: the Schedule B cursor bug was a clean example of "verify before assuming." I checked the cursor key name against the live API before writing the Schedule A pagination code. If I'd skipped that check, I would have reproduced the exact same bug that had been quietly failing on the Spent tab for weeks. The discipline of "hit one real response before coding against it" paid off twice in one session.
+
+Stack tags: FEC API · Schedule A · Schedule B · cursor pagination · memo_code · bulk data · hosting architecture · Playwright
+
+## How Sloane steered the work
+
+**"A misrepresentation, which is unacceptable"**
+The session opened with a question about the 100-transaction cap, but when I proposed raising it with a safety gate, you rejected the compromise — "the data is a misrepresentation, which is unacceptable for our needs." That framing reframed the task from an optimization problem ("how big a cap is safe?") to a truth problem ("the table has to show the actual answer"). Every subsequent design decision followed from that standard.
+
+**Uncap now, gate later**
+When the feasibility split emerged — candidate committees bounded, committee-page mega-committees infeasible — you made the asymmetric call cleanly: full uncap on candidate.html, adaptive gate with explicit "unable to show" state on committee.html. You didn't reach for a single rule that worked everywhere; you accepted that the two surfaces needed different treatments because they serve different entities.
+
+**"Shouldn't ActBlue be showing up?"**
+The question about ActBlue's absence was the pivotal moment. It surfaced that the Top Committee Contributors table was quietly conflating two legally distinct categories of money. The right answer wasn't to show ActBlue where it didn't belong — it was to create a separate surface that honored the distinction. That's a design call, not a code fix, and it's the insight that made the session matter.
+
+**Verify dynamism before shipping**
+When I wrote the cycle label formula change, you paused the edit mid-application: "making sure this solution is dynamic and correctly labeled depending on the cycle selected in the dropdown." Healthy check. Made me trace the loadCycle → renderRaisedIfReady flow explicitly before re-applying. Prevented a "worked on first load, silently broke on cycle switch" failure mode that would have been invisible in tests.
+
+**Host first, proxy second**
+When the proxy conversation came up, you didn't just say "add Netlify Functions." You said "I want to assess migration to a different host BEFORE doing this proxy work." That reordering matters. The proxy is an implementation; the host is an architecture. Getting the architecture right first is how you avoid building on a foundation you'll later want to move off.
+
+**"Does bulk data change this?"**
+After the first writeup was drafted, you asked whether the FEC's bulk data downloads change the analysis. They did — significantly — and I hadn't thought to raise them proactively. This was a non-engineer catching a thing an engineer should have surfaced. The honest response acknowledged that I'd been thinking inside the API-pagination world when a better architectural option was sitting right there.
+
+The through-line: you were making product-truth judgments at every turn. The cap wasn't a technical problem to optimize — it was a truth problem to solve. ActBlue wasn't a UI curiosity — it was a categorization question. The host decision wasn't infrastructure — it was an architectural identity question. In each case, the technical implementation fell out of a clean restatement of what the product should honestly be saying. That's design thinking applied to backend problems, and it kept the work honest.
+
+## What to bring to Claude Chat
+
+- **Paste strategy/hosting-migration.md as the opening prompt.** It's self-contained, reframes the host-vs-proxy decision as an architectural fork (Option A: API proxy only / Option B: bulk + hybrid), and has the full evaluation criteria + candidate hosts + phased implementation + non-engineer blindspots + open questions. Designed for a productive first-turn conversation with no setup needed.
+- **The architecture decision is upstream of the host decision.** If you lock in Option A → Netlify stays the right host. If Option B → Cloudflare Pages is the strongest fit. Treat these as tied questions, not sequential ones.
+- **Phase 4 reality check.** The host calculation changes materially if AI-generated insights, transaction-level search, and 48/24-hour early signal reports are real roadmap items vs. "maybe someday." Worth answering honestly before picking a host — Option B is much more attractive if those features are real.
+- **Committee.html "All time" aggregation deferred.** We hide the committee contributors + conduits cards on "All time" because the current code was written for the single-cycle path. A follow-up session could extend the adaptive gate to aggregate across all cycles in parallel for feasible committees, matching the candidate.html multi-sub-cycle pattern.
+- **Individual contributors table on committee.html** has the same silent "All time → most recent cycle" fallback that this session fixed for committees. Symmetric bug, scoped out today.
+- **Top Individual Contributors / Top Vendors memo audit** — both surfaces aggregate Schedule A/B transactions directly and should be checked for the same memo_code='X' double-counting bug that the committee contributors table had.
+- **Validate the conduit framing with John.** The decision to split committee contributors from conduit sources is a design call made on legal-category grounds. It's defensible, but a practicing campaign manager might want them combined for different reasons. Worth a "is this how a strategist wants to see it?" check before treating the split as settled.

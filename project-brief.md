@@ -79,9 +79,10 @@ A visual, non-partisan tool for answering one question fast: *where is money flo
 - Spend-down rate is particularly interesting as a signal, especially in the final weeks before a primary or general (John)
 
 *Raised*
-- Breakdown by contributor type (individual, ?, ?, ?, etc.)
+- Breakdown by contributor type (itemized individuals, unitemized individuals, PACs & other committees, party committees, candidate authorized committees, candidate self-funding, loans, federal funds, offsets, other receipts) — donut chart
 - Geography of individual contributions displayed in a US heat map visualization
-- Top contributors
+- **Top Committee Contributors** — PACs, party committees, and other committee-type contributors giving their own money. Legally distinct from conduit flow.
+- **Top Conduit Sources** — platforms like ActBlue and WinRed that forward individual contributions to the committee. Surfaced as a separate table because the money is legally the individuals', not the platforms' — conflating them misrepresents both categories. Sourced from Schedule A `memo_code='X'` entries in a second aggregation pass over the same fetch.
 
 *Spent*
 - Breakdown by spend category
@@ -269,6 +270,9 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - **Independent Expenditure (IE):** Spending by a committee to support or oppose a candidate, made without coordination with the candidate's campaign. Reported on Schedule E (`/schedules/schedule_e/`). The `support_oppose_indicator` field distinguishes direction: `'S'` = supporting the candidate, `'O'` = opposing. Relevant for surfacing attack vs. support spending on candidate and race pages (Phase 4).
 - **Employee aggregates vs. PAC money:** Individual contributions from employees of a corporation or union are legally distinct from that organization's PAC contributions. Do not imply corporate funding from employee donation patterns. The Raised tab must clearly separate "Corporate/Labor PAC" (hard money, capped at $5k) from "Individual" contributions — even when those individuals share an employer.
 - **Contributions to Candidates & Committees:** Outbound political giving from a committee to other federal candidates and committees, reported on Schedule B (`entity_type: CCM`). Particularly relevant for leadership PACs and party committees, which exist partly to funnel money to allied candidates. Surfaced as a dedicated section on the committee Spent tab — distinct from operating expenditures (vendors/staff/media).
+- **Conduit platform:** A registered committee that forwards individual contributions to other committees without acting as the contributor itself. Examples: ActBlue (Democratic), WinRed (Republican), Anedot. Under FEC reporting rules, an earmarked conduit contribution is attributed to the original individual donor on the main Schedule A line (entity_type=IND), with the conduit committee appearing only as a `memo_code='X'` memo entry annotating the lineage. The memo and the main row represent the same money — counting both double-counts. FECLedger surfaces conduit flow as a dedicated "Top Conduit Sources" table on candidate.html and committee.html Raised tabs, distinct from "Top Committee Contributors" (which shows committees giving their own money). Labels make clear that conduit amounts represent individuals' money, not the platforms' own funds.
+- **Memoed transaction (`memo_code='X'`):** FEC Schedule A/B field that flags itemization detail rather than standalone money movement. Memos annotate conduit contributions, JFA sub-itemization, and other structural relationships. Must be excluded from any manual total or double-counting occurs. The `_ytd` fields on the totals endpoint already handle memo exclusion internally; direct Schedule A/B aggregation must filter `memo_code === 'X'` explicitly.
+- **Mega-committee:** Informal term for committees whose Schedule A volume exceeds what client-side pagination can handle — measured threshold ~100 pages at per_page=100. Examples: ActBlue (measured 11,163,722 rows / 111,638 pages in 2024), WinRed, DNC/RNC/NRSC/DSCC/DCCC/NRCC. For these committees, FECLedger's Top Committee Contributors and Top Conduit Sources tables show an "Unable to show top committees due to high transaction volume" empty state on committee.html until the server-side aggregation architecture lands (see `strategy/hosting-migration.md`). Candidate.html doesn't hit this limit because candidate committees have bounded incoming committee-to-committee transfer volume.
 
 ---
 
