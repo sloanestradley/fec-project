@@ -3511,3 +3511,48 @@ Cloudflare's Pretty URL feature is elegant for normal static sites and brutal wh
 - **Netlify future**: Should Netlify stay paused indefinitely, or is there a reason to keep it as a backup deployment? The `_redirects` file still has the parameterized rules for Netlify — if we're committed to Cloudflare, should we clean those out to reduce confusion?
 - **Rate limit visibility**: With the API key now server-side, there's no easy way to monitor rate-limit consumption. Worth building a simple counter/logging layer in the proxy function before traffic grows?
 - **Smoke test cadence**: The smoke tests pass but take ~5s on a warm Worker. Worth adding them to CI (GitHub Actions) as a post-deploy check, or keep manual-only?
+
+---
+2026-04-15
+
+## Process log draft
+
+Title: The key to the server, and now the data too
+
+The hosting migration from last session moved the FEC API key server-side. This session goes further: rather than relaying one API call at a time through the proxy, we're building the infrastructure to download the FEC's full bulk data files, strip them down, and store them in Cloudflare R2. The immediate output is invisible — a new pipeline/ Worker directory that runs on a Monday cron and writes six CSV files to an R2 bucket. No product surface touched. But the shape of what's possible changed.
+
+The interesting technical problem was streaming. The indiv files are ~1.5GB compressed and 4-5GB uncompressed — far too large to buffer in memory inside a 128MB Worker. The native DecompressionStream API doesn't work with ZIP files because ZIP has local file headers before the DEFLATE stream. fflate's AsyncUnzip handles that structure correctly while streaming. R2 multipart upload accepts chunks as they arrive. The coordination between fflate's callback-based API and R2's promise-based uploadPart() required a sequential promise chain — each callback appends to chainPromise rather than awaiting inline, guaranteeing part upload order without blocking the synchronous fflate callbacks.
+
+Changelog:
+– pipeline/ directory created as a standalone Cloudflare Worker (separate from Pages)
+– pipeline/wrangler.toml: Worker config with R2 bucket binding and cron trigger
+– pipeline/package.json: fflate dependency, wrangler devDep
+– pipeline/src/index.js: fetch handler (GET /admin/pipeline/run[?file=key]) + scheduled handler; runPipeline() orchestrates 6 files sequentially; processSmallZip() for pas2 (in-memory unzipSync + R2.put()); processLargeZip() for indiv (streaming fflate AsyncUnzip + R2 multipart, 10MB parts, sequential promise chain); concat() Uint8Array utility
+– CLAUDE.md updated: Current files, What to build next (pipeline roadmap), Remaining architectural debt (pipeline Worker note)
+– test-cases.md: test log row added
+– 416/416 Playwright tests still passing
+
+Field notes:
+The constraint that clarified everything was 128MB. Once that's the bound, "stream or fail" isn't a design preference — it's just the only option. The carry buffer for partial lines (bytes that arrive mid-line between fflate chunks) is one of those small details that's easy to miss in planning and ugly to debug in production. The sequential promise chain for R2 parts is the same: it works because JavaScript is single-threaded and callbacks queue before microtasks execute. Knowing that prevents you from reaching for locks or semaphores that Cloudflare Workers don't need.
+
+Stack tags: Cloudflare Workers · R2 · fflate · multipart upload · streaming
+
+## How Sloane steered the work
+
+**Infrastructure before features**
+The explicit choice to spend a full session on pipeline plumbing with no product-visible output is a product call, not an engineering one. You made it because you know what Phase 4 features (AI insights, early signal data, transaction search) actually require at the data layer — and you'd rather build the foundation correctly now than retrofit it later under feature pressure.
+
+**Thorough spec upfront**
+You came in with a complete, specific brief: which files, which columns to keep, the R2 key pattern, the memory constraint, the cron schedule, even the fact that MEMO_CD='X' rows must be retained. That level of specificity meant the planning phase could focus on the hard technical problem (streaming ZIPs under memory constraints) rather than scoping. The session didn't drift.
+
+**"Research before writing code"**
+The brief explicitly called out "CC should research the right streaming/chunking pattern before writing code." That instruction kept the plan from shipping a solution that would have failed in production (e.g., loading the full ZIP into an ArrayBuffer). The research on fflate vs. native DecompressionStream is the kind of thing that's easy to get wrong when you already know how to write the simpler version.
+
+The through-line: you're doing infrastructure work with the same discipline you apply to product work — complete spec, right foundations, no shortcuts. The pipeline isn't glamorous, but it's the thing that makes Phase 4 possible.
+
+## What to bring to Claude Chat
+
+- **Workers Paid plan confirmation**: The cron trigger requires Workers Paid ($5/month). Before running `wrangler deploy`, confirm the account has it. If not, the cron won't register and the pipeline is HTTP-only.
+- **R2 bucket setup**: `npx wrangler r2 bucket create fecledger-bulk` must be run from `pipeline/` before deploying. Also need account_id from `npx wrangler whoami` filled into `wrangler.toml`.
+- **Session 2 scope — query architecture**: DuckDB-WASM querying R2 directly is one option; a Cloudflare D1 database populated from R2 is another. Worth deciding the query architecture before Session 2 so the R2 file format is correct for whatever query path you pick.
+- **indiv file manual trigger**: For testing the large-file path, use Cloudflare dashboard → fecledger-pipeline → Triggers → "Test scheduled event" (runs under the 15-minute scheduled CPU limit, not the 30s HTTP CPU budget).
