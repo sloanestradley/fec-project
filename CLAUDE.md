@@ -230,19 +230,18 @@ functions/
   api/fec/[[path]].js      — Cloudflare Pages Function: proxies /api/fec/* → api.open.fec.gov/v1/*, injects API_KEY secret
   candidate/[[catchall]].js — Cloudflare Pages Function: serves candidate.html for /candidate/:id (clean URL, no .html)
   committee/[[catchall]].js — Cloudflare Pages Function: serves committee.html for /committee/:id (clean URL, no .html)
-pipeline/                  — Standalone Cloudflare Worker: weekly FEC bulk data ingestion (SEPARATE from Pages — own wrangler.toml, own workers.dev subdomain)
-  wrangler.toml            — Worker config: name=fecledger-pipeline, R2 binding (BULK→fecledger-bulk), cron 0 6 * * 1 (Monday 6am UTC)
+pipeline/                  — Standalone Cloudflare Worker: HTTP trigger only (no cron — all processing moved to GitHub Actions 2026-04-16)
+  wrangler.toml            — Worker config: name=fecledger-pipeline, R2 binding (BULK→fecledger-bulk); cron removed
   package.json             — Worker deps: no third-party deps (fflate removed; uses native DecompressionStream)
-  src/index.js             — Worker: fetch handler (GET /admin/pipeline/run[?file=key]) + scheduled handler
-                             Processes pas2 ONLY: pas222/224/226 → fec/pas2/{year}/pas2.csv in R2 bucket fecledger-bulk
-                             indiv22/24/26 EXCLUDED — ~4.5 GB uncompressed each exceeds Workers 128 MB memory cap and CPU time limit
-                             indiv R2 key pattern live: fec/indiv/{year}/indiv.csv (written by GitHub Actions — see scripts/)
-                             INDIV_* constants + filterColsBinary() retained in src/index.js for porting to GitHub Actions
-                             Deploy: cd pipeline && npm install && npx wrangler deploy (requires Workers Paid plan $5/mo for cron)
+  src/index.js             — Worker: fetch handler (GET /admin/pipeline/run) retained for ad-hoc testing; FILES=[] (empty); utility
+                             functions (processZip, filterColsBinary, etc.) retained for future Worker use
+                             Deploy: cd pipeline && npm install && npx wrangler deploy
 .github/
-  workflows/fec-indiv-pipeline.yml — GitHub Actions: weekly cron Mon 8am UTC + workflow_dispatch; Node.js 24; runs scripts/ingest-indiv.js
+  workflows/fec-bulk-pipeline.yml — GitHub Actions: daily cron 6am UTC + workflow_dispatch; Node.js 24; runs scripts/ingest-bulk.js
 scripts/
-  ingest-indiv.js      — Node.js pipeline: downloads indiv22/24/26.zip, decompresses (zlib.createInflateRaw), filters to 14 columns, uploads to R2 via @aws-sdk/lib-storage multipart; writes fec/last_updated.json on success
+  ingest-bulk.js       — Node.js pipeline: downloads all 6 FEC bulk files (indiv22/24/26 + pas222/24/26); conditional fetching via
+                         HEAD request + fec/meta/pipeline_state.json; BulkProcessingStream (column filter for indiv, passthrough for
+                         pas2); per-file state write for partial-run recovery; writes fec/last_updated.json { indiv, pas2 } on success
   package.json         — @aws-sdk/client-s3 + @aws-sdk/lib-storage dependencies
 tests/
   helpers/amp-mock.js  — Amplitude mock (blocks CDN, stubs sessionReplay, reads _q queue)
@@ -416,15 +415,15 @@ See `project-brief.md` for the full phased roadmap. Short version:
 **Phase 4:** Early signal data (48/24hr reports), AI insights, transaction-level search.
 
 **Bulk data pipeline (infrastructure, parallel to Phase 4):**
-- ~~Session 1~~ ✅ Pipeline Worker deployed — `pipeline/` directory; processes pas222/224/226 only; writes pipe-delimited CSVs to R2 bucket `fecledger-bulk`; cron `0 6 * * 1`; manual trigger `GET /admin/pipeline/run[?file=key]`; indiv files deferred — 4.5 GB each exceeds Workers limits
-- ~~Session 1b~~ ✅ indiv file ingestion via GitHub Actions — `.github/workflows/fec-indiv-pipeline.yml` + `scripts/ingest-indiv.js`; weekly cron Mon 8am UTC; Node.js 24; zlib.createInflateRaw() + ZIP64 extra-field parsing; @aws-sdk/lib-storage multipart upload; all three indiv files confirmed in R2; fec/last_updated.json written on success. **Auth note:** R2 S3-compatible API requires a dedicated R2 API Token (separate from the general Cloudflare API token used for Wrangler) — provides two credentials: R2_ACCESS_KEY_ID + R2_SECRET_ACCESS_KEY stored as GitHub secrets.
-- Session 2 — Wire R2 CSVs to product surfaces (DuckDB-WASM querying directly against R2 files — no D1 yet)
-- Session 3 — Server-side aggregation for mega-committee Schedule A (replaces client-side pagination gap)
+- ~~Session 1~~ ✅ Pipeline Worker deployed — `pipeline/` directory; processes pas222/224/226 only; writes pipe-delimited CSVs to R2 bucket `fecledger-bulk`; manual trigger `GET /admin/pipeline/run[?file=key]`; indiv files deferred — 4.5 GB each exceeds Workers limits
+- ~~Session 1b~~ ✅ indiv file ingestion via GitHub Actions — `scripts/ingest-indiv.js`; weekly cron Mon 8am UTC; Node.js 24; zlib.createInflateRaw() + ZIP64 extra-field parsing; @aws-sdk/lib-storage multipart upload; all three indiv files confirmed in R2. **Auth note:** R2 S3-compatible API requires a dedicated R2 API Token (separate from the general Cloudflare API token used for Wrangler).
+- ~~Session 1c~~ ✅ Pipeline consolidation — all 6 files unified into GitHub Actions (`scripts/ingest-bulk.js`, `.github/workflows/fec-bulk-pipeline.yml`); daily cron 6am UTC; conditional fetching via HEAD request + `fec/meta/pipeline_state.json`; `BulkProcessingStream` handles both column-filtered indiv and passthrough pas2; per-file state write for partial-run recovery; `last_updated.json` now writes `{ indiv, pas2 }`. Worker cron removed; Worker retained for ad-hoc testing only.
+- Session 2 — KV pre-computation (aggregate top contributors per committee into Cloudflare KV for fast client reads)
+- Session 3 — Wire top contributors to product surfaces
 
 ## Remaining architectural debt
 
-- **Bulk pipeline Worker (separate from Pages):** `pipeline/` is a standalone Cloudflare Worker deployed via `cd pipeline && npx wrangler deploy` — NOT part of the Pages git-push deployment. Has its own `wrangler.toml`, its own workers.dev subdomain (`fecledger-pipeline.sloanestradley.workers.dev`), requires Workers Paid plan ($5/month) for the cron trigger. R2 bucket `fecledger-bulk` already created. Currently processes pas222/224/226 only (all columns retained, multipart R2 upload, 10 MB parts). Uses native `DecompressionStream('deflate-raw')` + manual ZIP local-file-header parsing (no fflate).
-- **indiv file ingestion (GitHub Actions required):** indiv22/24/26 are ~1.5 GB compressed / ~4.5 GB uncompressed each. Cloudflare Workers cannot process them — 128 MB memory cap and CPU time limit are binding constraints regardless of implementation. The streaming code (`processZip`, `filterColsBinary`, `INDIV_*` constants) is complete and correct in `pipeline/src/index.js` — it needs a runtime without these limits. GitHub Actions ubuntu runner (no memory cap, 6h job limit, free for public repos) is the planned approach. Auth: Cloudflare R2 can be written to via the S3-compatible API using a Cloudflare API token with R2 write permissions. R2 key pattern reserved: `fec/indiv/{year}/indiv.csv`.
+- **Bulk pipeline Worker (separate from Pages):** `pipeline/` is a standalone Cloudflare Worker deployed via `cd pipeline && npx wrangler deploy` — NOT part of the Pages git-push deployment. Has its own `wrangler.toml`, own workers.dev subdomain (`fecledger-pipeline.sloanestradley.workers.dev`). As of 2026-04-16, FILES=[] and no cron is active — all file processing runs in GitHub Actions. The Worker is retained for ad-hoc HTTP testing (`/admin/pipeline/run`) and potential future lightweight use. Workers Paid plan ($5/mo) is still required to keep the Worker deployed on the workers.dev subdomain.
 - **YTD per_page limit:** Reports currently fetched with `per_page=20` per sub-cycle — verify this is sufficient for Senate candidates with dense filing histories. Some cycles may have more than 20 reports.
 - **Presidential cycle untested:** 4-year cycle is architecturally supported via `getCycleSpanYears()` / `getSubCycles()` but has not been tested with a real presidential candidate.
 - **Multi-cycle stat labels:** Stats row (Raised, Spent, COH) doesn't yet indicate when figures represent a multi-sub-cycle sum (e.g. "6-year total" vs. "cycle total"). Needs a label or caveat for Senate candidates.

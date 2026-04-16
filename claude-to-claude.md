@@ -3635,3 +3635,45 @@ The through-line: you came in with the prerequisites already handled (R2 token, 
 - **Session 2 scope — query architecture:** Now that all six bulk files are in R2 on weekly schedules, what's the right pattern for querying them from the browser? DuckDB-WASM reading directly from R2 public URLs? A Cloudflare Worker that pre-aggregates to KV? The R2 file format (pipe-delimited CSV, 14 columns for indiv) was chosen to be DuckDB-friendly — but the query architecture decision should happen before building any product surfaces against these files.
 - **Is weekly the right cadence for indiv?** The pas2 cron runs weekly. The indiv cron runs 2 hours later. Is there a product feature that actually needs weekly-fresh individual contribution data, or is the current cadence based on "same as pas2" logic? The answer affects whether the 31-minute weekly job is justified.
 - **last_updated.json schema:** Currently `{ indiv: "<ISO>", pas2: null }`. The pas2 field is null because the Worker writes its own timestamp separately. Should both pipelines write to the same file, or is this schema meant to be a client-readable "data freshness" indicator that eventually has both fields populated? Worth deciding before building any UI that reads it.
+
+---
+2026-04-16 (session 4 — pipeline consolidation)
+
+## Process log draft
+
+**Title: One script, six files, one schedule**
+
+The FEC bulk pipeline had been split across two systems since the start: a Cloudflare Worker handling the three small pas2 files on a weekly cron, and a GitHub Actions workflow handling the three large indiv files on a separate weekly cron, two hours later. This session collapsed both into a single GitHub Actions script on a daily schedule. The Worker still exists — its HTTP trigger is useful for ad-hoc testing — but it now has an empty FILES array and no cron. The pipeline is a single moving part.
+
+The more durable addition is conditional fetching. Every file now checks its Last-Modified header via a HEAD request before downloading. The FEC URL redirects to S3, and Node.js follows that redirect automatically — the Last-Modified on the final S3 response is what we compare against `fec/meta/pipeline_state.json`. A daily run where nothing has changed completes in seconds. State is written to R2 after each successful file so a partial run doesn't lose progress on already-completed files.
+
+**Changelog:**
+- `scripts/ingest-indiv.js` → `scripts/ingest-bulk.js`: PAS2_HEADER added; FILES expanded to 6 entries with `type` field; `IndivFilterStream` replaced by `BulkProcessingStream(header, keepArr)` — passthrough when `keepArr=null` (pas2), column filter when `keepArr` set (indiv); `getLastModified()` HEAD request helper; `readPipelineState()` / `writePipelineState()` R2 helpers; main loop updated for conditional skip + per-file state write; `last_updated.json` now writes `{ indiv: ts, pas2: ts }` (same timestamp for both)
+- `.github/workflows/fec-indiv-pipeline.yml` → `fec-bulk-pipeline.yml`: name updated, cron changed from weekly Monday to daily 6am UTC, script reference updated to `ingest-bulk.js`, `CLOUDFLARE_API_TOKEN` added to env block for future sessions
+- `pipeline/src/index.js`: FILES array emptied, file-level comment updated; utility functions retained intact
+- `pipeline/wrangler.toml`: cron trigger removed with explanatory comment
+- Worker redeployed (no cron, no FILES — HTTP trigger still live)
+- 416/416 Playwright tests passing
+
+**Field notes:**
+The redirect behavior was the one thing worth verifying before writing code: the FEC bulk download URL is a redirect to S3, and the Last-Modified header lives on the S3 response, not the FEC response. Node.js `fetch` follows redirects by default — no configuration needed, no manual redirect chain. The returned `resp` is the S3 response. That's the kind of implementation detail that's easy to get wrong if you assume you need to handle it explicitly.
+
+The `BulkProcessingStream` unification is the same logic the Worker had in `_stream()` — `keepArr === null` was always the passthrough path there too. The port was mostly a rename from the Worker's inline conditional to a proper Transform class, matching the Node.js stream model.
+
+**Stack tags:** GitHub Actions · Node.js · Cloudflare Workers · R2 · conditional fetching
+
+## How Sloane steered the work
+
+**Three-session framing**
+You came in with a three-session arc already defined — consolidation, KV pre-computation, wire to product. That framing meant this session could be scoped precisely to "no product-visible changes, no new infrastructure beyond what exists" rather than sprawling into what comes next. Clean scope = clean output.
+
+**Claude Chat review before approve**
+The plan went to Claude Chat before you approved it. The reviewer caught that the workflow file in the plan showed `ingest-indiv.js` in one place — it was actually correct in the plan, but the review added a verification step that confirmed it. That extra review round is the right discipline for infrastructure changes: one wrong script reference and the workflow silently fails on the first run.
+
+The through-line: you treated this session as pure plumbing — no feature pressure, no scope expansion. The value is in what it enables (Sessions 2 and 3), not what it does on its own.
+
+## What to bring to Claude Chat
+
+- **Run 1 verification:** Trigger `.github/workflows/fec-bulk-pipeline.yml` manually and confirm: "no pipeline_state.json found — processing all files" in the log, all 6 files processed, `fec/meta/pipeline_state.json` written with 6 keys, `last_updated.json` has both `indiv` and `pas2` fields.
+- **Run 2 verification:** Trigger again immediately after Run 1 completes. Confirm all 6 files are skipped (Last-Modified unchanged), `last_updated.json` timestamp updated.
+- **Session 2 scope:** KV pre-computation — what's the right granularity for pre-aggregated top-contributor data? Per committee ID? Per committee + cycle? What query patterns does Session 3 need to serve?
