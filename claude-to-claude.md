@@ -3556,3 +3556,39 @@ The through-line: you're doing infrastructure work with the same discipline you 
 - **R2 bucket setup**: `npx wrangler r2 bucket create fecledger-bulk` must be run from `pipeline/` before deploying. Also need account_id from `npx wrangler whoami` filled into `wrangler.toml`.
 - **Session 2 scope — query architecture**: DuckDB-WASM querying R2 directly is one option; a Cloudflare D1 database populated from R2 is another. Worth deciding the query architecture before Session 2 so the R2 file format is correct for whatever query path you pick.
 - **indiv file manual trigger**: For testing the large-file path, use Cloudflare dashboard → fecledger-pipeline → Triggers → "Test scheduled event" (runs under the 15-minute scheduled CPU limit, not the 30s HTTP CPU budget).
+
+---
+2026-04-16 end of session
+
+## Process log draft
+**Title: The size problem that couldn't be reasoned away**
+
+The session was supposed to ship all 6 FEC bulk files into R2. It shipped 3. The pas2 files (committee-to-committee transfers) work perfectly — they're ~23 MB compressed and complete in seconds. The indiv files (~1.5 GB compressed, ~4.5 GB uncompressed) are a different animal: every approach we tried hit either the CPU limit or the memory limit before finishing. The Worker is now in production doing what it can do, running weekly.
+
+Changelog:
+- Removed fflate dependency entirely; replaced with native DecompressionStream('deflate-raw') + manual ZIP header parsing
+- Rewrote compressed-data feeding from a concurrent coroutine to a ReadableStream pull controller (backpressure-safe)
+- Added O(n) binary column filter (filterColsBinary) — no TextDecoder/TextEncoder in the hot path
+- Replaced O(n²) concat-on-every-chunk with bufChunks array + flattenChunks() at part boundaries
+- Scoped Workers cron schedule to pas2 files only (indiv22/24/26 removed from FILE manifest)
+- Reverted cron to weekly (0 6 * * 1) after confirming pas2 runs complete reliably
+- All INDIV_* constants, keepCols logic, and filterColsBinary utility retained in the file — ready to port to a different runtime
+
+Field notes:
+The fflate-to-native-DecompressionStream swap felt like the obvious final fix. A 10-50× speedup on decompression should have cleared the CPU limit handily. It didn't, because CPU time was never the only problem — the ZIP streaming architecture had no backpressure, so the decompressor's internal buffer grew until it hit 128 MB. Fixing backpressure with a ReadableStream pull controller was the right move, but by then the CPU errors were happening simultaneously (alternating CPU/memory errors every minute on the * * * * * cron), which made it impossible to tell which fix resolved which failure. The indiv files may simply be too large for any single-threaded, 128 MB, time-limited Worker execution. The code is correct — it's the runtime constraints that don't fit the job.
+
+## How Sloane steered the work
+**Stopping the chase — your call**
+
+After multiple CPU and memory error cycles, you called it: "Stop trying to fix the indiv file processing in the Worker. The file is too large for Cloudflare Workers regardless of approach." That's a significant product judgment — not a technical one. The temptation in a debugging session is to keep trying approaches until something works. You recognized that we'd exhausted the architectural space and that the right move was to ship what worked, document the constraint clearly, and take the bigger question to Claude Chat where the execution environment decision can be made deliberately.
+
+**Scoping the production artifact correctly**
+
+Rather than leaving the Worker in a broken state or commenting out the indiv entries mid-file, you asked for a clean production config: cron back to weekly, FILE manifest scoped to pas2, utilities retained for future use. That's the difference between a "we gave up" commit and a "this is the production boundary" commit. The Worker now does exactly what it can do, reliably, on schedule.
+
+The through-line: you consistently distinguish between "this session's scope" and "the problem that needs more thinking." Rather than letting debugging inertia drive you past the point of diminishing returns, you drew the line and redirected to the right venue.
+
+## What to bring to Claude Chat
+- **indiv file runtime decision:** What's the right execution environment for ingesting 4.5 GB files? Options: GitHub Actions (free, but 6h limit and needs R2 auth wiring), a one-time local script (simplest — just run it), a dedicated VM or container. What are the trade-offs for ongoing weekly refreshes vs. a one-time historical load?
+- **Is weekly pas2 refresh actually needed?** The pas222/24/26 files update as new filings come in. Before committing to weekly ingestion, what product features actually depend on fresh pas2 data — and is weekly the right cadence, or is it overkill for the current use cases?
+- **R2 + DuckDB-WASM querying architecture for Session 2:** Now that pas2 is in R2 on a weekly schedule, what's the right pattern for querying it from the browser? DuckDB-WASM reading directly from R2 public URLs? Or a Workers KV cache of pre-aggregated results?

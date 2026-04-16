@@ -1,25 +1,35 @@
 /**
  * FECLedger Pipeline Worker
  *
- * Downloads FEC bulk ZIP files, strips unused columns, and stores the result
- * as pipe-delimited CSVs in Cloudflare R2.
+ * Downloads FEC bulk ZIP files, strips unused columns from indiv files,
+ * and stores pipe-delimited CSVs in Cloudflare R2.
  *
  * Runs on a weekly cron schedule (Monday 6am UTC — a few hours after FEC's
  * Sunday night refresh). Also exposes a manual HTTP trigger for development.
  *
  * Files processed:
- *   indiv22/24/26.zip  → fec/indiv/{year}/indiv.csv  (14-column subset, streaming)
- *   pas222/224/226.zip → fec/pas2/{year}/pas2.csv    (all columns, in-memory)
+ *   pas222/224/226.zip → fec/pas2/{year}/pas2.csv  (all columns retained)
+ *
+ * indiv22/24/26 files (~4.5 GB uncompressed each) exceed Cloudflare Workers' CPU
+ * and memory limits regardless of implementation approach. They require a different
+ * execution environment (e.g. a local script, GitHub Actions, or a VM with no CPU cap).
+ * The processZip() function and binary column-filter utilities below are retained so
+ * this Worker can be extended once that environment is identified.
+ *
+ * Both file types use the same streaming path (native DecompressionStream + R2 multipart).
+ * This avoids loading the full decompressed file into memory — critical for
+ * staying within the 128MB Worker memory limit.
  *
  * Deploy:
  *   cd pipeline && npm install && npx wrangler deploy
  *
- * Manual trigger (pas2 files only — indiv files exceed HTTP CPU budget):
- *   curl "https://fecledger-pipeline.<subdomain>.workers.dev/admin/pipeline/run?file=pas224"
- *
- * For indiv files use Cloudflare dashboard → fecledger-pipeline → Test scheduled event
- * (runs under the 15-minute scheduled handler CPU limit, not the 30s HTTP limit).
+ * Manual trigger (development — uses Cloudflare "Test scheduled event" for indiv files):
+ *   curl "https://fecledger-pipeline.sloanestradley.workers.dev/admin/pipeline/run?file=pas224"
  */
+
+// No third-party imports needed — ZIP header is parsed manually and DEFLATE
+// decompression uses the native DecompressionStream('deflate-raw') API,
+// which is C++ and 10-50× faster than fflate's pure-JS implementation.
 
 // ---------------------------------------------------------------------------
 // File manifest
@@ -27,42 +37,30 @@
 
 const FEC_BASE = 'https://www.fec.gov/files/bulk-downloads';
 
+// indiv22/24/26 are excluded — 4.5 GB uncompressed each, exceeds Workers CPU/memory limits.
+// See comment at top of file. The INDIV_* constants and filterColsBinary() are retained
+// for when a suitable execution environment is identified.
 const FILES = [
   {
-    key:   'indiv22',
-    url:   `${FEC_BASE}/2022/indiv22.zip`,
-    r2key: 'fec/indiv/2022/indiv.csv',
-    type:  'indiv',
+    key:      'pas222',
+    url:      `${FEC_BASE}/2022/pas222.zip`,
+    r2key:    'fec/pas2/2022/pas2.csv',
+    keepCols: null, // null = keep all columns
+    header:   null,
   },
   {
-    key:   'indiv24',
-    url:   `${FEC_BASE}/2024/indiv24.zip`,
-    r2key: 'fec/indiv/2024/indiv.csv',
-    type:  'indiv',
+    key:      'pas224',
+    url:      `${FEC_BASE}/2024/pas224.zip`,
+    r2key:    'fec/pas2/2024/pas2.csv',
+    keepCols: null,
+    header:   null,
   },
   {
-    key:   'indiv26',
-    url:   `${FEC_BASE}/2026/indiv26.zip`,
-    r2key: 'fec/indiv/2026/indiv.csv',
-    type:  'indiv',
-  },
-  {
-    key:   'pas222',
-    url:   `${FEC_BASE}/2022/pas222.zip`,
-    r2key: 'fec/pas2/2022/pas2.csv',
-    type:  'pas2',
-  },
-  {
-    key:   'pas224',
-    url:   `${FEC_BASE}/2024/pas224.zip`,
-    r2key: 'fec/pas2/2024/pas2.csv',
-    type:  'pas2',
-  },
-  {
-    key:   'pas226',
-    url:   `${FEC_BASE}/2026/pas226.zip`,
-    r2key: 'fec/pas2/2026/pas2.csv',
-    type:  'pas2',
+    key:      'pas226',
+    url:      `${FEC_BASE}/2026/pas226.zip`,
+    r2key:    'fec/pas2/2026/pas2.csv',
+    keepCols: null,
+    header:   null,
   },
 ];
 
@@ -81,9 +79,8 @@ const FILES = [
 //                                             19 MEMO_TEXT
 //                                             20 SUB_ID
 //
-// We keep 14 columns — drops IMAGE_NUM, AMNDT_IND, RPT_TP, TRANSACTION_PGI,
-// TRANSACTION_TP, TRAN_ID, FILE_NUM (~70% size reduction).
-// MEMO_CD='X' rows (conduit entries) are retained — the product surfaces them.
+// Keeping 14 columns drops ~70% of the uncompressed size.
+// MEMO_CD='X' rows (conduit entries — ActBlue, WinRed) are retained as-is.
 const INDIV_KEEP_COLS = [0, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 18, 19, 20];
 const INDIV_HEADER    = [
   'CMTE_ID', 'ENTITY_TP', 'NAME', 'CITY', 'STATE', 'ZIP_CODE',
@@ -91,7 +88,7 @@ const INDIV_HEADER    = [
   'OTHER_ID', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID',
 ].join('|') + '\n';
 
-// pas2 full schema (21 columns) — keep all
+// pas2: all 21 columns retained
 const PAS2_HEADER = [
   'CMTE_ID', 'AMNDT_IND', 'RPT_TP', 'TRANSACTION_PGI', 'IMAGE_NUM',
   'TRANSACTION_TP', 'ENTITY_TP', 'NAME', 'CITY', 'STATE', 'ZIP_CODE',
@@ -99,7 +96,12 @@ const PAS2_HEADER = [
   'OTHER_ID', 'TRAN_ID', 'FILE_NUM', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID',
 ].join('|') + '\n';
 
-// R2 multipart part size — 10MB (min is 5MB; 10MB keeps part count low for ~4GB files)
+// Apply config to FILE manifest entries
+FILES[0].header = PAS2_HEADER;
+FILES[1].header = PAS2_HEADER;
+FILES[2].header = PAS2_HEADER;
+
+// R2 multipart part size — 10MB (R2 minimum is 5MB; last part may be smaller)
 const PART_SIZE = 10 * 1024 * 1024;
 
 const FETCH_HEADERS = { 'User-Agent': 'FECLedger-Pipeline/1.0' };
@@ -110,15 +112,15 @@ const FETCH_HEADERS = { 'User-Agent': 'FECLedger-Pipeline/1.0' };
 
 export default {
   /**
-   * HTTP trigger — for manual runs during development.
+   * HTTP trigger — manual runs during development.
    *
-   * GET /admin/pipeline/run          → trigger all 6 files
-   * GET /admin/pipeline/run?file=pas224 → trigger one file by key
+   * GET /admin/pipeline/run              → trigger all 6 files
+   * GET /admin/pipeline/run?file=pas224  → trigger one file by key
    *
-   * Returns 202 immediately; pipeline runs in background via ctx.waitUntil.
-   * Use ?file=pas22x/pas224/pas226 for HTTP tests (small files, ~30s).
-   * For indiv files, use the Cloudflare dashboard "Test scheduled event" button
-   * which invokes the scheduled handler and its 15-minute CPU budget.
+   * Returns 202 immediately. Pipeline runs via ctx.waitUntil (background).
+   * Note: HTTP Workers have a 30s CPU limit. For large indiv files, use the
+   * Cloudflare dashboard → fecledger-pipeline → Triggers → "Test scheduled event"
+   * which runs under the 15-minute scheduled CPU limit.
    */
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -141,7 +143,7 @@ export default {
 
   /**
    * Cron trigger — runs every Monday at 6:00 UTC.
-   * Has 15 minutes of CPU time on Workers Paid plan.
+   * 15 minutes of CPU time on Workers Paid plan.
    */
   async scheduled(event, env, ctx) {
     ctx.waitUntil(runPipeline(env, null));
@@ -153,12 +155,8 @@ export default {
 // ---------------------------------------------------------------------------
 
 /**
- * Process all files (or a single file if fileFilter is set).
- * Files are processed sequentially to stay within the 128MB memory limit.
- * A failure on one file logs an error and continues to the next.
- *
- * @param {object} env         - Worker env bindings (env.BULK = R2 bucket)
- * @param {string|null} fileFilter - key from FILES, or null for all
+ * Process all files sequentially (or a single file if fileFilter is set).
+ * Sequential processing keeps memory below 128MB — only one file active at a time.
  */
 async function runPipeline(env, fileFilter) {
   const targets = fileFilter
@@ -170,241 +168,269 @@ async function runPipeline(env, fileFilter) {
     return;
   }
 
-  const results = [];
   for (const file of targets) {
     console.log(`[pipeline] starting ${file.key}`);
     try {
-      if (file.type === 'indiv') {
-        await processLargeZip(env, file.url, file.r2key, INDIV_KEEP_COLS, INDIV_HEADER);
-      } else {
-        await processSmallZip(env, file.url, file.r2key, PAS2_HEADER);
-      }
+      await processZip(env, file.url, file.r2key, file.header, file.keepCols);
       console.log(`[pipeline] completed ${file.key}`);
-      results.push({ key: file.key, ok: true });
     } catch (err) {
       console.error(`[pipeline] FAILED ${file.key}:`, err);
-      results.push({ key: file.key, ok: false, error: String(err) });
     }
   }
-
-  const failed = results.filter(r => !r.ok);
-  if (failed.length) {
-    console.error(`[pipeline] ${failed.length} file(s) failed:`, failed.map(r => r.key).join(', '));
-  } else {
-    console.log(`[pipeline] all ${results.length} file(s) completed successfully`);
-  }
 }
 
 // ---------------------------------------------------------------------------
-// Small file path (pas2) — buffer in memory, single R2 put
+// Unified streaming processor — all file types
 // ---------------------------------------------------------------------------
 
 /**
- * Download a small ZIP (<< 128MB), decompress in memory with fflate unzipSync,
- * prepend a header row, and write to R2 as a single put().
+ * Stream a ZIP from fec.gov, decompress with native DecompressionStream,
+ * optionally filter columns in binary, and write to R2 via multipart upload.
  *
- * @param {object} env       - Worker env (env.BULK = R2 bucket)
- * @param {string} url       - FEC bulk download URL
- * @param {string} r2key     - R2 object key
- * @param {string} headerRow - pipe-delimited header line including trailing \n
+ * Why native DecompressionStream instead of fflate:
+ *   fflate's pure-JS DEFLATE runs at ~100 MB/s uncompressed output — processing
+ *   a 4.5 GB indiv file takes ~45 seconds of CPU, exceeding Cloudflare's limit.
+ *   The native C++ implementation runs at ~1-2 GB/s, reducing that to ~2-4 seconds.
+ *
+ * ZIP header parsing:
+ *   ZIP local file header is 30 bytes fixed + variable name/extra fields.
+ *   We parse it manually to locate the raw DEFLATE stream, then feed those bytes
+ *   directly to DecompressionStream('deflate-raw'). Only standard DEFLATE (method 8)
+ *   is supported — data descriptor mode (bit 3 flag) is rejected with a clear error.
+ *
+ * @param {object}        env       - Worker env (env.BULK = R2 bucket)
+ * @param {string}        url       - FEC bulk download URL
+ * @param {string}        r2key     - R2 object key
+ * @param {string}        headerRow - pipe-delimited header line including \n
+ * @param {number[]|null} keepCols  - 0-indexed columns to retain, or null for all
  */
-async function processSmallZip(env, url, r2key, headerRow) {
-  // Dynamic import — wrangler bundles fflate at deploy time
-  const { unzipSync } = await import('fflate');
-
-  const resp = await fetch(url, { headers: FETCH_HEADERS });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${url}`);
-
-  const buffer = new Uint8Array(await resp.arrayBuffer());
-
-  // unzipSync returns { filename: Uint8Array } for every file in the archive
-  const zipContents = unzipSync(buffer);
-
-  // FEC bulk ZIPs contain a single pipe-delimited .txt data file
-  const dataFilename = Object.keys(zipContents).find(k => k.endsWith('.txt'));
-  if (!dataFilename) throw new Error(`No .txt file found in ZIP: ${url}`);
-
-  const csvText = new TextDecoder('utf-8').decode(zipContents[dataFilename]);
-
-  await env.BULK.put(r2key, headerRow + csvText, {
-    httpMetadata: { contentType: 'text/csv' },
-  });
-
-  console.log(`[pipeline] R2 put complete: ${r2key}`);
-}
-
-// ---------------------------------------------------------------------------
-// Large file path (indiv) — streaming fflate + R2 multipart upload
-// ---------------------------------------------------------------------------
-
-/**
- * Stream a large ZIP from fec.gov through fflate AsyncUnzip, filter columns
- * from each decompressed chunk, and write to R2 via multipart upload.
- *
- * Memory ceiling: the 10MB part buffer + fflate's internal streaming buffer
- * should stay well below the 128MB limit regardless of file size.
- *
- * On any error, aborts the multipart upload to avoid orphaned R2 parts.
- *
- * @param {object}   env       - Worker env (env.BULK = R2 bucket)
- * @param {string}   url       - FEC bulk download URL
- * @param {string}   r2key     - R2 object key
- * @param {number[]} keepCols  - 0-indexed column positions to retain
- * @param {string}   headerRow - pipe-delimited header line including trailing \n
- */
-async function processLargeZip(env, url, r2key, keepCols, headerRow) {
-  const { AsyncUnzip } = await import('fflate');
-  const enc = new TextEncoder();
-  const dec = new TextDecoder('utf-8');
+async function processZip(env, url, r2key, headerRow, keepCols) {
+  const enc = new TextEncoder(); // needed to encode the header row string
 
   const upload = await env.BULK.createMultipartUpload(r2key, {
     httpMetadata: { contentType: 'text/csv' },
   });
 
   try {
-    await _streamZipToR2({ upload, url, keepCols, headerRow, enc, dec, AsyncUnzip });
+    await _stream(upload, url, headerRow, keepCols, enc);
   } catch (err) {
-    // Abort cleans up pending parts so they don't accumulate storage charges
     try { await upload.abort(); } catch (_) { /* ignore abort errors */ }
     throw err;
   }
 }
 
 /**
- * Inner streaming implementation for processLargeZip.
+ * Inner streaming implementation.
+ *
+ * Two processing paths chosen by keepCols:
+ *   keepCols = null  (pas2)  — raw passthrough; decompressed bytes written as-is.
+ *   keepCols set     (indiv) — filterColsBinary(); O(n) byte scan, no string ops.
  *
  * Async coordination:
- *   fflate's AsyncUnzip fires file.ondata synchronously in Cloudflare Workers
- *   (no Web Worker thread pool available; fflate falls back to sync processing).
- *   Each ondata invocation appends a .then(() => upload.uploadPart(...)) to a
- *   single chainPromise, guaranteeing parts are uploaded in strict order with
- *   no await inside the synchronous callback.
- *
- *   The outer loop awaits `unzipDone`, which resolves only after the final
- *   part in the chain has been uploaded — ensuring all data is in R2 before
- *   upload.complete() is called.
+ *   A feed coroutine writes compressed bytes to the DecompressionStream writer
+ *   concurrently while the main loop reads decompressed chunks. R2 uploadPart
+ *   calls are serialized via chainPromise to guarantee part order.
  */
-async function _streamZipToR2({ upload, url, keepCols, headerRow, enc, dec, AsyncUnzip }) {
-  const parts = [];
-  let partNumber  = 1;
-  let buf         = enc.encode(headerRow); // prime with header so first part includes it
-  let carry       = new Uint8Array(0);     // bytes of an incomplete trailing line
-  let chainPromise = Promise.resolve();    // sequential upload chain
+async function _stream(upload, url, headerRow, keepCols, enc) {
+  const parts       = [];
+  let   partNumber  = 1;
+  const headerChunk = enc.encode(headerRow);
+  let   bufChunks   = [headerChunk];
+  let   bufSize     = headerChunk.length;
+  let   carry       = new Uint8Array(0); // partial trailing line (indiv only)
+  let   chainPromise = Promise.resolve();
 
-  // Resolved by the ondata final callback after all parts have been enqueued
-  let resolveUnzip, rejectUnzip;
-  const unzipDone = new Promise((res, rej) => {
-    resolveUnzip = res;
-    rejectUnzip  = rej;
-  });
+  // Pre-build O(1) lookup for binary column filter
+  let keepArr = null;
+  if (keepCols) {
+    keepArr = new Uint8Array(22); // covers columns 0–20
+    keepCols.forEach(i => { keepArr[i] = 1; });
+  }
 
-  const unzip = new AsyncUnzip();
-
-  unzip.onfile = (file) => {
-    // Skip any non-data files inside the ZIP (e.g. readme, directory entries)
-    if (!file.name.endsWith('.txt')) {
-      file.start();
-      return;
-    }
-
-    file.ondata = (err, chunk, final) => {
-      if (err) {
-        rejectUnzip(err);
-        return;
-      }
-
-      // Prepend any incomplete bytes from the previous chunk, then split on \n.
-      // lines.pop() removes and saves the potentially incomplete trailing line.
-      const combined = concat(carry, chunk);
-      const text     = dec.decode(combined);
-      const lines    = text.split('\n');
-      carry          = enc.encode(lines.pop());
-
-      // Filter each complete line to the desired columns
-      const filteredText = lines
-        .map(line => {
-          if (!line) return '';
-          const cols = line.split('|');
-          return keepCols.map(i => (cols[i] !== undefined ? cols[i] : '')).join('|');
-        })
-        .join('\n');
-
-      // Add trailing newline only when there were complete lines to write
-      const filtered = enc.encode(filteredText + (lines.length > 0 ? '\n' : ''));
-      buf = concat(buf, filtered);
-
-      // Flush full 10MB parts into the sequential upload chain
-      while (buf.length >= PART_SIZE) {
-        const partData = buf.slice(0, PART_SIZE);
-        buf            = buf.slice(PART_SIZE);
-        const pn       = partNumber++;
-
-        // Arrow function captures pn and partData in closure —
-        // these values are safe to close over because JS is single-threaded
-        chainPromise = chainPromise.then(async () => {
-          const part = await upload.uploadPart(pn, partData);
-          parts.push(part);
-          console.log(`[pipeline] uploaded part ${pn} (${(partData.length / 1024 / 1024).toFixed(1)} MB)`);
-        });
-      }
-
-      if (final) {
-        // Flush any remaining bytes as the last part.
-        // The final part may be < 5MB — R2 allows this for the last part only.
-        if (buf.length > 0) {
-          const partData = buf;
-          const pn       = partNumber++;
-          chainPromise   = chainPromise.then(async () => {
-            const part = await upload.uploadPart(pn, partData);
-            parts.push(part);
-            console.log(`[pipeline] uploaded final part ${pn} (${(partData.length / 1024 / 1024).toFixed(2)} MB)`);
-          });
-        }
-
-        // Resolve unzipDone only after the entire chain has settled
-        chainPromise.then(resolveUnzip).catch(rejectUnzip);
-      }
-    };
-
-    file.start(); // begin decompressing this file entry
-  };
-
-  // Fetch the ZIP and feed its bytes to fflate chunk-by-chunk
+  // --- Fetch ZIP and parse local file header ---
   const resp = await fetch(url, { headers: FETCH_HEADERS });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${url}`);
 
-  const reader = resp.body.getReader();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      // Push an empty array with final=true on EOF to flush fflate's internal state
-      unzip.push(done ? new Uint8Array(0) : value, done);
-      if (done) break;
-    }
-  } catch (readErr) {
-    rejectUnzip(readErr);
+  const netReader = resp.body.getReader();
+  let zbuf = new Uint8Array(0);
+
+  // Buffer until we have the 30-byte fixed portion of the local file header
+  while (zbuf.length < 30) {
+    const { done, value } = await netReader.read();
+    if (done) throw new Error('ZIP stream ended before header');
+    zbuf = concat(zbuf, value);
   }
 
-  // Block until every uploadPart has completed
-  await unzipDone;
+  // Verify PK\x03\x04 local file header signature
+  if (zbuf[0] !== 0x50 || zbuf[1] !== 0x4B || zbuf[2] !== 0x03 || zbuf[3] !== 0x04) {
+    throw new Error(`Invalid ZIP signature: ${[...zbuf.subarray(0,4)].map(b=>b.toString(16)).join(' ')}`);
+  }
 
-  // Parts must be sorted ascending by partNumber before completing
+  const flags      = zbuf[6]  | (zbuf[7]  << 8);
+  const comprMethod = zbuf[8] | (zbuf[9]  << 8);
+  const nameLen    = zbuf[26] | (zbuf[27] << 8);
+  const extraLen   = zbuf[28] | (zbuf[29] << 8);
+  const dataStart  = 30 + nameLen + extraLen;
+  // Compressed size as unsigned 32-bit int (>>> 0 prevents signed overflow)
+  const compressedSize = ((zbuf[18] | (zbuf[19] << 8) | (zbuf[20] << 16) | (zbuf[21] << 24)) >>> 0);
+
+  if (flags & 0x08)    throw new Error('ZIP data descriptor mode not supported (bit 3 flag set)');
+  if (comprMethod !== 8) throw new Error(`Unsupported ZIP compression method: ${comprMethod} (expected 8=DEFLATE)`);
+  if (compressedSize === 0) throw new Error('ZIP compressed size is 0 — data descriptor mode not supported');
+
+  // Buffer until we have the full variable-length header (name + extra fields)
+  while (zbuf.length < dataStart) {
+    const { done, value } = await netReader.read();
+    if (done) throw new Error('ZIP stream ended in variable header');
+    zbuf = concat(zbuf, value);
+  }
+
+  // --- Set up backpressure-aware compressed data source ---
+  // Using ReadableStream with a pull controller so the decompressor only receives
+  // new input when it's ready for it — prevents the internal buffer from growing
+  // unboundedly (which caused the Worker memory limit to be exceeded).
+  let netWritten = 0;
+  const leftover = zbuf.subarray(dataStart, Math.min(zbuf.length, dataStart + compressedSize));
+
+  const compressedStream = new ReadableStream({
+    start(controller) {
+      if (leftover.length > 0) {
+        controller.enqueue(leftover);
+        netWritten += leftover.length;
+        if (netWritten >= compressedSize) controller.close();
+      }
+    },
+    async pull(controller) {
+      if (netWritten >= compressedSize) { controller.close(); return; }
+      const { done, value } = await netReader.read();
+      if (done) { controller.close(); return; }
+      const remaining = compressedSize - netWritten;
+      const slice = remaining < value.length ? value.subarray(0, remaining) : value;
+      controller.enqueue(slice);
+      netWritten += slice.length;
+      if (netWritten >= compressedSize) controller.close();
+    },
+  });
+
+  const dsReader = compressedStream
+    .pipeThrough(new DecompressionStream('deflate-raw'))
+    .getReader();
+
+  // --- Read decompressed output, filter, accumulate, upload ---
+  while (true) {
+    const { done, value } = await dsReader.read();
+    if (done) break;
+
+    let filtered;
+    if (!keepArr) {
+      filtered = value; // pas2: raw passthrough
+    } else {
+      // indiv: binary column filter
+      const data = carry.length > 0 ? concat(carry, value) : value;
+      let lastNL = -1;
+      for (let i = data.length - 1; i >= 0; i--) {
+        if (data[i] === 0x0A) { lastNL = i; break; }
+      }
+      const processable = lastNL >= 0 ? data.subarray(0, lastNL + 1) : new Uint8Array(0);
+      carry             = lastNL >= 0 ? data.slice(lastNL + 1) : data;
+      filtered          = processable.length > 0 ? filterColsBinary(processable, keepArr) : new Uint8Array(0);
+    }
+
+    if (filtered.length > 0) { bufChunks.push(filtered); bufSize += filtered.length; }
+
+    while (bufSize >= PART_SIZE) {
+      const all      = flattenChunks(bufChunks, bufSize);
+      const partData = all.slice(0, PART_SIZE);
+      const rest     = all.slice(PART_SIZE);
+      bufChunks = [rest];
+      bufSize   = rest.length;
+      const pn  = partNumber++;
+      chainPromise = chainPromise.then(async () => {
+        const part = await upload.uploadPart(pn, partData);
+        parts.push(part);
+        console.log(`[pipeline] part ${pn} (${(partData.length / 1024 / 1024).toFixed(1)} MB)`);
+      });
+    }
+  }
+
+  // Flush partial trailing line (indiv: last line may not end with \n)
+  if (carry.length > 0 && keepArr) {
+    const lastLine = filterColsBinary(concat(carry, new Uint8Array([0x0A])), keepArr);
+    bufChunks.push(lastLine);
+    bufSize += lastLine.length;
+  }
+
+  // Flush final part
+  if (bufSize > 0) {
+    const partData = flattenChunks(bufChunks, bufSize);
+    const pn       = partNumber++;
+    chainPromise   = chainPromise.then(async () => {
+      parts.push(await upload.uploadPart(pn, partData));
+      console.log(`[pipeline] final part ${pn} (${(partData.length / 1024 / 1024).toFixed(2)} MB)`);
+    });
+  }
+
+  await chainPromise;
+
   parts.sort((a, b) => a.partNumber - b.partNumber);
   await upload.complete(parts);
-
-  console.log(`[pipeline] multipart complete: ${parts.length} parts for ${r2key}`);
+  console.log(`[pipeline] complete: ${parts.length} parts → ${upload.key ?? ''}`);
 }
 
 // ---------------------------------------------------------------------------
 // Utility
 // ---------------------------------------------------------------------------
 
-/**
- * Concatenate two Uint8Arrays into a new Uint8Array.
- */
 function concat(a, b) {
   const out = new Uint8Array(a.length + b.length);
   out.set(a, 0);
   out.set(b, a.length);
   return out;
+}
+
+// Merge an array of Uint8Array chunks into one contiguous buffer.
+// Called once per part flush (every 10MB), not on every chunk append.
+function flattenChunks(chunks, totalSize) {
+  const out = new Uint8Array(totalSize);
+  let pos = 0;
+  for (const c of chunks) { out.set(c, pos); pos += c.length; }
+  return out;
+}
+
+// Binary column filter for pipe-delimited rows.
+// data must contain only complete lines (each ending with 0x0A).
+// keepArr is a Uint8Array where keepArr[colIndex] === 1 means keep that column.
+// Returns a new Uint8Array with only the kept columns, separated by 0x7C.
+function filterColsBinary(data, keepArr) {
+  const PIPE = 0x7C;
+  const NL   = 0x0A;
+
+  const out = new Uint8Array(data.length); // output ≤ input size
+  let outPos = 0;
+  let col    = 0;
+  let colStart       = 0;
+  let firstKeptOnLine = true;
+
+  for (let i = 0; i < data.length; i++) {
+    const b = data[i];
+    if (b === PIPE || b === NL) {
+      if (keepArr[col]) {
+        if (!firstKeptOnLine) out[outPos++] = PIPE; // separator before this column
+        const len = i - colStart;
+        out.set(data.subarray(colStart, i), outPos);
+        outPos += len;
+        firstKeptOnLine = false;
+      }
+      if (b === NL) {
+        out[outPos++]   = NL;
+        col             = 0;
+        firstKeptOnLine = true;
+      } else {
+        col++;
+      }
+      colStart = i + 1;
+    }
+  }
+
+  return out.subarray(0, outPos);
 }

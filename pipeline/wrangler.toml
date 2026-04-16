@@ -4,7 +4,7 @@ compatibility_date = "2024-09-23"
 
 # Fill in before deploying:
 #   npx wrangler whoami
-account_id = "<YOUR_CLOUDFLARE_ACCOUNT_ID>"
+account_id = "ebc968a93e3bec33c52c5121c914cc77"
 
 [[r2_buckets]]
 binding = "BULK"
