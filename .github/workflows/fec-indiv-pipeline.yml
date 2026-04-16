@@ -1,0 +1,40 @@
+name: FEC indiv bulk data pipeline
+
+# Runs weekly on Mondays at 8:00 UTC — two hours after the Cloudflare Worker
+# processes the pas2 files (cron: 0 6 * * 1). Can also be triggered manually.
+#
+# Prerequisites (GitHub repository secrets required):
+#   CLOUDFLARE_ACCOUNT_ID  — Cloudflare account ID
+#   R2_ACCESS_KEY_ID       — from a Cloudflare R2 API Token
+#   R2_SECRET_ACCESS_KEY   — from the same R2 API Token
+#
+# R2 API Tokens are created at: Cloudflare Dashboard → R2 → Manage R2 API Tokens
+# A general Cloudflare API token (used for Wrangler) will NOT authenticate to R2.
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pipeline dependencies
+        run: npm install
+        working-directory: scripts
+
+      - name: Run FEC indiv pipeline
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: node scripts/ingest-indiv.js
