@@ -733,6 +733,7 @@ Append a row after each test run. Never delete old rows.
 
 | Date | Session focus | Pages tested | Failures found | Status |
 |------|---------------|--------------|----------------|--------|
+| 2026-04-16 | FEC indiv pipeline via GitHub Actions — .github/workflows/fec-indiv-pipeline.yml + scripts/ingest-indiv.js + scripts/package.json; no HTML/CSS/JS changes; workflow triggered manually, all 3 indiv files confirmed in R2, last_updated.json confirmed; post-run Node.js 24 upgrade + deprecation warning fix | None (infrastructure session — no browser-visible surfaces modified) | None | 416/416 Track 1 passing (Playwright unaffected); live R2 verification passed |
 | 2026-03-10 | test-cases.md creation + CLAUDE.md ritual update | None (infrastructure session — no HTML pages modified) | — | N/A |
 | 2026-03-10 | Playwright setup — Track 1 structural (170 tests) + Track 2 smoke (5 tests) | All 9 pages + index (automated) | design-system.html missing .mobile-search-icon (fixed) | 170/170 Track 1 passing; Track 2 ready for manual run |
 | 2026-03-10 | utils.js extraction — shared utilities refactor | All pages (automated) | None | 170/170 Track 1 passing |

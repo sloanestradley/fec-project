@@ -71,14 +71,21 @@ The FEC API has rate limits. Smoke tests include a 45-second timeout per test to
 
 ---
 
-## Pipeline Worker — no automated tests
+## Pipeline — no automated tests
 
-The `pipeline/` Cloudflare Worker is a separate deployment from the main site and has no Playwright tests. It runs outside the browser and produces no DOM to assert against.
+Neither the Cloudflare Worker (`pipeline/`) nor the GitHub Actions script (`scripts/ingest-indiv.js`) has Playwright tests. Both run outside the browser and produce no DOM to assert against.
 
-**Manual verification:**
+**Cloudflare Worker (pas2) — manual verification:**
 - R2 dashboard (Cloudflare → R2 → fecledger-bulk) — confirm `fec/pas2/{year}/pas2.csv` objects exist with non-zero size after a cron run or manual trigger
 - `wrangler tail` — stream live logs during a run; look for `[pipeline] part N` progress lines and `[pipeline] complete: N parts`
 - Manual trigger: `curl "https://fecledger-pipeline.sloanestradley.workers.dev/admin/pipeline/run?file=pas224"` → 202 response, then tail logs
+
+**GitHub Actions (indiv) — manual verification:**
+- GitHub → Actions → FEC indiv bulk data pipeline → Run workflow (manual trigger)
+- Watch run log for `[2022] Part 1 complete` (confirms ZIP header parsing, decompression, column filter, and R2 auth all working)
+- R2 dashboard — confirm `fec/indiv/{year}/indiv.csv` exists with non-zero size for all three years
+- Spot-check: first line of each file should be the 14-column header (`CMTE_ID|ENTITY_TP|NAME|...`); a data row should have 13 pipes
+- Confirm `fec/last_updated.json` exists in R2 after all three files complete
 
 ---
 
