@@ -10,5 +10,6 @@ account_id = "ebc968a93e3bec33c52c5121c914cc77"
 binding = "BULK"
 bucket_name = "fecledger-bulk"
 
-[triggers]
-crons = ["0 6 * * 1"]
+# Cron trigger removed 2026-04-16 — all file processing moved to GitHub Actions
+# (scripts/ingest-bulk.js, .github/workflows/fec-bulk-pipeline.yml).
+# The fetch handler (/admin/pipeline/run) remains for ad-hoc testing.

@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 /**
- * FECLedger — FEC individual contribution file ingestion
+ * FECLedger — FEC bulk data ingestion
  *
- * Downloads indiv22/24/26.zip from FEC bulk downloads, strips unused columns,
- * and uploads pipe-delimited CSVs to Cloudflare R2 via the S3-compatible API.
+ * Downloads indiv22/24/26.zip and pas222/24/26.zip from FEC bulk downloads.
+ * indiv files are stripped to 14 columns; pas2 files are stored as-is.
+ * All files are uploaded to Cloudflare R2 via the S3-compatible API.
+ *
+ * Conditional fetching: a HEAD request checks each file's Last-Modified header
+ * against the saved value in fec/meta/pipeline_state.json. Files unchanged
+ * since the last run are skipped. pipeline_state.json is updated after each
+ * successful file so a partial run preserves progress.
  *
  * Ported from pipeline/src/index.js (Cloudflare Worker). Processing logic is
  * identical; runtime differences are zlib vs. DecompressionStream and AWS SDK
@@ -20,7 +26,7 @@
 
 import { createInflateRaw }    from 'node:zlib';
 import { Transform }           from 'node:stream';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Upload }              from '@aws-sdk/lib-storage';
 
 // ---------------------------------------------------------------------------
@@ -33,9 +39,12 @@ const FETCH_HEADERS  = { 'User-Agent': 'FECLedger-Pipeline/1.0' };
 const ZIP64_SENTINEL = 0xFFFFFFFF;
 
 const FILES = [
-  { yy: '22', year: '2022' },
-  { yy: '24', year: '2024' },
-  { yy: '26', year: '2026' },
+  { type: 'indiv', yy: '22', year: '2022' },
+  { type: 'indiv', yy: '24', year: '2024' },
+  { type: 'indiv', yy: '26', year: '2026' },
+  { type: 'pas2',  yy: '22', year: '2022' },
+  { type: 'pas2',  yy: '24', year: '2024' },
+  { type: 'pas2',  yy: '26', year: '2026' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -58,6 +67,14 @@ const INDIV_HEADER    = [
   'CMTE_ID', 'ENTITY_TP', 'NAME', 'CITY', 'STATE', 'ZIP_CODE',
   'EMPLOYER', 'OCCUPATION', 'TRANSACTION_DT', 'TRANSACTION_AMT',
   'OTHER_ID', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID',
+].join('|') + '\n';
+
+// pas2: all 21 columns retained — verbatim from pipeline/src/index.js
+const PAS2_HEADER = [
+  'CMTE_ID', 'AMNDT_IND', 'RPT_TP', 'TRANSACTION_PGI', 'IMAGE_NUM',
+  'TRANSACTION_TP', 'ENTITY_TP', 'NAME', 'CITY', 'STATE', 'ZIP_CODE',
+  'EMPLOYER', 'OCCUPATION', 'TRANSACTION_DT', 'TRANSACTION_AMT',
+  'OTHER_ID', 'TRAN_ID', 'FILE_NUM', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID',
 ].join('|') + '\n';
 
 // ---------------------------------------------------------------------------
@@ -200,33 +217,39 @@ async function parseZipHeader(netReader, year) {
 }
 
 // ---------------------------------------------------------------------------
-// IndivFilterStream — pipe-delimited column filter as a Node.js Transform
+// BulkProcessingStream — unified column filter / passthrough as a Node.js Transform
 //
-// Prepends the 14-column header row, then for each decompressed chunk:
-//   1. Prepend any carry bytes from the previous chunk (partial last line)
-//   2. Process all complete lines (up to and including the last \n)
-//   3. Save remaining bytes as carry for the next chunk
-//   4. On flush, process the final carry (last line may omit trailing \n)
+// For indiv (keepArr set):
+//   Prepends the 14-column header row, then filters columns in each chunk.
+//   Uses a carry buffer for partial last lines across chunk boundaries.
+//
+// For pas2 (keepArr null):
+//   Prepends the 21-column header row, then passes raw bytes through unchanged.
 // ---------------------------------------------------------------------------
 
-class IndivFilterStream extends Transform {
-  constructor() {
+class BulkProcessingStream extends Transform {
+  constructor(header, keepArr) {
     super();
-    const keepArr = new Uint8Array(22); // covers columns 0–20
-    INDIV_KEEP_COLS.forEach(i => { keepArr[i] = 1; });
-    this._keepArr      = keepArr;
+    this._keepArr      = keepArr; // null = passthrough (pas2); Uint8Array = filter (indiv)
     this._carry        = new Uint8Array(0);
     this._headerPushed = false;
+    this._headerBytes  = Buffer.from(header);
   }
 
   _transform(chunk, _encoding, callback) {
     try {
       if (!this._headerPushed) {
-        this.push(Buffer.from(INDIV_HEADER));
+        this.push(this._headerBytes);
         this._headerPushed = true;
       }
 
-      // Merge carry + incoming chunk into a contiguous buffer
+      if (!this._keepArr) {
+        // pas2: raw passthrough — no column filtering
+        this.push(chunk);
+        return callback();
+      }
+
+      // indiv: binary column filter with carry buffer for partial lines
       const data = this._carry.length > 0 ? concat(this._carry, chunk) : chunk;
 
       // Find last newline to bound the processable region to complete lines
@@ -254,8 +277,8 @@ class IndivFilterStream extends Transform {
 
   _flush(callback) {
     try {
-      if (this._carry.length > 0) {
-        // Last line may omit trailing \n — append one so filterColsBinary processes it
+      // indiv only: last line may omit trailing \n — filter and push final carry
+      if (this._keepArr && this._carry.length > 0) {
         const lastLine = concat(this._carry, new Uint8Array([0x0A]));
         const filtered = filterColsBinary(lastLine, this._keepArr);
         if (filtered.length > 0) this.push(Buffer.from(filtered));
@@ -319,6 +342,50 @@ async function feedCompressedToInflate(inflate, netReader, zbuf, dataStart, comp
 }
 
 // ---------------------------------------------------------------------------
+// Conditional fetching — HEAD request for Last-Modified
+//
+// Node.js fetch follows redirects by default (redirect: 'follow'). The FEC URL
+// returns a 302 to S3. fetch follows it transparently; the returned response
+// represents the final S3 response, which carries the Last-Modified header.
+// No separate S3 request or manual redirect handling needed.
+// ---------------------------------------------------------------------------
+
+async function getLastModified(url, label) {
+  try {
+    const resp = await fetch(url, { method: 'HEAD', headers: FETCH_HEADERS });
+    return resp.headers.get('Last-Modified'); // null if header absent
+  } catch (err) {
+    console.warn(`[${label}] HEAD failed (${err.message}) — will process anyway`);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// pipeline_state.json — read/write
+// ---------------------------------------------------------------------------
+
+async function readPipelineState(s3) {
+  try {
+    const resp   = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: 'fec/meta/pipeline_state.json' }));
+    const chunks = [];
+    for await (const chunk of resp.Body) chunks.push(chunk);
+    return JSON.parse(Buffer.concat(chunks).toString());
+  } catch (err) {
+    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) return null;
+    throw err;
+  }
+}
+
+async function writePipelineState(s3, state) {
+  await s3.send(new PutObjectCommand({
+    Bucket:      BUCKET,
+    Key:         'fec/meta/pipeline_state.json',
+    Body:        JSON.stringify(state, null, 2),
+    ContentType: 'application/json',
+  }));
+}
+
+// ---------------------------------------------------------------------------
 // Fetch with single 503 retry
 // ---------------------------------------------------------------------------
 
@@ -337,36 +404,50 @@ async function fetchWithRetry(url, year) {
 // Process one file
 // ---------------------------------------------------------------------------
 
-async function processFile(s3, { yy, year }) {
-  const t0    = Date.now();
-  const url   = `https://www.fec.gov/files/bulk-downloads/${year}/indiv${yy}.zip`;
-  const r2Key = `fec/indiv/${year}/indiv.csv`;
+async function processFile(s3, { type, yy, year }) {
+  const t0      = Date.now();
+  const isIndiv = type === 'indiv';
 
-  console.log(`\n[${year}] ── Starting ─────────────────────────────`);
-  console.log(`[${year}] URL: ${url}`);
+  const url   = isIndiv
+    ? `https://www.fec.gov/files/bulk-downloads/${year}/indiv${yy}.zip`
+    : `https://www.fec.gov/files/bulk-downloads/${year}/pas2${yy}.zip`;
+  const r2Key = isIndiv
+    ? `fec/indiv/${year}/indiv.csv`
+    : `fec/pas2/${year}/pas2.csv`;
+  const header  = isIndiv ? INDIV_HEADER : PAS2_HEADER;
 
-  const resp      = await fetchWithRetry(url, year);
+  // Build keepArr for indiv column filter; null = passthrough for pas2
+  let keepArr = null;
+  if (isIndiv) {
+    keepArr = new Uint8Array(22); // covers columns 0–20
+    INDIV_KEEP_COLS.forEach(i => { keepArr[i] = 1; });
+  }
+
+  console.log(`\n[${year}/${type}] ── Starting ─────────────────────────────`);
+  console.log(`[${year}/${type}] URL: ${url}`);
+
+  const resp      = await fetchWithRetry(url, `${year}/${type}`);
   const netReader = resp.body.getReader();
 
-  const { compressedSize, dataStart, zbuf, isZip64 } = await parseZipHeader(netReader, year);
+  const { compressedSize, dataStart, zbuf, isZip64 } = await parseZipHeader(netReader, `${year}/${type}`);
   const sizeLabel = isFinite(compressedSize)
     ? `${(compressedSize / 1024 / 1024).toFixed(0)} MB compressed`
     : 'unknown size (streaming to EOF)';
-  console.log(`[${year}] ZIP64=${isZip64} | ${sizeLabel}`);
+  console.log(`[${year}/${type}] ZIP64=${isZip64} | ${sizeLabel}`);
 
-  const inflate      = createInflateRaw();
-  const filterStream = new IndivFilterStream();
+  const inflate         = createInflateRaw();
+  const processingStream = new BulkProcessingStream(header, keepArr);
 
   // pipe() does not forward errors — propagate manually
-  inflate.on('error', err => filterStream.destroy(err));
-  inflate.pipe(filterStream);
+  inflate.on('error', err => processingStream.destroy(err));
+  inflate.pipe(processingStream);
 
   const upload = new Upload({
     client: s3,
     params: {
       Bucket:      BUCKET,
       Key:         r2Key,
-      Body:        filterStream,
+      Body:        processingStream,
       ContentType: 'text/csv',
     },
     partSize:          PART_SIZE,
@@ -379,16 +460,16 @@ async function processFile(s3, { yy, year }) {
     if (part && part !== lastLoggedPart) {
       lastLoggedPart = part;
       const mb = loaded !== undefined ? ` (${(loaded / 1024 / 1024).toFixed(0)} MB uploaded)` : '';
-      console.log(`[${year}] Part ${part} complete${mb}`);
+      console.log(`[${year}/${type}] Part ${part} complete${mb}`);
     }
   });
 
   // feedCompressedToInflate and upload.done() run concurrently:
-  // feed writes compressed bytes → inflate decompresses → filterStream filters
-  // → upload reads from filterStream and uploads to R2 in 10 MB parts
+  // feed writes compressed bytes → inflate decompresses → processingStream filters or passes
+  // → upload reads from processingStream and uploads to R2 in 10 MB parts
   const feedPromise = feedCompressedToInflate(inflate, netReader, zbuf, dataStart, compressedSize)
     .catch(err => {
-      inflate.destroy(err); // unblocks filterStream so upload can fail cleanly
+      inflate.destroy(err); // unblocks processingStream so upload can fail cleanly
       throw err;
     });
 
@@ -396,12 +477,12 @@ async function processFile(s3, { yy, year }) {
     await Promise.all([feedPromise, upload.done()]);
   } catch (err) {
     inflate.destroy();
-    filterStream.destroy();
+    processingStream.destroy();
     throw err;
   }
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-  console.log(`[${year}] ✓ Done — ${r2Key} (${lastLoggedPart} parts, ${elapsed}s)`);
+  console.log(`[${year}/${type}] ✓ Done — ${r2Key} (${lastLoggedPart} parts, ${elapsed}s)`);
 }
 
 // ---------------------------------------------------------------------------
@@ -428,16 +509,45 @@ async function main() {
     credentials: { accessKeyId, secretAccessKey },
   });
 
-  console.log('FECLedger — FEC indiv pipeline');
-  console.log(`Bucket: ${BUCKET} | Files: ${FILES.map(f => `indiv${f.yy}`).join(', ')}`);
+  console.log('FECLedger — FEC bulk pipeline');
+  console.log(`Bucket: ${BUCKET} | Files: ${FILES.map(f => `${f.type}${f.yy}`).join(', ')}`);
+
+  // Read saved pipeline state for conditional fetching
+  let state = await readPipelineState(s3);
+  if (!state) {
+    console.log('\nNo pipeline_state.json found — processing all files unconditionally');
+    state = {};
+  } else {
+    console.log('\nLoaded pipeline_state.json — will skip files with unchanged Last-Modified');
+  }
 
   let allSucceeded = true;
 
   for (const file of FILES) {
+    const stateKey = `${file.type}${file.yy}`; // e.g. 'indiv22', 'pas222'
+    const url = file.type === 'indiv'
+      ? `https://www.fec.gov/files/bulk-downloads/${file.year}/indiv${file.yy}.zip`
+      : `https://www.fec.gov/files/bulk-downloads/${file.year}/pas2${file.yy}.zip`;
+    const label = `${file.year}/${file.type}`;
+
+    // HEAD request to check Last-Modified (follows FEC → S3 redirect automatically)
+    const currentLastModified = await getLastModified(url, label);
+
+    if (currentLastModified && currentLastModified === state[stateKey]) {
+      console.log(`\n[${label}] Skipped — Last-Modified unchanged (${currentLastModified})`);
+      continue;
+    }
+
     try {
       await processFile(s3, file);
+
+      // Update state immediately after each success — preserves progress on partial runs
+      if (currentLastModified) {
+        state[stateKey] = currentLastModified;
+        await writePipelineState(s3, state);
+      }
     } catch (err) {
-      console.error(`\n[${file.year}] ✗ FAILED: ${err.message}`);
+      console.error(`\n[${label}] ✗ FAILED: ${err.message}`);
       allSucceeded = false;
       // Continue to next file — do not abort the entire run on a single failure
     }
@@ -445,14 +555,14 @@ async function main() {
 
   if (allSucceeded) {
     const ts   = new Date().toISOString();
-    const body = JSON.stringify({ indiv: ts, pas2: null });
+    const body = JSON.stringify({ indiv: ts, pas2: ts });
     await s3.send(new PutObjectCommand({
       Bucket:      BUCKET,
       Key:         'fec/last_updated.json',
       Body:        body,
       ContentType: 'application/json',
     }));
-    console.log(`\n✓ All files complete. last_updated.json written (indiv: ${ts})`);
+    console.log(`\n✓ Run complete. last_updated.json written (${ts})`);
   } else {
     console.error('\n✗ One or more files failed — last_updated.json NOT written');
     process.exit(1);

@@ -1,30 +1,24 @@
 /**
  * FECLedger Pipeline Worker
  *
- * Downloads FEC bulk ZIP files, strips unused columns from indiv files,
- * and stores pipe-delimited CSVs in Cloudflare R2.
+ * NOTE: As of 2026-04-16, all FEC bulk file processing has moved to GitHub Actions
+ * (scripts/ingest-bulk.js). Both pas2 and indiv files are now ingested there.
  *
- * Runs on a weekly cron schedule (Monday 6am UTC — a few hours after FEC's
- * Sunday night refresh). Also exposes a manual HTTP trigger for development.
+ * This Worker's FILES array is now empty — it processes no files on schedule
+ * or via the HTTP trigger. It remains deployed for two reasons:
+ *   1. The fetch handler (/admin/pipeline/run) is useful for ad-hoc testing.
+ *   2. The utility functions (processZip, _stream, filterColsBinary, etc.) are
+ *      retained intact in case this Worker is extended for future use cases
+ *      (e.g. lightweight on-demand processing of small supplemental files).
  *
- * Files processed:
- *   pas222/224/226.zip → fec/pas2/{year}/pas2.csv  (all columns retained)
+ * The weekly cron trigger has been removed from wrangler.toml — there are no
+ * files to process on a schedule.
  *
- * indiv22/24/26 files (~4.5 GB uncompressed each) exceed Cloudflare Workers' CPU
- * and memory limits regardless of implementation approach. They require a different
- * execution environment (e.g. a local script, GitHub Actions, or a VM with no CPU cap).
- * The processZip() function and binary column-filter utilities below are retained so
- * this Worker can be extended once that environment is identified.
- *
- * Both file types use the same streaming path (native DecompressionStream + R2 multipart).
- * This avoids loading the full decompressed file into memory — critical for
- * staying within the 128MB Worker memory limit.
- *
- * Deploy:
+ * Deploy (if changes are needed):
  *   cd pipeline && npm install && npx wrangler deploy
  *
- * Manual trigger (development — uses Cloudflare "Test scheduled event" for indiv files):
- *   curl "https://fecledger-pipeline.sloanestradley.workers.dev/admin/pipeline/run?file=pas224"
+ * Manual trigger (no-op with empty FILES array, useful for health-checking):
+ *   curl "https://fecledger-pipeline.sloanestradley.workers.dev/admin/pipeline/run"
  */
 
 // No third-party imports needed — ZIP header is parsed manually and DEFLATE
@@ -37,32 +31,9 @@
 
 const FEC_BASE = 'https://www.fec.gov/files/bulk-downloads';
 
-// indiv22/24/26 are excluded — 4.5 GB uncompressed each, exceeds Workers CPU/memory limits.
-// See comment at top of file. The INDIV_* constants and filterColsBinary() are retained
-// for when a suitable execution environment is identified.
-const FILES = [
-  {
-    key:      'pas222',
-    url:      `${FEC_BASE}/2022/pas222.zip`,
-    r2key:    'fec/pas2/2022/pas2.csv',
-    keepCols: null, // null = keep all columns
-    header:   null,
-  },
-  {
-    key:      'pas224',
-    url:      `${FEC_BASE}/2024/pas224.zip`,
-    r2key:    'fec/pas2/2024/pas2.csv',
-    keepCols: null,
-    header:   null,
-  },
-  {
-    key:      'pas226',
-    url:      `${FEC_BASE}/2026/pas226.zip`,
-    r2key:    'fec/pas2/2026/pas2.csv',
-    keepCols: null,
-    header:   null,
-  },
-];
+// All file processing has moved to GitHub Actions (scripts/ingest-bulk.js) as of 2026-04-16.
+// FILES is empty — this Worker processes no files. See file-level comment for details.
+const FILES = [];
 
 // ---------------------------------------------------------------------------
 // Column configuration
@@ -95,11 +66,6 @@ const PAS2_HEADER = [
   'EMPLOYER', 'OCCUPATION', 'TRANSACTION_DT', 'TRANSACTION_AMT',
   'OTHER_ID', 'TRAN_ID', 'FILE_NUM', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID',
 ].join('|') + '\n';
-
-// Apply config to FILE manifest entries
-FILES[0].header = PAS2_HEADER;
-FILES[1].header = PAS2_HEADER;
-FILES[2].header = PAS2_HEADER;
 
 // R2 multipart part size — 10MB (R2 minimum is 5MB; last part may be smaller)
 const PART_SIZE = 10 * 1024 * 1024;
