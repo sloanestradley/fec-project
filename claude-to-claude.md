@@ -3592,3 +3592,46 @@ The through-line: you consistently distinguish between "this session's scope" an
 - **indiv file runtime decision:** What's the right execution environment for ingesting 4.5 GB files? Options: GitHub Actions (free, but 6h limit and needs R2 auth wiring), a one-time local script (simplest — just run it), a dedicated VM or container. What are the trade-offs for ongoing weekly refreshes vs. a one-time historical load?
 - **Is weekly pas2 refresh actually needed?** The pas222/24/26 files update as new filings come in. Before committing to weekly ingestion, what product features actually depend on fresh pas2 data — and is weekly the right cadence, or is it overkill for the current use cases?
 - **R2 + DuckDB-WASM querying architecture for Session 2:** Now that pas2 is in R2 on a weekly schedule, what's the right pattern for querying it from the browser? DuckDB-WASM reading directly from R2 public URLs? Or a Workers KV cache of pre-aggregated results?
+
+---
+2026-04-16 (session 3 — indiv pipeline)
+
+## Process log draft
+
+**Title: The ZIP files that knew they were too big**
+
+The pas2 pipeline has been running weekly for a week. This session adds the other half: the three indiv bulk files that are too large for Cloudflare Workers. GitHub Actions on ubuntu-latest has none of the constraints that blocked the Worker — 7 GB RAM, six-hour job limit, no CPU budget. The technical problem was just porting the existing Worker logic to Node.js, handling one edge case (ZIP64 format for the ~4.5 GB uncompressed files), and authenticating to R2 via the S3-compatible API. All three files landed in R2 in 31 minutes.
+
+Changelog:
+- `.github/workflows/fec-indiv-pipeline.yml`: weekly cron Mon 8am UTC (2h after Worker), workflow_dispatch, ubuntu-latest, Node.js 24, 6h timeout
+- `scripts/ingest-indiv.js`: full streaming pipeline — fetchWithRetry (503 handling), ZIP local file header parser with ZIP64 extra-field support, zlib.createInflateRaw() decompression, IndivFilterStream Transform (14-column filter, carry buffer for partial lines), backpressure-aware inflate feed (drain event handling), @aws-sdk/lib-storage Upload (10 MB parts, queueSize:1), per-file error isolation, last_updated.json written on success
+- `scripts/package.json`: @aws-sdk/client-s3 + @aws-sdk/lib-storage
+- Workflow updated post-run: Node.js 24 + FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 env var to clear deprecation warning
+- CLAUDE.md: Session 1b marked complete, auth note added (R2 API token ≠ general CF token), current files updated, indiv R2 key pattern updated from "reserved" to "live"
+- All three indiv files confirmed in R2, fec/last_updated.json confirmed, 416/416 Playwright tests still passing
+
+Field notes:
+The ZIP64 detection was the most interesting technical moment — the indiv files' uncompressed size exceeds the 32-bit limit, so the standard header fields are set to 0xFFFFFFFF sentinel values and the real sizes live in an extra field. The Worker code would have thrown "ZIP compressed size is 0" if it had ever tried to process these files. The fix was to parse the extra field for the ZIP64 extended information block (header ID 0x0001) and read the 64-bit compressed size. Safe to convert to a JS Number because the actual compressed size (~1.5 GB) is well below Number.MAX_SAFE_INTEGER.
+
+The auth gap (R2 API token vs. general Cloudflare API token) was caught in the planning phase before any code was written. Good example of reading the prompt carefully before executing it — the prompt said "use CLOUDFLARE_API_TOKEN" but the R2 S3-compatible API requires a completely separate credential type.
+
+Stack tags: GitHub Actions · Node.js · zlib · ZIP64 · Cloudflare R2 · AWS SDK v3 · multipart upload · streaming
+
+## How Sloane steered the work
+
+**Secrets already in place**
+When I flagged the R2 auth gap as requiring action before the workflow could run, you confirmed the R2 API token was already created and both secrets were already in GitHub — you'd anticipated the need. No blocker, no interruption to the flow.
+
+**"Push and trigger now"**
+After the three files were written and tests passed, you didn't ask to review the code or run any manual checks — you pushed directly to triggering the live run. That's appropriate confidence in a tested implementation, and it kept the session moving.
+
+**Deprecation warning: fix it, don't note it**
+When the Node.js 20 deprecation warning appeared in the completed job, you didn't defer it — you surfaced it immediately for remediation in the same session. Small thing but it's the right instinct: warnings that have a known fix date (June 2026) are easier to address now than in a crunch.
+
+The through-line: you came in with the prerequisites already handled (R2 token, secrets), let the implementation run at full speed, and addressed the one housekeeping item that surfaced before closing out. Clean execution of a well-specified session.
+
+## What to bring to Claude Chat
+
+- **Session 2 scope — query architecture:** Now that all five bulk files are in R2 on weekly schedules, what's the right pattern for querying them from the browser? DuckDB-WASM reading directly from R2 public URLs? A Cloudflare Worker that pre-aggregates to KV? The R2 file format (pipe-delimited CSV, 14 columns for indiv) was chosen to be DuckDB-friendly — but the query architecture decision should happen before building any product surfaces against these files.
+- **Is weekly the right cadence for indiv?** The pas2 cron runs weekly. The indiv cron runs 2 hours later. Is there a product feature that actually needs weekly-fresh individual contribution data, or is the current cadence based on "same as pas2" logic? The answer affects whether the 31-minute weekly job is justified.
+- **last_updated.json schema:** Currently `{ indiv: "<ISO>", pas2: null }`. The pas2 field is null because the Worker writes its own timestamp separately. Should both pipelines write to the same file, or is this schema meant to be a client-readable "data freshness" indicator that eventually has both fields populated? Worth deciding before building any UI that reads it.

@@ -236,9 +236,14 @@ pipeline/                  — Standalone Cloudflare Worker: weekly FEC bulk dat
   src/index.js             — Worker: fetch handler (GET /admin/pipeline/run[?file=key]) + scheduled handler
                              Processes pas2 ONLY: pas222/224/226 → fec/pas2/{year}/pas2.csv in R2 bucket fecledger-bulk
                              indiv22/24/26 EXCLUDED — ~4.5 GB uncompressed each exceeds Workers 128 MB memory cap and CPU time limit
-                             indiv R2 key pattern reserved: fec/indiv/{year}/indiv.csv (for when GitHub Actions path is built)
+                             indiv R2 key pattern live: fec/indiv/{year}/indiv.csv (written by GitHub Actions — see scripts/)
                              INDIV_* constants + filterColsBinary() retained in src/index.js for porting to GitHub Actions
                              Deploy: cd pipeline && npm install && npx wrangler deploy (requires Workers Paid plan $5/mo for cron)
+.github/
+  workflows/fec-indiv-pipeline.yml — GitHub Actions: weekly cron Mon 8am UTC + workflow_dispatch; Node.js 24; runs scripts/ingest-indiv.js
+scripts/
+  ingest-indiv.js      — Node.js pipeline: downloads indiv22/24/26.zip, decompresses (zlib.createInflateRaw), filters to 14 columns, uploads to R2 via @aws-sdk/lib-storage multipart; writes fec/last_updated.json on success
+  package.json         — @aws-sdk/client-s3 + @aws-sdk/lib-storage dependencies
 tests/
   helpers/amp-mock.js  — Amplitude mock (blocks CDN, stubs sessionReplay, reads _q queue)
   helpers/api-mock.js  — FEC API mock (route intercept + fixture data for all endpoints)
@@ -412,7 +417,7 @@ See `project-brief.md` for the full phased roadmap. Short version:
 
 **Bulk data pipeline (infrastructure, parallel to Phase 4):**
 - ~~Session 1~~ ✅ Pipeline Worker deployed — `pipeline/` directory; processes pas222/224/226 only; writes pipe-delimited CSVs to R2 bucket `fecledger-bulk`; cron `0 6 * * 1`; manual trigger `GET /admin/pipeline/run[?file=key]`; indiv files deferred — 4.5 GB each exceeds Workers limits
-- Session 1b — indiv file ingestion via GitHub Actions (R2 auth via Cloudflare API token; no CPU/memory cap; weekly schedule via cron job or manual trigger; code already written in pipeline/src/index.js — needs new runtime wrapper)
+- ~~Session 1b~~ ✅ indiv file ingestion via GitHub Actions — `.github/workflows/fec-indiv-pipeline.yml` + `scripts/ingest-indiv.js`; weekly cron Mon 8am UTC; Node.js 24; zlib.createInflateRaw() + ZIP64 extra-field parsing; @aws-sdk/lib-storage multipart upload; all three indiv files confirmed in R2; fec/last_updated.json written on success. **Auth note:** R2 S3-compatible API requires a dedicated R2 API Token (separate from the general Cloudflare API token used for Wrangler) — provides two credentials: R2_ACCESS_KEY_ID + R2_SECRET_ACCESS_KEY stored as GitHub secrets.
 - Session 2 — Wire R2 CSVs to product surfaces (DuckDB-WASM querying directly against R2 files — no D1 yet)
 - Session 3 — Server-side aggregation for mega-committee Schedule A (replaces client-side pagination gap)
 
