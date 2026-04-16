@@ -231,6 +231,8 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 
 - ~~**Server-side API proxy**~~ — ✅ **Done (2026-04-14).** Migrated from Netlify to Cloudflare Pages. FEC API calls now route through `functions/api/fec/[[path]].js`; API key stored as a Cloudflare secret, no longer client-visible. Remaining work: server-side *caching* for races.html enrichment calls (Cloudflare KV) and a scheduled Worker for the mega-committee Schedule A aggregation problem — see architectural debt in CLAUDE.md.
 
+- ~~**Bulk data pipeline (pas2)**~~ — ✅ **Done (2026-04-16).** `pipeline/` Cloudflare Worker downloads pas222/24/26 from FEC bulk downloads weekly (cron `0 6 * * 1`) and writes pipe-delimited CSVs to R2 bucket `fecledger-bulk` at `fec/pas2/{year}/pas2.csv`. Worker requires Workers Paid plan ($5/mo) for cron triggers. **Not covered:** indiv22/24/26 individual contribution files (~4.5 GB uncompressed each) exceed Cloudflare Workers' 128 MB memory cap and CPU time limit — these require GitHub Actions (ubuntu runner, no memory/CPU cap, free for public repos, R2 auth via Cloudflare API token). R2 key pattern `fec/indiv/{year}/indiv.csv` is reserved; streaming code is complete in `pipeline/src/index.js` and just needs a new runtime wrapper.
+
 ---
 
 ## Open items (not prioritized)

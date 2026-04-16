@@ -71,6 +71,17 @@ The FEC API has rate limits. Smoke tests include a 45-second timeout per test to
 
 ---
 
+## Pipeline Worker — no automated tests
+
+The `pipeline/` Cloudflare Worker is a separate deployment from the main site and has no Playwright tests. It runs outside the browser and produces no DOM to assert against.
+
+**Manual verification:**
+- R2 dashboard (Cloudflare → R2 → fecledger-bulk) — confirm `fec/pas2/{year}/pas2.csv` objects exist with non-zero size after a cron run or manual trigger
+- `wrangler tail` — stream live logs during a run; look for `[pipeline] part N` progress lines and `[pipeline] complete: N parts`
+- Manual trigger: `curl "https://fecledger-pipeline.sloanestradley.workers.dev/admin/pipeline/run?file=pas224"` → 202 response, then tail logs
+
+---
+
 ## Known expected failures
 
 Tests are written around known-incomplete features. These are not failures — they're tracked in `test-cases.md`:
