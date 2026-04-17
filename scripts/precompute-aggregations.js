@@ -77,7 +77,12 @@ const INDIV_COLUMNS = {
   SUB_ID:          'VARCHAR',
 };
 
-// pas2: we only read cmte_id, but the columns map must be complete
+// pas2: 22 columns per FEC schema. We only read CMTE_ID but the columns map
+// must be complete. Note: the header row in the R2 CSV is currently 21
+// columns (missing CAND_ID) due to a pre-existing bug in ingest-bulk.js's
+// PAS2_HEADER constant. Data rows are correctly 22 cols. We bypass the
+// bad header row with header=false + skip=1 in read_csv so this schema
+// takes precedence.
 const PAS2_COLUMNS = {
   CMTE_ID:         'VARCHAR',
   AMNDT_IND:       'VARCHAR',
@@ -95,6 +100,7 @@ const PAS2_COLUMNS = {
   TRANSACTION_DT:  'VARCHAR',
   TRANSACTION_AMT: 'DOUBLE',
   OTHER_ID:        'VARCHAR',
+  CAND_ID:         'VARCHAR', // the 22nd column — candidate ID this transaction supports
   TRAN_ID:         'VARCHAR',
   FILE_NUM:        'VARCHAR',
   MEMO_CD:         'VARCHAR',
@@ -231,12 +237,16 @@ async function writeKvBulk(accountId, namespaceId, apiToken, entries, label) {
 
 function buildPas2Sql(pas2Path) {
   const pas2Schema = columnsToSqlMap(PAS2_COLUMNS);
+  // header=false + skip=1: ignore the (buggy 21-col) header row and parse
+  // raw 22-column data using our schema. null_padding handles any
+  // malformed short rows gracefully.
   return `
     CREATE OR REPLACE TABLE pas2_recipients AS
     SELECT DISTINCT CMTE_ID AS cmte_id
     FROM read_csv(
       '${pas2Path.replace(/'/g, "''")}',
-      delim='|', header=true, quote='"', columns=${pas2Schema}, auto_detect=false
+      delim='|', header=false, skip=1, quote='"',
+      columns=${pas2Schema}, auto_detect=false, null_padding=true
     )
     WHERE CMTE_ID IS NOT NULL AND CMTE_ID != '';
   `;
@@ -250,7 +260,8 @@ function buildAggSql(indivPath) {
              TRANSACTION_AMT AS amt, MEMO_CD AS memo_cd
       FROM read_csv(
         '${indivPath.replace(/'/g, "''")}',
-        delim='|', header=true, quote='"', columns=${indivSchema}, auto_detect=false
+        delim='|', header=false, skip=1, quote='"',
+        columns=${indivSchema}, auto_detect=false, null_padding=true
       )
       WHERE (memo_cd != 'X' OR memo_cd IS NULL)
     ),

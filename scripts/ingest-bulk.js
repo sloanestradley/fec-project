@@ -69,12 +69,17 @@ const INDIV_HEADER    = [
   'OTHER_ID', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID',
 ].join('|') + '\n';
 
-// pas2: all 21 columns retained — verbatim from pipeline/src/index.js
+// pas2: all 22 columns retained. The FEC pas2 schema has 22 columns —
+// CAND_ID (the candidate the transaction supports) sits between OTHER_ID
+// and TRAN_ID. Earlier versions of this header omitted CAND_ID, which
+// caused DuckDB column-count mismatch errors downstream in
+// precompute-aggregations.js. Data rows were always 22 cols; only the
+// header was missing the column.
 const PAS2_HEADER = [
   'CMTE_ID', 'AMNDT_IND', 'RPT_TP', 'TRANSACTION_PGI', 'IMAGE_NUM',
   'TRANSACTION_TP', 'ENTITY_TP', 'NAME', 'CITY', 'STATE', 'ZIP_CODE',
   'EMPLOYER', 'OCCUPATION', 'TRANSACTION_DT', 'TRANSACTION_AMT',
-  'OTHER_ID', 'TRAN_ID', 'FILE_NUM', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID',
+  'OTHER_ID', 'CAND_ID', 'TRAN_ID', 'FILE_NUM', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID',
 ].join('|') + '\n';
 
 // ---------------------------------------------------------------------------
