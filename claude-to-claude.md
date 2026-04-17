@@ -3734,3 +3734,80 @@ The through-line: you treat accuracy, clarity, and documentation hygiene as prod
 - **Refresh cadence + eventual consistency.** Daily cron refresh means KV entries can be up to 24h stale. Acceptable for most use, but worth flagging in a UI note on committee.html ("Data as of…").
 - **pas2 header fix is landed but R2 still has 21-col headers.** Ingest-bulk writes 22-col headers now, but it only re-runs when Last-Modified changes. Next time the FEC publishes new pas2 data, the R2 file header will flip to 22 cols. precompute already handles both via header=false + skip=1 so no action needed — but good to know the transition will be silent.
 - **Documentation concern about pruning in history.** There are two commits on main from this session that shipped pruning logic before the DuckDB rewrite replaced it. The KV namespace has been wiped since, so no pruned data is live. But if someone spelunks the git history and stops at the pruning commit, they'd come away with a wrong mental model. Consider adding a brief note to CLAUDE.md explicitly flagging "the pruning approach was abandoned; see the DuckDB rewrite" — already done in this session but worth confirming.
+
+---
+2026-04-17 (session 5 continuation — deploy infrastructure + Session 4B doc review)
+
+## Process log draft
+
+**Title: The deploy loop we didn't know was broken**
+
+The KV pre-computation work was complete and the AGGREGATIONS binding had been wired in the Cloudflare dashboard. Pushing a small site comment to trigger the redeploy (so the binding would activate) did nothing. No deployment appeared. The last successful deploy in the dashboard was three days old. Five separate pushes today had been silent.
+
+It turned out the fecledger Pages project was created via `npx wrangler pages deploy` during the Netlify migration on 2026-04-14 — and that CLI path produces Direct Upload projects with no git linkage. The dashboard "Connect to Git" OAuth flow is the only way to create a git-connected project; you can't add git later. CLAUDE.md had been documenting "auto-deploys on push to main" as confirmed truth for 3 days; the assumption was never verified, and nothing required a deploy in the interim, so the silence went unnoticed.
+
+The fix had two parts. First: a one-time manual deploy. Wrangler 4.82 hit a transient "Unknown internal error" publishing the Functions bundle; @latest (4.83) fixed it. Used an rsync staging pattern to upload only deployable site content — without it, the entire repo would have shipped, including CLAUDE.md, claude-to-claude.md, project-brief.md, the DuckDB binary in scripts/node_modules, and pipeline source, all reachable via guessable URLs on fecledger.pages.dev.
+
+Second: making the manual flow durable so the next session doesn't rediscover it. Committed scripts/deploy-pages.sh with the rsync exclusion list in version control, a critical-path sanity check, and `npx wrangler@latest` to dodge future point-release bugs. Updated CLAUDE.md's deployment note from the stale "Netlify, auto-deploys on push to main" to the verified truth ("Cloudflare Pages, Direct Upload, run bash scripts/deploy-pages.sh") with an explicit do-NOT-run warning against `wrangler pages deploy .` at repo root. Scoped the long-term migration to a git-connected project in project-brief.md as Infrastructure / Architecture debt, including a step 7 that locks in the lessons (verify after migration, write docs about verified state not assumed state, delete this script).
+
+After the deploy work, returned to the precompute session itself for a documentation review. Found my earlier Session 3 description in CLAUDE.md had conflated two product surfaces: I'd written that Session 3 would "replace the mega-committee 'Unable to show top committees' empty state with pre-computed data," but that empty state is on Top Committee Contributors (Schedule A is_individual=false, committee-to-committee), and our KV holds Individual contributors (indiv bulk file). Fixed that and added a cross-reference in the architectural debt note showing how the same Session 2 pattern can extend to close the Top Committee Contributors gap. Caught my own first correction being wrong in the opposite direction — I'd described Top Individual Contributors as "new surface" when it's actually been live on committee.html via client-side aggregation. Verified by greping the actual code.
+
+The cleanup also surfaced a subtle product issue: committee.html's existing client-side Top Individual Contributors fetches per_page=100 and dedups, which means for ActBlue (11M+ rows) it shows whoever happened to write the largest single check, missing bundlers entirely. Session 3's KV migration is structurally a correctness fix, not just a perf optimization.
+
+Last thing: pipeline/README.md had the same pas2 21-vs-22 column bug as ingest-bulk.js had before (CAND_ID missing in the header). Fixed there too, plus updated the architecture section to mention the precompute step now runs in the same daily workflow.
+
+**Changelog (continuation):**
+- scripts/deploy-pages.sh new — one-command durable deploy: rsync staging to /tmp/fec-deploy, critical-path sanity check (11 paths covering site assets + 3 Pages Functions), npx wrangler@latest pages deploy. Verified end-to-end (deployed a95ba229.fecledger.pages.dev).
+- CLAUDE.md: deployment note in "What this is" section rewritten with verified state — Cloudflare Pages Direct Upload, manual via scripts/deploy-pages.sh, do-NOT-run warning against wrangler at repo root. Removed second stale "auto-deploys" assertion in the Tech stack section. Session 3 description corrected (was conflating two product surfaces). Mega-committee gap architectural debt note now cross-references Session 2's pattern with rough scope for closing the gap.
+- project-brief.md: new Infrastructure/Architecture debt entry "Pages project is Direct Upload" with full migration scope (steps 1-6), step-7 lessons-to-lock-in (verify after migration, update docs with verified state, delete manual-deploy instructions, add pre-delete safeguard), root-cause summary, timing recommendation. Added Top Individual Contributors to Raised tab spec, accurately framed as existing surface being migrated rather than greenfield.
+- pipeline/README.md: architecture section now describes ingest + precompute as two steps in the same workflow with KV namespace and AGGREGATIONS binding cross-references; pas2 column count corrected from 21 to 22 in three places (table rows + inline description); brief note about the CAND_ID fix added.
+- Manual: ran one-time deploy via Option B (rsync staging + wrangler) before deploy-pages.sh existed; deployment a95ba229.fecledger.pages.dev confirmed; AGGREGATIONS binding verified attached via dashboard (Level 1).
+- Saved memory: feedback_doc_commit_cadence.md — pause for review before committing doc edits to project-brief.md / CLAUDE.md / ia.md.
+- 416/416 Playwright tests still passing.
+
+**Field notes:**
+
+The deploy discovery was a slow-burn failure. The migration session three days ago wrote "auto-deploys on push to main" into CLAUDE.md based on what it intended to set up, not on what it had verified. Every subsequent session read that line and trusted it. The whole thing held together because no actual site code change happened in between — every commit was scripts/, .github/, pipeline/, or docs. The first commit that needed a deploy was the one that exposed the bug. Three days of silent failure that cost about 30 minutes to chase down because we had clear evidence (no deployments tab entries) before we started investigating fixes.
+
+The doc-review pass at the end was its own lesson. I caught my own factual error in the Session 3 description from earlier today by going back through the docs systematically when Sloane asked. The error wasn't visible from inside Session 4B's frame — it was only visible by greping the actual product surfaces and asking "what does committee.html have today?" If we'd skipped the review, Session 3 would have started from a misframed plan. And then the second mistake — describing Top Individual Contributors as "new" — was caught only because I greped before declaring done. Two doc-correctness saves in a row that both came from going to source.
+
+The pas2 22-vs-21 column thing is a recurring lesson too. Strict parsers (DuckDB) catch what tolerant ones (everything else in the codebase) silently accept. The bug had been in the R2 data since Session 4A and zero downstream consumers cared until DuckDB refused to guess. Argument for using strict parsers at pipeline boundaries even when tolerant parsing would "work" for the immediate consumer.
+
+**Stack tags:** Cloudflare Pages · Direct Upload vs git-connected · wrangler · rsync staging · documentation hygiene · strict CSV parsers
+
+## How Sloane steered the work
+
+**"Why don't I see the deployment in cloudflare?"**
+The question that triggered the entire deploy-loop investigation. Without it, I would have moved on to Session 3 prep assuming the binding was active, only to discover the issue when Session 3's first deploy didn't materialize. Catching it now meant we could fix it deliberately rather than under feature pressure.
+
+**"What does option B entail?"**
+Sloane wanted to understand the rsync staging path before committing to it. The Option A "upload everything" approach would have leaked CLAUDE.md, claude-to-claude.md, internal docs, and the DuckDB binary to publicly-guessable URLs. The user-facing risk wasn't visible from "100 MB upload vs 2 MB upload" — Sloane drawing out the explanation surfaced it.
+
+**"Let's wait until we've done more due diligence this session before committing."**
+When I drafted the project-brief.md migration scope and was about to commit it, Sloane held the commit. Doc entries that become reference material for future sessions need to be right before they land. I saved this as a feedback memory ("pause for review before committing doc edits to project-brief.md / CLAUDE.md / ia.md") so the pattern carries forward across sessions.
+
+**"Should we add a step that addresses avoiding this in the future once fixed?"**
+The migration scope I'd written had only the fix, not the prevention. Sloane asked for the recurrence-prevention step, which became step 7 — verify after migration, write docs about verified state, delete the manual-deploy instructions. That's what closes the loop on the "documenting assumptions vs. documenting verified behavior" problem that caused this in the first place.
+
+**"Is this Option B we talked about? Or are we going to accidentally deploy everything without noting this option b workaround somewhere?"**
+The exact gap — the rsync exclude pattern only existed in conversation history. Without a script committed to the repo, the next session would either rediscover it (wasted time) or skip it (leak the entire repo). Sloane caught the durability gap before the session closed. Result was scripts/deploy-pages.sh with the exclusion list in version control.
+
+**"Are you confident we've appropriately closed this loop on deploying?"**
+Direct ask for an honest self-assessment. I gave one (high confidence, one asterisk on the KV round-trip not being end-to-end-tested). The pattern of asking for confidence statements rather than relying on the "looks done" signal is what catches deferred risk before it ossifies.
+
+**"What about the pipeline/README.md file?"**
+Caught a doc gap I'd missed in my Session 4B review. I had checked CLAUDE.md, project-brief.md, test-cases.md, claude-to-claude.md, ia.md, TESTING.md, design-system.html — but not pipeline/README.md. Same pas2 column bug was there, and the architecture section didn't mention the new precompute step. Sloane noticed because she knows the project's doc surfaces; I'd treated the relevant scope as "site docs" and missed the pipeline-specific README.
+
+The through-line: every prompt in this continuation block was a question that surfaced something I'd missed or misframed. Without those questions, the session would have shipped a working KV pipeline plus several latent doc issues that would have re-cost time in Session 3 or beyond. Sloane treats follow-up doc hygiene and infrastructure correctness as first-class deliverables, not ceremony — and the questions are how that standard gets enforced in real time.
+
+## What to bring to Claude Chat
+
+- **Pages project git migration is now scoped in project-brief.md.** Worth a Claude Chat discussion before doing it: timing (after Session 3? bundled with custom-domain purchase?), URL strategy (accept new subdomain, reclaim `fecledger` after a cooldown, or wait for custom domain), and whether to use a build-script staging approach (recommended) or restructure the repo into site/workspace folders. The step-7 prevention block in the project-brief entry covers what to do *during* the migration to make sure the same silent-failure mode doesn't recur.
+
+- **Session 3 framing correction.** The Session 3 work is now properly framed as: replace committee.html's existing client-side Top Individual Contributors aggregation (which fetches per_page=100 and dedups, structurally undersampling for mega-committees) with KV reads via a new Pages Function, AND add the same surface to candidate.html for parity. It does NOT solve the Top Committee Contributors mega-committee empty state — that remains a separate aggregation problem on pas2 data, half a session of work to extend the Session 2 pattern. Worth confirming this framing aligns with the product intent before Session 3 starts.
+
+- **Verification asterisk for the AGGREGATIONS binding.** Level 1 (dashboard listing) confirmed, Level 2 (live round-trip via a Pages Function) deferred. Session 3's first real KV read will be the proof. Worth knowing it's not yet end-to-end-tested in production.
+
+- **`npx wrangler@latest` pinning concern.** Today the deploy script uses @latest to dodge the 4.82→4.83 transient bug. Long term this means every deploy re-downloads wrangler (~10-30s per run). Worth a follow-up conversation about pinning to a specific version once the API surface is stable.
+
+- **The doc-review-after-shipping pattern is paying off.** Caught a factual error in my own Session 3 description and a missed pipeline/README.md gap in the same review pass. The discipline of "actually re-read the docs we wrote earlier today" is what kept Session 3 from starting on a wrong foundation. Worth keeping in the session-end ritual going forward — not just "did we update the docs" but "did we re-read them and confirm they still say what we mean."

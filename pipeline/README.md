@@ -1,19 +1,22 @@
 # FECLedger Bulk Data Pipeline
 
-Downloads FEC bulk contribution files weekly, strips them to the columns the product needs, and stores them in Cloudflare R2 for query-time access.
+Downloads FEC bulk contribution files daily, strips them to the columns the product needs, stores them in Cloudflare R2, then pre-computes per-committee top-contributor aggregations into Cloudflare KV for fast read-time access by the product surface.
 
 ---
 
 ## Architecture
 
-Two components, one purpose:
+Three components, one workflow:
 
 | Component | Role | Schedule |
 |---|---|---|
-| **GitHub Actions** (`.github/workflows/fec-bulk-pipeline.yml`) | Downloads, processes, and uploads all 6 FEC bulk files to R2 | Daily, 6am UTC |
+| **GitHub Actions step 1 — ingest** (`scripts/ingest-bulk.js`) | Downloads all 6 FEC bulk files, strips indiv files to 14 columns, uploads pipe-delimited CSVs to R2 | Daily, 6am UTC |
+| **GitHub Actions step 2 — pre-compute** (`scripts/precompute-aggregations.js`) | Reads pas2 + indiv CSVs from R2, runs a DuckDB SQL GROUP BY (spill-to-disk, 100% accurate), wipes + writes top-25 contributors per in-scope committee per cycle to Cloudflare KV namespace `fecledger-aggregations` | Same job as ingest — daily, 6am UTC |
 | **Cloudflare Worker** (`pipeline/src/index.js`) | HTTP trigger for ad-hoc testing; no scheduled processing | On-demand only |
 
-All file processing runs in GitHub Actions. The Worker's `FILES` array is empty — it exists solely so the HTTP endpoint (`/admin/pipeline/run`) remains available for development and debugging.
+Both processing steps run in GitHub Actions, in the same job (ingest first, then pre-compute). The Worker's `FILES` array is empty — it exists solely so the HTTP endpoint (`/admin/pipeline/run`) remains available for development and debugging.
+
+KV details (key format `top_contributors:{cmte_id}:{cycle}`, scope rules, value shape) are documented in CLAUDE.md → "Bulk data pipeline" → Session 2 note. The KV namespace is bound to the fecledger Pages project as `AGGREGATIONS` for read access from Pages Functions.
 
 ---
 
@@ -24,9 +27,9 @@ All file processing runs in GitHub Actions. The Worker's `FILES` array is empty 
 | `fec.gov/files/bulk-downloads/2022/indiv22.zip` | `fec/indiv/2022/indiv.csv` | 14 of 21 (see below) |
 | `fec.gov/files/bulk-downloads/2024/indiv24.zip` | `fec/indiv/2024/indiv.csv` | 14 of 21 |
 | `fec.gov/files/bulk-downloads/2026/indiv26.zip` | `fec/indiv/2026/indiv.csv` | 14 of 21 |
-| `fec.gov/files/bulk-downloads/2022/pas222.zip` | `fec/pas2/2022/pas2.csv` | all 21 |
-| `fec.gov/files/bulk-downloads/2024/pas224.zip` | `fec/pas2/2024/pas2.csv` | all 21 |
-| `fec.gov/files/bulk-downloads/2026/pas226.zip` | `fec/pas2/2026/pas2.csv` | all 21 |
+| `fec.gov/files/bulk-downloads/2022/pas222.zip` | `fec/pas2/2022/pas2.csv` | all 22 |
+| `fec.gov/files/bulk-downloads/2024/pas224.zip` | `fec/pas2/2024/pas2.csv` | all 22 |
+| `fec.gov/files/bulk-downloads/2026/pas226.zip` | `fec/pas2/2026/pas2.csv` | all 22 |
 
 **indiv** = individual contributions (Schedule A). ~1.5 GB compressed / ~4.5 GB uncompressed each. Filtered to 14 columns to reduce storage and query cost:
 
@@ -37,7 +40,7 @@ TRANSACTION_DT | TRANSACTION_AMT | OTHER_ID | MEMO_CD | MEMO_TEXT | SUB_ID
 
 `MEMO_CD='X'` rows (conduit entries — ActBlue, WinRed, Anedot) are retained.
 
-**pas2** = committee-to-committee transfers (Schedule B). ~23 MB compressed. All 21 columns retained.
+**pas2** = committee-to-committee transfers (Schedule B). ~23 MB compressed. All 22 columns retained (FEC schema includes `CAND_ID` — the candidate the transaction supports — between `OTHER_ID` and `TRAN_ID`; an earlier version of the ingest header omitted this column, breaking strict CSV parsers downstream — fixed 2026-04-17).
 
 ---
 
