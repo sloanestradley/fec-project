@@ -1,251 +1,202 @@
 #!/usr/bin/env node
 /**
- * FECLedger — KV pre-computation of top contributors per committee
+ * FECLedger — KV pre-computation of top contributors per committee (DuckDB)
  *
  * Runs after scripts/ingest-bulk.js in the same GitHub Actions job.
  *
- * For each cycle (2024, 2026):
- *   1. Stream fec/pas2/{year}/pas2.csv from R2 → Set of recipient CMTE_IDs
- *   2. Stream fec/indiv/{year}/indiv.csv from R2 → aggregate per-committee
- *      top contributors (NAME + ENTITY_TP), summing TRANSACTION_AMT,
- *      excluding memo rows (MEMO_CD === 'X')
- *   3. Filter committees in scope (in pas2 set OR rowCount >= 500), sort each
- *      committee's contributors descending, slice top 25
- *   4. Write entries to Cloudflare KV via REST bulk endpoint, in batches of 50
+ * Architecture (v2, 2026-04-17):
+ *   The v1 streaming-Map approach worked but used mid-stream pruning to bound
+ *   memory — which sacrifices accuracy for mega-committees (ActBlue, WinRed,
+ *   etc.) because a pruned contributor loses their prior accumulation. v2
+ *   replaces the aggregation engine with DuckDB, which does external (spill-
+ *   to-disk) GROUP BY natively. Bounded memory, zero accuracy compromise.
  *
- * KV key format:   top_contributors:{committee_id}:{cycle}
- * KV value format: JSON array of { name, entity_type, total }
- * KV TTL:          7 days (604800 seconds) — defensive against pipeline outages
+ * For each cycle (2024, 2026):
+ *   1. Download fec/pas2/{year}/pas2.csv and fec/indiv/{year}/indiv.csv
+ *      from R2 to local /tmp disk (runner has ~14 GB free)
+ *   2. Run a single SQL query in DuckDB that filters, aggregates, scope-
+ *      filters, and ranks — returning top 25 per committee, ordered by
+ *      (cmte_id, rank)
+ *   3. Iterate result rows, group by cmte_id in a linear scan, build KV
+ *      entries with key `top_contributors:{cmte_id}:{cycle}`
+ *   4. Delete local CSVs to reclaim disk
+ *
+ * The KV namespace is wiped entirely up front (before aggregation), so the
+ * v1 pruned-era entries can't coexist with v2 exact-total entries.
  *
  * Required env vars:
- *   CLOUDFLARE_ACCOUNT_ID  — for R2 endpoint URL and KV REST API path
+ *   CLOUDFLARE_ACCOUNT_ID  — for R2 endpoint + KV REST API
  *   CLOUDFLARE_API_TOKEN   — needs Account → Workers KV Storage → Edit scope
  *   R2_ACCESS_KEY_ID       — from a Cloudflare R2 API Token
  *   R2_SECRET_ACCESS_KEY   — from the same R2 API Token
- *   KV_NAMESPACE_ID        — id of the fecledger-aggregations namespace
- *
- * Pages binding (manual, separate from this script):
- *   The fecledger Pages project must have an AGGREGATIONS binding to the
- *   fecledger-aggregations namespace before Session 4C can read these values.
- *   Configured via Cloudflare Dashboard → Pages → Settings → Functions → KV.
+ *   KV_NAMESPACE_ID        — id of fecledger-aggregations namespace
  */
 
-import readline from 'node:readline';
+import fs             from 'node:fs';
+import fsp            from 'node:fs/promises';
+import path           from 'node:path';
+import { pipeline }   from 'node:stream/promises';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { DuckDBInstance }              from '@duckdb/node-api';
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
-const BUCKET         = 'fecledger-bulk';
-const TOP_N          = 25;           // top-K stored in KV (UI shows top 10)
-const MIN_ROWS       = 500;          // committee qualifies if rowCount >= MIN_ROWS
-const KV_TTL         = 604800;       // 7 days
-const KV_BATCH_SIZE  = 50;
-const CYCLES         = [
+const BUCKET        = 'fecledger-bulk';
+const TOP_N         = 25;            // top-K stored in KV (UI shows top 10)
+const MIN_ROWS      = 500;           // committee in-scope if rowCount >= MIN_ROWS
+const KV_TTL        = 604800;        // 7 days
+const KV_BATCH_SIZE = 50;
+const TMP_DIR       = '/tmp/fecledger';
+const DUCKDB_TMP    = '/tmp/duckdb';
+const CYCLES        = [
   { year: '2024', cycle: 2024 },
   { year: '2026', cycle: 2026 },
 ];
 
-// In-stream pruning to bound memory.
-// Mega-committees (ActBlue, WinRed, DNC, etc.) accumulate 1M+ unique
-// (NAME|ENTITY_TP) keys; the unbounded Map exhausted a 6 GB heap.
-//
-// Strategy: every PRUNE_EVERY_ROWS streamed, sort each oversize committee's
-// contributor Map and discard everything outside top PRUNE_TO. PRUNE_TO=500
-// is a 20× safety buffer above the TOP_N=25 stored in KV — a contributor
-// pruned mid-stream would need to climb from $0 to a top-25 total in the
-// remaining rows alone to be lost from the final output. This is rare in
-// practice: top-25 contributors to mega-committees are dominated by max-out
-// donors and bundlers who establish their position early in the cycle.
-//
-// Committees with <= PRUNE_THRESHOLD entries are never pruned — preserves
-// full data for the long tail of small/medium committees where the safety
-// margin doesn't matter and pruning could silently drop a real top-25.
-const PRUNE_TO         = 500;
-const PRUNE_THRESHOLD  = 1000;
-const PRUNE_EVERY_ROWS = 5_000_000;
-
-// indiv CSV column indices (0-based) — produced by ingest-bulk.js BulkProcessingStream
-//   0: CMTE_ID  1: ENTITY_TP  2: NAME  9: TRANSACTION_AMT  11: MEMO_CD
-const COL_CMTE_ID  = 0;
-const COL_ENTITY   = 1;
-const COL_NAME     = 2;
-const COL_AMT      = 9;
-const COL_MEMO     = 11;
-const INDIV_COLS   = 14;
-
 // ---------------------------------------------------------------------------
-// R2 streaming
+// DuckDB schemas — matching BulkProcessingStream output in ingest-bulk.js
 // ---------------------------------------------------------------------------
 
-async function streamPas2Recipients(s3, year) {
-  const set = new Set();
-  const resp = await s3.send(new GetObjectCommand({
-    Bucket: BUCKET,
-    Key:    `fec/pas2/${year}/pas2.csv`,
-  }));
+// indiv: 14 columns, pipe-delimited, header row
+const INDIV_COLUMNS = {
+  CMTE_ID:         'VARCHAR',
+  ENTITY_TP:       'VARCHAR',
+  NAME:            'VARCHAR',
+  CITY:            'VARCHAR',
+  STATE:           'VARCHAR',
+  ZIP_CODE:        'VARCHAR',
+  EMPLOYER:        'VARCHAR',
+  OCCUPATION:      'VARCHAR',
+  TRANSACTION_DT:  'VARCHAR',
+  TRANSACTION_AMT: 'DOUBLE',
+  OTHER_ID:        'VARCHAR',
+  MEMO_CD:         'VARCHAR',
+  MEMO_TEXT:       'VARCHAR',
+  SUB_ID:          'VARCHAR',
+};
 
-  const rl = readline.createInterface({ input: resp.Body, crlfDelay: Infinity });
-  let isHeader = true;
+// pas2: we only read cmte_id, but the columns map must be complete
+const PAS2_COLUMNS = {
+  CMTE_ID:         'VARCHAR',
+  AMNDT_IND:       'VARCHAR',
+  RPT_TP:          'VARCHAR',
+  TRANSACTION_PGI: 'VARCHAR',
+  IMAGE_NUM:       'VARCHAR',
+  TRANSACTION_TP:  'VARCHAR',
+  ENTITY_TP:       'VARCHAR',
+  NAME:            'VARCHAR',
+  CITY:            'VARCHAR',
+  STATE:           'VARCHAR',
+  ZIP_CODE:        'VARCHAR',
+  EMPLOYER:        'VARCHAR',
+  OCCUPATION:      'VARCHAR',
+  TRANSACTION_DT:  'VARCHAR',
+  TRANSACTION_AMT: 'DOUBLE',
+  OTHER_ID:        'VARCHAR',
+  TRAN_ID:         'VARCHAR',
+  FILE_NUM:        'VARCHAR',
+  MEMO_CD:         'VARCHAR',
+  MEMO_TEXT:       'VARCHAR',
+  SUB_ID:          'VARCHAR',
+};
 
-  for await (const line of rl) {
-    if (isHeader) { isHeader = false; continue; }
-    const pipe   = line.indexOf('|');
-    const cmteId = pipe < 0 ? line : line.slice(0, pipe);
-    if (cmteId) set.add(cmteId);
-  }
-
-  return set;
-}
-
-function pruneOversizedCommittees(agg) {
-  let prunedCount = 0;
-  let droppedKeys = 0;
-  for (const cmteAgg of agg.values()) {
-    const before = cmteAgg.contributors.size;
-    if (before <= PRUNE_THRESHOLD) continue;
-    const sorted = [...cmteAgg.contributors.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, PRUNE_TO);
-    cmteAgg.contributors = new Map(sorted);
-    droppedKeys += (before - PRUNE_TO);
-    prunedCount++;
-  }
-  return { prunedCount, droppedKeys };
-}
-
-async function aggregateIndiv(s3, year) {
-  const agg = new Map(); // CMTE_ID → { rowCount, contributors: Map<name|entity, total> }
-  const resp = await s3.send(new GetObjectCommand({
-    Bucket: BUCKET,
-    Key:    `fec/indiv/${year}/indiv.csv`,
-  }));
-
-  const rl = readline.createInterface({ input: resp.Body, crlfDelay: Infinity });
-  let isHeader  = true;
-  let totalRows = 0;
-  let kept      = 0;
-
-  for await (const line of rl) {
-    if (isHeader) { isHeader = false; continue; }
-    totalRows++;
-
-    const cols = line.split('|');
-    if (cols.length < INDIV_COLS) continue;
-    if (cols[COL_MEMO] === 'X')   continue;
-
-    const cmteId   = cols[COL_CMTE_ID];
-    const entityTp = cols[COL_ENTITY];
-    const name     = cols[COL_NAME];
-    const amt      = parseFloat(cols[COL_AMT]);
-
-    if (!cmteId || !name || !isFinite(amt)) continue;
-
-    let cmteAgg = agg.get(cmteId);
-    if (!cmteAgg) {
-      cmteAgg = { rowCount: 0, contributors: new Map() };
-      agg.set(cmteId, cmteAgg);
-    }
-    cmteAgg.rowCount++;
-    const key = name + '|' + entityTp;
-    cmteAgg.contributors.set(key, (cmteAgg.contributors.get(key) || 0) + amt);
-    kept++;
-
-    if (totalRows % PRUNE_EVERY_ROWS === 0) {
-      const heapBeforeMb = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(0);
-      const { prunedCount, droppedKeys } = pruneOversizedCommittees(agg);
-      const heapAfterMb  = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(0);
-      console.log(`[${year}/indiv] ${totalRows.toLocaleString()} rows | kept ${kept.toLocaleString()} | committees ${agg.size.toLocaleString()} | pruned ${prunedCount} (-${droppedKeys.toLocaleString()} keys) | heap ${heapBeforeMb}→${heapAfterMb} MB`);
-    }
-  }
-
-  return { agg, totalRows, kept };
+function columnsToSqlMap(cols) {
+  // DuckDB's read_csv `columns=` expects a STRUCT literal: {'COL': 'TYPE', ...}
+  return '{' + Object.entries(cols).map(([k, v]) => `'${k}': '${v}'`).join(', ') + '}';
 }
 
 // ---------------------------------------------------------------------------
-// Scope filter + top-N slice
+// R2 download helpers
 // ---------------------------------------------------------------------------
 
-function buildKvEntries(agg, pas2Set, cycle) {
-  const entries = [];
-  let pas2Count = 0;
-  let highVolOnly = 0;
+async function downloadFromR2(s3, r2Key, localPath, label) {
+  const t0 = Date.now();
+  console.log(`[${label}] Downloading s3://${BUCKET}/${r2Key} → ${localPath}`);
 
-  for (const [cmteId, { rowCount, contributors }] of agg) {
-    const inPas2     = pas2Set.has(cmteId);
-    const highVolume = rowCount >= MIN_ROWS;
-    if (!inPas2 && !highVolume) continue;
-    if (inPas2) pas2Count++; else highVolOnly++;
+  const resp = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: r2Key }));
+  await pipeline(resp.Body, fs.createWriteStream(localPath));
 
-    const sorted = [...contributors.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, TOP_N)
-      .map(([key, total]) => {
-        const sep = key.indexOf('|');
-        const name       = sep < 0 ? key : key.slice(0, sep);
-        const entity_type = sep < 0 ? '' : key.slice(sep + 1);
-        return { name, entity_type, total: Math.round(total) };
-      });
-
-    entries.push({
-      key:            `top_contributors:${cmteId}:${cycle}`,
-      value:          JSON.stringify(sorted),
-      expiration_ttl: KV_TTL,
-    });
-  }
-
-  return { entries, pas2Count, highVolOnly };
+  const stat     = await fsp.stat(localPath);
+  const sizeMb   = (stat.size / 1024 / 1024).toFixed(0);
+  const elapsed  = ((Date.now() - t0) / 1000).toFixed(1);
+  console.log(`[${label}] Downloaded ${sizeMb} MB in ${elapsed}s`);
 }
 
 // ---------------------------------------------------------------------------
-// KV bulk write — Cloudflare REST API
+// KV REST API helpers
 //
-// Endpoint: PUT /accounts/{id}/storage/kv/namespaces/{ns}/bulk
-// Body:     [{ key, value: <string>, expiration_ttl }, ...]
-// Auth:     Bearer {CLOUDFLARE_API_TOKEN} (needs Workers KV Storage: Edit)
+// Three operations used:
+//   GET  /accounts/{id}/storage/kv/namespaces/{ns}/keys          (list, paginated)
+//   POST /accounts/{id}/storage/kv/namespaces/{ns}/bulk/delete   (bulk delete)
+//   PUT  /accounts/{id}/storage/kv/namespaces/{ns}/bulk          (bulk put)
 //
-// HTTP 200 does not guarantee per-key success; check body.success and
-// body.errors[]. Single retry on 5xx with 30s backoff (matches the
-// fetchWithRetry pattern in ingest-bulk.js).
+// All use Authorization: Bearer {CLOUDFLARE_API_TOKEN}.
+// Retry once on 5xx with 30s backoff.
 // ---------------------------------------------------------------------------
 
-async function kvBulkPut(accountId, namespaceId, apiToken, batch, label) {
-  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/bulk`;
-
-  let resp = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${apiToken}`,
-      'Content-Type':  'application/json',
-    },
-    body: JSON.stringify(batch),
-  });
-
+async function kvFetch(url, options, label) {
+  let resp = await fetch(url, options);
   if (!resp.ok && resp.status >= 500) {
-    console.warn(`[${label}] KV bulk write returned HTTP ${resp.status} — retrying in 30s`);
+    console.warn(`[${label}] HTTP ${resp.status} — retrying in 30s`);
     await new Promise(r => setTimeout(r, 30_000));
-    resp = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Content-Type':  'application/json',
-      },
-      body: JSON.stringify(batch),
-    });
+    resp = await fetch(url, options);
   }
-
   const text = await resp.text();
   let body;
   try { body = JSON.parse(text); } catch { body = null; }
 
-  if (!resp.ok) {
-    throw new Error(`KV bulk write HTTP ${resp.status}: ${text.slice(0, 500)}`);
-  }
+  if (!resp.ok) throw new Error(`${label} HTTP ${resp.status}: ${text.slice(0, 500)}`);
   if (!body || body.success !== true) {
-    const errors = body?.errors ? JSON.stringify(body.errors).slice(0, 500) : text.slice(0, 500);
-    throw new Error(`KV bulk write reported failure: ${errors}`);
+    const errs = body?.errors ? JSON.stringify(body.errors).slice(0, 500) : text.slice(0, 500);
+    throw new Error(`${label} reported failure: ${errs}`);
   }
+  return body;
+}
+
+async function wipeNamespace(accountId, namespaceId, apiToken) {
+  const t0       = Date.now();
+  let cursor     = null;
+  let totalKeys  = 0;
+
+  console.log('[wipe] Listing existing keys...');
+  do {
+    const listUrl = cursor
+      ? `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/keys?cursor=${encodeURIComponent(cursor)}`
+      : `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/keys`;
+
+    const listBody = await kvFetch(listUrl,
+      { headers: { Authorization: `Bearer ${apiToken}` } },
+      '[wipe/list]');
+
+    const keys = (listBody.result || []).map(k => k.name);
+    if (keys.length === 0) break;
+
+    const delUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/bulk/delete`;
+    await kvFetch(delUrl, {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(keys),
+    }, '[wipe/delete]');
+
+    totalKeys += keys.length;
+    cursor     = listBody.result_info?.cursor || null;
+    console.log(`[wipe] Deleted ${keys.length} keys (running total ${totalKeys.toLocaleString()})`);
+  } while (cursor);
+
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  console.log(`[wipe] Done — ${totalKeys.toLocaleString()} keys removed in ${elapsed}s`);
+  return totalKeys;
+}
+
+async function kvBulkPut(accountId, namespaceId, apiToken, batch, label) {
+  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/bulk`;
+  await kvFetch(url, {
+    method:  'PUT',
+    headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
+    body:    JSON.stringify(batch),
+  }, label);
 }
 
 async function writeKvBulk(accountId, namespaceId, apiToken, entries, label) {
@@ -260,7 +211,7 @@ async function writeKvBulk(accountId, namespaceId, apiToken, entries, label) {
   for (let i = 0; i < total; i += KV_BATCH_SIZE) {
     const batch    = entries.slice(i, i + KV_BATCH_SIZE);
     const batchNum = Math.floor(i / KV_BATCH_SIZE) + 1;
-    await kvBulkPut(accountId, namespaceId, apiToken, batch, `${label} batch ${batchNum}/${batches}`);
+    await kvBulkPut(accountId, namespaceId, apiToken, batch, `[${label} batch ${batchNum}/${batches}]`);
     written += batch.length;
     if (batchNum % 20 === 0 || batchNum === batches) {
       console.log(`[${label}] KV batch ${batchNum}/${batches} written (${written}/${total} entries)`);
@@ -269,34 +220,139 @@ async function writeKvBulk(accountId, namespaceId, apiToken, entries, label) {
 }
 
 // ---------------------------------------------------------------------------
+// DuckDB aggregation query
+//
+// Single pass over indiv CSV. Filters memo rows, groups by (cmte_id, name,
+// entity_type), sums amt, filters to in-scope committees, ranks with
+// ROW_NUMBER, slices to top 25, orders by (cmte_id, rnk) for linear grouping
+// in Node. Scope rule matches v1: committee in pas2 as recipient OR >= 500
+// post-memo rows in indiv.
+// ---------------------------------------------------------------------------
+
+function buildPas2Sql(pas2Path) {
+  const pas2Schema = columnsToSqlMap(PAS2_COLUMNS);
+  return `
+    CREATE OR REPLACE TABLE pas2_recipients AS
+    SELECT DISTINCT CMTE_ID AS cmte_id
+    FROM read_csv(
+      '${pas2Path.replace(/'/g, "''")}',
+      delim='|', header=true, quote='"', columns=${pas2Schema}, auto_detect=false
+    )
+    WHERE CMTE_ID IS NOT NULL AND CMTE_ID != '';
+  `;
+}
+
+function buildAggSql(indivPath) {
+  const indivSchema = columnsToSqlMap(INDIV_COLUMNS);
+  return `
+    WITH filtered AS (
+      SELECT CMTE_ID AS cmte_id, ENTITY_TP AS entity_type, NAME AS name,
+             TRANSACTION_AMT AS amt, MEMO_CD AS memo_cd
+      FROM read_csv(
+        '${indivPath.replace(/'/g, "''")}',
+        delim='|', header=true, quote='"', columns=${indivSchema}, auto_detect=false
+      )
+      WHERE (memo_cd != 'X' OR memo_cd IS NULL)
+    ),
+    row_counts AS (
+      SELECT cmte_id, COUNT(*) AS rc
+      FROM filtered
+      WHERE cmte_id IS NOT NULL AND cmte_id != ''
+      GROUP BY cmte_id
+    ),
+    in_scope AS (
+      SELECT cmte_id FROM row_counts WHERE rc >= ${MIN_ROWS}
+      UNION
+      SELECT cmte_id FROM pas2_recipients
+    ),
+    agg AS (
+      SELECT cmte_id, name, entity_type, SUM(amt) AS total
+      FROM filtered
+      WHERE cmte_id IS NOT NULL AND cmte_id != ''
+        AND name    IS NOT NULL AND name    != ''
+        AND amt     IS NOT NULL
+        AND cmte_id IN (SELECT cmte_id FROM in_scope)
+      GROUP BY cmte_id, name, entity_type
+    ),
+    ranked AS (
+      SELECT cmte_id, name, entity_type, total,
+             ROW_NUMBER() OVER (PARTITION BY cmte_id ORDER BY total DESC, name ASC) AS rnk
+      FROM agg
+    )
+    SELECT cmte_id, name, entity_type, total
+    FROM ranked
+    WHERE rnk <= ${TOP_N}
+    ORDER BY cmte_id, rnk;
+  `;
+}
+
+// ---------------------------------------------------------------------------
 // Per-cycle pipeline
 // ---------------------------------------------------------------------------
 
-async function processCycle(s3, accountId, apiToken, namespaceId, { year, cycle }) {
-  const t0 = Date.now();
+async function processCycle(s3, conn, { year, cycle }) {
+  const t0        = Date.now();
+  const label     = String(cycle);
+  const pas2Path  = path.join(TMP_DIR, `pas2-${year}.csv`);
+  const indivPath = path.join(TMP_DIR, `indiv-${year}.csv`);
+
   console.log(`\n[${cycle}] ── Starting ─────────────────────────────`);
 
-  console.log(`[${cycle}] Streaming pas2 to build recipient scope set...`);
-  const pas2Set = await streamPas2Recipients(s3, year);
-  console.log(`[${cycle}] pas2 recipients: ${pas2Set.size.toLocaleString()} unique committees`);
+  // 1. Download both files
+  await downloadFromR2(s3, `fec/pas2/${year}/pas2.csv`,   pas2Path,  `${label}/pas2`);
+  await downloadFromR2(s3, `fec/indiv/${year}/indiv.csv`, indivPath, `${label}/indiv`);
 
-  console.log(`[${cycle}] Streaming indiv to aggregate contributors...`);
-  let { agg, totalRows, kept } = await aggregateIndiv(s3, year);
-  const heapMb = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(0);
-  console.log(`[${cycle}] indiv complete: ${totalRows.toLocaleString()} rows | kept ${kept.toLocaleString()} | ${agg.size.toLocaleString()} unique committees | heap ${heapMb} MB`);
+  // 2. Run SQL — load pas2 into a table, then execute the aggregation query
+  console.log(`[${cycle}] Loading pas2 recipients...`);
+  await conn.run(buildPas2Sql(pas2Path));
 
-  const { entries, pas2Count, highVolOnly } = buildKvEntries(agg, pas2Set, cycle);
-  console.log(`[${cycle}] in-scope: ${entries.length.toLocaleString()} committees (pas2-recipients: ${pas2Count.toLocaleString()} | high-volume only: ${highVolOnly.toLocaleString()})`);
+  console.log(`[${cycle}] Running DuckDB aggregation SQL...`);
+  const sqlT0  = Date.now();
+  const reader = await conn.runAndReadAll(buildAggSql(indivPath));
+  const rows   = reader.getRows();
+  const sqlEl  = ((Date.now() - sqlT0) / 1000).toFixed(1);
+  console.log(`[${cycle}] SQL done in ${sqlEl}s — ${rows.length.toLocaleString()} (committee, contributor) result rows`);
 
-  // Free the aggregation Map before KV writes — it's no longer needed
-  agg = null;
+  // 3. Linear scan to group by cmte_id (rows are pre-sorted by cmte_id, rnk)
+  const entries = [];
+  let current   = null;
+  for (const row of rows) {
+    const [cmteId, name, entityTp, total] = row;
+    if (!current || current.cmteId !== cmteId) {
+      if (current) {
+        entries.push({
+          key:            `top_contributors:${current.cmteId}:${cycle}`,
+          value:          JSON.stringify(current.list),
+          expiration_ttl: KV_TTL,
+        });
+      }
+      current = { cmteId, list: [] };
+    }
+    current.list.push({
+      name,
+      entity_type: entityTp ?? '',
+      total:       Math.round(Number(total)),
+    });
+  }
+  if (current) {
+    entries.push({
+      key:            `top_contributors:${current.cmteId}:${cycle}`,
+      value:          JSON.stringify(current.list),
+      expiration_ttl: KV_TTL,
+    });
+  }
 
-  await writeKvBulk(accountId, namespaceId, apiToken, entries, `${cycle}`);
+  console.log(`[${cycle}] in-scope: ${entries.length.toLocaleString()} committees`);
+
+  // 4. Clean up CSVs and DuckDB table for this cycle
+  await fsp.unlink(pas2Path).catch(() => {});
+  await fsp.unlink(indivPath).catch(() => {});
+  await conn.run('DROP TABLE IF EXISTS pas2_recipients');
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-  console.log(`[${cycle}] ✓ Done — ${entries.length.toLocaleString()} KV entries written (${elapsed}s)`);
+  console.log(`[${cycle}] ✓ Cycle processing done (${elapsed}s)`);
 
-  return entries.length;
+  return entries;
 }
 
 // ---------------------------------------------------------------------------
@@ -318,14 +374,13 @@ async function main() {
   if (!namespaceId)     missing.push('KV_NAMESPACE_ID');
 
   if (missing.length) {
-    console.error(
-      `Missing required env vars: ${missing.join(', ')}\n` +
-      'CLOUDFLARE_API_TOKEN must have Account → Workers KV Storage → Edit scope.\n' +
-      'R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY come from a Cloudflare R2 API Token.\n' +
-      'KV_NAMESPACE_ID is the id printed by `wrangler kv namespace create fecledger-aggregations`.'
-    );
+    console.error(`Missing required env vars: ${missing.join(', ')}`);
     process.exit(1);
   }
+
+  // Ensure scratch directories exist
+  await fsp.mkdir(TMP_DIR,    { recursive: true });
+  await fsp.mkdir(DUCKDB_TMP, { recursive: true });
 
   const s3 = new S3Client({
     region:      'auto',
@@ -333,24 +388,43 @@ async function main() {
     credentials: { accessKeyId, secretAccessKey },
   });
 
-  console.log('FECLedger — KV pre-computation');
+  console.log('FECLedger — KV pre-computation (DuckDB)');
   console.log(`Bucket: ${BUCKET} | Cycles: ${CYCLES.map(c => c.cycle).join(', ')} | Top N: ${TOP_N} | TTL: ${KV_TTL}s`);
 
-  const t0 = Date.now();
+  const runT0 = Date.now();
+
+  // 1. Wipe existing KV entries first — prevents v1 (pruned) data from
+  //    coexisting with v2 (exact) data in the namespace
+  await wipeNamespace(accountId, namespaceId, apiToken);
+
+  // 2. Open DuckDB once, reuse the connection across cycles
+  const db = await DuckDBInstance.create(':memory:', {
+    memory_limit:   '4GB',
+    temp_directory: DUCKDB_TMP,
+    threads:        '4',
+  });
+  const conn = await db.connect();
+
   let totalEntries = 0;
   let allSucceeded = true;
 
   for (const c of CYCLES) {
     try {
-      totalEntries += await processCycle(s3, accountId, apiToken, namespaceId, c);
+      const entries = await processCycle(s3, conn, c);
+      await writeKvBulk(accountId, namespaceId, apiToken, entries, String(c.cycle));
+      totalEntries += entries.length;
     } catch (err) {
-      console.error(`\n[${c.cycle}] ✗ FAILED: ${err.message}`);
+      console.error(`\n[${c.cycle}] ✗ FAILED: ${err.stack || err.message}`);
       allSucceeded = false;
-      // Continue to next cycle — partial success is preferable to all-or-nothing
     }
   }
 
-  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  // 3. Tear down DuckDB + clean up temp files
+  try { await conn.close();  } catch {}
+  try { await fsp.rm(DUCKDB_TMP, { recursive: true, force: true }); } catch {}
+  try { await fsp.rm(TMP_DIR,    { recursive: true, force: true }); } catch {}
+
+  const elapsed = ((Date.now() - runT0) / 1000).toFixed(1);
   console.log(`\n${allSucceeded ? '✓' : '✗'} Run complete — ${totalEntries.toLocaleString()} total KV entries written across ${CYCLES.length} cycles (${elapsed}s)`);
 
   if (!allSucceeded) process.exit(1);
