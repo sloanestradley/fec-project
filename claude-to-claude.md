@@ -3677,3 +3677,5 @@ The through-line: you treated this session as pure plumbing — no feature press
 - **Run 1 verification:** Trigger `.github/workflows/fec-bulk-pipeline.yml` manually and confirm: "no pipeline_state.json found — processing all files" in the log, all 6 files processed, `fec/meta/pipeline_state.json` written with 6 keys, `last_updated.json` has both `indiv` and `pas2` fields.
 - **Run 2 verification:** Trigger again immediately after Run 1 completes. Confirm all 6 files are skipped (Last-Modified unchanged), `last_updated.json` timestamp updated.
 - **Session 2 scope:** KV pre-computation — what's the right granularity for pre-aggregated top-contributor data? Per committee ID? Per committee + cycle? What query patterns does Session 3 need to serve?
+
+**Verification confirmed (2026-04-16):** Run 1 — all 6 files processed, `fec/meta/pipeline_state.json` written with 6 keys, `fec/last_updated.json` has both `indiv` and `pas2` fields. Run 2 — all 6 files skipped ("Last-Modified unchanged"), `last_updated.json` timestamp updated. Worker cron confirmed removed from Cloudflare dashboard. Session 2 can start from a clean baseline.

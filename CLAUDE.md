@@ -233,6 +233,7 @@ functions/
 pipeline/                  — Standalone Cloudflare Worker: HTTP trigger only (no cron — all processing moved to GitHub Actions 2026-04-16)
   wrangler.toml            — Worker config: name=fecledger-pipeline, R2 binding (BULK→fecledger-bulk); cron removed
   package.json             — Worker deps: no third-party deps (fflate removed; uses native DecompressionStream)
+  README.md                — Infrastructure overview: architecture, file manifest, R2 bucket structure, manual triggers, auth setup
   src/index.js             — Worker: fetch handler (GET /admin/pipeline/run) retained for ad-hoc testing; FILES=[] (empty); utility
                              functions (processZip, filterColsBinary, etc.) retained for future Worker use
                              Deploy: cd pipeline && npm install && npx wrangler deploy
