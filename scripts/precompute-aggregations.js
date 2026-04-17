@@ -38,7 +38,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 // ---------------------------------------------------------------------------
 
 const BUCKET         = 'fecledger-bulk';
-const TOP_N          = 25;
+const TOP_N          = 25;           // top-K stored in KV (UI shows top 10)
 const MIN_ROWS       = 500;          // committee qualifies if rowCount >= MIN_ROWS
 const KV_TTL         = 604800;       // 7 days
 const KV_BATCH_SIZE  = 50;
@@ -46,6 +46,25 @@ const CYCLES         = [
   { year: '2024', cycle: 2024 },
   { year: '2026', cycle: 2026 },
 ];
+
+// In-stream pruning to bound memory.
+// Mega-committees (ActBlue, WinRed, DNC, etc.) accumulate 1M+ unique
+// (NAME|ENTITY_TP) keys; the unbounded Map exhausted a 6 GB heap.
+//
+// Strategy: every PRUNE_EVERY_ROWS streamed, sort each oversize committee's
+// contributor Map and discard everything outside top PRUNE_TO. PRUNE_TO=500
+// is a 20× safety buffer above the TOP_N=25 stored in KV — a contributor
+// pruned mid-stream would need to climb from $0 to a top-25 total in the
+// remaining rows alone to be lost from the final output. This is rare in
+// practice: top-25 contributors to mega-committees are dominated by max-out
+// donors and bundlers who establish their position early in the cycle.
+//
+// Committees with <= PRUNE_THRESHOLD entries are never pruned — preserves
+// full data for the long tail of small/medium committees where the safety
+// margin doesn't matter and pruning could silently drop a real top-25.
+const PRUNE_TO         = 500;
+const PRUNE_THRESHOLD  = 1000;
+const PRUNE_EVERY_ROWS = 5_000_000;
 
 // indiv CSV column indices (0-based) — produced by ingest-bulk.js BulkProcessingStream
 //   0: CMTE_ID  1: ENTITY_TP  2: NAME  9: TRANSACTION_AMT  11: MEMO_CD
@@ -78,6 +97,22 @@ async function streamPas2Recipients(s3, year) {
   }
 
   return set;
+}
+
+function pruneOversizedCommittees(agg) {
+  let prunedCount = 0;
+  let droppedKeys = 0;
+  for (const cmteAgg of agg.values()) {
+    const before = cmteAgg.contributors.size;
+    if (before <= PRUNE_THRESHOLD) continue;
+    const sorted = [...cmteAgg.contributors.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, PRUNE_TO);
+    cmteAgg.contributors = new Map(sorted);
+    droppedKeys += (before - PRUNE_TO);
+    prunedCount++;
+  }
+  return { prunedCount, droppedKeys };
 }
 
 async function aggregateIndiv(s3, year) {
@@ -117,9 +152,11 @@ async function aggregateIndiv(s3, year) {
     cmteAgg.contributors.set(key, (cmteAgg.contributors.get(key) || 0) + amt);
     kept++;
 
-    if (totalRows % 5_000_000 === 0) {
-      const heapMb = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(0);
-      console.log(`[${year}/indiv] ${totalRows.toLocaleString()} rows | kept ${kept.toLocaleString()} | committees ${agg.size.toLocaleString()} | heap ${heapMb} MB`);
+    if (totalRows % PRUNE_EVERY_ROWS === 0) {
+      const heapBeforeMb = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(0);
+      const { prunedCount, droppedKeys } = pruneOversizedCommittees(agg);
+      const heapAfterMb  = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(0);
+      console.log(`[${year}/indiv] ${totalRows.toLocaleString()} rows | kept ${kept.toLocaleString()} | committees ${agg.size.toLocaleString()} | pruned ${prunedCount} (-${droppedKeys.toLocaleString()} keys) | heap ${heapBeforeMb}→${heapAfterMb} MB`);
     }
   }
 
