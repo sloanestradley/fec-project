@@ -233,6 +233,35 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 
 - ~~**Bulk data pipeline (pas2)**~~ — ✅ **Done (2026-04-16).** `pipeline/` Cloudflare Worker downloads pas222/24/26 from FEC bulk downloads weekly (cron `0 6 * * 1`) and writes pipe-delimited CSVs to R2 bucket `fecledger-bulk` at `fec/pas2/{year}/pas2.csv`. Worker requires Workers Paid plan ($5/mo) for cron triggers. **Not covered:** indiv22/24/26 individual contribution files (~4.5 GB uncompressed each) exceed Cloudflare Workers' 128 MB memory cap and CPU time limit — these require GitHub Actions (ubuntu runner, no memory/CPU cap, free for public repos, R2 auth via Cloudflare API token). R2 key pattern `fec/indiv/{year}/indiv.csv` is reserved; streaming code is complete in `pipeline/src/index.js` and just needs a new runtime wrapper.
 
+- **Pages project is Direct Upload, not git-connected** — Discovered 2026-04-17 when a binding change (Session 4B AGGREGATIONS) failed to activate after pushes. The `fecledger` Pages project was created via `wrangler pages deploy` during the 2026-04-14 Netlify migration, which produces Direct Upload projects by default. Git pushes to main do not trigger deploys; every deploy must be manual via `npx wrangler pages deploy <staging-dir> --project-name=fecledger --branch=main`. The project has no Builds & deployments settings section in the dashboard (the visible absence is the tell).
+
+  **Cloudflare architectural constraint:** Direct Upload and Git-connected cannot be converted in-place. The fix requires creating a new Pages project with a git connection, re-attaching bindings and secrets, and cutting over. Rough scope: 1–2 hours of focused work.
+
+  **Migration steps:**
+  1. Dashboard → Workers & Pages → Create → Pages → **Connect to Git** (this OAuth flow is the only way to produce a git-connected project; CLI-created projects are always Direct Upload). Select the `fec-project` repo, production branch `main`.
+  2. Configure bindings: re-add `AGGREGATIONS` → `fecledger-aggregations` (the KV namespace itself is separate from the project and does not need to be recreated). Re-add `API_KEY` as a secret.
+     - **Gotcha:** Cloudflare secrets are write-only; you cannot read the existing `API_KEY` value from the current project. Have the FEC API key value from your password manager, email, or api.data.gov before starting — otherwise a new key has to be provisioned.
+  3. Solve the deploy surface problem. Without intervention, a git-connected Pages project uploads the *entire repo* — including `scripts/`, `pipeline/`, `tests/`, `CLAUDE.md`, `claude-to-claude.md`, etc. This is the same leak risk addressed by our current `rsync --exclude …` staging pattern. Two reasonable approaches:
+     - **Build command does the staging.** Commit a `deploy/stage.sh` that rsyncs site content into `deploy/dist/`. Set Pages build command to `bash deploy/stage.sh`, output directory to `deploy/dist/`. The exclusion list lives in version control and is auditable.
+     - **Monorepo restructure.** Move non-site files under a `workspace/` directory, leave site files + `functions/` at root, set Pages root directory to a clean site subdirectory. Cleaner long-term but invasive (import paths, CI configs, Playwright paths all change).
+
+     The build-script approach is lower risk.
+  4. Test the new project's preview URL end-to-end before cutover: landing → `/search`, `/candidate/H2WA03217`, `/committee/C00806174`, `/api/fec/*` proxy, AGGREGATIONS binding.
+  5. URL cutover — three options:
+     - **Accept new subdomain** (e.g. `fecledger-git.pages.dev`) — fastest; update references in `CLAUDE.md`, `playwright.smoke.config.js`, `ia.md`, and any shared links, then delete the old project.
+     - **Reclaim `fecledger` subdomain** — delete the old project, wait ~24h for Cloudflare to release the name, recreate with that name. Timing risk; cooldown is not well-documented.
+     - **Wait for a custom domain** — if a real domain is acquired (already on the project-brief Go-live list), the custom domain decouples URL from Pages subdomain. Point the new domain at the new project, delete the old. Cleanest long-term; requires a domain first.
+  6. Delete old `fecledger` Direct Upload project.
+  7. **Lock in the lessons (prevents recurrence).** Before closing the migration session:
+     - Push a trivial site change (e.g. a whitespace edit to `index.html`) and watch the Deployments tab. Confirm a new deployment appears with the expected commit hash, and confirm the change is live on the URL. Do not skip this — "the site is live" and "new pushes actually deploy" are two separate states, and conflating them is how we got here in the first place.
+     - Update CLAUDE.md's deployment note with **verified** state, not assumed state. Format: "Deploys via git — verified on `<date>` by pushing a change and watching the Deployments tab." This replaces the stale "auto-deploys on push to main" assumption that went unchecked for 3 days.
+     - Delete the `Option B` manual-deploy rsync instructions and any references to `npx wrangler pages deploy` in CLAUDE.md and claude-to-claude.md. Future sessions should find one deploy path, not two.
+     - Add a pre-delete safeguard note to CLAUDE.md or this file: before deleting any Cloudflare Pages project in the future, confirm it is not the currently-live production site by visiting its `.pages.dev` URL and checking against the expected content. (The migration below walks this correctly, but the general rule is worth recording.)
+
+  **Timing recommendation:** Do this after Session 3 (committee.html wiring). Session 3 can ship via the current manual deploy flow; the git migration is yak-shaving before user-visible progress and bundles naturally with a custom-domain purchase if that's near-term.
+
+  **Root-cause summary for future reference:** The Pages project was created via `npx wrangler pages deploy` during the 2026-04-14 Netlify migration. That CLI path produces Direct Upload projects with no git linkage — there is no "upgrade to git-connected" option after creation. The only way to produce a git-connected Pages project is the Dashboard → Create → Pages → **Connect to Git** OAuth flow. For any future Pages project creation, prefer the dashboard flow unless deliberately choosing Direct Upload.
+
 ---
 
 ## Open items (not prioritized)
