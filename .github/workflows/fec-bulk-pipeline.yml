@@ -55,4 +55,7 @@ jobs:
           R2_ACCESS_KEY_ID:      ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY:  ${{ secrets.R2_SECRET_ACCESS_KEY }}
           KV_NAMESPACE_ID:       ${{ secrets.KV_NAMESPACE_ID }}
+          # Node default heap is ~4 GB; indiv aggregation peaked at 3.5 GB
+          # at 25M rows in run #4 and OOM'd. Runner has 7 GB total.
+          NODE_OPTIONS:          --max-old-space-size=6144
         run: node scripts/precompute-aggregations.js
