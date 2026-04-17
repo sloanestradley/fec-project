@@ -3679,3 +3679,58 @@ The through-line: you treated this session as pure plumbing — no feature press
 - **Session 2 scope:** KV pre-computation — what's the right granularity for pre-aggregated top-contributor data? Per committee ID? Per committee + cycle? What query patterns does Session 3 need to serve?
 
 **Verification confirmed (2026-04-16):** Run 1 — all 6 files processed, `fec/meta/pipeline_state.json` written with 6 keys, `fec/last_updated.json` has both `indiv` and `pas2` fields. Run 2 — all 6 files skipped ("Last-Modified unchanged"), `last_updated.json` timestamp updated. Worker cron confirmed removed from Cloudflare dashboard. Session 2 can start from a clean baseline.
+
+---
+2026-04-17 (session 5 — KV pre-computation)
+
+## Process log draft
+
+**Title: Accuracy isn't a preference**
+
+The goal was to pre-compute top contributors per committee into Cloudflare KV so committee.html can show accurate data for mega-committees like ActBlue and WinRed — the ones that hit the 100-page client-side pagination ceiling. The session had three architectural moves, each triggered by a constraint the previous one revealed. First: streaming Map aggregation in Node — the natural shape, worked end-to-end, but OOM'd at 3.5 GB on a 4 GB default heap. Bumped to 6 GB. Still OOM'd. Added mid-stream pruning to top 500 per committee. Shipped, wrote 9,472 entries. Then the call came: pruning is approximate by design — any contributor outside the top 500 at prune time has their prior accumulation discarded, so their displayed total would be undercounted. For a visualization people are supposed to trust, that's not ok.
+
+Rewrote the whole thing with DuckDB. One SQL GROUP BY, external spill-to-disk aggregation, 100% accurate totals, bounded memory by architecture rather than by pruning cleverness. Along the way caught a latent bug in the prior session's ingest-bulk.js: the pas2 CSV header was 21 columns when the data has 22 (CAND_ID was missing from the header write). DuckDB refused to parse the mismatch, which was useful — it forced the fix. Final run: 9,472 KV entries across two cycles in 7m 48s, peak memory well-bounded, no pruning.
+
+**Changelog:**
+- scripts/precompute-aggregations.js rewritten from scratch with @duckdb/node-api Neo binding
+- Data flow per cycle: download pas2+indiv CSVs from R2 to /tmp → load pas2 recipients into DuckDB → single SQL GROUP BY with ROW_NUMBER window for top-25-per-committee → linear Node scan to group result rows by cmte_id and build KV entries
+- Namespace wipe (list + bulk-delete via REST API) runs up front so stale v1 pruned entries can't coexist with fresh v2 accurate entries
+- Cloudflare KV REST API used for list, bulk delete, bulk put (endpoint naming: PUT /bulk, POST /bulk/delete, GET /keys — different verbs for each)
+- scripts/ingest-bulk.js PAS2_HEADER fixed: added CAND_ID (22 columns, not 21) — was a latent bug from Session 4A/4A-consolidation
+- read_csv uses header=false + skip=1 + null_padding=true so precompute is robust against any future header drift
+- scripts/package.json: +@duckdb/node-api dependency
+- .github/workflows/fec-bulk-pipeline.yml: new "Pre-compute KV aggregations" step after Run FEC bulk pipeline, with KV_NAMESPACE_ID env + NODE_OPTIONS=--max-old-space-size=6144 kept as insurance
+- KV_NAMESPACE_ID added as GitHub repository secret
+- Manual: wrangler kv namespace create fecledger-aggregations; AGGREGATIONS binding added to Pages project in dashboard (blocks Session 3)
+- Pruning-era commits (streaming Map + mid-stream prune to top 500) are in history but superseded by DuckDB rewrite
+- 416/416 Playwright tests still passing
+
+**Field notes:**
+The interesting moment wasn't any of the debugging — it was the pivot. For about an hour I was deep in "how big should the pruning buffer be? how often should we prune? what's the late-cycle risk?" Every question was downstream of the assumption that pruning was the right tool. When the call came to stop — "we want 100% accurate totals, no pruning risk" — the whole prior hour evaporated. Pruning was never the problem to tune; it was the wrong approach.
+
+DuckDB as the fix was almost anticlimactic. The SQL is 25 lines. It handles what was a genuinely hard memory-management problem in Node by just doing external aggregation, which is what columnar databases are for. The lesson isn't "use DuckDB everywhere" — it's "if you find yourself tuning an approximation when accuracy is the requirement, you're in the wrong solution space."
+
+The secondary lesson, smaller: DuckDB's strict CSV parser caught a bug that had been silently sitting in the R2 data since Session 4A. A 21-column header on 22-column data is the kind of bug that never trips up a tolerant parser — every existing consumer was either a column-filter (ingest-bulk itself) or a by-position reader (the earlier Map-based precompute) that didn't care about header mismatch. The strict parser refused to guess. That's an argument for being strict at pipeline boundaries even when tolerant parsing would "work."
+
+**Stack tags:** DuckDB · Cloudflare KV · Cloudflare REST API · GitHub Actions · @duckdb/node-api · external sort · SQL window functions
+
+## How Sloane steered the work
+
+**"Accuracy isn't a preference"** — The explicit call to stop treating pruning as a tunable parameter and switch to guaranteed accuracy reframed the session entirely. I was already composing the "bump PRUNE_TO to 1000 for 40× safety" message when the guidance came through. The difference between "safe enough" and "right" is a product call, not a technical one — and you made it cleanly. Everything that followed — the DuckDB architecture, the KV wipe step, the accurate-totals acceptance criteria — flowed from that single reframing.
+
+**"Show me the options before building"** — When the pivot came, you didn't say "use DuckDB." You said show me the options. That discipline matters — it forced me to articulate Option A (DuckDB), Option B (Unix sort + stream), Option C (per-committee shard files) as real alternatives with honest tradeoffs, and it meant your eventual "go with A" was informed rather than handed to you. Skipping that step would have bound the decision to my first instinct, which may not have been yours.
+
+**"Clear existing entries before writing new ones"** — You caught the coexistence risk before I raised it. If the wipe had happened on a second commit after observing v1/v2 mixed data in KV, that would have been an embarrassing cleanup. Naming it as part of the initial spec got the wipe into the first DuckDB commit, where it belongs.
+
+**"Do the end-of-session ritual"** — The discipline of closing the session properly rather than sprinting into Session 3. Documentation drift is how projects lose memory across sessions, and the wrap-up ritual is what prevents it. You're consistent about calling for it.
+
+The through-line: you treat accuracy, clarity, and documentation hygiene as product requirements, not engineering nice-to-haves. The DuckDB rewrite wasn't technically necessary — pruning worked well enough for most cases. But "most cases" isn't the bar when someone is making a campaign finance decision based on the number they see. That standard is what drives the architectural rigor.
+
+## What to bring to Claude Chat
+
+- **Session 3 readiness.** The AGGREGATIONS KV binding is wired, the data is accurate, the key format is `top_contributors:{cmte_id}:{cycle}`. Session 3 builds a Pages Function at `functions/api/aggregations/[[path]].js` (or similar) that reads the binding and serves JSON to committee.html. Worth scoping with Claude Chat: should the fetch happen client-side (committee.html makes a fetch call) or server-side (rendered into the page by a Pages Function)? Client-side is simpler and matches existing architecture; server-side has better first-paint but adds complexity.
+- **Empty state strategy for out-of-scope committees.** Not every committee has a KV entry (only in-scope per the pas2 recipient + ≥500 rows rule). For a small committee that hits committee.html without a pre-computed entry, what does the UI show? Options: fall back to the existing client-side aggregation path (still correct, just slower), or treat the absence as "this committee has fewer than 500 itemized individual contributions, which is typical for small candidate committees" and render a narrative instead of a table.
+- **Cycle ambiguity for "All time."** The KV keys are per-cycle (2024, 2026). committee.html's All time view is a union of all cycles. Either the Pages Function merges entries across cycles at read time (simple but inaccurate — summing top-25-per-cycle lists is not the true top-25-all-time), or we pre-compute a third key `top_contributors:{cmte_id}:all`. Worth deciding.
+- **Refresh cadence + eventual consistency.** Daily cron refresh means KV entries can be up to 24h stale. Acceptable for most use, but worth flagging in a UI note on committee.html ("Data as of…").
+- **pas2 header fix is landed but R2 still has 21-col headers.** Ingest-bulk writes 22-col headers now, but it only re-runs when Last-Modified changes. Next time the FEC publishes new pas2 data, the R2 file header will flip to 22 cols. precompute already handles both via header=false + skip=1 so no action needed — but good to know the transition will be silent.
+- **Documentation concern about pruning in history.** There are two commits on main from this session that shipped pruning logic before the DuckDB rewrite replaced it. The KV namespace has been wiped since, so no pruned data is live. But if someone spelunks the git history and stops at the pruning commit, they'd come away with a wrong mental model. Consider adding a brief note to CLAUDE.md explicitly flagging "the pruning approach was abandoned; see the DuckDB rewrite" — already done in this session but worth confirming.

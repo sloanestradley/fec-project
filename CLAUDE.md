@@ -41,6 +41,8 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 - **apiFetch concurrency queue:** `utils.js` implements a `MAX_CONCURRENT = 4` request queue to avoid 429 rate-limit errors when pages fire many parallel API calls (candidate page fires 15–20 on load). All calls still execute — they just pace to ≤4 in-flight at a time. No call-site changes needed; `apiFetch(path, params)` signature is identical.
 - **FEC API key is server-side (Cloudflare secret):** `utils.js` sends requests to `/api/fec/*`, which proxies to `api.open.fec.gov/v1/*` via a Cloudflare Pages Function at `functions/api/fec/[[path]].js`. The API key is stored as a Cloudflare secret (`API_KEY`) and injected server-side — it is no longer visible in client-side source. All visitors draw from the same rate limit. An upgraded key is confirmed at 7,200 calls/hour (120 calls/min). **Live site:** `https://fecledger.pages.dev` (Cloudflare Pages, auto-deploys on push to main). **Netlify** (`sloanestradley.netlify.app`) is stopped/paused — do not push there.
 - **FEC API field verification:** Before writing logic that depends on a specific field name or value from any FEC endpoint, verify the actual response shape first. Navigate directly to the endpoint in a browser (or use `apiFetch` in the console) and confirm field names, value formats, and null behavior. Do not infer from the FEC docs alone — the docs and actual responses diverge in practice (e.g. `/elections/` returns `incumbent_challenge_full` as `"Incumbent"/"Challenger"/"Open seat"`, not the single-letter `incumbent_challenge` code). Document any verified field behavior in the relevant section below.
+- **Cloudflare KV for pre-computed aggregations:** Namespace `fecledger-aggregations` stores top-25 contributors per committee per cycle, populated daily by `scripts/precompute-aggregations.js` (see pre-computation architecture below). Bound to the Pages project as `AGGREGATIONS` — Pages Functions read via `env.AGGREGATIONS.get('top_contributors:{cmte_id}:{cycle}')`. The binding is **configured manually in the Cloudflare dashboard** (Workers & Pages → fecledger → Settings → Functions → KV namespace bindings); it cannot be set via wrangler for Pages projects. Writes happen from GitHub Actions via the Cloudflare REST API (bulk PUT/DELETE/list endpoints); reads happen from Pages Functions via the binding.
+- **DuckDB in the aggregation pipeline:** `scripts/precompute-aggregations.js` uses `@duckdb/node-api` (Neo binding) to run a single SQL GROUP BY over the indiv CSV. DuckDB spills to disk automatically when memory is exhausted, giving bounded memory + 100% accurate totals. An earlier streaming-Map approach with mid-stream pruning was abandoned because pruning silently undercounts late-cycle contributors whose prior accumulation was discarded.
 
 ---
 
@@ -238,12 +240,21 @@ pipeline/                  — Standalone Cloudflare Worker: HTTP trigger only (
                              functions (processZip, filterColsBinary, etc.) retained for future Worker use
                              Deploy: cd pipeline && npm install && npx wrangler deploy
 .github/
-  workflows/fec-bulk-pipeline.yml — GitHub Actions: daily cron 6am UTC + workflow_dispatch; Node.js 24; runs scripts/ingest-bulk.js
+  workflows/fec-bulk-pipeline.yml — GitHub Actions: daily cron 6am UTC + workflow_dispatch; Node.js 24; runs
+                                    scripts/ingest-bulk.js, then scripts/precompute-aggregations.js in the same job
 scripts/
-  ingest-bulk.js       — Node.js pipeline: downloads all 6 FEC bulk files (indiv22/24/26 + pas222/24/26); conditional fetching via
-                         HEAD request + fec/meta/pipeline_state.json; BulkProcessingStream (column filter for indiv, passthrough for
-                         pas2); per-file state write for partial-run recovery; writes fec/last_updated.json { indiv, pas2 } on success
-  package.json         — @aws-sdk/client-s3 + @aws-sdk/lib-storage dependencies
+  ingest-bulk.js                — Node.js pipeline: downloads all 6 FEC bulk files (indiv22/24/26 + pas222/24/26); conditional fetching via
+                                  HEAD request + fec/meta/pipeline_state.json; BulkProcessingStream (column filter for indiv, passthrough for
+                                  pas2); per-file state write for partial-run recovery; writes fec/last_updated.json { indiv, pas2 } on success.
+                                  Note: PAS2_HEADER is 22 columns (includes CAND_ID between OTHER_ID and TRAN_ID) — earlier versions wrote
+                                  21 cols, which broke DuckDB downstream; see pre-computation pipeline below.
+  precompute-aggregations.js    — DuckDB-based pre-computation of top contributors per committee per cycle. Runs after ingest-bulk.js
+                                  completes. For cycles 2024 + 2026: downloads pas2 + indiv CSVs from R2 to /tmp, runs a single SQL GROUP BY
+                                  (spill-to-disk bounded memory, 100% accurate totals), writes top 25 per in-scope committee to Cloudflare
+                                  KV via REST bulk PUT. Wipes the namespace entirely before writing to prevent stale/inaccurate entries
+                                  from coexisting with fresh data. Scope rule: committee appears in pas2 as a CMTE_ID recipient OR has
+                                  >=500 post-memo rows in indiv. Key: `top_contributors:{cmte_id}:{cycle}`. TTL: 7 days.
+  package.json                  — @aws-sdk/client-s3 + @aws-sdk/lib-storage + @duckdb/node-api dependencies
 tests/
   helpers/amp-mock.js  — Amplitude mock (blocks CDN, stubs sessionReplay, reads _q queue)
   helpers/api-mock.js  — FEC API mock (route intercept + fixture data for all endpoints)
@@ -419,8 +430,8 @@ See `project-brief.md` for the full phased roadmap. Short version:
 - ~~Session 1~~ ✅ Pipeline Worker deployed — `pipeline/` directory; processes pas222/224/226 only; writes pipe-delimited CSVs to R2 bucket `fecledger-bulk`; manual trigger `GET /admin/pipeline/run[?file=key]`; indiv files deferred — 4.5 GB each exceeds Workers limits
 - ~~Session 1b~~ ✅ indiv file ingestion via GitHub Actions — `scripts/ingest-indiv.js`; weekly cron Mon 8am UTC; Node.js 24; zlib.createInflateRaw() + ZIP64 extra-field parsing; @aws-sdk/lib-storage multipart upload; all three indiv files confirmed in R2. **Auth note:** R2 S3-compatible API requires a dedicated R2 API Token (separate from the general Cloudflare API token used for Wrangler).
 - ~~Session 1c~~ ✅ Pipeline consolidation — all 6 files unified into GitHub Actions (`scripts/ingest-bulk.js`, `.github/workflows/fec-bulk-pipeline.yml`); daily cron 6am UTC; conditional fetching via HEAD request + `fec/meta/pipeline_state.json`; `BulkProcessingStream` handles both column-filtered indiv and passthrough pas2; per-file state write for partial-run recovery; `last_updated.json` now writes `{ indiv, pas2 }`. Worker cron removed; Worker retained for ad-hoc testing only.
-- Session 2 — KV pre-computation (aggregate top contributors per committee into Cloudflare KV for fast client reads)
-- Session 3 — Wire top contributors to product surfaces
+- ~~Session 2~~ ✅ KV pre-computation — `scripts/precompute-aggregations.js` runs after ingest in the same GitHub Actions job. For cycles 2024 + 2026, downloads pas2 + indiv CSVs from R2 to `/tmp`, runs a single DuckDB SQL GROUP BY (spill-to-disk bounded memory, 100% accurate totals), and writes top 25 contributors per in-scope committee to Cloudflare KV namespace `fecledger-aggregations`. Key format `top_contributors:{cmte_id}:{cycle}`, TTL 7 days. Wipe-then-write flow prevents stale entries. ~9,472 entries per daily run (5,483 committees × 2024 + 3,989 × 2026). Completes in ~7-8 minutes. **Initial approach (streaming Map + pruning) was abandoned** because pruning is approximate — any contributor outside the top 500 at prune time loses prior accumulation and can be undercounted in the final output. **AGGREGATIONS Pages binding (manual dashboard step) is required before Session 3** — Workers & Pages → fecledger → Settings → Functions → KV namespace bindings; variable name `AGGREGATIONS`; Production environment; then trigger a Pages redeploy.
+- Session 3 — Wire top contributors to product surfaces (Pages Function reads `env.AGGREGATIONS` on committee.html Raised tab; replaces the mega-committee "Unable to show top committees" empty state with pre-computed data)
 
 ## Remaining architectural debt
 
