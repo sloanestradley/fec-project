@@ -588,7 +588,7 @@ The full product brief (`project-brief.md`) has MVP scope, audience definition, 
 cd ~/Vibecoding/fec-project && claude
 ```
 
-**Session-start ritual check:** Read CLAUDE.md, project-brief.md, ia.md, and claude-to-claude.md. (1) Check whether the most recent entry in `claude-to-claude.md` matches the last commit — if the log entry is missing and work was clearly done, flag it. (2) Run `git status` — if there are uncommitted changes, flag them before starting new work.
+**Session-start ritual check:** Read CLAUDE.md, project-brief.md, ia.md, and claude-to-claude.md. (1) Check whether the most recent entry in `claude-to-claude.md` matches the last commit — if the log entry is missing and work was clearly done, flag it. (2) Run `git status` — if there are uncommitted changes, flag them before starting new work. (3) If any `package.json` changed since the last session (check via `git log --oneline -10 -- package.json pipeline/package.json scripts/package.json`), flag it and remind Sloane to run `npm install` in the affected directories (`fec-project/`, `pipeline/`, `scripts/`) on both machines before continuing.
 
 **Opening prompt:**
 ```
