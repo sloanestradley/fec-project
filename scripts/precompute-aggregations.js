@@ -55,6 +55,19 @@ const CYCLES        = [
   { year: '2026', cycle: 2026 },
 ];
 
+// Feature flag — top_committees:* KV key pattern.
+// Disabled 2026-04-20 after discovering that pas2 NAME field stores the
+// RECIPIENT's name (Schedule B recipient_name), not the giver's name as
+// initially assumed. Storing pas2 NAME as the display name in top_committees
+// entries produces visually incorrect results (e.g. Marie for Congress appears
+// as its own top contributor because JFAs write "MARIE FOR CONGRESS" in
+// recipient_name when filing contributions to Marie's principal). A correct
+// fix requires ingesting FEC's cm.txt Committee Master File for a reliable
+// committee_id → registered_name mapping. buildCommitteesAggSql() + its
+// linear-scan block below are kept in place — they'll work unchanged once
+// the name source is swapped. Re-enable by flipping this flag.
+const ENABLE_TOP_COMMITTEES_PASS = false;
+
 // ---------------------------------------------------------------------------
 // DuckDB schemas — matching BulkProcessingStream output in ingest-bulk.js
 // ---------------------------------------------------------------------------
@@ -449,46 +462,51 @@ async function processCycle(s3, conn, { year, cycle }) {
   console.log(`[${cycle}] top_contributors: ${entries.length.toLocaleString()} committees`);
 
   // 4. Second aggregation — top_committees (who gave money TO each committee,
-  //    from pas2). Same DuckDB connection, runs over the already-downloaded
-  //    pas2 CSV.
-  console.log(`[${cycle}] Running DuckDB committee-contributors SQL...`);
-  const commT0     = Date.now();
-  const commReader = await conn.runAndReadAll(buildCommitteesAggSql(pas2Path));
-  const commRows   = commReader.getRows();
-  const commSqlEl  = ((Date.now() - commT0) / 1000).toFixed(1);
-  console.log(`[${cycle}] committee SQL done in ${commSqlEl}s — ${commRows.length.toLocaleString()} (receiver, giver) result rows`);
+  //    from pas2). Gated by ENABLE_TOP_COMMITTEES_PASS (see top of file).
+  //    The SQL function and scan block are retained verbatim so re-enabling
+  //    only requires flipping the flag once cm.txt integration lands.
+  if (ENABLE_TOP_COMMITTEES_PASS) {
+    console.log(`[${cycle}] Running DuckDB committee-contributors SQL...`);
+    const commT0     = Date.now();
+    const commReader = await conn.runAndReadAll(buildCommitteesAggSql(pas2Path));
+    const commRows   = commReader.getRows();
+    const commSqlEl  = ((Date.now() - commT0) / 1000).toFixed(1);
+    console.log(`[${cycle}] committee SQL done in ${commSqlEl}s — ${commRows.length.toLocaleString()} (receiver, giver) result rows`);
 
-  let currentComm = null;
-  let commCount   = 0;
-  for (const row of commRows) {
-    const [receiver, giverId, name, entityTp, total] = row;
-    if (!currentComm || currentComm.receiver !== receiver) {
-      if (currentComm) {
-        entries.push({
-          key:            `top_committees:${currentComm.receiver}:${cycle}`,
-          value:          JSON.stringify(currentComm.list),
-          expiration_ttl: KV_TTL,
-        });
-        commCount += 1;
+    let currentComm = null;
+    let commCount   = 0;
+    for (const row of commRows) {
+      const [receiver, giverId, name, entityTp, total] = row;
+      if (!currentComm || currentComm.receiver !== receiver) {
+        if (currentComm) {
+          entries.push({
+            key:            `top_committees:${currentComm.receiver}:${cycle}`,
+            value:          JSON.stringify(currentComm.list),
+            expiration_ttl: KV_TTL,
+          });
+          commCount += 1;
+        }
+        currentComm = { receiver, list: [] };
       }
-      currentComm = { receiver, list: [] };
+      currentComm.list.push({
+        name,
+        entity_type:  entityTp ?? '',
+        committee_id: giverId  ?? '',
+        total:        Math.round(Number(total)),
+      });
     }
-    currentComm.list.push({
-      name,
-      entity_type:  entityTp ?? '',
-      committee_id: giverId  ?? '',
-      total:        Math.round(Number(total)),
-    });
+    if (currentComm) {
+      entries.push({
+        key:            `top_committees:${currentComm.receiver}:${cycle}`,
+        value:          JSON.stringify(currentComm.list),
+        expiration_ttl: KV_TTL,
+      });
+      commCount += 1;
+    }
+    console.log(`[${cycle}] top_committees: ${commCount.toLocaleString()} committees`);
+  } else {
+    console.log(`[${cycle}] top_committees: SKIPPED (ENABLE_TOP_COMMITTEES_PASS = false)`);
   }
-  if (currentComm) {
-    entries.push({
-      key:            `top_committees:${currentComm.receiver}:${cycle}`,
-      value:          JSON.stringify(currentComm.list),
-      expiration_ttl: KV_TTL,
-    });
-    commCount += 1;
-  }
-  console.log(`[${cycle}] top_committees: ${commCount.toLocaleString()} committees`);
 
   // 5. Clean up CSVs and DuckDB table for this cycle
   await fsp.unlink(pas2Path).catch(() => {});
