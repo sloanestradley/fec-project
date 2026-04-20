@@ -234,6 +234,18 @@
               <tbody id="conduits-tbody"></tbody>
             </table>
           </div>
+          <div class="donors-card">
+            <div class="donors-head">Top Individual Contributors</div>
+            <table class="donors-table">
+              <thead><tr>
+                <th style="width:2rem">#</th>
+                <th>Contributor</th>
+                <th>Location</th>
+                <th class="r">Amount</th>
+              </tr></thead>
+              <tbody id="individual-donors-tbody"></tbody>
+            </table>
+          </div>
           <div class="data-note" id="raised-data-note"></div>
         </div>
       </div>
@@ -841,8 +853,77 @@ async function fetchRaisedData(committeeId, subCycles, totalsBreakdown, totalRai
       .slice(0, 10);
   } catch(e) { console.warn('Top committee contributors fetch failed:', e.message); }
 
+  // Top individual contributors — scoped to the latest 2-year sub-cycle (KV is
+  // keyed per 2-year FEC cycle, not per full election cycle). For House candidates
+  // this equals the election cycle; for Senate/Presidential it's the most recent
+  // sub-cycle. Branch tree: KV hit → bulk data, KV miss + small committee →
+  // paginated API, KV miss + mega-committee → unavailable empty state.
+  function aggregateIndividualRows(rows) {
+    var seen = {};
+    rows.forEach(function(d) {
+      var key = ((d.contributor_name || '').trim().toUpperCase() + '|' + (d.contributor_zip || d.contributor_city || ''));
+      if (!key || key === '|') return;
+      if (!seen[key]) seen[key] = {
+        name: d.contributor_name || '—',
+        city: d.contributor_city || '',
+        state: d.contributor_state || '',
+        total: 0
+      };
+      seen[key].total += d.contribution_receipt_amount || 0;
+    });
+    return Object.values(seen)
+      .sort(function(a,b){ return b.total - a.total; })
+      .slice(0, 10);
+  }
+
+  var latestSubCycle = subCycles[subCycles.length - 1];
+  var topIndividuals = [];
+  var topIndividualsSource = 'api';  // 'bulk' | 'api' | 'unavailable'
+  try {
+    var kvUrl = '/api/aggregations/top-contributors?committee_id=' +
+      encodeURIComponent(committeeId) + '&cycle=' + encodeURIComponent(latestSubCycle);
+    var kvRes = await fetch(kvUrl).then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; });
+    if (kvRes && kvRes.source === 'bulk' && Array.isArray(kvRes.results)) {
+      topIndividuals = kvRes.results.slice(0, 10);
+      topIndividualsSource = 'bulk';
+    } else {
+      var INDIV_PAGE_THRESHOLD = 100;  // 10,000 transactions
+      var indivParams = {
+        committee_id: committeeId,
+        two_year_transaction_period: latestSubCycle,
+        is_individual: true,
+        sort: '-contribution_receipt_amount',
+        per_page: 100
+      };
+      var indivRes1 = await apiFetch('/schedules/schedule_a/', indivParams);
+      var indivPag  = indivRes1.pagination || {};
+      if ((indivPag.pages || 1) > INDIV_PAGE_THRESHOLD) {
+        topIndividualsSource = 'unavailable';
+      } else {
+        var indivRows = (indivRes1.results || []).slice();
+        while (indivRows.length < (indivPag.count || 0)) {
+          var idxI = indivPag.last_indexes || {};
+          if (!idxI.last_index) break;
+          indivParams = Object.assign({}, indivParams, {
+            last_index: idxI.last_index,
+            last_contribution_receipt_amount: idxI.last_contribution_receipt_amount
+          });
+          var nextRes = await apiFetch('/schedules/schedule_a/', indivParams);
+          indivPag = nextRes.pagination || {};
+          indivRows = indivRows.concat(nextRes.results || []);
+        }
+        topIndividuals = aggregateIndividualRows(indivRows);
+        topIndividualsSource = 'api';
+      }
+    }
+  } catch(e) { console.warn('Top individual contributors fetch failed:', e.message); }
+
   return { byState: byState, breakdown: totalsBreakdown,
            topDonors: topDonors, topConduits: topConduits,
+           topIndividuals: topIndividuals,
+           topIndividualsSource: topIndividualsSource,
+           latestSubCycle: latestSubCycle,
            totalRaised: totalRaised,
            covDate: covDate, subCycles: subCycles };
 }
@@ -1033,6 +1114,29 @@ function renderTopDonors(donors) {
   }).join('');
 }
 
+// ── Raised tab: individual contributor table ─────────
+// KV rows have {name, entity_type, total} only (no city/state); API rows have
+// full {name, city, state, total}. The Location column renders '—' when KV-sourced.
+function renderIndividualDonors(donors) {
+  var tbody = document.getElementById('individual-donors-tbody');
+  if (!donors.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">No individual contribution data available.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = donors.map(function(d, i) {
+    var name = d.name
+      ? d.name.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
+      : '—';
+    var loc = [d.city ? toTitleCase(d.city) : '', d.state].filter(Boolean).join(', ');
+    return '<tr>' +
+      '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
+      '<td><div class="dn">' + name + '</div></td>' +
+      '<td style="font-size:0.625rem;color:var(--muted)">' + (loc || '—') + '</td>' +
+      '<td class="da">' + fmtFull(d.total) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
 // ── Raised tab: top conduit sources table ────────────
 // Conduits are platforms (ActBlue, WinRed, Anedot) that forward individual contributions
 // to committees. Reported on Schedule A via memo_code='X' entries. Distinct from committee
@@ -1075,6 +1179,12 @@ async function renderRaisedIfReady() {
     await renderChoropleth(data.byState);
     renderTopDonors(data.topDonors);
     renderTopConduits(data.topConduits);
+    if (data.topIndividualsSource === 'unavailable') {
+      document.getElementById('individual-donors-tbody').innerHTML =
+        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available for this committee.</td></tr>';
+    } else {
+      renderIndividualDonors(data.topIndividuals);
+    }
 
     // Year range spanning the full data window: start year of the earliest sub-cycle
     // through end year of the latest sub-cycle. House: 2-year (e.g. "2025–2026").
@@ -1082,14 +1192,27 @@ async function renderRaisedIfReady() {
     // Recomputed on every render so cycle-switcher changes propagate (loadCycle resets
     // raisedRendered/spentRendered, then renderRaisedIfReady/renderSpentIfReady re-run).
     var cycleLabel = (data.subCycles[0] - 1) + '–' + data.subCycles[data.subCycles.length - 1];
+    // Latest 2-year period label — used for the individual contributors card only.
+    // For House this equals cycleLabel; for Senate/Presidential it's just the latest sub-cycle.
+    var latestCycleLabel = (data.latestSubCycle - 1) + '–' + data.latestSubCycle;
     document.querySelector('#donors-tbody').closest('.donors-card').querySelector('.donors-head')
       .textContent = 'Top Committee Contributors · ' + cycleLabel;
     document.querySelector('#conduits-tbody').closest('.donors-card').querySelector('.donors-head')
       .textContent = 'Top Conduit Sources · ' + cycleLabel;
+    document.querySelector('#individual-donors-tbody').closest('.donors-card').querySelector('.donors-head')
+      .textContent = 'Top Individual Contributors · ' + latestCycleLabel;
 
-    var note = 'Raised breakdown from FEC totals endpoint. Choropleth shows individual contributions by state (Schedule A). ' +
-      'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID and summed across sub-cycles. ' +
-      'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions to this committee — amounts reflect the individuals\' money, not the platforms\' own funds.';
+    var note = 'Raised breakdown from FEC totals endpoint. Geography reflects itemized individual contributions by state (Schedule A). ' +
+      'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID. ' +
+      'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect the individuals\' money, not the platforms\' own funds.';
+    // Multi-sub-cycle disclaimer — only when the election cycle spans more than one
+    // 2-year FEC reporting period (Senate: 3, Presidential: 2). House: suppressed.
+    if (data.subCycles.length > 1 && data.topIndividualsSource !== 'unavailable') {
+      note += ' Individual contributors reflect the latest 2-year reporting period (' + latestCycleLabel + ') only; totals above aggregate the full election cycle.';
+    }
+    if (data.topIndividualsSource === 'bulk') {
+      note += ' Top individual contributors pre-computed from FEC bulk data, refreshed daily.';
+    }
     if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
     note += ' Small-dollar contributions ≤$200 are not itemized.';
     document.getElementById('raised-data-note').innerHTML = note;

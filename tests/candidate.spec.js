@@ -310,6 +310,16 @@ test.describe('candidate.html — Raised tab sections', () => {
     await expect(page.locator('#conduits-tbody')).toContainText(/Actblue/i);
   });
 
+  test('top individual contributors table renders with API-fallback data', async ({ page }) => {
+    const tbody = page.locator('#individual-donors-tbody');
+    await expect(tbody).toBeVisible();
+    const rows = tbody.locator('tr');
+    await expect(rows).not.toHaveCount(0);
+    // Mock aggregations endpoint always misses, so the fallback fetches
+    // SCHEDULE_A_INDIVIDUALS — Smith and Doe should land in the table.
+    await expect(tbody).toContainText(/Smith, John/i);
+  });
+
   test('raised breakdown cell title reads "Raised breakdown"', async ({ page }) => {
     await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
   });

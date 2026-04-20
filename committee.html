@@ -674,47 +674,99 @@ async function fetchRaisedData(cycleOrAll) {
   // contributions across all cycles isn't meaningful and would be expensive)
   var period = cycleOrAll === 'all' ? ALL_CYCLES[0] : cycleOrAll;
 
-  var topIndividuals = [];
-  try {
-    var indivRes = await apiFetch('/schedules/schedule_a/', {
-      committee_id: COMMITTEE_ID,
-      two_year_transaction_period: period,
-      is_individual: true,
-      sort: '-contribution_receipt_amount',
-      per_page: 100
-    });
-    var seenIndiv = {};
-    (indivRes.results || []).forEach(function(d) {
+  // Top individual contributors — KV-first, always. `period` is the selected
+  // cycle for a specific view, or ALL_CYCLES[0] (most recent cycle) on 'All time';
+  // the same branch tree runs either way so results stay consistent across views.
+  //   Hit  → pre-computed top 25 from FEC bulk data (DuckDB GROUP BY, full cycle).
+  //   Miss → paginate /schedules/schedule_a/?is_individual=true to exhaustion if
+  //          pages ≤ PAGE_THRESHOLD; otherwise mark unavailable (honest empty
+  //          state, no approximation).
+  function aggregateIndividualRows(rows) {
+    var seen = {};
+    rows.forEach(function(d) {
       var key = ((d.contributor_name || '').trim().toUpperCase() + '|' + (d.contributor_zip || d.contributor_city || ''));
       if (!key || key === '|') return;
-      if (!seenIndiv[key]) seenIndiv[key] = {
+      if (!seen[key]) seen[key] = {
         name: d.contributor_name || '—',
         city: d.contributor_city || '',
         state: d.contributor_state || '',
         total: 0
       };
-      seenIndiv[key].total += d.contribution_receipt_amount || 0;
+      seen[key].total += d.contribution_receipt_amount || 0;
     });
-    topIndividuals = Object.values(seenIndiv)
+    return Object.values(seen)
       .sort(function(a,b){ return b.total - a.total; })
       .slice(0, 10);
+  }
+
+  var topIndividuals = [];
+  var topIndividualsSource = 'api';  // 'bulk' | 'api' | 'unavailable'
+  try {
+    var kvUrl = '/api/aggregations/top-contributors?committee_id=' +
+      encodeURIComponent(COMMITTEE_ID) + '&cycle=' + encodeURIComponent(period);
+    var kvRes = await fetch(kvUrl).then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; });
+    if (kvRes && kvRes.source === 'bulk' && Array.isArray(kvRes.results)) {
+      topIndividuals = kvRes.results.slice(0, 10);
+      topIndividualsSource = 'bulk';
+    } else {
+      var INDIV_PAGE_THRESHOLD = 100;  // 10,000 transactions — matches committee contributors gate
+      var indivParams = {
+        committee_id: COMMITTEE_ID,
+        two_year_transaction_period: period,
+        is_individual: true,
+        sort: '-contribution_receipt_amount',
+        per_page: 100
+      };
+      var indivRes1 = await apiFetch('/schedules/schedule_a/', indivParams);
+      var indivPag  = indivRes1.pagination || {};
+      if ((indivPag.pages || 1) > INDIV_PAGE_THRESHOLD) {
+        topIndividualsSource = 'unavailable';
+      } else {
+        var indivRows = (indivRes1.results || []).slice();
+        while (indivRows.length < (indivPag.count || 0)) {
+          var idxI = indivPag.last_indexes || {};
+          if (!idxI.last_index) break;
+          indivParams = Object.assign({}, indivParams, {
+            last_index: idxI.last_index,
+            last_contribution_receipt_amount: idxI.last_contribution_receipt_amount
+          });
+          var nextRes = await apiFetch('/schedules/schedule_a/', indivParams);
+          indivPag = nextRes.pagination || {};
+          indivRows = indivRows.concat(nextRes.results || []);
+        }
+        topIndividuals = aggregateIndividualRows(indivRows);
+        topIndividualsSource = 'api';
+      }
+    }
   } catch(e) { console.warn('Top individual contributors fetch failed:', e.message); }
 
-  // Top committee contributors — hidden entirely on 'All time' (aggregating committee
-  // transactions across all cycles isn't meaningful and would blow the API budget).
-  // Paginated to exhaustion for committees under the page threshold; for mega-committees
-  // (conduits like ActBlue/WinRed — 100k+ pages) the table shows an empty-state message
-  // rather than a silently-capped approximation. See CLAUDE.md architectural debt for the
-  // server-side aggregation fix that would unblock these committees.
-  // Top conduit sources — second aggregation from the same fetched rows, over memo_code='X'
-  // entries only. Conduit platforms (ActBlue, WinRed) forward individual contributions to
-  // the committee; their appearance as committee-type memo rows is metadata, not money.
+  // Top committee contributors — KV-first when a specific cycle is selected.
+  //   Hit  → pre-computed top 25 from pas2 bulk data (DuckDB GROUP BY).
+  //   Miss → aggregate non-memo rows from the paginated Schedule A fetch if
+  //          pages ≤ PAGE_THRESHOLD; otherwise mark unavailable (mega-committees
+  //          like ActBlue/WinRed — 100k+ pages — get this honest empty state).
+  // Top conduit sources — always derived from the Schedule A fetch's memo rows
+  // (memo_code='X'). No bulk-data equivalent exists; when the Schedule A fetch
+  // is too large to paginate, conduits are unavailable even if top committees
+  // came back from KV.
+  // Both surfaces hidden entirely on 'All time' (aggregating committee-to-
+  // committee money across every cycle isn't a meaningful number).
   var topCommittees = [];
+  var topCommitteesSource = 'api';  // 'bulk' | 'api' | 'unavailable'
   var topConduits = [];
-  var topCommitteesTooLarge = false;
+  var topConduitsTooLarge = false;
   if (cycleOrAll !== 'all') {
     try {
-      var PAGE_THRESHOLD = 100; // 10,000 transactions — comfortably covers non-conduit committees
+      var PAGE_THRESHOLD = 100; // 10,000 transactions — matches individuals gate
+
+      // Kick off KV fetch in parallel with Schedule A page 1 so the network
+      // round-trips overlap.
+      var kvCommUrl = '/api/aggregations/top-committees?committee_id=' +
+        encodeURIComponent(COMMITTEE_ID) + '&cycle=' + encodeURIComponent(period);
+      var kvCommFetch = fetch(kvCommUrl).then(function(r){ return r.ok ? r.json() : null; })
+        .catch(function(){ return null; });
+
       var commParams = {
         committee_id: COMMITTEE_ID,
         two_year_transaction_period: period,
@@ -722,12 +774,16 @@ async function fetchRaisedData(cycleOrAll) {
         sort: '-contribution_receipt_amount',
         per_page: 100
       };
-      var commRows = [];
       var commRes = await apiFetch('/schedules/schedule_a/', commParams);
       var commPag = commRes.pagination || {};
+      var commRows = [];
+
       if ((commPag.pages || 1) > PAGE_THRESHOLD) {
-        topCommitteesTooLarge = true;
+        // Schedule A too large — conduits are unavailable regardless of KV.
+        topConduitsTooLarge = true;
       } else {
+        // Paginate Schedule A to exhaustion — rows serve both the API-fallback
+        // path for top committees and the conduit aggregation.
         commRows = (commRes.results || []).slice();
         while (commRows.length < (commPag.count || 0)) {
           var idxC = commPag.last_indexes || {};
@@ -740,23 +796,38 @@ async function fetchRaisedData(cycleOrAll) {
           commPag = commRes.pagination || {};
           commRows = commRows.concat(commRes.results || []);
         }
-        var seenComm = {};
+        // Conduit sources — memo rows only.
         var seenConduits = {};
         commRows.forEach(function(d) {
+          if (d.memo_code !== 'X') return;
+          var ckey = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
+          if (!ckey) return;
+          if (!seenConduits[ckey]) seenConduits[ckey] = {
+            name: d.contributor_name || '—',
+            entity_type: d.entity_type || '',
+            total: 0
+          };
+          seenConduits[ckey].total += (d.contribution_receipt_amount || 0);
+        });
+        topConduits = Object.values(seenConduits)
+          .sort(function(a,b){ return b.total - a.total; })
+          .slice(0, 10);
+      }
+
+      // Top committees: KV first, then API-fallback aggregation over
+      // non-memo rows we already have in hand.
+      var kvCommRes = await kvCommFetch;
+      if (kvCommRes && kvCommRes.source === 'bulk' && Array.isArray(kvCommRes.results)) {
+        topCommittees = kvCommRes.results.slice(0, 10);
+        topCommitteesSource = 'bulk';
+      } else if (topConduitsTooLarge) {
+        // Schedule A too large AND KV missed — honest empty state.
+        topCommitteesSource = 'unavailable';
+      } else {
+        var seenComm = {};
+        commRows.forEach(function(d) {
+          if (d.memo_code === 'X') return;
           var amt = d.contribution_receipt_amount || 0;
-          if (d.memo_code === 'X') {
-            // Memo entries — aggregate separately as conduit sources.
-            var ckey = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
-            if (!ckey) return;
-            if (!seenConduits[ckey]) seenConduits[ckey] = {
-              name: d.contributor_name || '—',
-              entity_type: d.entity_type || '',
-              total: 0
-            };
-            seenConduits[ckey].total += amt;
-            return;
-          }
-          // Non-memo committee-to-committee contributions — "real" committee contributors.
           var key = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
           if (!key) return;
           if (!seenComm[key]) seenComm[key] = {
@@ -769,17 +840,19 @@ async function fetchRaisedData(cycleOrAll) {
         topCommittees = Object.values(seenComm)
           .sort(function(a,b){ return b.total - a.total; })
           .slice(0, 10);
-        topConduits = Object.values(seenConduits)
-          .sort(function(a,b){ return b.total - a.total; })
-          .slice(0, 10);
+        topCommitteesSource = 'api';
       }
     } catch(e) { console.warn('Top committee contributors fetch failed:', e.message); }
   }
 
   return { byState: byState, breakdown: breakdown, totalRaised: totalRaised,
            covDate: covDate, topIndividuals: topIndividuals,
-           topCommittees: topCommittees, topConduits: topConduits,
-           topCommitteesTooLarge: topCommitteesTooLarge, cycleOrAll: cycleOrAll };
+           topIndividualsSource: topIndividualsSource,
+           topCommittees: topCommittees,
+           topCommitteesSource: topCommitteesSource,
+           topConduits: topConduits,
+           topConduitsTooLarge: topConduitsTooLarge,
+           cycleOrAll: cycleOrAll };
 }
 
 // ── Raised tab: donut chart ──────────────────────────
@@ -1026,7 +1099,12 @@ async function renderRaisedIfReady() {
     contentEl.style.display = 'block';
     renderContributorDonut(data.breakdown, data.totalRaised);
     await renderChoropleth(data.byState);
-    renderIndividualDonors(data.topIndividuals);
+    if (data.topIndividualsSource === 'unavailable') {
+      document.getElementById('individual-donors-tbody').innerHTML =
+        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available for this committee.</td></tr>';
+    } else {
+      renderIndividualDonors(data.topIndividuals);
+    }
 
     var commCard     = document.getElementById('committee-donors-card');
     var conduitsCard = document.getElementById('conduits-card');
@@ -1036,13 +1114,16 @@ async function renderRaisedIfReady() {
     } else {
       commCard.style.display = '';
       conduitsCard.style.display = '';
-      if (data.topCommitteesTooLarge) {
+      if (data.topCommitteesSource === 'unavailable') {
         document.getElementById('committee-donors-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show top committees due to high transaction volume.</td></tr>';
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available for this committee.</td></tr>';
+      } else {
+        renderCommitteeDonors(data.topCommittees);
+      }
+      if (data.topConduitsTooLarge) {
         document.getElementById('conduits-tbody').innerHTML =
           '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show conduit sources due to high transaction volume.</td></tr>';
       } else {
-        renderCommitteeDonors(data.topCommittees);
         renderTopConduits(data.topConduits);
       }
     }
@@ -1061,11 +1142,28 @@ async function renderRaisedIfReady() {
 
     var note = 'Raised breakdown from FEC totals endpoint. ' +
       'Geography reflects itemized individual contributions by state (Schedule A). ' +
-      'State totals may differ from summary figures due to FEC amendment processing. ' +
-      'Individual contributors: ' + cycleLabel + '.';
-    if (data.cycleOrAll !== 'all' && !data.topCommitteesTooLarge) {
-      note += ' Committee contributors: complete ' + cycleLabel + ' cycle, deduplicated by committee ID.';
-      note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
+      'State totals may differ from summary figures due to FEC amendment processing.';
+    if (data.topIndividualsSource === 'bulk') {
+      note += ' Top individual contributors pre-computed from FEC bulk data, refreshed daily.';
+      if (data.cycleOrAll === 'all') {
+        note += ' They reflect the most recent cycle only.';
+      }
+    } else if (data.topIndividualsSource === 'api') {
+      if (data.cycleOrAll === 'all') {
+        note += ' Top individual contributors reflect the most recent cycle only.';
+      } else {
+        note += ' Top individual contributors: ' + cycleLabel + '.';
+      }
+    }
+    if (data.cycleOrAll !== 'all') {
+      if (data.topCommitteesSource === 'bulk') {
+        note += ' Top committee contributors pre-computed from FEC bulk data (pas2), refreshed daily.';
+      } else if (data.topCommitteesSource === 'api') {
+        note += ' Top committee contributors: complete ' + cycleLabel + ' cycle, deduplicated by committee ID.';
+      }
+      if (!data.topConduitsTooLarge) {
+        note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
+      }
     }
     if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
     note += ' Small-dollar contributions ≤$200 are not itemized.';

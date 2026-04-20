@@ -252,11 +252,57 @@ function buildPas2Sql(pas2Path) {
   `;
 }
 
+// Pas2 aggregation — "who gave money to this committee?"
+// Pas2 rows: CMTE_ID = giver (filer), OTHER_ID = receiver. So to surface top
+// contributors TO committee X, we filter WHERE OTHER_ID = X and group by
+// CMTE_ID (giver). any_value() on name/entity_type/giver_id is safe — these
+// are stable per giver within a cycle.
+function buildCommitteesAggSql(pas2Path) {
+  const pas2Schema = columnsToSqlMap(PAS2_COLUMNS);
+  return `
+    WITH filtered AS (
+      SELECT OTHER_ID AS receiver, CMTE_ID AS giver_id, NAME AS name,
+             ENTITY_TP AS entity_type, TRANSACTION_AMT AS amt, MEMO_CD AS memo_cd
+      FROM read_csv(
+        '${pas2Path.replace(/'/g, "''")}',
+        delim='|', header=false, skip=1, quote='"',
+        columns=${pas2Schema}, auto_detect=false, null_padding=true
+      )
+      WHERE (memo_cd != 'X' OR memo_cd IS NULL)
+    ),
+    agg AS (
+      SELECT receiver, giver_id,
+             any_value(name)        AS name,
+             any_value(entity_type) AS entity_type,
+             SUM(amt)               AS total
+      FROM filtered
+      WHERE receiver IS NOT NULL AND receiver != ''
+        AND giver_id IS NOT NULL AND giver_id != ''
+        AND name     IS NOT NULL AND name     != ''
+        AND amt      IS NOT NULL
+      GROUP BY receiver, giver_id
+    ),
+    ranked AS (
+      SELECT receiver, giver_id, name, entity_type, total,
+             ROW_NUMBER() OVER (PARTITION BY receiver ORDER BY total DESC, giver_id ASC) AS rnk
+      FROM agg
+    )
+    SELECT receiver, giver_id, name, entity_type, total
+    FROM ranked
+    WHERE rnk <= ${TOP_N}
+    ORDER BY receiver, rnk;
+  `;
+}
+
 function buildAggSql(indivPath) {
   const indivSchema = columnsToSqlMap(INDIV_COLUMNS);
+  // mode() picks the most common city/state per (cmte_id, name, entity_type)
+  // group — a donor who reported multiple locations gets their most frequent
+  // one, rather than a non-deterministic any_value() pick. Ignores NULLs.
   return `
     WITH filtered AS (
       SELECT CMTE_ID AS cmte_id, ENTITY_TP AS entity_type, NAME AS name,
+             CITY AS city, STATE AS state,
              TRANSACTION_AMT AS amt, MEMO_CD AS memo_cd
       FROM read_csv(
         '${indivPath.replace(/'/g, "''")}',
@@ -277,7 +323,10 @@ function buildAggSql(indivPath) {
       SELECT cmte_id FROM pas2_recipients
     ),
     agg AS (
-      SELECT cmte_id, name, entity_type, SUM(amt) AS total
+      SELECT cmte_id, name, entity_type,
+             mode(city)  AS city,
+             mode(state) AS state,
+             SUM(amt)    AS total
       FROM filtered
       WHERE cmte_id IS NOT NULL AND cmte_id != ''
         AND name    IS NOT NULL AND name    != ''
@@ -286,11 +335,11 @@ function buildAggSql(indivPath) {
       GROUP BY cmte_id, name, entity_type
     ),
     ranked AS (
-      SELECT cmte_id, name, entity_type, total,
+      SELECT cmte_id, name, entity_type, city, state, total,
              ROW_NUMBER() OVER (PARTITION BY cmte_id ORDER BY total DESC, name ASC) AS rnk
       FROM agg
     )
-    SELECT cmte_id, name, entity_type, total
+    SELECT cmte_id, name, entity_type, city, state, total
     FROM ranked
     WHERE rnk <= ${TOP_N}
     ORDER BY cmte_id, rnk;
@@ -328,7 +377,7 @@ async function processCycle(s3, conn, { year, cycle }) {
   const entries = [];
   let current   = null;
   for (const row of rows) {
-    const [cmteId, name, entityTp, total] = row;
+    const [cmteId, name, entityTp, city, state, total] = row;
     if (!current || current.cmteId !== cmteId) {
       if (current) {
         entries.push({
@@ -342,6 +391,8 @@ async function processCycle(s3, conn, { year, cycle }) {
     current.list.push({
       name,
       entity_type: entityTp ?? '',
+      city:        city     ?? '',
+      state:       state    ?? '',
       total:       Math.round(Number(total)),
     });
   }
@@ -353,9 +404,51 @@ async function processCycle(s3, conn, { year, cycle }) {
     });
   }
 
-  console.log(`[${cycle}] in-scope: ${entries.length.toLocaleString()} committees`);
+  console.log(`[${cycle}] top_contributors: ${entries.length.toLocaleString()} committees`);
 
-  // 4. Clean up CSVs and DuckDB table for this cycle
+  // 4. Second aggregation — top_committees (who gave money TO each committee,
+  //    from pas2). Same DuckDB connection, runs over the already-downloaded
+  //    pas2 CSV.
+  console.log(`[${cycle}] Running DuckDB committee-contributors SQL...`);
+  const commT0     = Date.now();
+  const commReader = await conn.runAndReadAll(buildCommitteesAggSql(pas2Path));
+  const commRows   = commReader.getRows();
+  const commSqlEl  = ((Date.now() - commT0) / 1000).toFixed(1);
+  console.log(`[${cycle}] committee SQL done in ${commSqlEl}s — ${commRows.length.toLocaleString()} (receiver, giver) result rows`);
+
+  let currentComm = null;
+  let commCount   = 0;
+  for (const row of commRows) {
+    const [receiver, giverId, name, entityTp, total] = row;
+    if (!currentComm || currentComm.receiver !== receiver) {
+      if (currentComm) {
+        entries.push({
+          key:            `top_committees:${currentComm.receiver}:${cycle}`,
+          value:          JSON.stringify(currentComm.list),
+          expiration_ttl: KV_TTL,
+        });
+        commCount += 1;
+      }
+      currentComm = { receiver, list: [] };
+    }
+    currentComm.list.push({
+      name,
+      entity_type:  entityTp ?? '',
+      committee_id: giverId  ?? '',
+      total:        Math.round(Number(total)),
+    });
+  }
+  if (currentComm) {
+    entries.push({
+      key:            `top_committees:${currentComm.receiver}:${cycle}`,
+      value:          JSON.stringify(currentComm.list),
+      expiration_ttl: KV_TTL,
+    });
+    commCount += 1;
+  }
+  console.log(`[${cycle}] top_committees: ${commCount.toLocaleString()} committees`);
+
+  // 5. Clean up CSVs and DuckDB table for this cycle
   await fsp.unlink(pas2Path).catch(() => {});
   await fsp.unlink(indivPath).catch(() => {});
   await conn.run('DROP TABLE IF EXISTS pas2_recipients');

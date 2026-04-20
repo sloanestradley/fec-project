@@ -393,6 +393,16 @@ export async function mockFecApi(page) {
       body: JSON.stringify(body),
     });
   });
+
+  // KV aggregations endpoint — always return a miss so tests exercise the
+  // API-fallback path. KV-hit coverage is out of scope for structural tests.
+  await page.route('**/api/aggregations/**', (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ results: null, source: 'api' }),
+    });
+  });
 }
 
 function resolveFixture(path, params) {
