@@ -296,9 +296,14 @@ function buildCommitteesAggSql(pas2Path) {
 
 function buildAggSql(indivPath) {
   const indivSchema = columnsToSqlMap(INDIV_COLUMNS);
-  // mode() picks the most common city/state per (cmte_id, name, entity_type)
-  // group — a donor who reported multiple locations gets their most frequent
-  // one, rather than a non-deterministic any_value() pick. Ignores NULLs.
+  // any_value() picks a representative city/state per (cmte_id, name,
+  // entity_type) group — returns the first non-null value encountered.
+  // For donors with consistent location (the common case) this is identical
+  // to the most-common value; for donors with mixed address history we get
+  // one reported address rather than the most-frequent one. Accepted
+  // tradeoff — an initial version using mode() ran past the 28-min historical
+  // pipeline ceiling on cycle 2024's indiv file (frequency-tallying across
+  // ~12M rows × millions of (donor, committee) groups was too expensive).
   return `
     WITH filtered AS (
       SELECT CMTE_ID AS cmte_id, ENTITY_TP AS entity_type, NAME AS name,
@@ -324,9 +329,9 @@ function buildAggSql(indivPath) {
     ),
     agg AS (
       SELECT cmte_id, name, entity_type,
-             mode(city)  AS city,
-             mode(state) AS state,
-             SUM(amt)    AS total
+             any_value(city)  AS city,
+             any_value(state) AS state,
+             SUM(amt)         AS total
       FROM filtered
       WHERE cmte_id IS NOT NULL AND cmte_id != ''
         AND name    IS NOT NULL AND name    != ''

@@ -260,7 +260,8 @@ scripts/
                                   prevent stale/inaccurate entries from coexisting with fresh data. TTL: 7 days. Two key patterns:
                                     • `top_contributors:{cmte_id}:{cycle}` — individual donors, aggregated over indiv with memo filter
                                       and scope rule (committee appears in pas2 as a CMTE_ID giver OR has ≥500 post-memo rows in indiv).
-                                      Row shape: {name, entity_type, city, state, total} where city/state use mode() per donor.
+                                      Row shape: {name, entity_type, city, state, total} where city/state use any_value() per donor
+                                      (mode() was tried first but blew past the 28-min historical pipeline ceiling on 2024's indiv file).
                                     • `top_committees:{cmte_id}:{cycle}` — committee contributors TO this committee, aggregated over pas2
                                       WHERE OTHER_ID=this committee, grouped by CMTE_ID (giver), memo-filtered. No scope rule — every
                                       receiver with pas2 rows gets an entry. Row shape: {name, entity_type, committee_id, total}.
