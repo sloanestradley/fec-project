@@ -1101,7 +1101,7 @@ async function renderRaisedIfReady() {
     await renderChoropleth(data.byState);
     if (data.topIndividualsSource === 'unavailable') {
       document.getElementById('individual-donors-tbody').innerHTML =
-        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available for this committee.</td></tr>';
+        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
     } else {
       renderIndividualDonors(data.topIndividuals);
     }
@@ -1116,13 +1116,13 @@ async function renderRaisedIfReady() {
       conduitsCard.style.display = '';
       if (data.topCommitteesSource === 'unavailable') {
         document.getElementById('committee-donors-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available for this committee.</td></tr>';
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
       } else {
         renderCommitteeDonors(data.topCommittees);
       }
       if (data.topConduitsTooLarge) {
         document.getElementById('conduits-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show conduit sources due to high transaction volume.</td></tr>';
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
       } else {
         renderTopConduits(data.topConduits);
       }

@@ -11,12 +11,22 @@ Three components, one workflow:
 | Component | Role | Schedule |
 |---|---|---|
 | **GitHub Actions step 1 — ingest** (`scripts/ingest-bulk.js`) | Downloads all 6 FEC bulk files, strips indiv files to 14 columns, uploads pipe-delimited CSVs to R2 | Daily, 6am UTC |
-| **GitHub Actions step 2 — pre-compute** (`scripts/precompute-aggregations.js`) | Reads pas2 + indiv CSVs from R2, runs a DuckDB SQL GROUP BY (spill-to-disk, 100% accurate), wipes + writes top-25 contributors per in-scope committee per cycle to Cloudflare KV namespace `fecledger-aggregations` | Same job as ingest — daily, 6am UTC |
+| **GitHub Actions step 2 — pre-compute** (`scripts/precompute-aggregations.js`) | Reads pas2 + indiv CSVs from R2, runs DuckDB SQL GROUP BY queries (spill-to-disk, 100% accurate), wipes + writes top-25 contributors per in-scope committee per cycle to Cloudflare KV namespace `fecledger-aggregations`. Two aggregation passes are defined; the second is currently gated off — see "Feature flag" section below | Same job as ingest — daily, 6am UTC |
 | **Cloudflare Worker** (`pipeline/src/index.js`) | HTTP trigger for ad-hoc testing; no scheduled processing | On-demand only |
 
 Both processing steps run in GitHub Actions, in the same job (ingest first, then pre-compute). The Worker's `FILES` array is empty — it exists solely so the HTTP endpoint (`/admin/pipeline/run`) remains available for development and debugging.
 
 KV details (key format `top_contributors:{cmte_id}:{cycle}`, scope rules, value shape) are documented in CLAUDE.md → "Bulk data pipeline" → Session 2 note. The KV namespace is bound to the fecledger Pages project as `AGGREGATIONS` for read access from Pages Functions.
+
+---
+
+## Feature flag — `ENABLE_TOP_COMMITTEES_PASS`
+
+`scripts/precompute-aggregations.js` contains a second aggregation pass over pas2 that would write a `top_committees:{cmte_id}:{cycle}` key pattern (committee-to-committee contribution data for committee.html's Top Committee Contributors card). The pass is gated behind a `const ENABLE_TOP_COMMITTEES_PASS = false` at the top of the file and is **currently disabled** (as of 2026-04-20).
+
+The pass was shipped, ran, and produced visually incorrect KV data — pas2's `NAME` column stores the recipient's name (Schedule B `recipient_name`), not the giver's, so the display name on each row was wrong. The `buildCommitteesAggSql()` SQL builder and the linear-scan block in `processCycle()` are both retained verbatim; only the call path is skipped. When the fix lands, re-enabling is one boolean flip.
+
+The scoped fix is documented in `strategy/cm-txt-integration.md` in the repo root: ingest FEC's Committee Master File (`cm.txt`) into the pipeline, use it as the authoritative `committee_id → registered_name` source, then flip the flag. Estimated half-session of work. The frontend (committee.html branch tree, Pages Function `top-committees` route) and the KV namespace binding are all intact and ready to serve the data the moment the pass is re-enabled.
 
 ---
 

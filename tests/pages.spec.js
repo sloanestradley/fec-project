@@ -263,6 +263,48 @@ test.describe('committee.html — Raised tab sections', () => {
   });
 });
 
+// ── committee.html — Raised tab unavailable-state copy ───────────────────────
+// Dedicated describe block because the mock override has to be registered
+// BEFORE page.goto(), so it can't piggyback on the shared beforeEach above.
+
+test.describe('committee.html — Raised tab unavailable-state copy', () => {
+  test('individual contributors tbody shows "Unable to show due to high transaction volume." when Schedule A is over the page threshold', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+
+    // Override Schedule A calls with is_individual=true to return a high
+    // pagination.pages count — triggers the `topIndividualsSource = 'unavailable'`
+    // branch in fetchRaisedData(). For non-matching calls, fall through to the
+    // broader mockFecApi handler.
+    await page.route('**/api/fec/schedules/schedule_a/**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'true') {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            results: [],
+            pagination: { count: 50000, pages: 500, per_page: 100, page: 1 },
+          }),
+        });
+      } else {
+        route.fallback();
+      }
+    });
+
+    await page.goto('/committee.html?id=C00775668');
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await page.waitForFunction(
+      () => { const el = document.getElementById('raised-content'); return el && el.style.display !== 'none'; },
+      { timeout: 15000 }
+    );
+
+    const tbody = page.locator('#individual-donors-tbody');
+    await expect(tbody).toContainText('Unable to show due to high transaction volume.');
+  });
+});
+
 // ── committee.html — Spent tab sections ───────────────────────────────────────
 
 test.describe('committee.html — Spent tab sections', () => {

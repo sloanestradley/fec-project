@@ -3912,3 +3912,68 @@ The through-line: you treat the UI as ground truth. Plans, tests, and code revie
 - **Top Committee Contributors on candidate.html — KV extension.** candidate.html still uses the live paginated API for its committee contributors block, aggregating across sub-cycles. Since candidate committees don't hit the mega threshold, the user-visible effect of adding KV would be minimal (faster page load on Senate candidates maybe). The trade-off: sub-cycle aggregation on candidate.html (House: 1, Senate: 3, Presidential: 2) doesn't cleanly map to KV keys, same problem we solved for individuals by scoping to the latest sub-cycle. If we extend, we'd either add the same latest-sub-cycle disclaimer or union the KV entries across sub-cycles with an approximation caveat. Not urgent.
 - **Pages git-connection migration.** Still on the backlog from earlier this session. We shipped this bundle via `scripts/deploy-pages.sh` again. Each manual deploy is a reminder that the migration is overdue.
 - **Manual browser QA cadence.** This session I had no way to verify the actual rendered pages — you caught every UX issue by eyeballing production. If we end up doing more session-bundle style work, worth thinking about how often you want to do a structured "does this look right" pass vs. me relying on structural tests alone. The tests caught zero of the issues we fixed this session.
+
+---
+2026-04-20 (session 3 close — top_committees disable, cm.txt scoped, session wrap)
+
+## Process log draft
+
+**Title: The feature that became an investigation**
+
+Started the day continuing Session 3's wrap-up from yesterday — finishing the data-note copy pass and moving toward session close. It unravelled instead into four distinct discoveries, each smaller in scope than the one before but each requiring action before the session could honestly close.
+
+The first was a UX inconsistency on committee.html: ActBlue's top individual contributors table showed wildly different data on "All time" vs. on a specific 2024 cycle, because the old code explicitly skipped the KV path on All time and fell through to a single-page Schedule A fetch. Fixed by unifying the branch tree.
+
+The second was a scope gap I'd missed: the KV entries for individual contributors had no city/state data, producing a visible column of em-dashes that was an unintentional tell for which data path served the row. Adding mode(CITY)/mode(STATE) to the precompute SQL was a two-line addition on paper — except mode() tallying per-value frequency across ~12M rows blew past the 28-minute pipeline ceiling on 2024's indiv file. Swapped to any_value() (first-seen wins), runtime dropped back to baseline, city/state started showing up correctly.
+
+The third was Sloane catching "Marie for Congress" listed 10 times as her own top contributor on committee.html. The initial diagnosis was an affiliate-transfer filtering issue, which led me to ship a receiver_names CTE to match giver names against receiver names. Testing revealed the filter had no effect — which led to the fourth and deepest discovery: pas2's NAME column stores the RECIPIENT's name (Schedule B recipient_name), not the giver's. The top_committees KV data had been storing the wrong field as the display name all along. No SQL filter can fix this without a reliable committee_id → registered_name lookup, which pas2 alone doesn't provide.
+
+Rather than revert the work, we disabled the top_committees SQL pass via a feature flag (ENABLE_TOP_COMMITTEES_PASS = false), triggered another pipeline run to wipe the broken KV keys, and scoped the real fix (ingest FEC's cm.txt Committee Master File) into a durable strategy doc — `strategy/cm-txt-integration.md` — that a future session can pick up verbatim.
+
+The through-line for the day: ship honestly or not at all.
+
+**Changelog:**
+- committee.html: All-time KV unification + data-note "They reflect the most recent cycle only." on All-time bulk hits.
+- Data note copy pass: dropped "to this committee" ambiguity on candidate conduit sentence; "Top" prefix on committee contributors sentence; dropped misleading "summed across sub-cycles" from candidate.html; unified "Geography reflects itemized individual contributions" across both pages.
+- precompute-aggregations.js: added city/state via any_value(); added buildCommitteesAggSql for pas2-derived top_committees KV; gated second SQL pass behind ENABLE_TOP_COMMITTEES_PASS feature flag (currently false).
+- Pipeline runtime fix: mode() → any_value() for city/state after mode() blew past 28-min ceiling.
+- candidate.html: rolled back Top Individual Contributors card (low signal — max-out donors).
+- `strategy/cm-txt-integration.md` (new): self-contained scope for cm.txt integration session.
+- Empty-state copy: simplified to "Unable to show due to high transaction volume." across all three unavailable cases (individuals, committees, conduits).
+- Docs: CLAUDE.md architectural-debt + Session 3 roadmap updated to reflect partial-shipped state with pointer to strategy doc; project-brief.md entries updated; test-cases.md bullets pruned and reframed.
+
+**Field notes:**
+
+The biggest lesson was buried in the pas2 NAME investigation. I'd built a self-affiliate filter based on an assumption about what NAME represented, shipped it, and the filter didn't work. Tracing why took an hour — and the answer was that NAME means the recipient's name, not the filer's. That's the kind of thing I should have validated up front by fetching one row of real data and cross-checking against Schedule B via the live API. The mental model "filer reports transactions, NAME is filer's own name" felt obvious enough that I didn't verify. The correction cost a full pipeline run and another commit to disable the feature.
+
+Second lesson: feature-flag-as-disable turned out to be exactly right for this case. The SQL builder and linear-scan block stay intact; the code path is gated off. When cm.txt ships, re-enabling is one boolean flip. A full revert would have cost the next session a rebuild from history. This is a better shape for "we shipped, it didn't work, keep the scaffolding, defer the fix."
+
+**Stack tags:** Cloudflare KV · pas2 bulk data · DuckDB · feature flags · FEC bulk data semantics · strategy docs · self-contained handoffs
+
+## How Sloane steered the work
+
+**Visual side-by-side catches the All-time bug.** You noticed ActBlue 2024 vs ActBlue All-time showed dramatically different data. The bug would have been invisible to any test suite because both paths returned valid-looking responses; only by sitting next to the actual rendered page and comparing did the discrepancy surface. A reminder that "the tests pass" and "the UX is right" are different things.
+
+**"Simplify to 'Unable to show due to high transaction volume.'"** I proposed the longer "Unable to show top committees due to high transaction volume." matching the pre-existing conduit wording. You cut the qualifier — the context is already set by the card the message lives in, so "top committees" is noise. Same applies to individuals and conduits. One consistent wording for all three cards is simpler for readers and simpler to maintain.
+
+**Demanding a belt-and-suspenders filter.** When I drafted the name-based self-affiliate filter, you asked about the receiver-doesn't-file-pas2 edge case AND about adding an ID-level filter (giver_id = receiver) as a secondary guard. The ID filter catches different failure modes (mis-filed amendments) that the name filter would miss. The name filter itself turned out to be fundamentally wrong, but the discipline of adding complementary checks when you can't prove a single filter is sufficient is the right instinct — and one I wouldn't have added unprompted.
+
+**Catch the Marie self-affiliate bug.** "Marie for Congress listed 10 times as its own top contributor at ~$10K each." That's a precise symptom report, not "something looks wrong." The specificity drove directly to the diagnostic steps — curl the endpoint, look at the raw data, find the pattern. No time wasted on false leads.
+
+**Disable, don't revert.** When the top_committees bug turned out to be a deep data-semantics issue, the reflex move would have been a full revert (we'd just done that for candidate.html's Top Individual Contributors). You explicitly called for the opposite: disable via feature flag, keep all the scaffolding intact, document the fix for a future session. This is the right call precisely because the SQL builder, frontend branch tree, and Pages Function route are all correct in structure — only the SQL's name source is wrong. Keeping the scaffolding means the next session is a focused cm.txt integration, not a feature rebuild.
+
+**"Save this somewhere you can find next session."** You flagged a real concern: in past sessions, plans have been saved to temporary locations that fresh Claude Code sessions can't access. The strategy doc went to `strategy/cm-txt-integration.md` (alongside the existing `hosting-migration.md` convention, committed to the repo, linked from CLAUDE.md's architectural-debt entry). The session-start ritual reads CLAUDE.md automatically, so the pointer surfaces without any manual intervention from the next session's operator.
+
+**"Think through end-of-session rituals before committing."** When I was about to ship the mode() → any_value() runtime fix, you asked me to pause and think through what the end-of-session flow looked like with everything we'd stacked up. That discipline — don't just commit each fix as it arrives; think about the shape of the bundle — is what made the final commits legible as coherent sessions rather than a stream of small patches.
+
+**The through-line: honest scoping over feature momentum.** Three times this session (and counting yesterday, four) we shipped something and then decided it wasn't right. candidate.html Top Individuals (low signal, removed). Top Committee Contributors KV (wrong data, gated off). The "Full cycle" label (confusing given multi-sub-cycle scoping, dropped). Each time the reflex could have been "we built it, ship it" — and each time you chose the opposite: if it doesn't earn its keep, take it out.
+
+## What to bring to Claude Chat
+
+1. **cm.txt integration timing.** Scope is written (`strategy/cm-txt-integration.md`), pipeline has room for a small file, frontend needs zero changes. Half-session work. Natural fit for the next code session unless something more urgent pops up. Worth confirming with John before investing that Top Committee Contributors is actually something strategists care about (vs. Top Individual Contributors, which is clearly valuable).
+
+2. **The conduit / transfer gaps are NOT solved by cm.txt.** Even after it ships, ActBlue/WinRed top committees will still be empty (their inbound is conduit memo rows, not in pas2), and DNC/NRSC/DCCC/NRCC will still be empty (their inbound is FEC transfers, also not in pas2). If we care about showing those accurately, it's a separate data-source project — likely ingesting additional bulk files or pre-computing Schedule A directly. Worth discussing whether the investment is warranted or if the empty state is an acceptable answer for these specific committee types.
+
+3. **Pattern recognition: premature shipping.** Three features across this session and the previous one (Top Individual Contributors on candidate.html, "Full cycle" label, Top Committee Contributors KV) shipped and got pulled back. Each was justifiable at the time, each had a real product insight behind the removal. But the cumulative cost — pipeline runs, KV rewrites, rollback commits, doc churn — adds up. Worth a Claude Chat discussion about whether we should be doing more validation before shipping data-layer features. The top_committees bug specifically would have been caught by looking at a single production KV entry and cross-checking the names against FEC's live API before calling the feature done.
+
+4. **Strategic question: Top Committee Contributors on committee.html as a product.** Even once cm.txt lands, the surface has limited coverage (candidates, small-to-mid PACs) and the mega-committee cases stay empty. Does this surface still carry its weight in the product, or is the honest answer that Top Individual Contributors is the KV-backed win and Top Committee Contributors should just stay live-API-only forever? Would be good to align on the product thesis before the cm.txt session.
