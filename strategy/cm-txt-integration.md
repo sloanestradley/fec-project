@@ -43,7 +43,7 @@ Reliable `committee_id → registered_name` lookup for the pas2 aggregation, by 
 - Add a `'cm'` case in the `type` switch for any file-type-specific handling.
 - `fec/meta/pipeline_state.json` tracks Last-Modified per file automatically; the daily cron naturally picks up cm.txt updates.
 
-**Verify before building:** the exact cm.txt column layout as of late 2026 — it's stable but confirm via `head -n 2` on a downloaded file, or check https://www.fec.gov/campaign-finance-data/committee-master-file-description/.
+**Verify before writing any code:** fetch the exact cm.txt column layout from the FEC description page — https://www.fec.gov/campaign-finance-data/committee-master-file-description/ — AND `head -n 2` a downloaded sample file. Confirm column count, column order, and any quirks (null patterns, quoting, encoding). Write the schema constant against the verified layout, not against assumptions. This is the pas2 21-vs-22-column lesson (Session 4A / 2026-04-17) applied proactively: a one-column-off header breaks strict CSV parsers downstream, and the bug surfaces far from the ingest step as a confusing aggregation failure. Cost of verifying up front: ~5 minutes. Cost of debugging after: a full pipeline re-run plus the follow-up commit.
 
 ### 2. Precompute step — `scripts/precompute-aggregations.js`
 
@@ -133,8 +133,8 @@ Zero changes. KV JSON shape stays `{name, entity_type, committee_id, total}`. Th
 
 ## Estimated session budget
 
-- Half a session if cm.txt parses cleanly and no DuckDB join surprises.
-- Could stretch to a full session if there are column-layout quirks in cm.txt (similar to the pas2 22-vs-21 column issue that was discovered during Session 2) or if the SQL rewrite needs iteration.
+- Half a session, assuming the upfront column-layout verification above is actually done. The pas2 22-vs-21 column issue (Session 4A / 2026-04-17) and the pas2 NAME-semantics issue (2026-04-20) both stretched past their original budgets because assumptions about the data were validated reactively, after code was written and the pipeline had run. For cm.txt, a ~5-minute check against the FEC description page plus `head -n 2` on a sample file removes the biggest source of variance.
+- Could stretch to a full session if the DuckDB LEFT JOIN hits an unexpected performance pattern or if cm.txt has a field-encoding quirk (non-UTF-8, unusual null markers) that requires iteration.
 
 ## Reference state at session kickoff (2026-04-20)
 
