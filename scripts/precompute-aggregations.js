@@ -257,30 +257,67 @@ function buildPas2Sql(pas2Path) {
 // contributors TO committee X, we filter WHERE OTHER_ID = X and group by
 // CMTE_ID (giver). any_value() on name/entity_type/giver_id is safe — these
 // are stable per giver within a cycle.
+//
+// Two self-reference filters, belt-and-suspenders:
+//
+//  1. ID-level filter (giver_id != receiver): catches literal self-references
+//     where a committee is recorded as both giver and receiver on the same
+//     row. Rare but can happen in mis-filed amendments. Cheap, deterministic,
+//     zero false positives.
+//
+//  2. Name-level filter via receiver_names dictionary: catches affiliate
+//     transfers across distinct committee_ids that share a branding name
+//     (e.g. C00806174 "MARIE FOR CONGRESS" receives from C00863639, C00573261,
+//     etc. — all legally distinct committees also called "MARIE FOR CONGRESS";
+//     without this filter the top-25 list is dominated by these affiliate
+//     transfers and visually reads as the committee listing itself as its own
+//     top contributor). We build a (committee_id → normalized name) dictionary
+//     from pas2's own filer rows and LEFT JOIN it; receivers that never filed
+//     pas2 (never gave money out) have no dictionary entry and the filter is
+//     lenient (NULL means no exclusion). Small gap: committees renamed across
+//     cycles may slip through if the stored name diverges from the current.
 function buildCommitteesAggSql(pas2Path) {
   const pas2Schema = columnsToSqlMap(PAS2_COLUMNS);
+  const pas2PathEsc = pas2Path.replace(/'/g, "''");
   return `
-    WITH filtered AS (
-      SELECT OTHER_ID AS receiver, CMTE_ID AS giver_id, NAME AS name,
-             ENTITY_TP AS entity_type, TRANSACTION_AMT AS amt, MEMO_CD AS memo_cd
+    WITH pas2_raw AS (
+      SELECT OTHER_ID, CMTE_ID, NAME, ENTITY_TP, TRANSACTION_AMT, MEMO_CD
       FROM read_csv(
-        '${pas2Path.replace(/'/g, "''")}',
+        '${pas2PathEsc}',
         delim='|', header=false, skip=1, quote='"',
         columns=${pas2Schema}, auto_detect=false, null_padding=true
       )
-      WHERE (memo_cd != 'X' OR memo_cd IS NULL)
+    ),
+    filtered AS (
+      SELECT OTHER_ID AS receiver, CMTE_ID AS giver_id, NAME AS name,
+             ENTITY_TP AS entity_type, TRANSACTION_AMT AS amt, MEMO_CD AS memo_cd
+      FROM pas2_raw
+      WHERE (MEMO_CD != 'X' OR MEMO_CD IS NULL)
+    ),
+    -- Committee name dictionary from all pas2 filer rows. Receivers that also
+    -- file pas2 as givers will have an entry here; others won't (LEFT JOIN
+    -- returns NULL below, filter is lenient).
+    receiver_names AS (
+      SELECT CMTE_ID AS committee_id, any_value(upper(trim(NAME))) AS committee_name
+      FROM pas2_raw
+      WHERE CMTE_ID IS NOT NULL AND CMTE_ID != ''
+        AND NAME IS NOT NULL AND NAME != ''
+      GROUP BY CMTE_ID
     ),
     agg AS (
-      SELECT receiver, giver_id,
-             any_value(name)        AS name,
-             any_value(entity_type) AS entity_type,
-             SUM(amt)               AS total
-      FROM filtered
-      WHERE receiver IS NOT NULL AND receiver != ''
-        AND giver_id IS NOT NULL AND giver_id != ''
-        AND name     IS NOT NULL AND name     != ''
-        AND amt      IS NOT NULL
-      GROUP BY receiver, giver_id
+      SELECT f.receiver, f.giver_id,
+             any_value(f.name)        AS name,
+             any_value(f.entity_type) AS entity_type,
+             SUM(f.amt)               AS total
+      FROM filtered f
+      LEFT JOIN receiver_names rn ON rn.committee_id = f.receiver
+      WHERE f.receiver IS NOT NULL AND f.receiver != ''
+        AND f.giver_id IS NOT NULL AND f.giver_id != ''
+        AND f.name     IS NOT NULL AND f.name     != ''
+        AND f.amt      IS NOT NULL
+        AND f.giver_id != f.receiver
+        AND (rn.committee_name IS NULL OR upper(trim(f.name)) != rn.committee_name)
+      GROUP BY f.receiver, f.giver_id
     ),
     ranked AS (
       SELECT receiver, giver_id, name, entity_type, total,
