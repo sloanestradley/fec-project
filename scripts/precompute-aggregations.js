@@ -360,12 +360,25 @@ function buildPas2Sql(pas2Path) {
   // read time difference is dominated by the downstream GROUP BY spill so
   // the practical runtime impact is small. Trigger seen 2026-04-21 on 2022
   // indiv line 8,755,603 — same hazard applies to pas2 as a defensive guard.
+  //
+  // strict_mode=false + ignore_errors=true: historical FEC files have rows
+  // containing literal " inside field content that isn't CSV-quoted — e.g.
+  // pas2 1984 line 63877 has NAME="GRAMMIES" FOR BARTON where the quotes are
+  // part of the committee's actual branding. Same class of issue as cm.txt
+  // (which uses quote=''), but we can't disable quoting here because modern
+  // FEC data DOES use legitimate CSV quoting for fields with embedded \n or
+  // |. strict_mode=false makes the parser lenient — it recovers from quote
+  // errors per-row and preserves data when it can. ignore_errors=true is a
+  // safety net for any row that still can't be cleanly recovered; without it,
+  // a single unterminated quote can cause DuckDB to read forward consuming
+  // many following rows before the whole block gets thrown out.
   return `
     CREATE OR REPLACE TABLE pas2_recipients AS
     SELECT DISTINCT CMTE_ID AS cmte_id
     FROM read_csv(
       '${pas2Path.replace(/'/g, "''")}',
       delim='|', header=false, skip=1, quote='"', parallel=false,
+      strict_mode=false, ignore_errors=true,
       columns=${pas2Schema}, auto_detect=false, null_padding=true
     )
     WHERE CMTE_ID IS NOT NULL AND CMTE_ID != '';
@@ -420,6 +433,7 @@ function buildCommitteesAggSql(pas2Path, cmPath) {
       FROM read_csv(
         '${pas2PathEsc}',
         delim='|', header=false, skip=1, quote='"', parallel=false,
+        strict_mode=false, ignore_errors=true,
         columns=${pas2Schema}, auto_detect=false, null_padding=true
       )
     ),
@@ -474,6 +488,7 @@ function buildAggSql(indivPath) {
       FROM read_csv(
         '${indivPath.replace(/'/g, "''")}',
         delim='|', header=false, skip=1, quote='"', parallel=false,
+        strict_mode=false, ignore_errors=true,
         columns=${indivSchema}, auto_detect=false, null_padding=true
       )
       WHERE (memo_cd != 'X' OR memo_cd IS NULL)
