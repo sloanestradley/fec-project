@@ -1,5 +1,7 @@
 # FECLedger — `cm.txt` integration (Committee Master File)
 
+> **EXECUTED 2026-04-21 (commit `12c5aaf`).** `ENABLE_TOP_COMMITTEES_PASS = true`; cm.txt is wired as the giver-name source in `buildCommitteesAggSql()`; KV verified (Marie for Congress C00806174 2024 returns real external PACs with `DIGIDEMS PAC` at #1 and no self-refs; ActBlue/DCCC still miss as expected). Doc retained as a historical reference — the up-front-verification discipline written here is the reference treatment for future pipeline work.
+
 *Prepared as a handoff from 2026-04-20 session to a future session. Self-contained; no prior context needed.*
 
 ---

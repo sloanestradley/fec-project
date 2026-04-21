@@ -2,6 +2,58 @@
 *A running log of session handoffs — appended automatically by Claude Code at the end of every session. Bring this file to Claude Chat when you need context on recent sessions.*
 
 ---
+2026-04-21 — Session 4B: cm.txt integration (Committee Master File) as the giver-name source; top_committees re-enabled; three new session-close ritual additions
+
+## Process log draft
+Title: The verification tax, paid up front
+
+Third session in a row where the shape of an FEC bulk file mattered — but the first where the cost of getting the shape wrong was thirty seconds instead of a full pipeline re-run. The cm.txt integration took exactly what the strategy doc had predicted (half a session), because the strategy doc had already done the hard thinking up front. Both bugs from the last two sessions are resolved; Top Committee Contributors is back on and displaying real registered names.
+
+Changelog:
+– Ingested FEC's Committee Master File (cm22 / cm24 / cm26) as the 7th–9th bulk files. ~1 MB each unzipped, 19K rows per cycle, filtered at ingest from 15 columns down to CMTE_ID + CMTE_NM.
+– LEFT JOIN cm.txt on both giver and receiver inside buildCommitteesAggSql(). Registered name from cm.txt wins; COALESCE falls back to pas2 filer NAME for the rare unregistered giver; self-affiliate filter now compares cm-sourced names on both sides.
+– Flipped ENABLE_TOP_COMMITTEES_PASS back to true. First pipeline run wrote 13,942 KV entries across 2024 and 2026 in about 9 minutes.
+– DIGIDEMS now displays as "DIGIDEMS PAC" (the cm.txt registered name), not "DIGIDEMS LLC" (the DBA that pas2 was storing). Marie for Congress's top contributors list is all real external PACs with zero self-refs.
+– scripts/ingest-bulk.js: replaced the isIndiv boolean dispatch with a fileConfig() helper shared between processFile() and main(); extended last_updated.json to {indiv, pas2, cm}.
+– New CLAUDE.md tech-stack principle: "Verify input data before shipping pipeline SQL or schema changes," naming the three incidents and their costs (pas2 21-vs-22 columns on 2026-04-17; pas2 NAME semantics on 2026-04-20; cm.txt quote='' on 2026-04-21, caught up front).
+– New pipeline-specific session-close ritual block: node --check + local DuckDB smoke test for SQL changes + workflow_dispatch + curl + browser verify. Distinct from the Playwright ritual, because Playwright is tautologically green for data-layer work.
+– pipeline/README.md and strategy/*.md EXECUTED banners added to the session-close documentation checklist. The README drifts fastest when only CLAUDE.md is updated; strategy docs want to be annotated when executed so a future session doesn't treat them as active scope.
+
+Field notes:
+
+What discipline looks like after you've been burned twice. The five minutes of up-front verification — fetch the FEC description page, head the real file, count columns, spot-check a row for quirks — caught a real problem (literal double quotes embedded in CMTE_NM would have broken DuckDB's default quote='"' handling) before any SQL existed to fail on them. The cost of catching it there was thirty seconds. The cost of catching it in a pipeline run would have been another re-run plus a follow-up commit, same as the last two sessions.
+
+The quiet architectural win: when the KV namespace finished writing, nothing else needed to ship. The Pages Function reader and committee.html branch tree have been in place since Session 3, dormant, waiting for the data to be correct. No deploy, no frontend change — the existing code just started serving different data. That split between "pipeline writes to KV" and "Pages reads from KV" kept the blast radius of a data-correctness session surprisingly small.
+
+Stack tags: FEC Committee Master File (cm.txt) · DuckDB read_csv quote='' · LEFT JOIN with COALESCE fallback
+
+## How Sloane steered the work
+
+**Pushing back on the atomicity hand-wave**
+Before plan approval: the plan said last_updated.json extends from {indiv, pas2} to {indiv, pas2, cm} and moved on. You flagged it: "confirm the cm timestamp is written only when all cm files succeed or are skipped, consistent with how indiv and pas2 are handled." That forced a re-read of the surrounding code, a trace of the allSucceeded gate, and a rewrite of that plan section to spell out the contract explicitly — not just the shape change. It's the same instinct that caught the pas2-column bug late and the pas2-NAME-semantics bug late: shape changes are visible, invariants aren't, unless someone insists they be named. That observation became the new feedback_atomicity_of_state_extensions memory.
+
+**Looking at the session as input to the process, not just output**
+"Should we amend end-of-session rituals in claude.md to add updates to pipeline/README.md? Any other rituals we should add since we started this bulk data / pipeline work?" — this is the same systems-thinking move as "can we automate this?" from the search-overhaul session. The drift on pipeline/README.md was real and invisible until you named it. The ritual now has four new artifacts baked in: pipeline/README.md in the docs checklist, strategy/*.md EXECUTED banners, the pipeline-verification block alongside the Playwright one, and the up-front-data-verification principle in the tech stack.
+
+**Batching the final commit**
+"We can commit and push once we've completed end-of-session rituals rather than having to do it again." Small call, right call — two commits compressed into one, with the side benefit of forcing a single coherent commit message covering the ritual additions rather than fragmenting them. This is the process-hygiene version of the same instinct that produced the "browse mode completely untouched" constraint: reduce the surface area of the change to what it actually needs to be.
+
+**Quality check on the tests question**
+"So no new tests need to be added?" You didn't accept the default "no new tests" summary at face value — you asked. Which forced me to re-trace the ritual bar (new DOM element, conditional render, or API behavior change) against what actually shipped, and notice that the existing api-mock.js has an explicit "KV-hit coverage is out of scope for structural tests" comment from a prior session. So the "no new tests" answer is principled, not lazy — but that's only obvious because you asked.
+
+The through-line: you treat rituals as living documents, not fixed procedures. You notice when a process is under-described (atomicity), out of date (pipeline/README.md), or creating unnecessary work (two commits vs. one), and redirect it. The output is a more legible process, not just shipped code.
+
+## What to bring to Claude Chat
+
+– Session 4B is closed; strategy doc executed; KV verified live. No urgent carryovers from this session itself.
+
+– The remaining pas2-coverage gaps are still open. ActBlue / WinRed (conduit-memo-row-heavy) and the national party committees (DNC/RNC/DSCC/NRSC/DCCC/NRCC, transfer-heavy) still surface "Unable to show due to high transaction volume." Closing either gap requires ingesting a different FEC bulk file (Schedule A memo rows or a transfers-specific source) and is a full session each. Worth a product-level conversation: do we accept the empty state as the right UX for the foreseeable, or is there appetite for another pipeline expansion? The committees in question are all high-visibility surfaces where users will notice the gap.
+
+– Related but orthogonal UX question: "Unable to show due to high transaction volume." is honest but opaque. For committees where we know the data is pas2-gapped rather than just sparse, should the empty state explain what's actually happening — or is the current framing the right level of detail for a non-technical audience?
+
+– Candidate page loose end: Top Individual Contributors was built in Session 3, then rolled back on 2026-04-20 with the rationale that individual contributions to a single candidate are capped at ~$3,300 so the top-10 list is a max-out roll call with low differentiating signal. Worth validating that product call with John at some point — if he'd value individual-donor visibility on candidate pages specifically (even knowing the cap), we should hear it before the precompute pipeline's indiv data is fully shelved for that surface.
+
+---
 2026-03-12 — Search overhaul Session 2: ?q= mode on candidates.html + committees.html
 
 ## Process log draft
