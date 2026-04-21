@@ -4082,3 +4082,66 @@ Local DuckDB smoke against real 1990 data also paid off. It confirmed the SQL wo
 - **The skip-logic pattern is reusable for other per-cycle work.** `state.precompute` is cycle-scoped, file-type-tuple-based, and lives next to the ingest-side state it depends on. Any future per-cycle workload (Schedule A pre-aggregation, Schedule E for IEs, etc.) can use the same pattern by adding its own namespaced block to `pipeline_state.json`. Worth keeping in mind when the next data-layer feature scopes.
 
 - **candidate.html's Top Individual Contributors — still on hold pending John's input.** Unchanged from the last handoff. Worth raising with John now that we have broader historical coverage — if he'd want individual-donor visibility on candidate pages specifically (even knowing the cap), we'd want to hear it before the precompute pipeline's indiv data is fully shelved for that surface.
+
+---
+2026-04-21 (session 5 continuation — backfill execution: three bugs, four commits, one successful run)
+
+## Process log draft
+
+**Title: The backfill that took four commits to run once**
+
+The planning and coding for Session 5's historical backfill all happened the night before — two array extensions plus a precompute-skip refactor, 417/417 tests passing, committed and pinned and all the right rituals observed. The tricky part turned out to be actually running the thing. Three separate bugs surfaced across four workflow runs before the backfill completed, and each one was a bug my careful up-front verification had literally no way to catch.
+
+The first bug wasn't a code bug at all: I'd committed Session 5's work the night before but never pushed. The scheduled 6am UTC job ran against origin/main — the previous commit — and quietly did nothing new. Cost was about fourteen hours of calendar time and ~30 minutes of real engineering once we diagnosed it. Added a memory so the next pipeline session doesn't repeat the pattern: when CI runs against origin, commit-without-push is the same as not committing.
+
+After the push landed, the bugs started to earn their keep. DuckDB's parallel CSV scanner can't handle `null_padding=true` when any field has a literal newline inside a double-quoted string — modern FEC data from 2012 onward has multi-line OCCUPATION/EMPLOYER fields that trip this exactly. `parallel=false` is the fix the error message literally spells out. Then historical FEC data from the 1980s through 1990s turned out to have rows with literal `"` characters inside field content — `"K" LINE AMERICA INC`, `"GRAMMIES" FOR BARTON`, `"Z" ECONOMY HONDA`, `"S" ATTORNEY` — that aren't CSV-quoting at all, just content. Same class of issue as cm.txt's embedded-quote problem, but we couldn't apply the same fix (`quote=''`) because modern data does use legitimate CSV quoting. `strict_mode=false` + `ignore_errors=true` let the parser recover per-row. Then 2020 — the largest indiv file in the entire dataset at 9.6 GB — OOMed at the existing 4 GB DuckDB memory_limit. Bumped to 8 GB, added `SET preserve_insertion_order=false`, done. Run #22 completed cleanly in 7m 44s and all 24 cycles now have data in KV across both key patterns.
+
+**Changelog:**
+- Pushed last night's Session 5 commit (59247c4) to origin after discovering the scheduled job had run against stale code.
+- scripts/precompute-aggregations.js — three fix commits stacked on Session 5's baseline:
+  - 83a39d6: `parallel=false` on the three `read_csv` calls that use `quote='"'` (pas2 in `buildPas2Sql`, pas2 in `buildCommitteesAggSql`, indiv in `buildAggSql`). DuckDB's parallel scanner can't handle `null_padding=true` + quoted newlines; caught by 2022 indiv line 8,755,603.
+  - 915742b: `strict_mode=false` + `ignore_errors=true` on the same three reads. Handles literal `"` inside historical field content (1982, 1984, 1986, 1990 all had examples). strict_mode=false recovers the data per-row when it can; ignore_errors=true is the safety net for rows that can't be recovered cleanly.
+  - 7730707: `memory_limit='4GB'` → `'8GB'` in `DuckDBInstance.create`; added `await conn.run('SET preserve_insertion_order=false')` after connection open. Fixes 2020's OOM; also a reasonable baseline for any future scale growth.
+- Each fix's SQL-call comment in precompute-aggregations.js is a paragraph explaining the specific failure mode and why that specific knob resolves it — so the next session doesn't have to re-derive "why is parallel=false set here?" from first principles.
+- Final run #22: 1 cycle processed (2020), 23 skipped, 8,404 KV entries written in 7m 44s. All 24 cycles 1980–2026 now populated across both `top_contributors:{cmte_id}:{cycle}` and `top_committees:{cmte_id}:{cycle}` key patterns.
+- Browser validation on ILLINOIS TOOL WORKS C00000042 across historical cycles 1990 / 2000 / 2010 / 2014 confirmed bulk-backed Top Individual Contributors at every cycle. Top Committee Contributors sparse for pre-2004 cycles on this specific corporate PAC — real data characteristic, not a pipeline bug.
+- CLAUDE.md Session 5 bullet expanded with execution history; test-cases.md Test log row updated to final outcome; new manual test bullet added to committee.html Raised tab section for historical cycle bulk coverage.
+- 417/417 Playwright tests passing throughout (data-layer-only changes).
+
+**Field notes:**
+
+Three things worth keeping from this session.
+
+First: the small-sample smoke test discipline worked up front (it caught cm.txt's embedded-quote issue in 30 seconds before any SQL existed to fail on it) and still missed three distinct bugs that only real pipeline execution could have surfaced. Each bug was in a different class — parallel-scanner behavior is an implementation detail of DuckDB itself, rogue-quote-in-content is a rare edge case in a lumpy distribution of real-world data, and OOM is a dataset-scale issue that's literally invisible at any sample smaller than the full file. No single smoke test design could have caught all three. The lesson isn't "don't bother smoke testing," it's the quieter "smoke tests verify shape, not distribution."
+
+Second: DuckDB's error messages earned their keep. Every single error explicitly listed the right knob in the "possible fixes" section, often in the exact order of specificity I'd have ranked them. Time from "error appeared" to "error fixed" was minutes in every case, and I spent zero of those minutes in speculative debugging. Good tools surface good errors; good errors are a force multiplier on debugging speed.
+
+Third: the skip-logic architecture we built into Session 5 the night before turned out to be the thing that made iteration livable. Each retry only ran the cycles that had failed the previous time. Twelve of twenty-four cycles skipped the first retry, twenty-three of twenty-four skipped the last. If every bug fix had required re-running the full backfill from scratch, this would have been a six-hour session instead of a two-hour one. The moral is that resumability is not polish, it's a velocity multiplier for anything that has a chance of needing to be run multiple times.
+
+**Stack tags:** DuckDB parallel=false · strict_mode=false · ignore_errors=true · memory_limit tuning · SET preserve_insertion_order=false · per-cycle skip as retry accelerator · error-message-driven debugging · push-as-part-of-CI-ritual
+
+## How Sloane steered the work
+
+**"Wait...the scheduled run didn't do the historical backfill at all. Probably because it's only looking for files changed?"** — Caught the push-never-happened bug before I had any reason to suspect it. The diagnostic instinct ("something that should have happened didn't — let me look at the log first") prevented the obvious wrong reaction (blaming the conditional fetch logic). Without that specific framing I might have spent an hour looking at the wrong layer before noticing the previous commit SHA was still at origin. Instead we diagnosed it in about three minutes and pushed.
+
+**"Push please. Then I'll trigger the workflow manually."** — Clean division of operational responsibility. I push code, you trigger runs. The instinct here is that "making the code right" and "making the code run" are different decisions with different risk profiles, and they want separate hands on them. I've reflected the rule into memory: push is part of the ritual for CI-dependent code, full stop.
+
+**"will this interrupt the current run? Should I let the current run complete since other files have been so successful?"** — Caught me about to push the OOM fix mid-run without having thought through the operational impact. The question separated two things that had blurred together in my head — "pushing a new commit" and "invalidating the running workflow." Once separated, the right answer was obvious: push now (harmless to the running run, ready for the next one), let the current run finish (real progress is being made per-cycle). I'd have made the right call eventually but almost certainly not this cleanly.
+
+**"Seems to be okay. I'm finding from the historical backfill that we may have several situations pre-2008 cycle where the data just doesn't work in a way where even showing a full candidate or committee page for those earlier cycles make sense."** — The entire product-level observation. My technical validation was "does the SQL produce rows, does the KV lookup succeed, does the API return a bulk source" — all green. Your validation was "does this look right to a human reading it" — which surfaced the real finding. This is the pattern you've applied across sessions: the UI is ground truth, tests and code reviews are intermediate, and if the rendered page doesn't read right nothing else matters. The pre-2008 architecture question you're taking to Claude Chat came entirely from this review.
+
+**"Let's start with #1, then pause for review before continuing."** — Same instinct applied to the session-close ritual itself. Each artifact (doc updates → four blocks → append → commit) is inspectable, not batched. This is why the rituals actually catch drift — there's a review gate between each step, not just at the end.
+
+**The through-line:** you treat every artifact as something to scrutinize in its own right, and you refuse to let "done" compound before it's verified. That applies to pushes (are they actually on origin?), to outputs (does the UI read right?), to fixes (will this interrupt what's running?), to rituals (let me review before we continue). Each of these would be a small thing alone; together they're the thing that keeps sessions from drifting into "I think we're fine" territory.
+
+## What to bring to Claude Chat
+
+- **Pre-2008 candidate/committee page architecture.** The single biggest product question this session surfaced, and the reason Sloane is taking it to Claude Chat rather than scoping in Code. Historical cycles have sparse and sometimes misleading data shapes — blank ENTITY_TP, missing committee-to-committee relationships before PAC networks matured, potential confusion for users flipping into old cycles expecting the same richness as modern ones. The open design question is whether pre-2008 cycles warrant a different page architecture — maybe a simplified read-only view, or a flag that contextualizes the coverage limitations, or restricting the cycle switcher to eras with full data. Needs depth Claude Chat can give.
+
+- **Tomorrow's scheduled run as the real daily-behavior confirmation.** In-session we verified the skip logic works within one workflow's lifetime (cycles successful in run 1 correctly skipped in run 2, etc.). What we haven't yet verified is that tomorrow's 6am UTC scheduled run correctly persists state across the day-over-day boundary and completes in ~30–60 seconds. If anything's off there, it'd surface in Actions tomorrow morning. Worth glancing at before declaring the backfill "fully closed."
+
+- **Node.js 20 deprecation warning in CI logs.** Every workflow run shows `Warning: Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4.` It's not blocking today but GitHub will eventually drop the forced-upgrade behavior. Worth scoping a small session later to bump the action versions or pin explicitly to ones that support Node.js 24 natively.
+
+- **The "FAILED appears 12 times" anomaly in run #20.** Half the cycles failed with the parallel-scanner error, the other half succeeded. That split was driven by which cycles happened to have quoted-newline rows, which is essentially a coin flip on each cycle's data. Worth noting — if the pipeline ever appears to succeed on a development test and then fails half the cycles in production, the "which half" is revealing of the underlying edge case rather than being randomly distributed.
+
+- **Skip-logic pattern as a blueprint for future per-cycle workloads.** `state.precompute` is cycle-scoped, file-type-tuple-based, and self-persisting. Any future per-cycle work (Schedule E for IEs, additional aggregation passes, new bulk sources) can follow the same pattern by adding its own namespaced block to `pipeline_state.json`. Worth keeping in mind when scoping the next data-layer feature.
