@@ -726,12 +726,24 @@ async function main() {
   if (!state.precompute) state.precompute = {};
 
   // 2. Open DuckDB once, reuse the connection across cycles
+  //
+  // memory_limit='8GB': 2020 indiv is 9.6 GB (largest cycle in the dataset)
+  // and OOMed at the 4GB cap. ubuntu-latest runners have 16 GB total RAM;
+  // Node heap is 6 GB (via NODE_OPTIONS=--max-old-space-size=6144) so 8 GB
+  // for DuckDB leaves ~2 GB headroom for OS + other processes. Any indiv
+  // file below ~10 GB fits comfortably with spill-to-disk.
+  //
+  // preserve_insertion_order=false: DuckDB defaults to preserving insertion
+  // order through operators, which requires extra buffering in aggregation
+  // pipelines. Our queries end with ORDER BY so intermediate-stage order
+  // doesn't matter — this is a free memory reduction that costs nothing.
   const db = await DuckDBInstance.create(':memory:', {
-    memory_limit:   '4GB',
+    memory_limit:   '8GB',
     temp_directory: DUCKDB_TMP,
     threads:        '4',
   });
   const conn = await db.connect();
+  await conn.run('SET preserve_insertion_order=false');
 
   let totalEntries  = 0;
   let cyclesRun     = 0;
