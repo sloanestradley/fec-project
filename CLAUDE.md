@@ -682,7 +682,7 @@ A short list of topics, decisions, or open questions that are better discussed i
 ---
 
 ### Logging to claude-to-claude.md
-After outputting all four blocks above, append outputs #1, #2, and #4 to `claude-to-claude.md` in the project root. Use this format:
+After outputting all four blocks above, append outputs #1, #2, and #4 to the **end** of `claude-to-claude.md` in the project root (not the top — the file is chronological, oldest entry first, newest entry last). Use this format:
 
 ```
 ---
@@ -698,6 +698,6 @@ After outputting all four blocks above, append outputs #1, #2, and #4 to `claude
 [content]
 ```
 
-If the file doesn't exist, create it. Always append — never overwrite.
+If the file doesn't exist, create it. Always append to the end — never overwrite, and never prepend at the top.
 
 **Final step — commit:** After appending to `claude-to-claude.md`, commit all session changes with `git add` (specific files, not `-A`) and a descriptive commit message. Uncommitted changes at session end are invisible to the next session's start check and will appear as mysterious working tree noise. If the session produced no code changes (discussion-only), a commit is not needed — but documentation-only changes still warrant one.
