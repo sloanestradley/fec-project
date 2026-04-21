@@ -10,8 +10,8 @@ Three components, one workflow:
 
 | Component | Role | Schedule |
 |---|---|---|
-| **GitHub Actions step 1 — ingest** (`scripts/ingest-bulk.js`) | Downloads all 6 FEC bulk files, strips indiv files to 14 columns, uploads pipe-delimited CSVs to R2 | Daily, 6am UTC |
-| **GitHub Actions step 2 — pre-compute** (`scripts/precompute-aggregations.js`) | Reads pas2 + indiv CSVs from R2, runs DuckDB SQL GROUP BY queries (spill-to-disk, 100% accurate), wipes + writes top-25 contributors per in-scope committee per cycle to Cloudflare KV namespace `fecledger-aggregations`. Two aggregation passes are defined; the second is currently gated off — see "Feature flag" section below | Same job as ingest — daily, 6am UTC |
+| **GitHub Actions step 1 — ingest** (`scripts/ingest-bulk.js`) | Downloads all 9 FEC bulk files, strips indiv files to 14 columns and cm files to 2 columns (CMTE_ID + CMTE_NM), uploads pipe-delimited CSVs to R2 | Daily, 6am UTC |
+| **GitHub Actions step 2 — pre-compute** (`scripts/precompute-aggregations.js`) | Reads pas2 + indiv + cm CSVs from R2, runs DuckDB SQL GROUP BY queries (spill-to-disk, 100% accurate), wipes + writes top-25 contributors per in-scope committee per cycle to Cloudflare KV namespace `fecledger-aggregations`. Two aggregation passes: individual contributors (from indiv) and committee contributors (from pas2, LEFT-JOINed against cm.txt for display names) | Same job as ingest — daily, 6am UTC |
 | **Cloudflare Worker** (`pipeline/src/index.js`) | HTTP trigger for ad-hoc testing; no scheduled processing | On-demand only |
 
 Both processing steps run in GitHub Actions, in the same job (ingest first, then pre-compute). The Worker's `FILES` array is empty — it exists solely so the HTTP endpoint (`/admin/pipeline/run`) remains available for development and debugging.
@@ -22,11 +22,9 @@ KV details (key format `top_contributors:{cmte_id}:{cycle}`, scope rules, value 
 
 ## Feature flag — `ENABLE_TOP_COMMITTEES_PASS`
 
-`scripts/precompute-aggregations.js` contains a second aggregation pass over pas2 that would write a `top_committees:{cmte_id}:{cycle}` key pattern (committee-to-committee contribution data for committee.html's Top Committee Contributors card). The pass is gated behind a `const ENABLE_TOP_COMMITTEES_PASS = false` at the top of the file and is **currently disabled** (as of 2026-04-20).
+`scripts/precompute-aggregations.js` contains a second aggregation pass over pas2 that writes the `top_committees:{cmte_id}:{cycle}` key pattern (committee-to-committee contribution data for committee.html's Top Committee Contributors card). The pass is gated behind `const ENABLE_TOP_COMMITTEES_PASS` at the top of the file and is **currently enabled** (as of 2026-04-21, Session 4B).
 
-The pass was shipped, ran, and produced visually incorrect KV data — pas2's `NAME` column stores the recipient's name (Schedule B `recipient_name`), not the giver's, so the display name on each row was wrong. The `buildCommitteesAggSql()` SQL builder and the linear-scan block in `processCycle()` are both retained verbatim; only the call path is skipped. When the fix lands, re-enabling is one boolean flip.
-
-The scoped fix is documented in `strategy/cm-txt-integration.md` in the repo root: ingest FEC's Committee Master File (`cm.txt`) into the pipeline, use it as the authoritative `committee_id → registered_name` source, then flip the flag. Estimated half-session of work. The frontend (committee.html branch tree, Pages Function `top-committees` route) and the KV namespace binding are all intact and ready to serve the data the moment the pass is re-enabled.
+History: shipped 2026-04-20, disabled same day after discovering pas2's `NAME` column stores the recipient's name (Schedule B `recipient_name`), not the giver's. Re-enabled 2026-04-21 after ingesting FEC's Committee Master File (`cm.txt`) and wiring it into `buildCommitteesAggSql()` as the authoritative `committee_id → registered_name` source via LEFT JOIN on both giver and receiver. Strategy doc: `strategy/cm-txt-integration.md` (executed). Flipping the flag back off is supported — `buildCommitteesAggSql()` and its linear-scan block in `processCycle()` are structured to be skipped cleanly.
 
 ---
 
@@ -40,6 +38,9 @@ The scoped fix is documented in `strategy/cm-txt-integration.md` in the repo roo
 | `fec.gov/files/bulk-downloads/2022/pas222.zip` | `fec/pas2/2022/pas2.csv` | all 22 |
 | `fec.gov/files/bulk-downloads/2024/pas224.zip` | `fec/pas2/2024/pas2.csv` | all 22 |
 | `fec.gov/files/bulk-downloads/2026/pas226.zip` | `fec/pas2/2026/pas2.csv` | all 22 |
+| `fec.gov/files/bulk-downloads/2022/cm22.zip`    | `fec/cm/2022/cm.csv`       | 2 of 15  |
+| `fec.gov/files/bulk-downloads/2024/cm24.zip`    | `fec/cm/2024/cm.csv`       | 2 of 15  |
+| `fec.gov/files/bulk-downloads/2026/cm26.zip`    | `fec/cm/2026/cm.csv`       | 2 of 15  |
 
 **indiv** = individual contributions (Schedule A). ~1.5 GB compressed / ~4.5 GB uncompressed each. Filtered to 14 columns to reduce storage and query cost:
 
@@ -51,6 +52,8 @@ TRANSACTION_DT | TRANSACTION_AMT | OTHER_ID | MEMO_CD | MEMO_TEXT | SUB_ID
 `MEMO_CD='X'` rows (conduit entries — ActBlue, WinRed, Anedot) are retained.
 
 **pas2** = committee-to-committee transfers (Schedule B). ~23 MB compressed. All 22 columns retained (FEC schema includes `CAND_ID` — the candidate the transaction supports — between `OTHER_ID` and `TRAN_ID`; an earlier version of the ingest header omitted this column, breaking strict CSV parsers downstream — fixed 2026-04-17).
+
+**cm** = Committee Master File. ~1 MB compressed / ~2 MB uncompressed each, ~19K rows per cycle. FEC schema has 15 columns; filtered at ingest to just `CMTE_ID | CMTE_NM` (the registered committee name), which is everything `buildCommitteesAggSql()` needs as the authoritative `committee_id → registered_name` source. No header row in the source — one is prepended at ingest to match the indiv/pas2 pattern. DuckDB reads use `quote=''` because `CMTE_NM` contains literal `"` chars in some rows (e.g. `CONSTANCE "CONNIE" JOHNSON`) that would otherwise be misparsed as quoted-field delimiters.
 
 ---
 
@@ -68,9 +71,13 @@ fec/
     2022/pas2.csv
     2024/pas2.csv
     2026/pas2.csv
+  cm/
+    2022/cm.csv
+    2024/cm.csv
+    2026/cm.csv
   meta/
     pipeline_state.json   ← Last-Modified timestamps per file (conditional fetching)
-  last_updated.json       ← { "indiv": "<ISO>", "pas2": "<ISO>" } — run completion time
+  last_updated.json       ← { "indiv": "<ISO>", "pas2": "<ISO>", "cm": "<ISO>" } — run completion time
 ```
 
 All CSVs are pipe-delimited (`|`), not comma-delimited. The format was chosen for compatibility with DuckDB-WASM, which reads pipe-delimited files natively.

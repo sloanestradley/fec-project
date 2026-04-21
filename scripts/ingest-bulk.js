@@ -45,6 +45,9 @@ const FILES = [
   { type: 'pas2',  yy: '22', year: '2022' },
   { type: 'pas2',  yy: '24', year: '2024' },
   { type: 'pas2',  yy: '26', year: '2026' },
+  { type: 'cm',    yy: '22', year: '2022' },
+  { type: 'cm',    yy: '24', year: '2024' },
+  { type: 'cm',    yy: '26', year: '2026' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -81,6 +84,22 @@ const PAS2_HEADER = [
   'EMPLOYER', 'OCCUPATION', 'TRANSACTION_DT', 'TRANSACTION_AMT',
   'OTHER_ID', 'CAND_ID', 'TRAN_ID', 'FILE_NUM', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID',
 ].join('|') + '\n';
+
+// cm.txt (Committee Master File): 15 columns, pipe-delimited, no header row,
+// LF-terminated, pure ASCII. Verified against cm26.zip 2026-04-20 — see
+// strategy/cm-txt-integration.md. Only CMTE_ID (col 0) and CMTE_NM (col 1)
+// are needed for the committee_id → registered_name lookup in
+// precompute-aggregations.js (buildCommitteesAggSql). Everything else is
+// dropped via the column-filter branch of BulkProcessingStream.
+//
+// Full FEC schema (reference only, not emitted):
+//   0  CMTE_ID              5  CMTE_ST2        10 CMTE_PTY_AFFILIATION
+//   1  CMTE_NM              6  CMTE_CITY       11 CMTE_FILING_FREQ
+//   2  TRES_NM              7  CMTE_ST         12 ORG_TP
+//   3  CMTE_ST1             8  CMTE_ZIP        13 CONNECTED_ORG_NM
+//   4  (CMTE_ST2 continues) 9  CMTE_DSGN       14 CAND_ID
+const CM_KEEP_COLS = [0, 1];
+const CM_HEADER    = ['CMTE_ID', 'CMTE_NM'].join('|') + '\n';
 
 // ---------------------------------------------------------------------------
 // Utilities — verbatim from pipeline/src/index.js
@@ -409,24 +428,46 @@ async function fetchWithRetry(url, year) {
 // Process one file
 // ---------------------------------------------------------------------------
 
-async function processFile(s3, { type, yy, year }) {
-  const t0      = Date.now();
-  const isIndiv = type === 'indiv';
-
-  const url   = isIndiv
-    ? `https://www.fec.gov/files/bulk-downloads/${year}/indiv${yy}.zip`
-    : `https://www.fec.gov/files/bulk-downloads/${year}/pas2${yy}.zip`;
-  const r2Key = isIndiv
-    ? `fec/indiv/${year}/indiv.csv`
-    : `fec/pas2/${year}/pas2.csv`;
-  const header  = isIndiv ? INDIV_HEADER : PAS2_HEADER;
-
-  // Build keepArr for indiv column filter; null = passthrough for pas2
-  let keepArr = null;
-  if (isIndiv) {
-    keepArr = new Uint8Array(22); // covers columns 0–20
-    INDIV_KEEP_COLS.forEach(i => { keepArr[i] = 1; });
+// Per-type config: source URL, R2 key, header, keepArr for BulkProcessingStream.
+// Centralizing here so main()'s HEAD-request URL and processFile() share one source.
+function fileConfig({ type, yy, year }) {
+  switch (type) {
+    case 'indiv': {
+      const keepArr = new Uint8Array(22); // covers columns 0–20
+      INDIV_KEEP_COLS.forEach(i => { keepArr[i] = 1; });
+      return {
+        url:     `https://www.fec.gov/files/bulk-downloads/${year}/indiv${yy}.zip`,
+        r2Key:   `fec/indiv/${year}/indiv.csv`,
+        header:  INDIV_HEADER,
+        keepArr,
+      };
+    }
+    case 'pas2':
+      return {
+        url:     `https://www.fec.gov/files/bulk-downloads/${year}/pas2${yy}.zip`,
+        r2Key:   `fec/pas2/${year}/pas2.csv`,
+        header:  PAS2_HEADER,
+        keepArr: null, // passthrough — pas2 is stored as-is
+      };
+    case 'cm': {
+      const keepArr = new Uint8Array(15); // cm.txt has 15 columns
+      CM_KEEP_COLS.forEach(i => { keepArr[i] = 1; });
+      return {
+        url:     `https://www.fec.gov/files/bulk-downloads/${year}/cm${yy}.zip`,
+        r2Key:   `fec/cm/${year}/cm.csv`,
+        header:  CM_HEADER,
+        keepArr,
+      };
+    }
+    default:
+      throw new Error(`Unknown file type: ${type}`);
   }
+}
+
+async function processFile(s3, file) {
+  const t0 = Date.now();
+  const { type, year } = file;
+  const { url, r2Key, header, keepArr } = fileConfig(file);
 
   console.log(`\n[${year}/${type}] ── Starting ─────────────────────────────`);
   console.log(`[${year}/${type}] URL: ${url}`);
@@ -529,11 +570,9 @@ async function main() {
   let allSucceeded = true;
 
   for (const file of FILES) {
-    const stateKey = `${file.type}${file.yy}`; // e.g. 'indiv22', 'pas222'
-    const url = file.type === 'indiv'
-      ? `https://www.fec.gov/files/bulk-downloads/${file.year}/indiv${file.yy}.zip`
-      : `https://www.fec.gov/files/bulk-downloads/${file.year}/pas2${file.yy}.zip`;
-    const label = `${file.year}/${file.type}`;
+    const stateKey = `${file.type}${file.yy}`; // e.g. 'indiv22', 'pas222', 'cm26'
+    const { url }  = fileConfig(file);
+    const label    = `${file.year}/${file.type}`;
 
     // HEAD request to check Last-Modified (follows FEC → S3 redirect automatically)
     const currentLastModified = await getLastModified(url, label);
@@ -560,7 +599,7 @@ async function main() {
 
   if (allSucceeded) {
     const ts   = new Date().toISOString();
-    const body = JSON.stringify({ indiv: ts, pas2: ts });
+    const body = JSON.stringify({ indiv: ts, pas2: ts, cm: ts });
     await s3.send(new PutObjectCommand({
       Bucket:      BUCKET,
       Key:         'fec/last_updated.json',

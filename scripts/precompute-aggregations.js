@@ -56,17 +56,13 @@ const CYCLES        = [
 ];
 
 // Feature flag — top_committees:* KV key pattern.
-// Disabled 2026-04-20 after discovering that pas2 NAME field stores the
-// RECIPIENT's name (Schedule B recipient_name), not the giver's name as
-// initially assumed. Storing pas2 NAME as the display name in top_committees
-// entries produces visually incorrect results (e.g. Marie for Congress appears
-// as its own top contributor because JFAs write "MARIE FOR CONGRESS" in
-// recipient_name when filing contributions to Marie's principal). A correct
-// fix requires ingesting FEC's cm.txt Committee Master File for a reliable
-// committee_id → registered_name mapping. buildCommitteesAggSql() + its
-// linear-scan block below are kept in place — they'll work unchanged once
-// the name source is swapped. Re-enable by flipping this flag.
-const ENABLE_TOP_COMMITTEES_PASS = false;
+// History: shipped 2026-04-20; disabled same day after realizing pas2 NAME
+// is the RECIPIENT's name (Schedule B recipient_name), not the giver's —
+// which made Marie-for-Congress appear as its own top contributor whenever
+// an affiliated JFA wrote "MARIE FOR CONGRESS" as recipient_name. Re-enabled
+// after wiring FEC's cm.txt Committee Master File as the authoritative
+// committee_id → registered_name source (see buildCommitteesAggSql below).
+const ENABLE_TOP_COMMITTEES_PASS = true;
 
 // ---------------------------------------------------------------------------
 // DuckDB schemas — matching BulkProcessingStream output in ingest-bulk.js
@@ -119,6 +115,21 @@ const PAS2_COLUMNS = {
   MEMO_CD:         'VARCHAR',
   MEMO_TEXT:       'VARCHAR',
   SUB_ID:          'VARCHAR',
+};
+
+// cm.txt: 2 columns after ingest (filtered down from FEC's 15-col schema by
+// BulkProcessingStream). A `CMTE_ID|CMTE_NM\n` header row is prepended at
+// ingest time, so we read with skip=1 to mirror the pas2/indiv pattern.
+//
+// quote='' is required because CMTE_NM contains literal double-quote chars in
+// some rows (e.g. `CONSTANCE "CONNIE" JOHNSON FOR UNITED STATES SENATOR`,
+// `...OGLE "JOOGLE"...`). The fields themselves are NOT quoted — the `"` is
+// embedded content. DuckDB's default quote='"' would misinterpret these as
+// quoted-field delimiters and drop the row or fold fields together. Disabling
+// quote processing is safe because the data has no CSV-style quoting convention.
+const CM_COLUMNS = {
+  CMTE_ID: 'VARCHAR',
+  CMTE_NM: 'VARCHAR',
 };
 
 function columnsToSqlMap(cols) {
@@ -266,34 +277,49 @@ function buildPas2Sql(pas2Path) {
 }
 
 // Pas2 aggregation — "who gave money to this committee?"
-// Pas2 rows: CMTE_ID = giver (filer), OTHER_ID = receiver. So to surface top
-// contributors TO committee X, we filter WHERE OTHER_ID = X and group by
-// CMTE_ID (giver). any_value() on name/entity_type/giver_id is safe — these
-// are stable per giver within a cycle.
+// Pas2 rows: CMTE_ID = giver (filer), OTHER_ID = receiver. To surface top
+// contributors TO committee X we filter WHERE OTHER_ID = X and group by
+// CMTE_ID (giver). any_value() on entity_type is safe — stable per giver
+// within a cycle.
+//
+// Name source: cm.txt (Committee Master File), via LEFT JOIN on committee_id.
+// The pas2 NAME column is the RECIPIENT's name (Schedule B recipient_name,
+// free-form filer text that can be a DBA or affiliate-branded string) and
+// can't be used as a giver display name. cm.txt provides the FEC-registered
+// name for each committee_id.
 //
 // Two self-reference filters, belt-and-suspenders:
 //
 //  1. ID-level filter (giver_id != receiver): catches literal self-references
-//     where a committee is recorded as both giver and receiver on the same
-//     row. Rare but can happen in mis-filed amendments. Cheap, deterministic,
-//     zero false positives.
+//     on the same row (rare, mis-filed amendments). Cheap, deterministic.
 //
-//  2. Name-level filter via receiver_names dictionary: catches affiliate
-//     transfers across distinct committee_ids that share a branding name
-//     (e.g. C00806174 "MARIE FOR CONGRESS" receives from C00863639, C00573261,
-//     etc. — all legally distinct committees also called "MARIE FOR CONGRESS";
-//     without this filter the top-25 list is dominated by these affiliate
-//     transfers and visually reads as the committee listing itself as its own
-//     top contributor). We build a (committee_id → normalized name) dictionary
-//     from pas2's own filer rows and LEFT JOIN it; receivers that never filed
-//     pas2 (never gave money out) have no dictionary entry and the filter is
-//     lenient (NULL means no exclusion). Small gap: committees renamed across
-//     cycles may slip through if the stored name diverges from the current.
-function buildCommitteesAggSql(pas2Path) {
-  const pas2Schema = columnsToSqlMap(PAS2_COLUMNS);
+//  2. Name-level filter via cm.txt on both sides: catches affiliate transfers
+//     across distinct committee_ids that share a branding name. Compare
+//     upper(trim(cn_g.name)) to upper(trim(cn_r.name)). If either side is
+//     absent from cm.txt (unregistered / newly registered), the filter is
+//     lenient (NULL means no exclusion) so we don't over-drop.
+//
+// Display name for the giver falls back via COALESCE to pas2's filer NAME
+// (f.name) if cm.txt has no entry — preferable to a NULL display. Note this
+// is the FILER's self-reported name for its own committee, not the recipient
+// field, so it's a reasonable fallback.
+function buildCommitteesAggSql(pas2Path, cmPath) {
+  const pas2Schema  = columnsToSqlMap(PAS2_COLUMNS);
+  const cmSchema    = columnsToSqlMap(CM_COLUMNS);
   const pas2PathEsc = pas2Path.replace(/'/g, "''");
+  const cmPathEsc   = cmPath.replace(/'/g, "''");
   return `
-    WITH pas2_raw AS (
+    WITH committee_names AS (
+      SELECT CMTE_ID AS committee_id, upper(trim(CMTE_NM)) AS name
+      FROM read_csv(
+        '${cmPathEsc}',
+        delim='|', header=false, skip=1, quote='',
+        columns=${cmSchema}, auto_detect=false, null_padding=true
+      )
+      WHERE CMTE_ID IS NOT NULL AND CMTE_ID != ''
+        AND CMTE_NM IS NOT NULL AND CMTE_NM != ''
+    ),
+    pas2_raw AS (
       SELECT OTHER_ID, CMTE_ID, NAME, ENTITY_TP, TRANSACTION_AMT, MEMO_CD
       FROM read_csv(
         '${pas2PathEsc}',
@@ -307,29 +333,19 @@ function buildCommitteesAggSql(pas2Path) {
       FROM pas2_raw
       WHERE (MEMO_CD != 'X' OR MEMO_CD IS NULL)
     ),
-    -- Committee name dictionary from all pas2 filer rows. Receivers that also
-    -- file pas2 as givers will have an entry here; others won't (LEFT JOIN
-    -- returns NULL below, filter is lenient).
-    receiver_names AS (
-      SELECT CMTE_ID AS committee_id, any_value(upper(trim(NAME))) AS committee_name
-      FROM pas2_raw
-      WHERE CMTE_ID IS NOT NULL AND CMTE_ID != ''
-        AND NAME IS NOT NULL AND NAME != ''
-      GROUP BY CMTE_ID
-    ),
     agg AS (
       SELECT f.receiver, f.giver_id,
-             any_value(f.name)        AS name,
-             any_value(f.entity_type) AS entity_type,
-             SUM(f.amt)               AS total
+             any_value(COALESCE(cn_g.name, upper(trim(f.name)))) AS name,
+             any_value(f.entity_type)                            AS entity_type,
+             SUM(f.amt)                                          AS total
       FROM filtered f
-      LEFT JOIN receiver_names rn ON rn.committee_id = f.receiver
+      LEFT JOIN committee_names cn_g ON cn_g.committee_id = f.giver_id
+      LEFT JOIN committee_names cn_r ON cn_r.committee_id = f.receiver
       WHERE f.receiver IS NOT NULL AND f.receiver != ''
         AND f.giver_id IS NOT NULL AND f.giver_id != ''
-        AND f.name     IS NOT NULL AND f.name     != ''
         AND f.amt      IS NOT NULL
         AND f.giver_id != f.receiver
-        AND (rn.committee_name IS NULL OR upper(trim(f.name)) != rn.committee_name)
+        AND (cn_g.name IS NULL OR cn_r.name IS NULL OR cn_g.name != cn_r.name)
       GROUP BY f.receiver, f.giver_id
     ),
     ranked AS (
@@ -410,12 +426,16 @@ async function processCycle(s3, conn, { year, cycle }) {
   const label     = String(cycle);
   const pas2Path  = path.join(TMP_DIR, `pas2-${year}.csv`);
   const indivPath = path.join(TMP_DIR, `indiv-${year}.csv`);
+  const cmPath    = path.join(TMP_DIR, `cm-${year}.csv`);
 
   console.log(`\n[${cycle}] ── Starting ─────────────────────────────`);
 
-  // 1. Download both files
+  // 1. Download all three files (pas2 for scope + committee aggregation,
+  //    indiv for individual-contributor aggregation, cm.txt for the
+  //    committee_id → registered_name dictionary used in the committee pass)
   await downloadFromR2(s3, `fec/pas2/${year}/pas2.csv`,   pas2Path,  `${label}/pas2`);
   await downloadFromR2(s3, `fec/indiv/${year}/indiv.csv`, indivPath, `${label}/indiv`);
+  await downloadFromR2(s3, `fec/cm/${year}/cm.csv`,       cmPath,    `${label}/cm`);
 
   // 2. Run SQL — load pas2 into a table, then execute the aggregation query
   console.log(`[${cycle}] Loading pas2 recipients...`);
@@ -468,7 +488,7 @@ async function processCycle(s3, conn, { year, cycle }) {
   if (ENABLE_TOP_COMMITTEES_PASS) {
     console.log(`[${cycle}] Running DuckDB committee-contributors SQL...`);
     const commT0     = Date.now();
-    const commReader = await conn.runAndReadAll(buildCommitteesAggSql(pas2Path));
+    const commReader = await conn.runAndReadAll(buildCommitteesAggSql(pas2Path, cmPath));
     const commRows   = commReader.getRows();
     const commSqlEl  = ((Date.now() - commT0) / 1000).toFixed(1);
     console.log(`[${cycle}] committee SQL done in ${commSqlEl}s — ${commRows.length.toLocaleString()} (receiver, giver) result rows`);
@@ -511,6 +531,7 @@ async function processCycle(s3, conn, { year, cycle }) {
   // 5. Clean up CSVs and DuckDB table for this cycle
   await fsp.unlink(pas2Path).catch(() => {});
   await fsp.unlink(indivPath).catch(() => {});
+  await fsp.unlink(cmPath).catch(() => {});
   await conn.run('DROP TABLE IF EXISTS pas2_recipients');
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
