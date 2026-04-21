@@ -4,25 +4,35 @@
  *
  * Runs after scripts/ingest-bulk.js in the same GitHub Actions job.
  *
- * Architecture (v2, 2026-04-17):
+ * Architecture (v2, 2026-04-17; extended 2026-04-21 for historical backfill):
  *   The v1 streaming-Map approach worked but used mid-stream pruning to bound
  *   memory — which sacrifices accuracy for mega-committees (ActBlue, WinRed,
  *   etc.) because a pruned contributor loses their prior accumulation. v2
  *   replaces the aggregation engine with DuckDB, which does external (spill-
  *   to-disk) GROUP BY natively. Bounded memory, zero accuracy compromise.
  *
- * For each cycle (2024, 2026):
- *   1. Download fec/pas2/{year}/pas2.csv and fec/indiv/{year}/indiv.csv
- *      from R2 to local /tmp disk (runner has ~14 GB free)
- *   2. Run a single SQL query in DuckDB that filters, aggregates, scope-
- *      filters, and ranks — returning top 25 per committee, ordered by
- *      (cmte_id, rank)
+ * For each cycle in CYCLES (1980..2026):
+ *   0. Check skip conditions against fec/meta/pipeline_state.json (shared
+ *      with ingest-bulk.js). Skip if ingest hasn't completed for this cycle
+ *      yet, OR if the three source files' Last-Modified tuple matches the
+ *      value stored at the last successful precompute for this cycle.
+ *   1. Download fec/pas2/{year}/pas2.csv, fec/indiv/{year}/indiv.csv, and
+ *      fec/cm/{year}/cm.csv from R2 to local /tmp disk (runner has ~14 GB
+ *      free; per-cycle cleanup keeps peak usage at one cycle's files)
+ *   2. Run DuckDB SQL that filters, aggregates, scope-filters, and ranks —
+ *      returning top 25 per committee, ordered by (cmte_id, rank)
  *   3. Iterate result rows, group by cmte_id in a linear scan, build KV
- *      entries with key `top_contributors:{cmte_id}:{cycle}`
- *   4. Delete local CSVs to reclaim disk
- *
- * The KV namespace is wiped entirely up front (before aggregation), so the
- * v1 pruned-era entries can't coexist with v2 exact-total entries.
+ *      entries with keys `top_contributors:{cmte_id}:{cycle}` and (when
+ *      the second-pass flag is enabled) `top_committees:{cmte_id}:{cycle}`
+ *   4. Scoped KV wipe — delete only keys ending in `:${cycle}` so stale
+ *      committees don't persist across runs. Per-cycle so cycles that
+ *      skipped don't get their KV cleared.
+ *   5. Bulk-write new KV entries
+ *   6. Persist state.precompute[year] = currentTuple to R2, mirroring
+ *      ingest's per-file state-write-on-success pattern. Writing after
+ *      the KV work succeeds gives the same partial-failure recovery:
+ *      a mid-run failure leaves earlier cycles' state intact.
+ *   7. Delete local CSVs to reclaim disk
  *
  * Required env vars:
  *   CLOUDFLARE_ACCOUNT_ID  — for R2 endpoint + KV REST API
@@ -36,7 +46,7 @@ import fs             from 'node:fs';
 import fsp            from 'node:fs/promises';
 import path           from 'node:path';
 import { pipeline }   from 'node:stream/promises';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { DuckDBInstance }              from '@duckdb/node-api';
 
 // ---------------------------------------------------------------------------
@@ -51,6 +61,28 @@ const KV_BATCH_SIZE = 50;
 const TMP_DIR       = '/tmp/fecledger';
 const DUCKDB_TMP    = '/tmp/duckdb';
 const CYCLES        = [
+  { year: '1980', cycle: 1980 },
+  { year: '1982', cycle: 1982 },
+  { year: '1984', cycle: 1984 },
+  { year: '1986', cycle: 1986 },
+  { year: '1988', cycle: 1988 },
+  { year: '1990', cycle: 1990 },
+  { year: '1992', cycle: 1992 },
+  { year: '1994', cycle: 1994 },
+  { year: '1996', cycle: 1996 },
+  { year: '1998', cycle: 1998 },
+  { year: '2000', cycle: 2000 },
+  { year: '2002', cycle: 2002 },
+  { year: '2004', cycle: 2004 },
+  { year: '2006', cycle: 2006 },
+  { year: '2008', cycle: 2008 },
+  { year: '2010', cycle: 2010 },
+  { year: '2012', cycle: 2012 },
+  { year: '2014', cycle: 2014 },
+  { year: '2016', cycle: 2016 },
+  { year: '2018', cycle: 2018 },
+  { year: '2020', cycle: 2020 },
+  { year: '2022', cycle: 2022 },
   { year: '2024', cycle: 2024 },
   { year: '2026', cycle: 2026 },
 ];
@@ -185,12 +217,16 @@ async function kvFetch(url, options, label) {
   return body;
 }
 
-async function wipeNamespace(accountId, namespaceId, apiToken) {
-  const t0       = Date.now();
-  let cursor     = null;
-  let totalKeys  = 0;
+// Per-cycle scoped wipe — deletes only keys ending in `:${cycle}`. The KV list
+// API supports prefix filtering but not suffix, so we paginate the full list
+// and filter client-side by cycle suffix. Called before writing new entries
+// for a cycle so that removed committees don't leave stale data behind.
+async function wipeCycleKeys(accountId, namespaceId, apiToken, cycle) {
+  const t0         = Date.now();
+  const suffix     = `:${cycle}`;
+  let cursor       = null;
+  let totalDeleted = 0;
 
-  console.log('[wipe] Listing existing keys...');
   do {
     const listUrl = cursor
       ? `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/keys?cursor=${encodeURIComponent(cursor)}`
@@ -198,26 +234,78 @@ async function wipeNamespace(accountId, namespaceId, apiToken) {
 
     const listBody = await kvFetch(listUrl,
       { headers: { Authorization: `Bearer ${apiToken}` } },
-      '[wipe/list]');
+      `[wipe-${cycle}/list]`);
 
-    const keys = (listBody.result || []).map(k => k.name);
-    if (keys.length === 0) break;
+    const keys = (listBody.result || [])
+      .map(k => k.name)
+      .filter(name => name.endsWith(suffix));
 
-    const delUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/bulk/delete`;
-    await kvFetch(delUrl, {
-      method:  'POST',
-      headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
-      body:    JSON.stringify(keys),
-    }, '[wipe/delete]');
+    if (keys.length > 0) {
+      const delUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/bulk/delete`;
+      await kvFetch(delUrl, {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify(keys),
+      }, `[wipe-${cycle}/delete]`);
+      totalDeleted += keys.length;
+    }
 
-    totalKeys += keys.length;
-    cursor     = listBody.result_info?.cursor || null;
-    console.log(`[wipe] Deleted ${keys.length} keys (running total ${totalKeys.toLocaleString()})`);
+    cursor = listBody.result_info?.cursor || null;
   } while (cursor);
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-  console.log(`[wipe] Done — ${totalKeys.toLocaleString()} keys removed in ${elapsed}s`);
-  return totalKeys;
+  if (totalDeleted > 0) {
+    console.log(`[${cycle}] Wiped ${totalDeleted.toLocaleString()} existing KV keys in ${elapsed}s`);
+  } else {
+    console.log(`[${cycle}] No existing KV keys to wipe (${elapsed}s)`);
+  }
+  return totalDeleted;
+}
+
+// ---------------------------------------------------------------------------
+// pipeline_state.json — read/write (shared schema with ingest-bulk.js)
+//
+// Ingest writes flat per-file keys `${type}${yy}` mapping to the FEC
+// Last-Modified string (e.g. `indiv20`, `pas220`, `cm20`).
+//
+// Precompute adds a nested `precompute` object keyed by 4-digit cycle year,
+// storing the tuple of Last-Modified values that was in effect at the moment
+// this cycle's precompute last succeeded:
+//
+//   {
+//     "indiv20": "Wed, 01 Jan 2025 12:00:00 GMT",
+//     ...
+//     "precompute": {
+//       "2020": { "indiv": "...", "pas2": "...", "cm": "..." },
+//       ...
+//     }
+//   }
+//
+// Skip semantics: at the start of each cycle, compare the current ingest-side
+// tuple against state.precompute[year]. If all three values match, the source
+// files haven't changed since the last successful precompute and we skip the
+// cycle's SQL + KV work entirely.
+// ---------------------------------------------------------------------------
+
+async function readPipelineState(s3) {
+  try {
+    const resp   = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: 'fec/meta/pipeline_state.json' }));
+    const chunks = [];
+    for await (const chunk of resp.Body) chunks.push(chunk);
+    return JSON.parse(Buffer.concat(chunks).toString());
+  } catch (err) {
+    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) return null;
+    throw err;
+  }
+}
+
+async function writePipelineState(s3, state) {
+  await s3.send(new PutObjectCommand({
+    Bucket:      BUCKET,
+    Key:         'fec/meta/pipeline_state.json',
+    Body:        JSON.stringify(state, null, 2),
+    ContentType: 'application/json',
+  }));
 }
 
 async function kvBulkPut(accountId, namespaceId, apiToken, batch, label) {
@@ -421,7 +509,7 @@ function buildAggSql(indivPath) {
 // Per-cycle pipeline
 // ---------------------------------------------------------------------------
 
-async function processCycle(s3, conn, { year, cycle }) {
+async function processCycle(s3, conn, { year, cycle }, state) {
   const t0        = Date.now();
   const label     = String(cycle);
   const pas2Path  = path.join(TMP_DIR, `pas2-${year}.csv`);
@@ -429,6 +517,32 @@ async function processCycle(s3, conn, { year, cycle }) {
   const cmPath    = path.join(TMP_DIR, `cm-${year}.csv`);
 
   console.log(`\n[${cycle}] ── Starting ─────────────────────────────`);
+
+  // 0. Skip-logic branch — skip cycles where (a) ingest has never run for any
+  //    of the three file types, or (b) all three source files have the same
+  //    Last-Modified as at the last successful precompute. See the schema
+  //    comment above readPipelineState for the contract.
+  const yy = year.slice(-2);
+  const currentTuple = {
+    indiv: state[`indiv${yy}`],
+    pas2:  state[`pas2${yy}`],
+    cm:    state[`cm${yy}`],
+  };
+
+  if (!currentTuple.indiv || !currentTuple.pas2 || !currentTuple.cm) {
+    const missing = ['indiv', 'pas2', 'cm'].filter(t => !currentTuple[t]).join(', ');
+    console.log(`[${cycle}] Skipping — ingest has not yet completed for this cycle (missing: ${missing})`);
+    return { skipped: true, reason: 'no-ingest' };
+  }
+
+  const lastTuple = state.precompute?.[year];
+  if (lastTuple
+      && lastTuple.indiv === currentTuple.indiv
+      && lastTuple.pas2  === currentTuple.pas2
+      && lastTuple.cm    === currentTuple.cm) {
+    console.log(`[${cycle}] Skipping — no file changes since last precompute`);
+    return { skipped: true, reason: 'unchanged' };
+  }
 
   // 1. Download all three files (pas2 for scope + committee aggregation,
   //    indiv for individual-contributor aggregation, cm.txt for the
@@ -537,7 +651,7 @@ async function processCycle(s3, conn, { year, cycle }) {
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
   console.log(`[${cycle}] ✓ Cycle processing done (${elapsed}s)`);
 
-  return entries;
+  return { skipped: false, entries, tuple: currentTuple };
 }
 
 // ---------------------------------------------------------------------------
@@ -578,9 +692,15 @@ async function main() {
 
   const runT0 = Date.now();
 
-  // 1. Wipe existing KV entries first — prevents v1 (pruned) data from
-  //    coexisting with v2 (exact) data in the namespace
-  await wipeNamespace(accountId, namespaceId, apiToken);
+  // 1. Load pipeline state for skip-logic (shared with ingest-bulk.js)
+  let state = await readPipelineState(s3);
+  if (!state) {
+    console.log('\nNo pipeline_state.json found — all cycles will be processed');
+    state = {};
+  } else {
+    console.log('\nLoaded pipeline_state.json — cycles with unchanged source files will be skipped');
+  }
+  if (!state.precompute) state.precompute = {};
 
   // 2. Open DuckDB once, reuse the connection across cycles
   const db = await DuckDBInstance.create(':memory:', {
@@ -590,14 +710,35 @@ async function main() {
   });
   const conn = await db.connect();
 
-  let totalEntries = 0;
-  let allSucceeded = true;
+  let totalEntries  = 0;
+  let cyclesRun     = 0;
+  let cyclesSkipped = 0;
+  let allSucceeded  = true;
 
   for (const c of CYCLES) {
     try {
-      const entries = await processCycle(s3, conn, c);
-      await writeKvBulk(accountId, namespaceId, apiToken, entries, String(c.cycle));
-      totalEntries += entries.length;
+      const result = await processCycle(s3, conn, c, state);
+      if (result.skipped) {
+        cyclesSkipped += 1;
+        continue;
+      }
+
+      // Scoped wipe of this cycle's existing KV entries before writing new ones.
+      // Ensures committees that no longer appear in the current data don't
+      // leave stale top-contributor / top-committee lists behind.
+      await wipeCycleKeys(accountId, namespaceId, apiToken, c.cycle);
+
+      await writeKvBulk(accountId, namespaceId, apiToken, result.entries, String(c.cycle));
+
+      // Persist state.precompute[year] only after successful wipe + write, so
+      // a mid-cycle failure re-attempts this cycle next run instead of being
+      // silently skipped. Writing per-cycle also means a partial failure on
+      // cycle N doesn't lose progress on cycles 1..N-1.
+      state.precompute[c.year] = result.tuple;
+      await writePipelineState(s3, state);
+
+      totalEntries += result.entries.length;
+      cyclesRun    += 1;
     } catch (err) {
       console.error(`\n[${c.cycle}] ✗ FAILED: ${err.stack || err.message}`);
       allSucceeded = false;
@@ -610,7 +751,7 @@ async function main() {
   try { await fsp.rm(TMP_DIR,    { recursive: true, force: true }); } catch {}
 
   const elapsed = ((Date.now() - runT0) / 1000).toFixed(1);
-  console.log(`\n${allSucceeded ? '✓' : '✗'} Run complete — ${totalEntries.toLocaleString()} total KV entries written across ${CYCLES.length} cycles (${elapsed}s)`);
+  console.log(`\n${allSucceeded ? '✓' : '✗'} Run complete — ${cyclesRun} cycles processed, ${cyclesSkipped} skipped, ${totalEntries.toLocaleString()} KV entries written (${elapsed}s)`);
 
   if (!allSucceeded) process.exit(1);
 }
