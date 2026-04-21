@@ -313,6 +313,7 @@ var ALL_CYCLES  = [];    // sorted desc cycle years from committee metadata
 var activeCycle = 'all'; // 'all' or integer cycle year
 
 var COMM_PARTY        = null;
+var COMM_TYPE         = null;
 var donutInstance      = null;
 var usTopoCache        = null;
 var raisedDataPromise  = null;
@@ -483,6 +484,7 @@ function renderHeader(c) {
 
   // Party for choropleth color
   COMM_PARTY = c.party || null;
+  COMM_TYPE  = c.committee_type || null;
 
   // Populate cycle switcher from c.cycles
   ALL_CYCLES = (c.cycles || []).slice().sort(function(a,b){ return b - a; });
@@ -753,7 +755,9 @@ async function fetchRaisedData(cycleOrAll) {
   // Both surfaces hidden entirely on 'All time' (aggregating committee-to-
   // committee money across every cycle isn't a meaningful number).
   var topCommittees = [];
-  var topCommitteesSource = 'api';  // 'bulk' | 'api' | 'unavailable'
+  var topCommitteesSource = 'api';  // 'bulk' | 'api' | 'unavailable' | 'unavailable-coverage-gap'
+  var topCommitteesPas2Gap = false;
+  var topCommitteesIsConduit = false;
   var topConduits = [];
   var topConduitsTooLarge = false;
   if (cycleOrAll !== 'all') {
@@ -781,6 +785,26 @@ async function fetchRaisedData(cycleOrAll) {
       if ((commPag.pages || 1) > PAGE_THRESHOLD) {
         // Schedule A too large — conduits are unavailable regardless of KV.
         topConduitsTooLarge = true;
+
+        // Distinguish "high volume" from "pas2 coverage gap" so the empty-state
+        // copy can be honest. Parties: inbound is FEC transfers, not
+        // contributions, so pas2 is blind. Conduits: Schedule A is overwhelmingly
+        // memo'd individual donations forwarded through the platform, also
+        // absent from pas2. Both surface as the same fetch-time failure but
+        // deserve different copy.
+        //
+        // Conduit detection uses commPag.count rather than a memo-rate sample.
+        // Sorting by -contribution_receipt_amount (which we do for the
+        // aggregation itself) biases the first page toward the few large
+        // non-memo rows a conduit has at the top of its distribution — ActBlue's
+        // page 1 is 0% memo even though ~99% of the full 11M-row dataset is
+        // memo'd. Total-row count is a cleaner signal: no legitimate
+        // committee-to-committee filer has 500k+ inbound non-individual rows in
+        // a single cycle; ActBlue (~11M) and WinRed (~5M) sit well above.
+        var isParty   = COMM_TYPE === 'X' || COMM_TYPE === 'Y';
+        var isConduit = (commPag.count || 0) > 500000;
+        topCommitteesPas2Gap  = isParty || isConduit;
+        topCommitteesIsConduit = isConduit;
       } else {
         // Paginate Schedule A to exhaustion — rows serve both the API-fallback
         // path for top committees and the conduit aggregation.
@@ -822,7 +846,11 @@ async function fetchRaisedData(cycleOrAll) {
         topCommitteesSource = 'bulk';
       } else if (topConduitsTooLarge) {
         // Schedule A too large AND KV missed — honest empty state.
-        topCommitteesSource = 'unavailable';
+        // pas2 coverage gap (parties/conduits) vs. genuine high volume
+        // get different copy downstream.
+        topCommitteesSource = topCommitteesPas2Gap
+          ? 'unavailable-coverage-gap'
+          : 'unavailable';
       } else {
         var seenComm = {};
         commRows.forEach(function(d) {
@@ -850,6 +878,7 @@ async function fetchRaisedData(cycleOrAll) {
            topIndividualsSource: topIndividualsSource,
            topCommittees: topCommittees,
            topCommitteesSource: topCommitteesSource,
+           topCommitteesIsConduit: topCommitteesIsConduit,
            topConduits: topConduits,
            topConduitsTooLarge: topConduitsTooLarge,
            cycleOrAll: cycleOrAll };
@@ -1114,13 +1143,21 @@ async function renderRaisedIfReady() {
     } else {
       commCard.style.display = '';
       conduitsCard.style.display = '';
-      if (data.topCommitteesSource === 'unavailable') {
+      if (data.topCommitteesSource === 'unavailable-coverage-gap') {
+        document.getElementById('committee-donors-tbody').innerHTML =
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Committee contribution data is not available for this committee type.</td></tr>';
+      } else if (data.topCommitteesSource === 'unavailable') {
         document.getElementById('committee-donors-tbody').innerHTML =
           '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
       } else {
         renderCommitteeDonors(data.topCommittees);
       }
-      if (data.topConduitsTooLarge) {
+      if (data.topCommitteesIsConduit) {
+        // Top Conduit Sources is semantically meaningless on a conduit
+        // committee — the conduit IS the conduit source. Hide the card
+        // entirely rather than relabel it.
+        conduitsCard.style.display = 'none';
+      } else if (data.topConduitsTooLarge) {
         document.getElementById('conduits-tbody').innerHTML =
           '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
       } else {
@@ -1161,7 +1198,7 @@ async function renderRaisedIfReady() {
       } else if (data.topCommitteesSource === 'api') {
         note += ' Top committee contributors: complete ' + cycleLabel + ' cycle, deduplicated by committee ID.';
       }
-      if (!data.topConduitsTooLarge) {
+      if (!data.topConduitsTooLarge && !data.topCommitteesIsConduit) {
         note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
       }
     }
