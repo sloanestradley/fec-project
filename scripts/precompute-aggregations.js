@@ -352,12 +352,20 @@ function buildPas2Sql(pas2Path) {
   // header=false + skip=1: ignore the (buggy 21-col) header row and parse
   // raw 22-column data using our schema. null_padding handles any
   // malformed short rows gracefully.
+  //
+  // parallel=false: DuckDB's parallel CSV scanner cannot handle null_padding
+  // in combination with quoted newlines (field values with literal \n inside
+  // double-quoted strings, which appear in modern FEC data like OCCUPATION /
+  // EMPLOYER strings from 2012 onward). Serial scan works with any row shape;
+  // read time difference is dominated by the downstream GROUP BY spill so
+  // the practical runtime impact is small. Trigger seen 2026-04-21 on 2022
+  // indiv line 8,755,603 — same hazard applies to pas2 as a defensive guard.
   return `
     CREATE OR REPLACE TABLE pas2_recipients AS
     SELECT DISTINCT CMTE_ID AS cmte_id
     FROM read_csv(
       '${pas2Path.replace(/'/g, "''")}',
-      delim='|', header=false, skip=1, quote='"',
+      delim='|', header=false, skip=1, quote='"', parallel=false,
       columns=${pas2Schema}, auto_detect=false, null_padding=true
     )
     WHERE CMTE_ID IS NOT NULL AND CMTE_ID != '';
@@ -411,7 +419,7 @@ function buildCommitteesAggSql(pas2Path, cmPath) {
       SELECT OTHER_ID, CMTE_ID, NAME, ENTITY_TP, TRANSACTION_AMT, MEMO_CD
       FROM read_csv(
         '${pas2PathEsc}',
-        delim='|', header=false, skip=1, quote='"',
+        delim='|', header=false, skip=1, quote='"', parallel=false,
         columns=${pas2Schema}, auto_detect=false, null_padding=true
       )
     ),
@@ -465,7 +473,7 @@ function buildAggSql(indivPath) {
              TRANSACTION_AMT AS amt, MEMO_CD AS memo_cd
       FROM read_csv(
         '${indivPath.replace(/'/g, "''")}',
-        delim='|', header=false, skip=1, quote='"',
+        delim='|', header=false, skip=1, quote='"', parallel=false,
         columns=${indivSchema}, auto_detect=false, null_padding=true
       )
       WHERE (memo_cd != 'X' OR memo_cd IS NULL)
