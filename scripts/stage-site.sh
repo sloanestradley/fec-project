@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
 # scripts/stage-site.sh — stage deployable site content into a target directory.
 #
-# One exclusion list, two callers:
+# One allowlist, two callers:
 #   - scripts/pages-build.sh        → stages into ./dist (Cloudflare Pages git build)
 #   - scripts/deploy-pages.sh       → stages into /tmp/fec-deploy (manual wrangler deploy)
 #
 # Keeping both paths in one script prevents drift between the CI contract and
-# the manual fallback. If you change what's excluded (or what's required),
+# the manual fallback. If you change what's deployable (or what's required),
 # change it here — both callers pick it up.
 #
-# What this script does:
-#   1. rsyncs site content into the target dir, excluding internal docs,
-#      pipeline source, tests, package manifests, and anything else that
-#      should not be publicly reachable on the Pages subdomain.
-#   2. Sanity-checks that critical paths are present after staging. Catches
-#      bad rsync patterns or future rearrangements that silently drop
-#      required files.
+# Why explicit allowlist (not rsync --exclude):
+#   1. The Cloudflare Pages build image does NOT ship rsync (discovered the
+#      hard way on fecledgerapp's first deploy — 2026-04-21). cp is universal.
+#   2. Blacklist ("copy everything except...") fails open: any new tracked file
+#      at repo root deploys by default. Allowlist fails closed: a new sensitive
+#      file (CLAUDE.md, strategy docs, credentials) won't leak just because
+#      someone forgot to update an exclusion list. Given this repo
+#      intentionally co-locates internal docs with site assets, closed-by-
+#      default is the right posture.
+#
+# Adding a new site asset: append to the explicit cp list below AND add it to
+# critical_paths so future refactors don't silently drop it.
 #
 # Usage:
 #   bash scripts/stage-site.sh <target_dir>
@@ -37,31 +42,21 @@ cd "$(dirname "$0")/.."
 echo "Staging site content → $TARGET"
 rm -rf "$TARGET" && mkdir -p "$TARGET"
 
-rsync -a \
-  --exclude='.git' \
-  --exclude='.github' \
-  --exclude='.claude' \
-  --exclude='.vscode' \
-  --exclude='.idea' \
-  --exclude='.wrangler' \
-  --exclude='.DS_Store' \
-  --exclude='.gitignore' \
-  --exclude='.env*' \
-  --exclude='node_modules' \
-  --exclude='dist' \
-  --exclude='scripts' \
-  --exclude='pipeline' \
-  --exclude='tests' \
-  --exclude='test-results' \
-  --exclude='playwright-report' \
-  --exclude='strategy' \
-  --exclude='plans' \
-  --exclude='*.md' \
-  --exclude='package.json' \
-  --exclude='package-lock.json' \
-  --exclude='playwright.config.js' \
-  --exclude='playwright.smoke.config.js' \
-  ./ "$TARGET/"
+# Root-level HTML pages (glob catches any new *.html at root)
+cp ./*.html "$TARGET/"
+
+# Shared client-side assets
+cp main.js utils.js styles.css "$TARGET/"
+
+# Redirect rules (Netlify-format; Cloudflare honors for paths not overridden
+# by Pages Functions in functions/candidate/ and functions/committee/)
+cp _redirects "$TARGET/"
+
+# Pages Functions — Cloudflare auto-discovers this tree inside the build
+# output directory and wires each file as a route. See functions/api/fec/
+# and functions/api/aggregations/ for the API proxies; functions/candidate/
+# and functions/committee/ for the clean-URL routers.
+cp -R functions "$TARGET/"
 
 # Sanity: critical paths must exist in the stage. A representative sample —
 # not exhaustive — to catch both file-level and directory-level breakage.
