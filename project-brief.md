@@ -234,30 +234,35 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 
 - ~~**Bulk data pipeline (pas2)**~~ — ✅ **Done (2026-04-16).** `pipeline/` Cloudflare Worker downloads pas222/24/26 from FEC bulk downloads weekly (cron `0 6 * * 1`) and writes pipe-delimited CSVs to R2 bucket `fecledger-bulk` at `fec/pas2/{year}/pas2.csv`. Worker requires Workers Paid plan ($5/mo) for cron triggers. **Not covered:** indiv22/24/26 individual contribution files (~4.5 GB uncompressed each) exceed Cloudflare Workers' 128 MB memory cap and CPU time limit — these require GitHub Actions (ubuntu runner, no memory/CPU cap, free for public repos, R2 auth via Cloudflare API token). R2 key pattern `fec/indiv/{year}/indiv.csv` is reserved; streaming code is complete in `pipeline/src/index.js` and just needs a new runtime wrapper.
 
-- **Pages project is Direct Upload, not git-connected** — Discovered 2026-04-17 when a binding change (Session 4B AGGREGATIONS) failed to activate after pushes. The `fecledger` Pages project was created via `wrangler pages deploy` during the 2026-04-14 Netlify migration, which produces Direct Upload projects by default. Git pushes to main do not trigger deploys; every deploy must be manual via `npx wrangler pages deploy <staging-dir> --project-name=fecledger --branch=main`. The project has no Builds & deployments settings section in the dashboard (the visible absence is the tell).
+- **Pages project is Direct Upload, not git-connected** — ~~**Phase 1 complete 2026-04-21.**~~ New `fecledgerapp` git-connected project created, bindings attached, end-to-end verified. Old `fecledger` Direct Upload project remains primary pending Phase 2 cutover (URL reference updates, old-project deletion, `deploy-pages.sh` retirement).
+
+  Original discovery 2026-04-17 when a binding change (Session 4B AGGREGATIONS) failed to activate after pushes. The `fecledger` Pages project was created via `wrangler pages deploy` during the 2026-04-14 Netlify migration, which produces Direct Upload projects by default. Git pushes to main do not trigger deploys; every deploy must be manual via `npx wrangler pages deploy <staging-dir> --project-name=fecledger --branch=main`. The project has no Builds & deployments settings section in the dashboard (the visible absence is the tell).
 
   **Cloudflare architectural constraint:** Direct Upload and Git-connected cannot be converted in-place. The fix requires creating a new Pages project with a git connection, re-attaching bindings and secrets, and cutting over. Rough scope: 1–2 hours of focused work.
 
-  **Migration steps:**
-  1. Dashboard → Workers & Pages → Create → Pages → **Connect to Git** (this OAuth flow is the only way to produce a git-connected project; CLI-created projects are always Direct Upload). Select the `fec-project` repo, production branch `main`.
-  2. Configure bindings: re-add `AGGREGATIONS` → `fecledger-aggregations` (the KV namespace itself is separate from the project and does not need to be recreated). Re-add `API_KEY` as a secret.
-     - **Gotcha:** Cloudflare secrets are write-only; you cannot read the existing `API_KEY` value from the current project. Have the FEC API key value from your password manager, email, or api.data.gov before starting — otherwise a new key has to be provisioned.
-  3. Solve the deploy surface problem. Without intervention, a git-connected Pages project uploads the *entire repo* — including `scripts/`, `pipeline/`, `tests/`, `CLAUDE.md`, `claude-to-claude.md`, etc. This is the same leak risk addressed by our current `rsync --exclude …` staging pattern. Two reasonable approaches:
-     - **Build command does the staging.** Commit a `deploy/stage.sh` that rsyncs site content into `deploy/dist/`. Set Pages build command to `bash deploy/stage.sh`, output directory to `deploy/dist/`. The exclusion list lives in version control and is auditable.
-     - **Monorepo restructure.** Move non-site files under a `workspace/` directory, leave site files + `functions/` at root, set Pages root directory to a clean site subdirectory. Cleaner long-term but invasive (import paths, CI configs, Playwright paths all change).
+  **Phase 1 executed 2026-04-21 (commits `3f73b3a`, `8caf195`, `0733dbb` on main):**
+  1. ✅ Created `fecledgerapp` via Dashboard → Workers & Pages → Create application → Pages tab (direct URL `/<account>/pages/new/provider/github` — the general Create button now dumps you into the Workers-with-static-assets flow, which does NOT auto-discover `functions/`). Framework preset: None. Build command: `bash scripts/pages-build.sh`. Build output directory: `dist`. Production branch: `main`.
+  2. ✅ Attached `AGGREGATIONS` → `fecledger-aggregations` and `API_KEY` secret via project Settings. Triggered retry-deploy to pick up bindings.
+  3. ✅ Deploy surface solved via `scripts/stage-site.sh` — single allowlist (explicit `cp` of `*.html`, `main.js`, `utils.js`, `styles.css`, `_redirects`, `functions/`) shared by two callers: `scripts/pages-build.sh` (git CI) and `scripts/deploy-pages.sh` (manual fallback). **Why `cp` not `rsync`:** Cloudflare's build image does NOT ship rsync — first deploy failed with `rsync: command not found` (exit 127). `cp` is universal. The allowlist posture also fails closed (new sensitive file doesn't auto-deploy) vs. blacklist failing open.
+  4. ✅ Browser-verified on `fecledgerapp.pages.dev`: landing → `/search`, `/candidate/H2WA03217` (FEC data loads → `API_KEY` confirmed), `/committee/C00401224` ActBlue Raised tab (Top Individual Contributors shows `"source": "bulk"` in /api/aggregations/ response → `AGGREGATIONS` confirmed), `/committee/C00806174` Marie for Congress.
+  5. ✅ Playwright — 417/417 structural passing; 5/5 smoke passing against `fecledgerapp.pages.dev` (used new `SMOKE_BASE_URL` env-var override on `playwright.smoke.config.js`).
+  6. ✅ Push-to-deploy chain verified: committed `data-deployed-via="git"` attribute to `<html>` in `index.html` (commit `0733dbb`); watched Deployments tab; confirmed attribute live via `curl -s https://fecledgerapp.pages.dev | head -5`.
 
-     The build-script approach is lower risk.
-  4. Test the new project's preview URL end-to-end before cutover: landing → `/search`, `/candidate/H2WA03217`, `/committee/C00806174`, `/api/fec/*` proxy, AGGREGATIONS binding.
-  5. URL cutover — three options:
-     - **Accept new subdomain** (e.g. `fecledger-git.pages.dev`) — fastest; update references in `CLAUDE.md`, `playwright.smoke.config.js`, `ia.md`, and any shared links, then delete the old project.
+  **Phase 2 — outstanding (next session):**
+  1. **URL reference updates** across the codebase so `fecledgerapp.pages.dev` becomes "primary":
+     - `CLAUDE.md` — swap "Live URL" and "New URL" framing; remove the old-project deployment block
+     - `playwright.smoke.config.js` — change default from `https://fecledger.pages.dev` to `https://fecledgerapp.pages.dev` (keep `SMOKE_BASE_URL` override for flexibility)
+     - `strategy/cm-txt-integration.md` — 2 inline URL references
+     - `scripts/deploy-pages.sh` — retire (delete the file)
+     - `functions/api/fec/[[path]].js` — comment line referencing `--project-name fecledger`
+     - `claude-to-claude.md` / `test-cases.md` — historical log entries, leave alone
+  2. **URL cutover — three options** (pick one before deleting the old project):
+     - **Accept new subdomain** (`fecledgerapp.pages.dev`) — simplest; what we have now.
      - **Reclaim `fecledger` subdomain** — delete the old project, wait ~24h for Cloudflare to release the name, recreate with that name. Timing risk; cooldown is not well-documented.
-     - **Wait for a custom domain** — if a real domain is acquired (already on the project-brief Go-live list), the custom domain decouples URL from Pages subdomain. Point the new domain at the new project, delete the old. Cleanest long-term; requires a domain first.
-  6. Delete old `fecledger` Direct Upload project.
-  7. **Lock in the lessons (prevents recurrence).** Before closing the migration session:
-     - Push a trivial site change (e.g. a whitespace edit to `index.html`) and watch the Deployments tab. Confirm a new deployment appears with the expected commit hash, and confirm the change is live on the URL. Do not skip this — "the site is live" and "new pushes actually deploy" are two separate states, and conflating them is how we got here in the first place.
-     - Update CLAUDE.md's deployment note with **verified** state, not assumed state. Format: "Deploys via git — verified on `<date>` by pushing a change and watching the Deployments tab." This replaces the stale "auto-deploys on push to main" assumption that went unchecked for 3 days.
-     - Delete the `Option B` manual-deploy rsync instructions and any references to `npx wrangler pages deploy` in CLAUDE.md and claude-to-claude.md. Future sessions should find one deploy path, not two.
-     - Add a pre-delete safeguard note to CLAUDE.md or this file: before deleting any Cloudflare Pages project in the future, confirm it is not the currently-live production site by visiting its `.pages.dev` URL and checking against the expected content. (The migration below walks this correctly, but the general rule is worth recording.)
+     - **Wait for a custom domain** — if a real domain is acquired (on the Go-live list), it decouples URL from Pages subdomain. Point the new domain at `fecledgerapp`, delete `fecledger`. Cleanest long-term; requires a domain first.
+  3. **Pre-delete safeguard rule (prevents recurrence):** Before deleting any Cloudflare Pages project in the future, confirm it is not the currently-live production site by visiting its `.pages.dev` URL and checking against expected content.
+  4. **Delete old `fecledger` Direct Upload project.**
+  5. **Delete any remaining references to `npx wrangler pages deploy` and `deploy-pages.sh`** — future sessions should find one deploy path, not two.
 
   **Timing recommendation:** Do this after Session 3 (committee.html wiring). Session 3 can ship via the current manual deploy flow; the git migration is yak-shaving before user-visible progress and bundles naturally with a custom-domain purchase if that's near-term.
 

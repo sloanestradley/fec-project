@@ -4212,3 +4212,60 @@ The broader pattern: you ask for a review before extending a fix, then let the r
 - **Top Individual Contributors on conduit/party committees remains open for conversation, not action.** Top Conduit Sources on conduits is now hidden (shipped this session). Top Individual Contributors on conduits/parties was explicitly NOT extended after review — the unavailable state there is a rare infrastructure gap (KV miss + too-large-to-paginate), not a structural coverage gap; individual-contribution data DOES exist in indiv.txt and in KV (hit path is the normal case). The current copy is accurate for that failure mode. Worth keeping in mind if we ever see a class of committee where the KV miss happens more than rarely — that would change the accuracy math and might justify a different treatment.
 
 - **DCCC's slow raised-tab load is pre-existing and unrelated.** 4,396 Schedule A rows at ~200-500ms/page-round-trip means the tab takes 30-90s to fully render, which is why my Playwright verification kept timing out. Not a regression from this session, but worth flagging: for party committees that don't hit PAGE_THRESHOLD, we're paginating the whole thing. A cheaper rendering path (e.g. show top N from the first few pages, then backfill) could make those pages feel responsive. Not urgent.
+
+---
+2026-04-21 16:55
+
+## Process log draft
+# Flipping the deploy switch, for real this time
+
+*2026-04-21 — Session 6 (git migration Phase 1)*
+
+For three weeks the site had been running on a Direct Upload Cloudflare Pages project — meaning git pushes *never* actually triggered deploys, even though everything about the workflow made it look like they did. Every "deploy" was a manual rsync-and-upload script tucked into the end-of-session ritual, and a binding change in Session 4B had sat invisible behind the lie until a post-merge test surfaced it. Today was the day we finally unwound that.
+
+The work was a two-hour infrastructure migration that produced zero user-visible changes. A new `fecledgerapp.pages.dev` Pages project, this time genuinely git-connected. Bindings re-attached. Deploy-surface solved. Push-to-deploy contract proven — not believed.
+
+## Changelog
+
+- New `scripts/stage-site.sh` becomes the one source of truth for what ships to the public site: an explicit allowlist of root-level HTML, three shared JS/CSS files, `_redirects`, and `functions/`. Two callers delegate to it — `pages-build.sh` (git CI) and `deploy-pages.sh` (manual fallback). One list, two paths, no drift.
+- `fecledgerapp` Pages project created via Dashboard → provider/github direct URL (Cloudflare has hidden the Pages creation path behind the Workers-with-static-assets flow; the general "Create application" button now leads somewhere wrong).
+- Build config: framework preset None, build command `bash scripts/pages-build.sh`, output `dist`, main as production branch.
+- Both bindings re-attached: `AGGREGATIONS` → `fecledger-aggregations` KV namespace (shared with the old project; the namespace itself is separate infra), `API_KEY` as encrypted secret.
+- `playwright.smoke.config.js` baseURL now reads `process.env.SMOKE_BASE_URL` with the old URL preserved as default — flexible override for Phase 2 cutover.
+- Lock-in commit: `data-deployed-via="git"` attribute on `<html>` in `index.html`. Observable via `curl -s`, invisible to users. Its presence on the deployed site is the push-to-deploy contract proof.
+- Phase 2 (URL reference flip, old-project deletion, deploy-pages.sh retirement) deferred to a separate session per scope.
+
+## Field notes
+
+Two things broke the plan and both were instructive in their own way.
+
+The first was Cloudflare's dashboard. The project-brief had a clean "Create → Pages → Connect to Git" recipe written a few weeks ago, and it didn't exist anymore — the general Create button now dumps you into a Workers-with-static-assets flow that looks almost-but-not-quite like the Pages flow. I caught it because the left panel said "Create a Worker" and the deploy command was `npx wrangler deploy` instead of a build/output pair. If I'd let Sloane click through, we'd have ended up with a Worker project that silently wouldn't run our `functions/` routing at all — different architecture, worse failure mode because the failure would have looked like success on first load. The salvage was a direct URL to the Pages-specific provider flow. Cloudflare is quietly converging Pages into Workers; the day the Pages flow is fully removed is coming, and the fix then won't be cosmetic.
+
+The second was `rsync: command not found`. I'd inherited the rsync staging pattern from the existing `deploy-pages.sh` and reused it in `stage-site.sh` without checking whether Cloudflare's build image actually ships it. It doesn't. First deploy failed at exit 127. The fix — replace `rsync --exclude` with explicit `cp` whitelist — was a line change, but it turned out to be the *better* design. A blacklist fails open: any new sensitive file at repo root deploys by default until someone remembers to add it to the exclusion list. An allowlist fails closed: a new file has to be opted in. For a repo that intentionally co-locates internal docs with site assets, that's the right posture. The bug was the prompt; the fix made the system safer than it was before. 
+
+The deeper lesson is the same one the original migration exposed: "it works on my machine" isn't the same as "it works in CI," and "the script runs" isn't the same as "the deploy pipeline works end-to-end." The lock-in commit was the whole point. For three weeks the site was live AND git pushes did nothing, and nobody noticed. Now there's a `<html data-deployed-via="git">` attribute on the root page that you can curl to prove the chain is still intact. If it ever stops being there, something real has broken.
+
+## Stack tags
+
+- No new dependencies
+- No new pages or components
+- Infrastructure only: one Pages project created, two scripts new, two scripts updated, one env-var override on test config
+
+## How Sloane steered the work
+
+**You caught the inconsistency in my verification instructions before I could execute.**  
+When I said "ActBlue committee page — `C00000935`" you noticed `C00000935` is DCCC, not ActBlue. A plan-text error that would have made the verification step ambiguous — "did Top Individual Contributors fail because AGGREGATIONS is broken, or because this isn't actually the committee I said it was?" You made me fix the committee ID before we proceeded. Small edit, big reduction in diagnostic confusion later.
+
+**You stopped me from blowing past a dashboard discrepancy.**  
+When the Cloudflare creation flow didn't match what I described — no Framework preset, no Build output directory, no Production branch field — you flagged the mismatch immediately instead of clicking through and assuming the differences didn't matter. That's how we caught that Cloudflare had moved Pages behind a different URL than the project-brief expected. If you'd clicked Deploy on that screen, we'd have created a Worker project whose failure mode looks like success, and I'd have spent the next 30 minutes debugging the wrong thing.
+
+**You pushed back on the "continue without a successful deployment" prompt.**  
+You could have clicked through the Cloudflare warning and we'd have moved on — but you paused and asked. The instinct to stop and verify before acknowledging a warning about the site not being available for visitors is exactly the posture this migration is about. Conversely: the prior migration incident where the old project sat with broken deploys for 3 weeks was precisely a moment where nobody paused on the equivalent signal.
+
+**The through-line: you're operating as a tight second check on my claims.** Twice today you caught discrepancies between what I said and what the screen actually showed — the committee ID mismatch and the dashboard form mismatch. Both would have silently propagated into bad verification. This session was explicitly about unwinding the "three weeks of believing something that wasn't true" failure, and the way you steered was by refusing to believe me when the reality on your screen didn't match.
+
+## What to bring to Claude Chat
+
+- **Phase 2 timing and URL strategy.** The brief still lists three options for the cutover URL (accept `fecledgerapp`, reclaim `fecledger`, wait for a custom domain). If a real domain purchase is close, it's the cleanest path. If not, decide whether the reclaim-with-cooldown risk is worth the prettier URL.
+- **Cloudflare's Workers/Pages convergence.** The Pages creation flow is already hidden behind a direct URL. Worth a few minutes of research on how soon Pages might be fully deprecated — because "migrate to Workers + Static Assets" would be a real project (converting the four `functions/*` files to a single `worker.js` with routing plus a `wrangler.jsonc`). Not urgent, but worth knowing the horizon.
+- **Pre-delete safeguard rule.** The project-brief migration entry documents this, but worth surfacing as a general workflow rule somewhere more visible: *before deleting any Cloudflare project, visit its live URL and confirm it's not the currently-primary production site.* It's the kind of rule that seems obvious until the moment you need it.

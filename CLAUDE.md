@@ -15,9 +15,16 @@ A web-based campaign finance visualization tool built on the FEC public API. The
 
 This is also a portfolio piece for a staff-level product designer (Sloane). It needs to look and feel like a designer built it — not a developer prototype.
 
-**Live URL:** fecledger.pages.dev  
+**Live URL:** fecledger.pages.dev (primary, until Phase 2 cutover)  
+**New URL:** fecledgerapp.pages.dev (git-connected; Phase 1 of migration complete 2026-04-21 — verified by pushing commit `0733dbb` and watching the Deployments tab)  
 **Repo:** GitHub (ask Sloane for the repo URL if you don't have it)  
-**Deployment:** Cloudflare Pages, currently a **Direct Upload** project — **not git-connected**. Git pushes do NOT trigger deploys. Every site deploy is manual. Run `bash scripts/deploy-pages.sh` from repo root; the script stages only deployable site content (HTML/CSS/JS/functions/_redirects), runs a critical-path sanity check, then uploads via `wrangler pages deploy`. **Do NOT run `npx wrangler pages deploy .` at repo root** — that would upload internal docs (CLAUDE.md, claude-to-claude.md, project-brief.md), the DuckDB binary in scripts/node_modules, pipeline source, and Playwright fixtures, all reachable via guessable URLs on fecledger.pages.dev. Migration to a git-connected Pages project is scoped in `project-brief.md` → Infrastructure / Architecture debt → "Pages project is Direct Upload"; do that work after Session 3. **Netlify** (`sloanestradley.netlify.app`) is stopped/paused — do not push there.
+**Deployment:** The project is mid-migration between two Pages projects. Until Phase 2 cutover, both are running in parallel and both must be kept functional.
+- **`fecledger` (old, Direct Upload):** Still the primary production URL (`fecledger.pages.dev`). Git pushes do NOT trigger deploys here. Every deploy is manual via `bash scripts/deploy-pages.sh` from repo root; the script delegates to `scripts/stage-site.sh` to stage only deployable site content (HTML/CSS/JS/functions/_redirects + allowlist), then uploads via `wrangler pages deploy`. **Do NOT run `npx wrangler pages deploy .` at repo root** — that would upload internal docs, pipeline source, and Playwright fixtures. This project retires at Phase 2.
+- **`fecledgerapp` (new, git-connected):** Git pushes to main auto-deploy via `bash scripts/pages-build.sh` (also delegates to `scripts/stage-site.sh`). Build output directory is `dist`. Bindings attached: `AGGREGATIONS` (KV → `fecledger-aggregations`) and `API_KEY` (secret). Becomes primary at Phase 2.
+- **Single allowlist, two callers:** `scripts/stage-site.sh` is the only source of truth for what's in the deploy surface. Don't reintroduce a separate exclusion list anywhere.
+- **Netlify** (`sloanestradley.netlify.app`) is stopped/paused — do not push there.
+
+**Phase 2 scope (next session):** flip `CLAUDE.md` / `playwright.smoke.config.js` default / `strategy/*.md` URL references from `fecledger.pages.dev` → `fecledgerapp.pages.dev`; delete the old `fecledger` Direct Upload project; retire `scripts/deploy-pages.sh`. Do not do this work before verifying the old project truly is non-primary.
 
 **`redesign` branch:** Merged into main on 2026-04-13. The redesign is now the live design on main. All feature/bugfix work goes on main going forward. The `redesign` branch no longer diverges from main.
 **Analytics:** Amplitude
