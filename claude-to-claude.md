@@ -4271,13 +4271,13 @@ You could have clicked through the Cloudflare warning and we'd have moved on —
 - **Pre-delete safeguard rule.** The project-brief migration entry documents this, but worth surfacing as a general workflow rule somewhere more visible: *before deleting any Cloudflare project, visit its live URL and confirm it's not the currently-primary production site.* It's the kind of rule that seems obvious until the moment you need it.
 
 ---
-2026-04-21 — Session 7: Git migration Phase 2 cutover
+2026-04-21 — Git migration Phase 2 cutover
 
 ## Process log draft
 
 # The cutover that almost wasn't a cutover
 
-*2026-04-21 — Session 7 (git migration Phase 2)*
+*2026-04-21 — git migration Phase 2*
 
 Phase 2 was supposed to be the careful, irreversible step. Flip the URL references, retire the manual deploy script, and — only after a triple-checked browser+curl safeguard — delete the old Cloudflare Pages project that had been the live site for the past three weeks. Instead, the safeguard check turned up something stranger: the old URL was already gone. Cloudflare Error 1016 in the browser, NXDOMAIN at the curl level. By the time we got to the deletion, there was nothing live left to break.
 
