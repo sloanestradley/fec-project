@@ -234,7 +234,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 
 - ~~**Bulk data pipeline (pas2)**~~ — ✅ **Done (2026-04-16).** `pipeline/` Cloudflare Worker downloads pas222/24/26 from FEC bulk downloads weekly (cron `0 6 * * 1`) and writes pipe-delimited CSVs to R2 bucket `fecledger-bulk` at `fec/pas2/{year}/pas2.csv`. Worker requires Workers Paid plan ($5/mo) for cron triggers. **Not covered:** indiv22/24/26 individual contribution files (~4.5 GB uncompressed each) exceed Cloudflare Workers' 128 MB memory cap and CPU time limit — these require GitHub Actions (ubuntu runner, no memory/CPU cap, free for public repos, R2 auth via Cloudflare API token). R2 key pattern `fec/indiv/{year}/indiv.csv` is reserved; streaming code is complete in `pipeline/src/index.js` and just needs a new runtime wrapper.
 
-- **Pages project is Direct Upload, not git-connected** — ~~**Phase 1 complete 2026-04-21.**~~ New `fecledgerapp` git-connected project created, bindings attached, end-to-end verified. Old `fecledger` Direct Upload project remains primary pending Phase 2 cutover (URL reference updates, old-project deletion, `deploy-pages.sh` retirement).
+- **Pages project is Direct Upload, not git-connected** — ~~**Phase 1 complete 2026-04-21.**~~ ~~**Phase 2 complete 2026-04-21.**~~ New `fecledgerapp` git-connected project is now sole production target; URL references flipped across the codebase; `scripts/deploy-pages.sh` deleted; old `fecledger` Direct Upload project deleted in the Cloudflare dashboard with the pre-delete safeguard rule applied; pre-delete safeguard now lives as a durable rule in `CLAUDE.md` for any future Pages project retirement. Push-to-deploy chain re-verified post-cutover via `data-deployed-via="git"` attribute on the deployed root page.
 
   Original discovery 2026-04-17 when a binding change (Session 4B AGGREGATIONS) failed to activate after pushes. The `fecledger` Pages project was created via `wrangler pages deploy` during the 2026-04-14 Netlify migration, which produces Direct Upload projects by default. Git pushes to main do not trigger deploys; every deploy must be manual via `npx wrangler pages deploy <staging-dir> --project-name=fecledger --branch=main`. The project has no Builds & deployments settings section in the dashboard (the visible absence is the tell).
 
@@ -248,23 +248,18 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
   5. ✅ Playwright — 417/417 structural passing; 5/5 smoke passing against `fecledgerapp.pages.dev` (used new `SMOKE_BASE_URL` env-var override on `playwright.smoke.config.js`).
   6. ✅ Push-to-deploy chain verified: committed `data-deployed-via="git"` attribute to `<html>` in `index.html` (commit `0733dbb`); watched Deployments tab; confirmed attribute live via `curl -s https://fecledgerapp.pages.dev | head -5`.
 
-  **Phase 2 — outstanding (next session):**
-  1. **URL reference updates** across the codebase so `fecledgerapp.pages.dev` becomes "primary":
-     - `CLAUDE.md` — swap "Live URL" and "New URL" framing; remove the old-project deployment block
-     - `playwright.smoke.config.js` — change default from `https://fecledger.pages.dev` to `https://fecledgerapp.pages.dev` (keep `SMOKE_BASE_URL` override for flexibility)
-     - `strategy/cm-txt-integration.md` — 2 inline URL references
-     - `scripts/deploy-pages.sh` — retire (delete the file)
-     - `functions/api/fec/[[path]].js` — comment line referencing `--project-name fecledger`
-     - `claude-to-claude.md` / `test-cases.md` — historical log entries, leave alone
-  2. **URL cutover — three options** (pick one before deleting the old project):
-     - **Accept new subdomain** (`fecledgerapp.pages.dev`) — simplest; what we have now.
-     - **Reclaim `fecledger` subdomain** — delete the old project, wait ~24h for Cloudflare to release the name, recreate with that name. Timing risk; cooldown is not well-documented.
-     - **Wait for a custom domain** — if a real domain is acquired (on the Go-live list), it decouples URL from Pages subdomain. Point the new domain at `fecledgerapp`, delete `fecledger`. Cleanest long-term; requires a domain first.
-  3. **Pre-delete safeguard rule (prevents recurrence):** Before deleting any Cloudflare Pages project in the future, confirm it is not the currently-live production site by visiting its `.pages.dev` URL and checking against expected content.
-  4. **Delete old `fecledger` Direct Upload project.**
-  5. **Delete any remaining references to `npx wrangler pages deploy` and `deploy-pages.sh`** — future sessions should find one deploy path, not two.
-
-  **Timing recommendation:** Do this after Session 3 (committee.html wiring). Session 3 can ship via the current manual deploy flow; the git migration is yak-shaving before user-visible progress and bundles naturally with a custom-domain purchase if that's near-term.
+  **Phase 2 — executed 2026-04-21:**
+  1. ✅ **URL reference updates** across the codebase so `fecledgerapp.pages.dev` is sole primary:
+     - `CLAUDE.md` — Deployment block rewritten to single-project framing; pre-delete safeguard rule promoted to durable
+     - `playwright.smoke.config.js` — default flipped to `https://fecledgerapp.pages.dev`; `SMOKE_BASE_URL` override retained
+     - `strategy/cm-txt-integration.md` — 2 URL references + 1 deploy-path reference updated
+     - `scripts/deploy-pages.sh` — deleted (script was hard-coded to the now-deleted `--project-name=fecledger`; keeping a broken fallback would have been a trap, not a hedge)
+     - `functions/api/fec/[[path]].js` — comment URL flipped to `--project-name fecledgerapp`
+     - `claude-to-claude.md` / `test-cases.md` — historical log entries, left alone per spec
+  2. ✅ **URL cutover** — accepted new subdomain `fecledgerapp.pages.dev` as permanent; no reclaim of old name, no custom domain.
+  3. ✅ **Pre-delete safeguard rule** lands as a durable rule in CLAUDE.md adjacent to the Deployment block — applies to any future Pages project deletion, not just this one.
+  4. ✅ **Old `fecledger` Direct Upload project deleted** in Cloudflare dashboard after browser+curl verification of both URLs.
+  5. ✅ **Single deploy path** — `scripts/pages-build.sh` (git CI) is now the only deploy path; `scripts/stage-site.sh` retains its single-allowlist-source role with one caller instead of two.
 
   **Root-cause summary for future reference:** The Pages project was created via `npx wrangler pages deploy` during the 2026-04-14 Netlify migration. That CLI path produces Direct Upload projects with no git linkage — there is no "upgrade to git-connected" option after creation. The only way to produce a git-connected Pages project is the Dashboard → Create → Pages → **Connect to Git** OAuth flow. For any future Pages project creation, prefer the dashboard flow unless deliberately choosing Direct Upload.
 

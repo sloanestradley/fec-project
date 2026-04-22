@@ -116,7 +116,7 @@ Zero changes. KV JSON shape stays `{name, entity_type, committee_id, total}`. Th
   - `curl /api/aggregations/top-committees?committee_id=C00806174&cycle=2024` — first entry should be a non-Marie PAC with a real registered name; no "MARIE FOR CONGRESS" rows anywhere.
   - Same for ActBlue, DCCC — should still return `{results:null, source:'api'}` (miss), same as during the 2026-04-20 investigation.
 - **Manual post-deploy (browser)**:
-  - Open `https://fecledger.pages.dev/committee/C00806174` → Raised tab → Top Committee Contributors card shows real external committee names.
+  - Open `https://fecledgerapp.pages.dev/committee/C00806174` → Raised tab → Top Committee Contributors card shows real external committee names.
   - Open a DCCC/DNC page → Top Committee Contributors still shows the API-paginated result or the "Unable to show" empty state (unchanged).
 
 ## Pipeline runtime impact
@@ -147,7 +147,7 @@ Commits that produced the current state:
 - `190ceb7` — self-affiliate filter attempt (supplanted; ID-level filter is worth keeping, name-level filter needs cm.txt to work).
 - `6b313b0` — `ENABLE_TOP_COMMITTEES_PASS = false` (the state this session starts from).
 
-Live site: `https://fecledger.pages.dev`.
+Live site: `https://fecledgerapp.pages.dev`.
 KV namespace: `fecledger-aggregations` (Cloudflare dashboard).
 Pipeline workflow: `.github/workflows/fec-bulk-pipeline.yml`.
-Pages deploy: `bash scripts/deploy-pages.sh`.
+Pages deploy: push to main on GitHub (git-connected via `scripts/pages-build.sh`).

@@ -5,7 +5,7 @@
  * with the API key injected server-side from an environment secret.
  *
  * The API_KEY secret is set via:
- *   npx wrangler pages secret put API_KEY --project-name fecledger
+ *   npx wrangler pages secret put API_KEY --project-name fecledgerapp
  *
  * All query params from the original request are forwarded as-is;
  * api_key is appended by this function and never exposed to the browser.
