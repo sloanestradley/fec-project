@@ -9,8 +9,7 @@
 # repo, runs this script, and publishes the contents of dist/ to the Pages
 # subdomain. Anything NOT in dist/ never reaches the internet.
 #
-# Delegates to scripts/stage-site.sh so the exclusion list stays in one place,
-# shared with the manual deploy path in scripts/deploy-pages.sh.
+# Delegates to scripts/stage-site.sh, which owns the deploy-surface allowlist.
 
 set -euo pipefail
 

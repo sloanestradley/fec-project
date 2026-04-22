@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 # scripts/stage-site.sh — stage deployable site content into a target directory.
 #
-# One allowlist, two callers:
-#   - scripts/pages-build.sh        → stages into ./dist (Cloudflare Pages git build)
-#   - scripts/deploy-pages.sh       → stages into /tmp/fec-deploy (manual wrangler deploy)
-#
-# Keeping both paths in one script prevents drift between the CI contract and
-# the manual fallback. If you change what's deployable (or what's required),
-# change it here — both callers pick it up.
+# Sole caller today: scripts/pages-build.sh (Cloudflare Pages git build, stages
+# into ./dist). Script remains parameterized on target dir so it can be invoked
+# directly for any one-off staging need without touching the build path.
 #
 # Why explicit allowlist (not rsync --exclude):
 #   1. The Cloudflare Pages build image does NOT ship rsync (discovered the
