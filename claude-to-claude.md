@@ -4291,6 +4291,8 @@ The actual change was small: six files modified, one deleted, one short commit. 
 - Old `fecledger` Direct Upload project deleted in Cloudflare dashboard.
 - Project-brief.md Phase 2 section marked complete with strikethrough banner; historical text preserved per project convention.
 - Push-to-deploy chain re-verified post-cutover: commit `f58846a` pushed to main, `data-deployed-via="git"` attribute confirmed live on fecledgerapp.pages.dev within seconds.
+- Post-cutover audit (Sloane-prompted) caught four stale references the main commit missed: `scripts/pages-build.sh` and `scripts/stage-site.sh` headers still described a "shared with the manual deploy path" / "two callers" contract that no longer existed; CLAUDE.md had two `Workers & Pages → fecledger → Settings` dashboard breadcrumbs pointing at the deleted project. All four flipped in commit `fd8efc9`.
+- `project-brief.md` migration entry compressed from a multi-section structured doc (Phase 1 + Phase 2 step lists, root-cause appendix) to a single bullet matching the format of the two other completed items in the same Infrastructure/Architecture debt section. Forward-looking lessons preserved (root cause + dashboard gotcha); execution detail dropped — already preserved here and in test-cases.md rows.
 
 ## Field notes
 
@@ -4302,11 +4304,13 @@ What's confirmed is that the safeguard rule did its job — even though the rule
 
 The other lesson, smaller: the act of committing the Phase 2 changes was itself the trivial-commit push test. There was no need for a separate sentinel commit. When the work itself exercises the integration you want to verify, you don't need to also do the integration verification separately — the work *is* the verification. This is the same principle as "the data migration's first read is also its first integration test." Worth remembering for any future infra change where the temptation will be to add a "test commit" before the real one.
 
+A third lesson surfaced in the post-cutover audit: even after the main commit shipped clean and tests passed, four stale references sat in the working tree — script headers describing a contract that no longer existed, dashboard breadcrumbs pointing at a deleted project. Sloane's "is there leftover documentation?" prompt is what surfaced them. Without it, those references would have rotted in place until the next session noticed (or didn't). The takeaway: treat any irreversible cutover as a two-step operation — ship the cutover, then audit for echoes. The cutover commit is necessary but not sufficient.
+
 ## Stack tags
 
 - No new dependencies
 - No new pages or components
-- Infrastructure only: 6 files modified, 1 file deleted, 1 commit, 1 Cloudflare Pages project retired
+- Infrastructure only: ~10 files touched across 5 commits (`f58846a` cutover, `ba917bd` initial close, `9b3de54` Session-N framing removed, `fd8efc9` post-cutover stale-reference audit, plus the project-brief compression), 1 Cloudflare Pages project retired
 
 ## How Sloane steered the work
 
@@ -4318,6 +4322,9 @@ You ran the browser + dashboard verification BEFORE clicking delete, and you cau
 
 **You picked the simplest URL strategy in the brief.**
 The project-brief had three URL options for Phase 2: accept the new subdomain, reclaim the old one (with cooldown risk), or wait for a custom domain. You picked option 1 — the one with no theatrics, no waiting, no cooldown lottery. That kept Phase 2 from sprawling into a domain-purchase project. Worth naming as a steering moment because the other two options were each plausible enough to attract a session of their own.
+
+**You asked "is there leftover documentation?" after the main commit landed.**
+The cutover itself was clean — tests green, push-to-deploy verified. I would have called it done. Your question prompted the audit that found four stale references the main commit missed: two script headers still describing a "shared with the manual deploy path" contract that no longer existed, and two CLAUDE.md dashboard breadcrumbs pointing at a deleted project. Cosmetic in isolation; corrosive in aggregate, because each of those references is a future-session "wait, what?" moment. The lesson is that an irreversible cutover isn't just the cutover commit — it's the cutover plus the echo cleanup, and the echo cleanup needed prompting.
 
 **The through-line:** today's steering was about *not adding work*. You picked the simplest URL strategy. You ran the safeguard checks before they were the urgent step. You let a one-word "Wait" do the work of a full sentence. Each one nudged the session toward "do less, but do it right" rather than "do more to be sure." The Phase 2 commit is six files; nothing about that count is accidental.
 
