@@ -21,18 +21,15 @@ on:
     - cron: '0 6 * * *'   # daily 6am UTC
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   ingest:
     runs-on: ubuntu-latest
     timeout-minutes: 360
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
 

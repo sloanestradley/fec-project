@@ -4334,3 +4334,46 @@ The cutover itself was clean — tests green, push-to-deploy verified. I would h
 - **Pre-delete safeguard as a generalizable workflow pattern.** The rule landed in CLAUDE.md scoped specifically to "Cloudflare Pages projects." The principle generalizes: *any* irreversible deletion of a named resource (R2 bucket, KV namespace, GitHub repo, DNS record) deserves a "go look at it before you delete it" step. Worth thinking about whether this scales as a project-wide pattern or stays surface-specific.
 - **The sentinel-commit-not-needed insight.** The realization that the act of committing Phase 2 was itself the push-to-deploy test (no separate "test commit" needed) generalizes too. Whenever the work itself exercises an integration, the work IS the integration test. Worth banking as a discipline for future infra changes.
 - **What's next.** With Phase 2 closed, the next surface for product work is wide open. Top priorities from the open backlog: Phase 4 candidate-page work (early signal data, AI insights, transaction-level search), or unfinished items from earlier phases (Spent tab timeline chart, JFA participant gap, multi-cycle stat labels). No blockers from infra anymore.
+
+---
+2026-04-21 — CI cleanup (Node.js deprecation + premise check)
+
+## Process log draft
+
+### The fix that stayed, the fix that shouldn't have existed
+
+Two items on the CI cleanup list: a Node.js deprecation warning GitHub has been nagging us about for months, and a Wrangler version pin in the Pages build script. The first one was real and got bumped cleanly. The second one had been obsolete for a week and I hadn't noticed — the build script it named doesn't invoke Wrangler anymore since the git-connected migration.
+
+**Changelog**
+- Bumped `actions/checkout@v4 → v6` and `actions/setup-node@v4 → v6` in `.github/workflows/fec-bulk-pipeline.yml`. v5 was the first major to target Node 24 natively; v6 is current and has been stable for five-plus months.
+- Removed the `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` env block from the same workflow. It was a stopgap for the v4 Node 20 runtime; v6 runs on Node 24 natively, so the forcing is no longer needed.
+- Dropped the proposed Wrangler pin in `scripts/pages-build.sh`. The premise was obsolete post-Phase-2 — the script no longer invokes Wrangler at all (it just delegates to `stage-site.sh`, which uses `cp`). The `npx wrangler@latest` call the prompt was thinking of lived in the deleted `scripts/deploy-pages.sh` from the Direct Upload era.
+
+**Field notes**
+
+The "workaround" env var we'd added months ago was the thing *emitting* the Node 20 deprecation warning, not suppressing it. `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` reads like a silencer — but it was actually the reason the warning said "being forced to run on Node.js 24" in the first place. Checking the most recent workflow run's check-run annotations took one unauthenticated API call and definitively answered the question "is the warning still appearing," which is the thing we would otherwise have been guessing about. Upgrading past the forcing was the actual fix.
+
+The Fix 2 cleanup that didn't happen is the more interesting one. That item had been sitting in my head since before the Phase 2 git migration, and the prompt I wrote was built against that older world. Re-reading the current `pages-build.sh` took thirty seconds and saved pinning a version of a tool that wouldn't have been pinned where I thought it was. Same discipline as "verify the input file before writing SQL against it": the assumptions about *which script runs wrangler* were as stale as assumptions about which columns are in a pas2 file. A no-op pin is harmless but it pollutes the commit history and takes up a slot of attention. The change that didn't happen is also a deliverable.
+
+Also a scope note on verification: the original prompt called for triggering the workflow and pushing a sentinel commit to confirm the fixes. For a version bump whose only consequence is a warning disappearing, that's expensive theater — a full pipeline run and a production deploy to verify a log line. Log inspection against the most recent completed run was cheaper and conclusive. Confirmation that the warning is gone comes from tomorrow's scheduled 6am UTC run, not this session.
+
+**Stack tags**: none new.
+
+## How Sloane steered the work
+
+**"Flag risks before changing" — your discipline default.**
+The opening prompt explicitly asked for risks and gaps before action. That's what caught Fix 2 being based on a pre-Phase-2 mental model — and it was the right move, because jumping to implementation would have pinned a version of a tool in a script that doesn't invoke it.
+
+**"Drop Fix 2 entirely — note it obsolete in the session log."**
+When the premise broke, you didn't ask Claude to reframe the fix to justify the item. You dropped it and moved the acknowledgment into the log. That's the right response to an obsolete backlog item: close it, don't pad it.
+
+**"Scope verification to log inspection only — no dispatch trigger, no sentinel push."**
+The original prompt's verification plan was copy-pasted discipline — trigger the workflow, push a trivial commit. For a one-line version bump with warning-only consequences, that's expensive theater. You cut it to log inspection against the most recent completed run, which got us definitive confirmation (the warning annotation sits right there in the API response) without burning a full pipeline run or a real deploy.
+
+**The through-line:** you're cross-checking the premise before authorizing the fix, *and* cross-checking the verification plan before authorizing the verification. Both pre-checks are cheap; both save non-trivial work downstream. The pattern is the same one that's been catching pipeline SQL bugs — assumptions age faster than code, and verifying them costs much less than the debugging they prevent.
+
+## What to bring to Claude Chat
+
+- Not much from this session — cleanup only, no open product questions.
+- Worth noting for future infra sessions: `actions/*` version bumps are cheap and worth doing proactively every 6–12 months. The next Node.js runtime deprecation cycle is predictable, and we now know the `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env var is audible, not silent, so an upgrade is the clean path.
+- Meta: the pattern of premise-check-then-verify-scope (what happened on both fixes this session) is worth keeping as a session-opening ritual for any small backlog item that was written more than a week ago. Items age; so do their premises.
