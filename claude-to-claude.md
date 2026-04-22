@@ -4269,3 +4269,61 @@ You could have clicked through the Cloudflare warning and we'd have moved on —
 - **Phase 2 timing and URL strategy.** The brief still lists three options for the cutover URL (accept `fecledgerapp`, reclaim `fecledger`, wait for a custom domain). If a real domain purchase is close, it's the cleanest path. If not, decide whether the reclaim-with-cooldown risk is worth the prettier URL.
 - **Cloudflare's Workers/Pages convergence.** The Pages creation flow is already hidden behind a direct URL. Worth a few minutes of research on how soon Pages might be fully deprecated — because "migrate to Workers + Static Assets" would be a real project (converting the four `functions/*` files to a single `worker.js` with routing plus a `wrangler.jsonc`). Not urgent, but worth knowing the horizon.
 - **Pre-delete safeguard rule.** The project-brief migration entry documents this, but worth surfacing as a general workflow rule somewhere more visible: *before deleting any Cloudflare project, visit its live URL and confirm it's not the currently-primary production site.* It's the kind of rule that seems obvious until the moment you need it.
+
+---
+2026-04-21 — Session 7: Git migration Phase 2 cutover
+
+## Process log draft
+
+# The cutover that almost wasn't a cutover
+
+*2026-04-21 — Session 7 (git migration Phase 2)*
+
+Phase 2 was supposed to be the careful, irreversible step. Flip the URL references, retire the manual deploy script, and — only after a triple-checked browser+curl safeguard — delete the old Cloudflare Pages project that had been the live site for the past three weeks. Instead, the safeguard check turned up something stranger: the old URL was already gone. Cloudflare Error 1016 in the browser, NXDOMAIN at the curl level. By the time we got to the deletion, there was nothing live left to break.
+
+The actual change was small: six files modified, one deleted, one short commit. What stuck wasn't the diff but the safeguard rule itself — promoted from a one-time TODO buried in the project brief to a durable rule sitting in the Deployment block of CLAUDE.md, applicable to every future Pages project this account ever owns. The thing the rule guards against (deleting a live URL by accident) didn't end up happening today, but the rule is the lesson, not the incident.
+
+## Changelog
+
+- All URL references flipped from `fecledger.pages.dev` → `fecledgerapp.pages.dev`: CLAUDE.md (Live URL block, test count drift fix 416→417, secondary URL refs), playwright.smoke.config.js default (SMOKE_BASE_URL env override retained), strategy/cm-txt-integration.md (2 URLs + 1 deploy-path note), functions/api/fec/[[path]].js comment.
+- `scripts/deploy-pages.sh` deleted entirely. The script was hard-coded to `--project-name=fecledger` which no longer exists; keeping a non-tested fallback that points at a deleted project would have been a trap, not a hedge.
+- Pre-delete safeguard rule moved from "one-time check, then deleted" to "durable rule in CLAUDE.md applicable to any future Pages project deletion." Lives adjacent to the Deployment block where it'll be encountered at the right moment.
+- Old `fecledger` Direct Upload project deleted in Cloudflare dashboard.
+- Project-brief.md Phase 2 section marked complete with strikethrough banner; historical text preserved per project convention.
+- Push-to-deploy chain re-verified post-cutover: commit `f58846a` pushed to main, `data-deployed-via="git"` attribute confirmed live on fecledgerapp.pages.dev within seconds.
+
+## Field notes
+
+The strangest moment of the session was the Error 1016. By the time we were ready to delete the old project, fecledger.pages.dev was already returning Cloudflare's "Origin DNS error" page in the browser and was completely unresolvable at the DNS level via curl. The Phase 1 close (earlier today) had verified both URLs were live; something happened in the intervening hours that took the old one down.
+
+Two readings: comfortable and uncomfortable. The comfortable reading: the deletion became cheap. No live traffic was reaching the URL when we deleted it; the dashboard cleanup just made the management surface match the user-facing reality. The uncomfortable reading: we don't know *why* it died, and we can't reproduce the conditions to find out. Cloudflare may auto-degrade parallel projects with shared name prefixes; there may have been an incident; the Direct Upload project type may have some quiet expiration on it. None of these are confirmed.
+
+What's confirmed is that the safeguard rule did its job — even though the rule was framed around "don't delete the *currently-live* project," the actual check Sloane ran was "go look at the URL." That's the right framing. "Currently-live" is an inference; "go look at the URL" is an observation. The rule as written in CLAUDE.md now leans toward the latter: visit the URL, confirm it isn't serving the live site, *then* delete. If it's already broken, delete it; if it's serving the live site, stop. Both branches end at the right place.
+
+The other lesson, smaller: the act of committing the Phase 2 changes was itself the trivial-commit push test. There was no need for a separate sentinel commit. When the work itself exercises the integration you want to verify, you don't need to also do the integration verification separately — the work *is* the verification. This is the same principle as "the data migration's first read is also its first integration test." Worth remembering for any future infra change where the temptation will be to add a "test commit" before the real one.
+
+## Stack tags
+
+- No new dependencies
+- No new pages or components
+- Infrastructure only: 6 files modified, 1 file deleted, 1 commit, 1 Cloudflare Pages project retired
+
+## How Sloane steered the work
+
+**You said "wait" and meant "I already did this."**
+The single highest-leverage moment was a one-word message that I misread. You wrote "Wait." after the safeguard checks, and I parsed it as "pause your execution" rather than "wait, I've completed this." When you clarified, my misread cost us nothing — the file edits were still uncommitted, the deletion was clean, the migration ended exactly where it needed to. But the same pattern in a different shape (you saying "stop, the dashboard looks wrong" mid-deletion) would have been catastrophic to misread. The lesson is mine: when a one-word interjection lands during an irreversible step, ask before assuming. Don't pattern-match on what I wanted the message to mean.
+
+**You did the safeguard checks before they became urgent.**
+You ran the browser + dashboard verification BEFORE clicking delete, and you caught the Error 1016 — surfacing the unexpected pre-existing degradation of the old URL. If you'd skipped the check and gone straight to delete, we'd have ended the session with a clean dashboard but no record that the old URL was already broken. The note in test-cases.md about the unexplained DNS state exists only because you looked first. That's the safeguard rule working in advance of the deletion, not just immediately before it.
+
+**You picked the simplest URL strategy in the brief.**
+The project-brief had three URL options for Phase 2: accept the new subdomain, reclaim the old one (with cooldown risk), or wait for a custom domain. You picked option 1 — the one with no theatrics, no waiting, no cooldown lottery. That kept Phase 2 from sprawling into a domain-purchase project. Worth naming as a steering moment because the other two options were each plausible enough to attract a session of their own.
+
+**The through-line:** today's steering was about *not adding work*. You picked the simplest URL strategy. You ran the safeguard checks before they were the urgent step. You let a one-word "Wait" do the work of a full sentence. Each one nudged the session toward "do less, but do it right" rather than "do more to be sure." The Phase 2 commit is six files; nothing about that count is accidental.
+
+## What to bring to Claude Chat
+
+- **The Cloudflare Error 1016 mystery.** No diagnostic conclusion in this session — fecledger.pages.dev was already NXDOMAIN by the time we checked, before any deletion action. Plausible causes (Cloudflare auto-degrading shared-prefix projects, Direct Upload type quirks, unrelated incident) all unconfirmable from where we sit. Worth knowing if a future migration produces a similar two-project window — and worth a pass at Cloudflare community forums or status history to see if anyone else has reported the same.
+- **Pre-delete safeguard as a generalizable workflow pattern.** The rule landed in CLAUDE.md scoped specifically to "Cloudflare Pages projects." The principle generalizes: *any* irreversible deletion of a named resource (R2 bucket, KV namespace, GitHub repo, DNS record) deserves a "go look at it before you delete it" step. Worth thinking about whether this scales as a project-wide pattern or stays surface-specific.
+- **The sentinel-commit-not-needed insight.** The realization that the act of committing Phase 2 was itself the push-to-deploy test (no separate "test commit" needed) generalizes too. Whenever the work itself exercises an integration, the work IS the integration test. Worth banking as a discipline for future infra changes.
+- **What's next.** With Phase 2 closed, the next surface for product work is wide open. Top priorities from the open backlog: Phase 4 candidate-page work (early signal data, AI insights, transaction-level search), or unfinished items from earlier phases (Spent tab timeline chart, JFA participant gap, multi-cycle stat labels). No blockers from infra anymore.
