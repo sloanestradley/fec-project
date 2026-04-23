@@ -105,11 +105,11 @@
     <span class="compact-sep" aria-hidden="true"> / </span>
     <div class="profile-header-row" id="profile-header-row">
       <div class="page-title" id="candidate-name">—</div>
-      <div class="meta-row" id="meta-row"></div>
       <div id="committees-trigger" style="display:none;margin-left:auto;align-self:center">
         <button class="committees-link" onclick="openCommitteesModal()">Committees →</button>
       </div>
     </div>
+    <div class="meta-row" id="meta-row"></div>
   </div>
   <div class="tabs-bar" id="tabs-bar" style="display:none">
     <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
@@ -1628,9 +1628,12 @@ async function init() {
     document.getElementById('candidate-name').textContent = displayName;
     document.title = displayName + ' — FECLedger';
 
-    // Tags — party only (race label is now in #race-label above the name)
+    // Meta row — party tag, FEC ID tag, first-filed prose (incumbent tag appended later by race-context logic)
+    var firstFiledYear = cand.first_file_date ? String(cand.first_file_date).slice(0,4) : '';
     document.getElementById('meta-row').innerHTML =
-      '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>';
+      '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>'
+      + '<span class="tag tag-neutral fec-id-tag">FEC ID · '+CANDIDATE_ID+'</span>'
+      + (firstFiledYear ? '<span class="meta-prose">First filed '+firstFiledYear+'</span>' : '');
 
     // Cycle switcher: default to most recent active cycle, or hash override
     var now = new Date().getFullYear();

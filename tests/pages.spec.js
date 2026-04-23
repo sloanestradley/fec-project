@@ -44,6 +44,23 @@ test.describe('committee.html', () => {
     await expect(page.locator('.meta-row')).toBeVisible();
   });
 
+  test('FEC ID tag renders with committee ID text', async ({ page }) => {
+    const fec = page.locator('#meta-row .fec-id-tag');
+    await expect(fec).toBeVisible();
+    await expect(fec).toHaveText(/FEC ID · C00775668/);
+  });
+
+  test('Active since prose renders with year for active committee', async ({ page }) => {
+    const prose = page.locator('#meta-row .meta-prose');
+    await expect(prose).toBeVisible();
+    await expect(prose).toHaveText(/Active since 2020/);
+  });
+
+  test('meta-row is a sibling of .profile-header-row, not a child', async ({ page }) => {
+    await expect(page.locator('.profile-header-row #meta-row')).toHaveCount(0);
+    await expect(page.locator('#committee-header > #meta-row')).toHaveCount(1);
+  });
+
   test('stats grid shows financial figures (not $0)', async ({ page }) => {
     // Wait for content to become visible
     await page.waitForSelector('.profile-content.visible', { timeout: 10000 });
@@ -168,6 +185,57 @@ test.describe('committee.html', () => {
 
   test('committee-header starts without .compact class (full mode on load)', async ({ page }) => {
     await expect(page.locator('#committee-header')).not.toHaveClass(/compact/);
+  });
+});
+
+// ── committee.html — terminated committee branch ──────────────────────────────
+
+test.describe('committee.html — terminated committee', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Override the single /committee/:id/ endpoint to flip filing_frequency to 'T'.
+    // All other endpoints fall through to the default mocks.
+    await page.route('**/api/fec/committee/C00775668/**', (route) => {
+      const url = route.request().url();
+      // Only intercept the top-level /committee/{id}/ (not nested totals/reports/etc)
+      if (/\/committee\/C00775668\/(?:\?|$)/.test(url)) {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            results: [{
+              committee_id: 'C00775668',
+              name: 'MARIE FOR CONGRESS',
+              committee_type: 'H',
+              committee_type_full: 'House',
+              designation: 'P',
+              designation_full: 'Principal campaign committee',
+              filing_frequency: 'T',
+              state: 'WA',
+              organization_type_full: null,
+              cycles: [2022, 2024, 2026],
+              first_file_date: '2020-04-24',
+            }],
+            pagination: { count: 1 },
+          }),
+        });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto('/committee.html?id=C00775668');
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+  });
+
+  test('Active since prose is omitted when filing_frequency is T', async ({ page }) => {
+    await expect(page.locator('#meta-row .meta-prose')).toHaveCount(0);
+  });
+
+  test('FEC ID tag still renders on terminated committee', async ({ page }) => {
+    const fec = page.locator('#meta-row .fec-id-tag');
+    await expect(fec).toBeVisible();
+    await expect(fec).toHaveText(/FEC ID · C00775668/);
   });
 });
 

@@ -4377,3 +4377,68 @@ The original prompt's verification plan was copy-pasted discipline — trigger t
 - Not much from this session — cleanup only, no open product questions.
 - Worth noting for future infra sessions: `actions/*` version bumps are cheap and worth doing proactively every 6–12 months. The next Node.js runtime deprecation cycle is predictable, and we now know the `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env var is audible, not silent, so an upgrade is the clean path.
 - Meta: the pattern of premise-check-then-verify-scope (what happened on both fixes this session) is worth keeping as a session-opening ritual for any small backlog item that was written more than a week ago. Items age; so do their premises.
+
+---
+2026-04-23 — Header polish pass (candidate.html + committee.html)
+
+## Process log draft
+
+# The restructure that taught a test to be specific
+
+*2026-04-23 — Header polish, candidate + committee*
+
+The prompt read like a straightforward restack: pull the meta-row out of the profile-header-row, add an FEC ID tag and a filing-year prose span, restyle the committees trigger to match the navy-filled button-group treatment. Two pages, one template change, no new tokens. Done cleanly it's half an hour of work. Done with the compact sticky header still intact — and with an existing "meta-row has no .tag-neutral race tag" assertion kept honest, and with a terminated-committee branch that omits the "Active since" prose entirely — turned it into a slightly longer session with a more interesting test shape.
+
+The restructure itself was small. `.meta-row` became a sibling of `.profile-header-row` instead of a child. A new `.meta-prose` utility class reuses the documented `prose` type style for the inline "First filed 2022" / "Active since 2020" copy. The `.committees-link` rewrite shares its three color declarations with `.button-group-btn.active` via a comma-grouped selector — one rule, two semantic uses (pressed toggle, primary page action), no new class names and no `btn-primary` invented.
+
+The interesting part was the test that would have broken silently. `candidate.spec.js` has a long-standing `meta-row has no .tag-neutral race tag` assertion, meant to guard against a race tag being re-introduced in the meta-row after the redesign removed it. The FEC ID tag is also `.tag-neutral`. The assertion would have silently failed unless something marked the new tag as legitimately different. The fix: give the FEC ID tag its own hook class (`.fec-id-tag`) and refine the assertion to `:not(.incumbent-tag):not(.fec-id-tag)`. Same intent, more specific filter, and now the test proves what it meant all along.
+
+**Changelog:**
+- `candidate.html` — `.meta-row` moved out of `.profile-header-row`; render adds FEC ID tag + "First filed YYYY" prose reading `cand.first_file_date`
+- `committee.html` — same DOM move; render appends FEC ID tag + conditional "Active since YYYY" prose, omitted when `filing_frequency` is `'T'` or `'A'`
+- `styles.css` — rewrote `.committees-link` (height 34, Plex Mono uppercase, navy fill via shared rule); added `.meta-prose` utility; added scoped `.page-header > .meta-row { margin-top:var(--space-4) }` gap
+- `design-system.html` — removed redundant `.committees-link` override; promoted button-group from `feed-only` → `stable` with a revised note on the shared navy treatment; tag card demo picked up an FEC ID example + a note explaining `.tag-neutral` as the canonical slot for ID-style content; Candidate Header demo updated to the new DOM shape; `.meta-prose` added to the `prose` specimen usage list
+- `tests/helpers/api-mock.js` — added `first_file_date` to CANDIDATE + COMMITTEE fixtures
+- `tests/candidate.spec.js` — 3 new assertions (FEC ID tag text, First filed prose, structural sibling check); refined the pre-existing race-tag-absent assertion
+- `tests/pages.spec.js` — 3 new assertions on the committee page + a new `committee.html — terminated committee` describe block that routes over the `/committee/{id}/` endpoint to flip `filing_frequency` to `'T'` and asserts the meta-prose is omitted while the FEC ID tag still renders
+- `CLAUDE.md`, `test-cases.md` — descriptions and checklists updated for the new structure
+- 425/425 Playwright passing (+8 new)
+
+**Field notes:**
+
+The `.tag-neutral` collision with the existing test was the interesting moment. Two different instincts fought briefly: (a) loosen the existing assertion so the new tag doesn't trip it, (b) make the new tag carry a semantic hook so the existing assertion stays specific. (b) is better — a loosened test is a quieter test. The hook class `.fec-id-tag` doesn't carry any CSS rules; it exists purely so tests and future DOM queries can name the thing they're talking about. The cost is a three-word addition to a render string. The benefit is that the race-tag-absent assertion is now strictly more informative than it was before — it says "no tags in the meta-row other than party, incumbent, and FEC ID."
+
+The terminated-committee test is the other piece worth banking. Rather than add a terminated fixture to the global mock (which would ripple into every test that reads COMMITTEE), I used per-test `page.route()` fallthrough to override exactly the `/committee/{id}/` endpoint for one describe block. Two tests, one scoped route, zero side effects on the 300+ other assertions. The pattern would generalize to any "what happens in this specific branch?" question future sessions need to answer.
+
+Third, smaller observation: the plan flagged six concerns before the first line of code. Five were resolved by the plan itself (mock gap, extract-shared-rule approach, vertical spacing, design-system override drift, sentinel-compact stability). The sixth — "Active since" vs "First filed" copy for terminated committees — went to Sloane via AskUserQuestion, and the answer came back more specific than my three-option menu: "branch, but show nothing for terminated, not a fallback phrase." The point of surfacing it wasn't to get approval for an option I'd already picked; it was to expose a choice where my recommendation would have shipped slightly wrong copy.
+
+**Stack tags:** Hook classes for test specificity · per-test `page.route()` fallthrough pattern · `color-mix`-free shared-rule CSS consolidation · `.meta-prose` as a minimal utility that reuses an existing named type style
+
+## How Sloane steered the work
+
+**"Branch on filing_frequency — Active since for active committees and show nothing for terminated ones."**
+
+My AskUserQuestion offered three options for the terminated-committee copy: consistent "First filed" for both pages, "Active since" unconditionally, or branch and swap in "First filed" as the terminated fallback. You picked a fourth option — branch, but *omit the prose entirely* for terminated committees. That's a tighter UX call than any of the three I'd scoped. The logic: "Active since" on a terminated committee is misleading; "First filed" as a fallback is technically accurate but adds a second phrase to maintain and to explain; omitting is the one choice that says exactly what it means. The FEC ID tag still renders in both cases, so the "who is this?" information survives. The output shipped with two renders instead of three (active + terminated-omit, not active + terminated-first-filed + active-active-since), and the meta-row for terminated committees stays intentionally sparse.
+
+**"Extract shared color rule, keep distinct class names."**
+
+The prompt left room for either literally applying `.button-group-btn.active` to the committees button or keeping `.committees-link` as its own identity. You picked the cleaner semantic separation. The payoff landed in the design-system note: "the navy-950 fill is the site's shared language for 'selected toggle segment' AND 'primary action on this page'" — that sentence is only non-awkward if the two components keep their own names and share only the visual declarations. If we'd gone the other way, the design-system would have had to explain why a standalone button carries a `.active` modifier with no group to be active against.
+
+**The plan review itself was the steering.**
+
+No back-and-forth on the plan — you approved it after the two AskUserQuestion answers. But the plan was shaped by anticipation of what you'd flag: the mock gap was called out up-front because "data-layer verification before shipping" is your rule; the `.committees-link` drift in `design-system.html` was surfaced because doc hygiene is your rule; the "visual verification gap" was flagged in the test log row because "tests verify correctness, not feature quality" is your rule. Steering happens before and after the session too, not just during.
+
+**The through-line:** you make the UX call specifically where my instincts compromise. My default was "branch and show a different phrase"; yours was "branch and show less." My default was "either approach is fine, let's pick one"; yours was "pick the one whose semantic story is cleaner." Both times the output shipped tighter than my plan described it.
+
+## What to bring to Claude Chat
+
+- **Visual verification still needs a human.** The Playwright suite validates DOM structure and text content (FEC ID tag renders, prose says "First filed 2022", meta-row is a sibling not a child, terminated committees omit the prose, etc.). It cannot validate: whether 4px feels right as the meta-row top gap, whether the navy committees button looks right next to the title, whether the mobile (≤860px) wrap of the new meta-row is clean, whether a real terminated committee renders as expected on the live site. Eyeball after the deploy; tune `--space-4` if the gap looks off.
+
+- **This was explicitly groundwork.** The prompt called it out: "groundwork for a larger IA rearchitecture coming in follow-up sessions." The shape we landed — meta-row as a sibling below with FEC ID and filing-year context — is tightly coupled to whatever IA change you're planning. Worth talking through the arc before the next session so the rearchitecture doesn't re-do the work or undo the shape.
+
+- **`.fec-id-tag` is now a hook class with no CSS.** It exists purely so tests can distinguish the FEC ID tag from other `.tag-neutral` uses. If the next IA pass removes the FEC ID tag or relocates it, the class can go with it. Low-salience note; easy to forget the class exists at all because it does no styling work.
+
+- **The per-test `page.route()` override pattern was new.** The new `committee.html — terminated committee` describe block in `pages.spec.js` demonstrates overriding a single endpoint (`/committee/{id}/`) with `route.fulfill()`, letting every other endpoint fall through to the default mock via `route.fallback()`. It's a cleaner way to test branches than adding alternative fixtures to the global mock. Worth knowing the pattern exists next time we need to test a single-field branch (committee status, filing type, etc.).
+
+- **No other carryovers.** No API surprises, no Cloudflare weirdness, no pipeline implications.
+

@@ -113,12 +113,6 @@
     /* Override reveal animation in demos — demos don't run JS to add .visible */
     .ds-component-demo .page-header-reveal { opacity:1; transition:none; }
     .ds-component-demo .tabs-bar { padding:0; opacity:1; transition:none; }
-    .committees-link { background:none; border:none; cursor:pointer;
-      font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:var(--subtle);
-      padding:0; white-space:nowrap;
-      text-decoration:underline; text-decoration-color:transparent;
-      text-underline-offset:2px; transition:color 0.15s, text-decoration-color 0.15s; }
-    .committees-link:hover { color:var(--text); text-decoration-color:var(--subtle); }
 
     /* Stats — demo: suppress margin-bottom so demo panel doesn't add section spacing */
     .stats-grid { margin-bottom:0; }
@@ -539,7 +533,7 @@
         </div>
         <div class="ds-type-row">
           <span class="tag-context"><span class="tag-context-text">Smith is the incumbent with 2 challengers.</span> <a href="#" style="color:var(--subtle);white-space:nowrap">View race →</a></span>
-          <span class="ds-type-meta"><strong>prose</strong><br>Plex Serif 400 · 0.875rem<br>.tag-context · .banner-label · .banner-desc — sentence-format editorial content</span>
+          <span class="ds-type-meta"><strong>prose</strong><br>Plex Serif 400 · 0.875rem<br>.tag-context · .banner-label · .banner-desc · .meta-prose — sentence-format editorial content</span>
         </div>
       </div>
 
@@ -598,8 +592,10 @@
             <span class="tag tag-ind">Independent</span>
             <span class="tag tag-neutral">House · WA-03</span>
             <span class="tag tag-neutral">Incumbent</span>
+            <span class="tag tag-neutral fec-id-tag">FEC ID · H2WA03217</span>
           </div>
         </div>
+        <div class="ds-component-notes"><code>.tag-neutral</code> is the slot for any non-partisan, neutral-hierarchy labels — seat/race labels, incumbent markers, FEC IDs, state codes. Inline middle-dot (<code>·</code>) is the convention for "label · value" pairings inside a single tag. No new variants needed for this pattern.</div>
       </div>
 
       <!-- 2. Health signal -->
@@ -692,21 +688,25 @@
           <span class="ds-component-name">Candidate Header</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">extends .page-header · .candidate-race-label · .profile-header-row · .page-title · .cycle-select · .committees-link</div>
+        <div class="ds-component-classes">extends .page-header · .candidate-race-label · .profile-header-row · .page-title · .cycle-select · .committees-link · .meta-row · .meta-prose</div>
         <div class="ds-component-demo">
           <div class="profile-header page-header" style="padding:2rem">
             <div style="font-family:'Oswald',sans-serif;font-size:1.25rem;font-weight:400;text-transform:uppercase;color:var(--color-red-700)"><a href="#" style="color:inherit;text-decoration:none">US House: Washington's 3rd District</a></div>
             <div class="profile-header-row">
               <div class="page-title">Marie Gluesenkamp Perez</div>
-              <div class="meta-row" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-                <span class="tag tag-dem">Democrat</span>
-              </div>
               <div style="margin-left:auto">
-                <button class="committees-link">Committees (4) →</button>
+                <button class="committees-link">Committees →</button>
               </div>
+            </div>
+            <div class="meta-row" style="margin-top:var(--space-4)">
+              <span class="tag tag-dem">Democrat</span>
+              <span class="tag tag-neutral fec-id-tag">FEC ID · H2WA03217</span>
+              <span class="meta-prose">First filed 2022</span>
+              <span class="tag tag-neutral">Incumbent</span>
             </div>
           </div>
         </div>
+        <div class="ds-component-notes"><code>.profile-header-row</code> now contains only the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> moved out to sit as a sibling below, gaining an FEC ID tag and an <code>Active since / First filed YYYY</code> prose span styled via <code>.meta-prose</code>. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic.</div>
       </div>
 
       <!-- 7. Health banner (interactive) -->
@@ -1148,12 +1148,12 @@
       </div>
 
       <!-- 11. Button group -->
-      <div class="ds-component" id="comp-button-group" data-status="feed-only">
+      <div class="ds-component" id="comp-button-group" data-status="stable">
         <div class="ds-component-header">
           <span class="ds-component-name">button-group</span>
-          <span class="ds-status feed-only">feed-only</span>
+          <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.button-group · .button-group-btn — inline-flex toggle button group; mono label style, height:34px (matches .form-input/.form-select), collapsed borders, active state navy-950 fill</div>
+        <div class="ds-component-classes">.button-group · .button-group-btn — inline-flex toggle button group; mono label style, height:34px (matches .form-input/.form-select), collapsed borders, active state navy-950 fill. The navy-950 fill is the site's shared visual language for two semantic uses: "selected segment in a toggle group" (.button-group-btn.active) AND "primary action on this page" (.committees-link) — the color/border declarations are shared via a comma-grouped rule in styles.css.</div>
         <div class="ds-component-demo">
           <div style="display:flex;gap:var(--space-16);align-items:flex-end;flex-wrap:wrap">
             <div class="form-field">
@@ -1173,9 +1173,13 @@
                 <button class="button-group-btn">7 days</button>
               </div>
             </div>
+            <div class="form-field">
+              <label class="form-label">Primary action (.committees-link)</label>
+              <button class="committees-link">Committees →</button>
+            </div>
           </div>
         </div>
-        <div class="ds-component-notes">Used on <code>feed.html</code> for office and time window filters. Wraps in <code>.form-field</code> with <code>.form-label</code> above — same structure as other filter controls. <code>height:34px</code> explicitly matches <code>.form-select</code> and <code>.form-input</code>. Adjacent buttons collapse shared borders via <code>.button-group-btn + .button-group-btn { border-left:none }</code>. Promote to <code>stable</code> when used on a second page.</div>
+        <div class="ds-component-notes">Used on <code>feed.html</code> for office and time window filters, and on <code>candidate.html</code> as the <code>.committees-link</code> primary-action trigger in the profile header. Wraps in <code>.form-field</code> with <code>.form-label</code> above — same structure as other filter controls. <code>height:34px</code> explicitly matches <code>.form-select</code> and <code>.form-input</code>. Adjacent buttons collapse shared borders via <code>.button-group-btn + .button-group-btn { border-left:none }</code>. <code>.committees-link</code> is a standalone use of the navy-filled visual treatment — same color/border declarations, its own sizing rule, own identity class.</div>
       </div>
 
       <!-- 12. End of results -->

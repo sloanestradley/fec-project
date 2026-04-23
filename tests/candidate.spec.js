@@ -62,8 +62,28 @@ test.describe('candidate.html — profile header', () => {
 
   test('meta-row has no .tag-neutral race tag (race tag removed on redesign branch)', async ({ page }) => {
     await setup(page);
-    // incumbent tag uses .tag-neutral too — check there's no non-incumbent .tag-neutral
-    await expect(page.locator('#meta-row .tag-neutral:not(.incumbent-tag)')).toHaveCount(0);
+    // incumbent tag and fec-id tag use .tag-neutral too — check there's no other .tag-neutral (e.g. a re-introduced race tag)
+    await expect(page.locator('#meta-row .tag-neutral:not(.incumbent-tag):not(.fec-id-tag)')).toHaveCount(0);
+  });
+
+  test('FEC ID tag renders with candidate ID text', async ({ page }) => {
+    await setup(page);
+    const fec = page.locator('#meta-row .fec-id-tag');
+    await expect(fec).toBeVisible();
+    await expect(fec).toHaveText(/FEC ID · H2WA03217/);
+  });
+
+  test('First filed prose span renders with year', async ({ page }) => {
+    await setup(page);
+    const prose = page.locator('#meta-row .meta-prose');
+    await expect(prose).toBeVisible();
+    await expect(prose).toHaveText(/First filed 2022/);
+  });
+
+  test('meta-row is a sibling of .profile-header-row, not a child', async ({ page }) => {
+    await setup(page);
+    await expect(page.locator('.profile-header-row #meta-row')).toHaveCount(0);
+    await expect(page.locator('#profile-header > #meta-row')).toHaveCount(1);
   });
 
   test('race-context element is present in meta-row', async ({ page }) => {

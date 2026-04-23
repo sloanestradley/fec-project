@@ -103,8 +103,8 @@
   <div class="committee-header page-header page-header-reveal" id="committee-header" style="display:none">
     <div class="profile-header-row">
       <div class="page-title" id="committee-name">—</div>
-      <div class="meta-row" id="meta-row"></div>
     </div>
+    <div class="meta-row" id="meta-row"></div>
   </div>
   <!-- Tabs bar — revealed after load -->
   <div class="tabs-bar" id="tabs-bar" style="display:none">
@@ -464,7 +464,7 @@ function renderHeader(c) {
   // Name — title-cased
   document.getElementById('committee-name').textContent = toTitleCase(c.name) || '—';
 
-  // Meta row: type tag, status tag, designation
+  // Meta row: type tag, status tag, designation, FEC ID, active-since (when active)
   var dotCls  = filingFrequencyDotClass(c.filing_frequency);
   var freqLbl = filingFrequencyLabel(c.filing_frequency);
   var metaHtml = '';
@@ -476,6 +476,13 @@ function renderHeader(c) {
     + freqLbl + '</span>';
   if (c.state) {
     metaHtml += ' <span class="tag tag-neutral">' + c.state + '</span>';
+  }
+  metaHtml += ' <span class="tag tag-neutral fec-id-tag">FEC ID · ' + COMMITTEE_ID + '</span>';
+  // "Active since YYYY" — omit entirely for terminated (T) and administratively-terminated (A)
+  var isActive = c.filing_frequency !== 'T' && c.filing_frequency !== 'A';
+  if (isActive && c.first_file_date) {
+    var activeYear = String(c.first_file_date).slice(0, 4);
+    metaHtml += ' <span class="meta-prose">Active since ' + activeYear + '</span>';
   }
   document.getElementById('meta-row').innerHTML = metaHtml;
 

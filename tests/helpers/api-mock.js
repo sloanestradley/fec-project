@@ -24,6 +24,7 @@ const CANDIDATE = {
     election_years: [2022, 2024],
     incumbent_challenge: 'I',
     incumbent_challenge_full: 'Incumbent',
+    first_file_date: '2022-02-22',
   }],
   pagination: { count: 1, pages: 1, per_page: 20, page: 1 },
 };
@@ -74,6 +75,7 @@ const COMMITTEE = {
     state: 'WA',
     organization_type_full: null,
     cycles: [2022, 2024, 2026],
+    first_file_date: '2020-04-24',
   }],
   pagination: { count: 1 },
 };
