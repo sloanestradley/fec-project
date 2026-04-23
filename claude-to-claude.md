@@ -4379,13 +4379,17 @@ The original prompt's verification plan was copy-pasted discipline — trigger t
 - Meta: the pattern of premise-check-then-verify-scope (what happened on both fixes this session) is worth keeping as a session-opening ritual for any small backlog item that was written more than a week ago. Items age; so do their premises.
 
 ---
-2026-04-23 — Header polish pass (candidate.html + committee.html)
+2026-04-23 — Header polish + restored local dev + QA reorder
 
 ## Process log draft
 
-# The restructure that taught a test to be specific
+# Polish, broken dev loop, reorder
 
-*2026-04-23 — Header polish, candidate + committee*
+*2026-04-23 — Three threads, one session*
+
+The planned work was a header polish pass on candidate.html and committee.html. The session finished a different shape than the prompt described: polish shipped in a clean commit (b41eac2), and then Sloane tried to validate locally and surfaced a failure that had been sitting quietly for three weeks — `python3 -m http.server 8080` had stopped being a valid local-dev path on 2026-04-14, when the server-side API proxy migration landed. The migration work + historical backfill + Cloudflare Pages migration that followed didn't need browser-level visual validation, so the regression stayed invisible. QA on the polish then caught a tag-order issue and we fixed that too. Three threads; one session; the second was the one that taught the most.
+
+**Thread 1 — the header polish itself**
 
 The prompt read like a straightforward restack: pull the meta-row out of the profile-header-row, add an FEC ID tag and a filing-year prose span, restyle the committees trigger to match the navy-filled button-group treatment. Two pages, one template change, no new tokens. Done cleanly it's half an hour of work. Done with the compact sticky header still intact — and with an existing "meta-row has no .tag-neutral race tag" assertion kept honest, and with a terminated-committee branch that omits the "Active since" prose entirely — turned it into a slightly longer session with a more interesting test shape.
 
@@ -4393,7 +4397,21 @@ The restructure itself was small. `.meta-row` became a sibling of `.profile-head
 
 The interesting part was the test that would have broken silently. `candidate.spec.js` has a long-standing `meta-row has no .tag-neutral race tag` assertion, meant to guard against a race tag being re-introduced in the meta-row after the redesign removed it. The FEC ID tag is also `.tag-neutral`. The assertion would have silently failed unless something marked the new tag as legitimately different. The fix: give the FEC ID tag its own hook class (`.fec-id-tag`) and refine the assertion to `:not(.incumbent-tag):not(.fec-id-tag)`. Same intent, more specific filter, and now the test proves what it meant all along.
 
-**Changelog:**
+**Thread 2 — the local-dev loop, silently broken for three weeks**
+
+Post-commit, Sloane started `python3 -m http.server 8080` to eyeball the polish and saw `/api/fec/committee/...` → 404. Diagnosis took about thirty seconds: `http.server` is a vanilla static server; it doesn't run Cloudflare Pages Functions and it doesn't honor `_redirects`. Both behaviors quietly became load-bearing on 2026-04-14 when the FEC API key moved server-side. The fix is to swap local dev to `wrangler pages dev`, which does both.
+
+A minor surprise during the proof-of-life: wrangler 4.82.2's bundled Workers runtime only supports compatibility dates up to 2026-04-17, and without an explicit flag it defaulted to today (2026-04-23) and refused to start. Pinning `--compatibility-date=2026-04-17` on the CLI fixed it in ten seconds. Wrangler 4.84.1 is available if we want to upgrade, but pinning is the cheaper move until the next pipeline session gives us a natural spot.
+
+The new `npm run dev` script is `bash scripts/stage-site.sh dist && wrangler pages dev dist --compatibility-date=2026-04-17 --kv AGGREGATIONS --port 8788`. Going through `stage-site.sh` keeps local parity with production: same allowlist, same `dist/` shape Cloudflare sees on every deploy. `.dev.vars` (gitignored) supplies the `API_KEY` secret locally. `--kv AGGREGATIONS` simulates the KV binding — empty locally, so aggregation reads always miss and the client falls through to the live API via the (now working) Pages Function, which is the exact path Playwright's structural mocks already exercise.
+
+Flagged this afternoon in the CLAUDE.md local-dev block: every source-file edit requires re-running `stage-site.sh` because wrangler serves from `dist/`, not the repo root. There's a straightforward alternative (`wrangler pages dev .` — instant edits, leaks internal docs at localhost) if the re-stage cadence turns out to be painful during the upcoming IA work. Not proposing it preemptively.
+
+**Thread 3 — QA reorder: incumbent before FEC ID**
+
+Sloane eyeballed the live polish once the local loop was back and caught the meta-row order: FEC ID and "First filed" were rendering before the incumbent tag, not after. The fix is local to the incumbent-tag insertion block in `loadCycle()`: instead of `metaRow.appendChild(tag)`, it now does `metaRow.insertBefore(tag, fecIdTag)` keyed on the `.fec-id-tag` hook. That keeps the cycle-dependent incumbent logic cleanly separate from the cycle-independent FEC ID / First filed, which are set once at init and never touched on cycle switches. A new Playwright assertion enforces the canonical order (party → incumbent → FEC ID → First filed) so a regression to `appendChild` would fail fast.
+
+**Changelog (header polish — shipped as `b41eac2`):**
 - `candidate.html` — `.meta-row` moved out of `.profile-header-row`; render adds FEC ID tag + "First filed YYYY" prose reading `cand.first_file_date`
 - `committee.html` — same DOM move; render appends FEC ID tag + conditional "Active since YYYY" prose, omitted when `filing_frequency` is `'T'` or `'A'`
 - `styles.css` — rewrote `.committees-link` (height 34, Plex Mono uppercase, navy fill via shared rule); added `.meta-prose` utility; added scoped `.page-header > .meta-row { margin-top:var(--space-4) }` gap
@@ -4402,7 +4420,18 @@ The interesting part was the test that would have broken silently. `candidate.sp
 - `tests/candidate.spec.js` — 3 new assertions (FEC ID tag text, First filed prose, structural sibling check); refined the pre-existing race-tag-absent assertion
 - `tests/pages.spec.js` — 3 new assertions on the committee page + a new `committee.html — terminated committee` describe block that routes over the `/committee/{id}/` endpoint to flip `filing_frequency` to `'T'` and asserts the meta-prose is omitted while the FEC ID tag still renders
 - `CLAUDE.md`, `test-cases.md` — descriptions and checklists updated for the new structure
-- 425/425 Playwright passing (+8 new)
+
+**Changelog (local-dev restoration + QA reorder — one additional commit):**
+- `package.json` — new `"dev"` script: `bash scripts/stage-site.sh dist && wrangler pages dev dist --compatibility-date=2026-04-17 --kv AGGREGATIONS --port 8788`
+- `.gitignore` — `.dev.vars` added (already ignored `dist/` and `.wrangler/`)
+- `.dev.vars` — created locally with the FEC API key; gitignored, never committed
+- `CLAUDE.md` — local-dev block rewritten end-to-end: new `npm run dev` invocation, how to obtain/rotate the FEC API key, why `.dev.vars` is gitignored, why Cloudflare Pages secrets are one-way (can't be re-displayed after set), the 2026-04-14 regression history (so future sessions know why this block is detailed). Candidate-page local-dev reference updated to `http://127.0.0.1:8788/`.
+- `candidate.html` — `loadCycle()`'s incumbent-tag block now does `insertBefore(tag, fecIdTag)` instead of `appendChild(tag)`, giving canonical order party → incumbent → FEC ID → First filed
+- `design-system.html` — Candidate Header demo reordered to match
+- `test-cases.md` — checklist reordered + Test log row for this session rewritten in place (covers all three threads, 426/426 final count)
+- `tests/candidate.spec.js` — new assertion `meta-row children render in canonical order: party → incumbent → FEC ID → First filed` (DOM role sequence check)
+
+**Test count: 426/426 Playwright passing** (+9 new this session from 417 baseline).
 
 **Field notes:**
 
@@ -4412,7 +4441,11 @@ The terminated-committee test is the other piece worth banking. Rather than add 
 
 Third, smaller observation: the plan flagged six concerns before the first line of code. Five were resolved by the plan itself (mock gap, extract-shared-rule approach, vertical spacing, design-system override drift, sentinel-compact stability). The sixth — "Active since" vs "First filed" copy for terminated committees — went to Sloane via AskUserQuestion, and the answer came back more specific than my three-option menu: "branch, but show nothing for terminated, not a fallback phrase." The point of surfacing it wasn't to get approval for an option I'd already picked; it was to expose a choice where my recommendation would have shipped slightly wrong copy.
 
-**Stack tags:** Hook classes for test specificity · per-test `page.route()` fallthrough pattern · `color-mix`-free shared-rule CSS consolidation · `.meta-prose` as a minimal utility that reuses an existing named type style
+The local-dev find is the biggest field note. The end-of-session ritual in CLAUDE.md says "run Playwright, commit, push" — it does not say "validate locally in a browser before claiming done." For three weeks that gap has been invisible because the work (data pipeline, Cloudflare migrations) didn't require a browser to prove correctness. The header polish session *would* have caught it if the ritual had a "run `npm run dev` and load the page" step; it didn't, so it took Sloane trying to validate AFTER the ritual completed. The fix is structural, not behavioral — the Test log row for this session notes the visual-verification gap explicitly, and the restored `npm run dev` command makes it cheap to run; a session that modifies UI now has a clear local-validation path rather than an ambient "test in browser somehow" expectation. Worth building this into the ritual alongside the Playwright step when the next UI-heavy session comes up.
+
+The QA reorder was also a nudge about where order matters in a render function. I'd written the FEC ID + First filed spans into the *init* flow because they're cycle-independent (correctness reason) and then left the incumbent tag in *loadCycle* because it's cycle-dependent (correctness reason). Both correct, and then the DOM assembled in the wrong visual order because "correct place to compute" isn't "correct place in the DOM." The `insertBefore(tag, fecIdTag)` fix preserves both properties cleanly — compute where computation makes sense, insert where order makes sense. The hook class (`fec-id-tag`) paid off a second time as the insertion anchor.
+
+**Stack tags:** Hook classes for test specificity (paid off twice — test selector + DOM insertion anchor) · per-test `page.route()` fallthrough pattern · `color-mix`-free shared-rule CSS consolidation · `.meta-prose` as a minimal utility that reuses an existing named type style · `wrangler pages dev` as local-dev primitive for Pages projects · `--compatibility-date` pinning on wrangler CLI
 
 ## How Sloane steered the work
 
@@ -4428,17 +4461,33 @@ The prompt left room for either literally applying `.button-group-btn.active` to
 
 No back-and-forth on the plan — you approved it after the two AskUserQuestion answers. But the plan was shaped by anticipation of what you'd flag: the mock gap was called out up-front because "data-layer verification before shipping" is your rule; the `.committees-link` drift in `design-system.html` was surfaced because doc hygiene is your rule; the "visual verification gap" was flagged in the test log row because "tests verify correctness, not feature quality" is your rule. Steering happens before and after the session too, not just during.
 
-**The through-line:** you make the UX call specifically where my instincts compromise. My default was "branch and show a different phrase"; yours was "branch and show less." My default was "either approach is fine, let's pick one"; yours was "pick the one whose semantic story is cleaner." Both times the output shipped tighter than my plan described it.
+**"Let's do (3) first — run npx wrangler pages dev . as a one-off to confirm Pages Functions run locally and the 404s resolve."**
+
+Three options on the table for fixing local dev: (1) wire up the full setup (`dev` script + `.gitignore` + docs) in one shot; (2) scaffold the script and hand-off `.dev.vars`; (3) prove-it-works first with a throwaway invocation before committing to any setup. You picked (3). That caught the wrangler compatibility-date failure (2026-04-23 default vs. 4.82.2's 2026-04-17 ceiling) in a ten-second curl loop, not mid-setup when it would have looked like an install problem. The pattern is the same as "write the SQL against a real sample before writing the schema": confirm the mechanism works end-to-end before wiring it into a committed interface.
+
+**"FEC ID and First filed should go after the incumbent tag on candidate.html."**
+
+One sentence of QA, zero ambiguity, zero negotiation about why. You eyeballed the live output, named the specific reorder, and the fix was mechanical from there. The payoff is in the feedback loop shape: visual-polish feedback works best as a specific reorder directive, not as "something looks off" — which would have left me guessing between "make the gap bigger / move the prose / change the tag color / swap the order." The directive saved us twenty minutes and, bonus, revealed that the hook class (`fec-id-tag`) was a perfect anchor for the `insertBefore` fix — test tool ends up being DOM tool, which I didn't foresee.
+
+**"API key: [pasted in chat]."**
+
+An operational call, not a UX one. You knew the key would land in conversation logs and accepted that tradeoff — FEC keys from api.data.gov are free, instant, and unlimited, so rotating afterward is cheap. The alternative (setting up an out-of-band channel to move the key to `.dev.vars`) would have added meaningful friction for a secret whose worst-case leak cost is "request a new one and update two places." Worth naming because the judgment that matters here isn't "is pasting a key OK" (it depends) but "does the cost of rotating it match the cost of the workaround" (for this specific class of key, yes). The rotation advisory is in the Claude Chat block as a reminder, not a requirement.
+
+**The through-line:** you make the UX call specifically where my instincts compromise. My default was "branch and show a different phrase"; yours was "branch and show less." My default was "either approach is fine, let's pick one"; yours was "pick the one whose semantic story is cleaner." My default was "let me wire up the full setup"; yours was "prove it works first." Every time, the output shipped tighter than my plan described it.
 
 ## What to bring to Claude Chat
 
-- **Visual verification still needs a human.** The Playwright suite validates DOM structure and text content (FEC ID tag renders, prose says "First filed 2022", meta-row is a sibling not a child, terminated committees omit the prose, etc.). It cannot validate: whether 4px feels right as the meta-row top gap, whether the navy committees button looks right next to the title, whether the mobile (≤860px) wrap of the new meta-row is clean, whether a real terminated committee renders as expected on the live site. Eyeball after the deploy; tune `--space-4` if the gap looks off.
+- **Visual verification was a gap and now isn't.** For three weeks the end-of-session ritual ran Playwright and called it done, and the local-dev path was silently broken — the rituals never notice a UI regression because tests pass. The fix isn't just `npm run dev` existing; it's adding "load the affected page(s) in a real browser" as an explicit ritual step for any UI-touching session. Worth deciding whether to codify that in CLAUDE.md's end-of-session block or keep it as a self-applied rule. Low-stakes either way, but the current ritual gave false confidence on this session's polish until you caught the order issue manually.
+
+- **Rotate the FEC API key when convenient.** The key you pasted to set up `.dev.vars` is now in the conversation log. FEC keys from api.data.gov are free/instant — request a new one at https://api.data.gov/signup/, update the Cloudflare secret (Dashboard → Workers & Pages → fecledgerapp → Settings → Variables and Secrets → `API_KEY` → Edit → paste → Save), update `.dev.vars` to match. No urgency; the current key keeps working until you rotate. Flagged because it's easy to forget.
+
+- **Dev-loop ergonomics may want a tweak.** `npm run dev` currently serves from `dist/`, so editing `candidate.html` or `styles.css` at the repo root requires re-running `stage-site.sh` before wrangler picks up the change. Production-parity vs. fast iteration is the tradeoff. If the IA rearchitecture session(s) turn out to be edit-heavy with frequent browser refreshes, we can add a `dev:source` variant that points wrangler at `.` — instant edits, leaks internal docs at localhost (acceptable locally). Don't need it today; flag if you find the restage rhythm annoying.
 
 - **This was explicitly groundwork.** The prompt called it out: "groundwork for a larger IA rearchitecture coming in follow-up sessions." The shape we landed — meta-row as a sibling below with FEC ID and filing-year context — is tightly coupled to whatever IA change you're planning. Worth talking through the arc before the next session so the rearchitecture doesn't re-do the work or undo the shape.
 
-- **`.fec-id-tag` is now a hook class with no CSS.** It exists purely so tests can distinguish the FEC ID tag from other `.tag-neutral` uses. If the next IA pass removes the FEC ID tag or relocates it, the class can go with it. Low-salience note; easy to forget the class exists at all because it does no styling work.
+- **`.fec-id-tag` is now a hook class with no CSS, doing double duty.** Exists purely so tests can distinguish the FEC ID tag from other `.tag-neutral` uses. Ended up being the anchor for `insertBefore` in the QA reorder too — the same "name the thing" benefit that paid off in the test selector also paid off in the DOM insertion logic. If the next IA pass removes the FEC ID tag or relocates it, the class can go with it.
 
 - **The per-test `page.route()` override pattern was new.** The new `committee.html — terminated committee` describe block in `pages.spec.js` demonstrates overriding a single endpoint (`/committee/{id}/`) with `route.fulfill()`, letting every other endpoint fall through to the default mock via `route.fallback()`. It's a cleaner way to test branches than adding alternative fixtures to the global mock. Worth knowing the pattern exists next time we need to test a single-field branch (committee status, filing type, etc.).
 
-- **No other carryovers.** No API surprises, no Cloudflare weirdness, no pipeline implications.
+- **Wrangler version pin is defensive but gets stale.** `--compatibility-date=2026-04-17` in the dev script avoids a startup failure with wrangler 4.82.2's runtime ceiling. When wrangler gets bumped (next pipeline session, or when a Cloudflare deprecation warning appears), bump the compat date alongside and prefer matching production's actual date rather than just unblocking local. Low salience; just a pointer for the next wrangler-touching session.
 

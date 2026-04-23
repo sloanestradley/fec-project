@@ -1537,7 +1537,14 @@ async function loadCycle(cycle) {
         var tag = document.createElement('span');
         tag.className = 'tag tag-neutral incumbent-tag';
         tag.textContent = 'Incumbent';
-        metaRow.appendChild(tag);
+        // Insert before the FEC ID tag so the meta-row reads
+        // party → incumbent → FEC ID → First filed.
+        var fecIdTag = metaRow.querySelector('.fec-id-tag');
+        if (fecIdTag) {
+          metaRow.insertBefore(tag, fecIdTag);
+        } else {
+          metaRow.appendChild(tag);
+        }
       }
     })();
 
@@ -1628,7 +1635,9 @@ async function init() {
     document.getElementById('candidate-name').textContent = displayName;
     document.title = displayName + ' — FECLedger';
 
-    // Meta row — party tag, FEC ID tag, first-filed prose (incumbent tag appended later by race-context logic)
+    // Meta row — party + FEC ID + first-filed prose (cycle-independent). Incumbent tag (cycle-dependent)
+    // is inserted later by loadCycle() BEFORE the FEC ID tag, giving order:
+    // party → incumbent → FEC ID → First filed.
     var firstFiledYear = cand.first_file_date ? String(cand.first_file_date).slice(0,4) : '';
     document.getElementById('meta-row').innerHTML =
       '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>'

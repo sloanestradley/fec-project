@@ -86,6 +86,19 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#profile-header > #meta-row')).toHaveCount(1);
   });
 
+  test('meta-row children render in canonical order: party → incumbent → FEC ID → First filed', async ({ page }) => {
+    await setup(page);
+    // MGP is the incumbent in the mock fixture; all four children should be present.
+    const roles = await page.locator('#meta-row > *').evaluateAll(nodes => nodes.map(n => {
+      if (n.classList.contains('tag-dem') || n.classList.contains('tag-rep') || n.classList.contains('tag-ind')) return 'party';
+      if (n.classList.contains('incumbent-tag')) return 'incumbent';
+      if (n.classList.contains('fec-id-tag')) return 'fec-id';
+      if (n.classList.contains('meta-prose')) return 'first-filed';
+      return 'other:' + n.className;
+    }));
+    expect(roles).toEqual(['party', 'incumbent', 'fec-id', 'first-filed']);
+  });
+
   test('race-context element is present in meta-row', async ({ page }) => {
     await setup(page);
     await expect(page.locator('#race-context')).toBeAttached();

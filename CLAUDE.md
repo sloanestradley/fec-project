@@ -297,7 +297,7 @@ tests/
   smoke.spec.js        — 5 live-API smoke tests (@smoke tagged)
 ```
 
-**Local dev:** `python3 -m http.server 8080` from project root → `localhost:8080/` (redirects to search.html)
+**Local dev:** `npm run dev` from project root → http://127.0.0.1:8788/ (redirects to search.html). Runs `bash scripts/stage-site.sh dist` followed by `wrangler pages dev dist` — Cloudflare-parity: executes Pages Functions (the `/api/fec/*` proxy and the `/candidate/:id` / `/committee/:id` clean-URL routers), honors `_redirects`, simulates the `AGGREGATIONS` KV namespace locally (empty → miss → client falls through to live API, which matches Playwright's structural coverage). Requires a `.dev.vars` file at the project root containing `API_KEY=<your-fec-api-key>` — gitignored, never commit. Without `.dev.vars` the `/api/fec/*` function still runs but FEC returns 403 `API_KEY_INVALID` (static pages and clean URLs still work). The FEC key comes from api.data.gov — Cloudflare Pages secrets are one-way (set in the Dashboard under Settings → Environment variables, but once saved the value cannot be re-displayed), so use the key from your own records or request a new one at https://api.data.gov/signup/. Every source-file edit requires re-running `npm run dev` (or `bash scripts/stage-site.sh dist` in another terminal while wrangler keeps running) because wrangler serves from the staged `dist/`, not from the repo root directly. `python3 -m http.server` is no longer sufficient — it does not run Pages Functions (`/api/fec/*` → 404) or honor `_redirects`; local dev broke silently on 2026-04-14 when the server-side API proxy landed and went unnoticed until 2026-04-23 because migration/pipeline work didn't require local visual validation.
 
 ---
 
@@ -307,10 +307,10 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 
 - **Test candidate:** Marie Gluesenkamp Perez — `H2WA03217` (House, WA-03)
 - **Also verified with:** Kirsten Gillibrand — `S0NY00410` (Senate, NY)
-- **Local dev:** `python3 -m http.server 8080` from project root, then `localhost:8080/candidate.html?id=H2WA03217`
+- **Local dev:** `npm run dev` from project root, then http://127.0.0.1:8788/candidate.html?id=H2WA03217 (or the clean URL http://127.0.0.1:8788/candidate/H2WA03217). See the Local dev block higher in this file for setup incl. `.dev.vars`.
 
 ### What's working
-- Profile header: `.candidate-race-label` div above `.profile-header-row` renders a long-form race label (`formatRaceLabelLong()`) in red-700 Oswald 400 uppercase, linking to the race page; `.profile-header-row` below has candidate name + "Committees →" primary-action trigger floating right via `margin-left:auto`; `.meta-row` below the header row (as a sibling inside `.page-header`) carries the party tag, `FEC ID · {id}` neutral tag, `First filed YYYY` prose span, and optional incumbent tag
+- Profile header: `.candidate-race-label` div above `.profile-header-row` renders a long-form race label (`formatRaceLabelLong()`) in red-700 Oswald 400 uppercase, linking to the race page; `.profile-header-row` below has candidate name + "Committees →" primary-action trigger floating right via `margin-left:auto`; `.meta-row` below the header row (as a sibling inside `.page-header`) carries, in order: party tag → incumbent tag (when applicable, cycle-dependent — inserted by `loadCycle()` via `insertBefore` relative to `.fec-id-tag` so order stays stable across cycle switches) → `FEC ID · {id}` neutral tag → `First filed YYYY` prose span
 - Race context sentence (`.tag-context` pill sourced from `/elections/`, skeleton while loading) lives in a persistent `#race-context-bar` strip between the tab bar and content — visible on all tabs
 - Cycle switcher is a `<select>` element, first child of `.tabs-bar`, populated from `election_years` — `loadCycle()` updates `select.value` in sync; Amplitude `Cycle Switched` fires on `onchange`
 - URL anchor encodes cycle + tab: `candidate.html#2024#summary`

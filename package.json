@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Playwright tests for ledger.fec",
   "scripts": {
+    "dev": "bash scripts/stage-site.sh dist && wrangler pages dev dist --compatibility-date=2026-04-17 --kv AGGREGATIONS --port 8788",
     "test": "playwright test",
     "test:smoke": "playwright test --config playwright.smoke.config.js",
     "test:headed": "playwright test --headed",
