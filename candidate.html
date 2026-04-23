@@ -367,6 +367,11 @@ var usTopoCache          = null;
 var CAND_PARTY           = null;
 var committeesLoaded     = false;
 var CAND_NAME            = null;
+var currentFetchId      = 0;     // fetch-race token — incremented on every loadCycle() call
+var cachedHistory       = null;  // /history/ response — reused on detail→index back-navigation
+var cachedAllTotals     = null;  // /totals/?per_page=100 — reused on detail→index back-navigation
+var compactHeaderInited = false; // compact scroll listener registered once on first detail entry
+var indexScrollY        = 0;     // scroll Y preserved on index→detail; restored on reverse
 
 var ARCHIVE_MIN_YEAR = { H: 2008, S: 2012, P: 2012 };
 
@@ -1367,6 +1372,7 @@ async function renderSpentIfReady() {
 
 // ── Load one cycle ──────────────────────────────────
 async function loadCycle(cycle) {
+  var myFetchId = ++currentFetchId;
   activeCycle = cycle;
 
   // Reset raised tab state for new cycle
@@ -1411,6 +1417,7 @@ async function loadCycle(cycle) {
                .catch(function(){ return { results: [] }; });
       }));
     var fetchResults = await Promise.all(fetchArgs);
+    if (myFetchId !== currentFetchId) return; // discard: a newer cycle was requested
     var committees   = fetchResults[0].results || [];
     var allTotalsArr = fetchResults.slice(1);
     var principal    = committees.find(function(c){ return c.designation==='P'; }) || committees[0];
@@ -1518,6 +1525,7 @@ async function loadCycle(cycle) {
       var eJson = await apiFetch('/elections/', eParams);
       electionsData = eJson.results || [];
     } catch(e) { electionsData = []; console.warn('Elections fetch failed:', e.message); }
+    if (myFetchId !== currentFetchId) return; // discard: a newer cycle was requested
 
     // ── Race context sentence ──────────────────────────────────────
     (function() {
@@ -1724,6 +1732,167 @@ function renderCycleIndex(cycles, totalsMap, office) {
   container.innerHTML = html;
 }
 
+// ── Compact header — scroll listener ─────────────────────────────────────────
+// Extracted from init()'s detail-view path so it can be registered once on first
+// detail entry regardless of which view was the landing view.
+function initCompactHeader() {
+  var headerEl      = document.getElementById('profile-header');
+  var tabsBarEl     = document.getElementById('tabs-bar');
+  var sentinelEl    = document.getElementById('profile-header-sentinel');
+  var mainEl        = document.querySelector('.main');
+  var headerH       = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+  var isCompact      = false;
+  var compactHeaderH = null;
+  var suppressUntil  = 0;
+  function update() {
+    if (Date.now() < suppressUntil) return;
+    var compact = sentinelEl.getBoundingClientRect().top < headerH;
+    if (compact === isCompact) return;
+    isCompact = compact;
+    suppressUntil = Date.now() + 100;
+    if (compact) {
+      var fullH = headerEl.offsetHeight;
+      headerEl.classList.add('compact');
+      if (compactHeaderH === null) compactHeaderH = headerEl.offsetHeight;
+      mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
+      tabsBarEl.style.top = (headerH + compactHeaderH) + 'px';
+    } else {
+      headerEl.classList.remove('compact');
+      mainEl.style.paddingBottom = '';
+      tabsBarEl.style.top = headerH + 'px';
+    }
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+}
+
+// ── Index view data processor ─────────────────────────────────────────────────
+// Shared by cache-miss fetch and cache-hit re-render paths in switchView().
+function renderIndexFromData(histJson, allTotalsJson) {
+  var histData   = histJson.results && histJson.results[0];
+  var fullTotals = (allTotalsJson.results || []).filter(function(r) { return r.election_full; });
+  var totalsMap  = {};
+  fullTotals.forEach(function(r) { totalsMap[r.candidate_election_year] = r; });
+  var historyCycles = histData && histData.election_years
+    ? histData.election_years
+    : (histData && histData.cycles ? histData.cycles : []);
+  var indexCycles = historyCycles.length
+    ? historyCycles.slice().sort(function(a,b){return b-a;})
+    : ALL_CYCLES;
+  var allCyclesSet = new Set(ALL_CYCLES);
+  historyCycles.forEach(function(y) {
+    if (!allCyclesSet.has(y)) console.warn('[candidate] history.election_years has ' + y + ' not in ALL_CYCLES');
+  });
+  var idxFirstFiledYear = histData && histData.first_file_date
+    ? String(histData.first_file_date).slice(0, 4)
+    : '—';
+  var lastFileDate = histData ? histData.last_file_date : null;
+  renderCareerStrip(idxFirstFiledYear, lastFileDate, fullTotals);
+  renderCycleIndex(indexCycles, totalsMap, CAND_OFFICE);
+}
+
+// ── View switcher ─────────────────────────────────────────────────────────────
+// Manages the index ↔ detail in-place transition without page reload.
+// Called once by init() on landing, then again by the hashchange handler on every
+// navigation. Profile header is never touched here — it's revealed once in init().
+// Designed for extraction to utils.js when committee.html adopts the same pattern.
+async function switchView(isDetailView, hashCycle) {
+  if (isDetailView) {
+    // ── Detail view ──────────────────────────────────────────────────────────
+
+    // Capture scroll before hiding index view (restored on back-navigation)
+    indexScrollY = window.scrollY;
+
+    // Hide index-view elements
+    ['career-strip', 'cycle-index'].forEach(function(id) {
+      var el = document.getElementById(id);
+      el.classList.remove('visible');
+      el.style.display = 'none';
+    });
+
+    // Show detail-view elements; structure appears first, data fills in async
+    document.getElementById('tabs-bar').style.display        = 'flex';
+    document.getElementById('race-context-bar').style.display = 'block';
+    document.getElementById('summary-strip').style.display   = 'block';
+    document.getElementById('content').style.display         = 'block';
+    requestAnimationFrame(function() {
+      document.getElementById('tabs-bar').classList.add('visible');
+      document.getElementById('race-context-bar').classList.add('visible');
+      document.getElementById('summary-strip').classList.add('visible');
+      document.getElementById('content').classList.add('visible');
+    });
+
+    // Register compact scroll listener once — before first scroll event can fire
+    if (!compactHeaderInited) { compactHeaderInited = true; initCompactHeader(); }
+
+    // Scroll to top so detail view header lands cleanly
+    window.scrollTo(0, 0);
+
+    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: hashCycle, source: urlParams.get('from') || null, view: 'detail' });
+
+    // Capture tab hash before loadCycle — replaceState inside loadCycle sets #cycle#summary,
+    // overwriting the original #cycle#tab hash before we can read it.
+    var hParts  = window.location.hash.replace(/^#/,'').split('#');
+    var tabHash = hParts[1];
+
+    activeCycle = hashCycle;
+    await loadCycle(hashCycle);
+
+    // Restore tab — covers initial load AND browser back/forward to #year#tab
+    if (['summary','raised','spent'].indexOf(tabHash) !== -1) showTab(tabHash);
+
+  } else {
+    // ── Index view ───────────────────────────────────────────────────────────
+
+    // Hide detail-view elements; reset compact state if it was active
+    ['tabs-bar', 'race-context-bar', 'summary-strip', 'content'].forEach(function(id) {
+      var el = document.getElementById(id);
+      el.classList.remove('visible');
+      el.style.display = 'none';
+    });
+    document.getElementById('profile-header').classList.remove('compact');
+    document.querySelector('.main').style.paddingBottom = '';
+
+    // Restore scroll position to where user was before entering detail view
+    window.scrollTo(0, indexScrollY);
+
+    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null, view: 'index' });
+
+    if (cachedHistory && cachedAllTotals) {
+      // Cache hit — instant re-render, no fetch needed
+      document.getElementById('career-strip').style.display = 'block';
+      document.getElementById('cycle-index').style.display  = 'block';
+      requestAnimationFrame(function() {
+        document.getElementById('career-strip').classList.add('visible');
+        document.getElementById('cycle-index').classList.add('visible');
+      });
+      renderIndexFromData(cachedHistory, cachedAllTotals);
+    } else {
+      // Cache miss — first visit to index view; fetch then reveal
+      var myIdxFetchId = ++currentFetchId;
+      try {
+        var idxResults = await Promise.all([
+          apiFetch('/candidate/' + CANDIDATE_ID + '/history/', { per_page: 1 }),
+          apiFetch('/candidate/' + CANDIDATE_ID + '/totals/', { per_page: 100 }),
+        ]);
+        if (myIdxFetchId !== currentFetchId) return;
+        cachedHistory   = idxResults[0];
+        cachedAllTotals = idxResults[1];
+        document.getElementById('career-strip').style.display = 'block';
+        document.getElementById('cycle-index').style.display  = 'block';
+        requestAnimationFrame(function() {
+          document.getElementById('career-strip').classList.add('visible');
+          document.getElementById('cycle-index').classList.add('visible');
+        });
+        renderIndexFromData(cachedHistory, cachedAllTotals);
+      } catch(e) {
+        document.getElementById('state-msg').textContent = 'Unable to load candidate data.';
+        console.error('[candidate] index view error:', e);
+      }
+    }
+  }
+}
+
 // ── Init ────────────────────────────────────────────
 async function init() {
   if (!CANDIDATE_ID) {
@@ -1732,6 +1901,7 @@ async function init() {
       + 'No candidate ID provided. <a href="/candidates" style="color:var(--accent)">Browse candidates →</a></p>';
     return;
   }
+  history.scrollRestoration = 'manual';
   try {
     var candJson = await apiFetch('/candidate/'+CANDIDATE_ID+'/');
     var cand = (candJson.results||[])[0];
@@ -1783,78 +1953,9 @@ async function init() {
         + distParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + activeCycle;
       labelEl.innerHTML = '<a href="' + href + '">' + formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST) + '</a>';
     })();
-    // view: 'detail' = arrived with #{year}#tab hash; 'index' = bare URL (T5/T6 cycle-index landing)
-    // Note: tests using setup() load without a hash → fire 'index'. Tests asserting on this
-    // property must use a hash in goto URL or explicitly match view: 'index'.
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
-    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null, view: isDetailView ? 'detail' : 'index' });
 
-    if (!isDetailView) {
-      // ── INDEX view path ───────────────────────────────────────────────────────
-      try {
-        var [histJson, allTotalsJson] = await Promise.all([
-          apiFetch('/candidate/' + CANDIDATE_ID + '/history/', { per_page: 1 }),
-          apiFetch('/candidate/' + CANDIDATE_ID + '/totals/', { per_page: 100 }),
-        ]);
-        var histData   = histJson.results && histJson.results[0];
-        var fullTotals = (allTotalsJson.results || []).filter(function(r) { return r.election_full; });
-        var totalsMap  = {};
-        fullTotals.forEach(function(r) { totalsMap[r.candidate_election_year] = r; });
-        // coverage_start_date is stored on each totals row and used to derive cycle label spans
-        // Use election_years (actual election groupings) not cycles (all FEC 2-year periods).
-        // For Senate/Presidential, cycles includes sub-periods (2014,2016,2020,2022) that
-        // have no totals and would show as empty rows — election_years has the correct set.
-        var historyCycles = histData && histData.election_years
-          ? histData.election_years
-          : (histData && histData.cycles ? histData.cycles : []);
-        var indexCycles = historyCycles.length
-          ? historyCycles.slice().sort(function(a,b){return b-a;})
-          : ALL_CYCLES;
-        // Warn if /history/ election_years diverge from ALL_CYCLES (election_years from candidate metadata)
-        var allCyclesSet = new Set(ALL_CYCLES);
-        historyCycles.forEach(function(y) {
-          if (!allCyclesSet.has(y)) console.warn('[candidate] history.election_years has ' + y + ' not in ALL_CYCLES');
-        });
-        var idxFirstFiledYear = histData && histData.first_file_date
-          ? String(histData.first_file_date).slice(0, 4)
-          : (cand.first_file_date ? String(cand.first_file_date).slice(0, 4) : '—');
-        var lastFileDate = histData ? histData.last_file_date : null;
-
-        renderCareerStrip(idxFirstFiledYear, lastFileDate, fullTotals);
-        renderCycleIndex(indexCycles, totalsMap, CAND_OFFICE);
-
-        // Reveal index view
-        document.getElementById('state-msg').style.display  = 'none';
-        document.getElementById('profile-header').style.removeProperty('display');
-        document.getElementById('career-strip').style.display = 'block';
-        document.getElementById('cycle-index').style.display  = 'block';
-        requestAnimationFrame(function() {
-          document.getElementById('profile-header').classList.add('visible');
-          document.getElementById('career-strip').classList.add('visible');
-          document.getElementById('cycle-index').classList.add('visible');
-        });
-        // Committees trigger — still useful in index view for quick access
-        document.getElementById('committees-trigger').style.display = 'block';
-        fetchAndRenderCommittees();
-
-        // NOTE: #race-context-bar, #tabs-bar, #summary-strip, #content are NOT revealed here.
-        // They start display:none and are only revealed by the detail-view path below.
-        // The return below ensures the detail path does not run.
-
-        // Cycle-row clicks are <a href="#year#summary"> — same-page hash navigation,
-        // which does NOT reload the page or re-run init(). Force a reload so the
-        // detail view can render. { once: true } auto-removes the listener after firing.
-        window.addEventListener('hashchange', function() {
-          window.location.reload();
-        }, { once: true });
-      } catch(e) {
-        document.getElementById('state-msg').textContent = 'Unable to load candidate data.';
-        console.error('[candidate] index view error:', e);
-      }
-      return; // exit init() — do not run detail view code
-    }
-    // ── DETAIL view path — existing code continues unchanged ─────────────────
-
+    // populated unconditionally so detail-view transitions don't need to re-initialize the switcher
     var sw = document.getElementById('cycle-switcher');
     ALL_CYCLES.forEach(function(cy) {
       var opt = document.createElement('option');
@@ -1869,62 +1970,25 @@ async function init() {
       loadCycle(cy);
     };
 
-    // Reveal UI
-    document.getElementById('state-msg').style.display       = 'none';
-    document.getElementById('profile-header').style.removeProperty('display');
-    document.getElementById('tabs-bar').style.display        = 'flex';
-    document.getElementById('race-context-bar').style.display = 'block';
-    document.getElementById('summary-strip').style.display   = 'block';
-    document.getElementById('content').style.display         = 'block';
-    requestAnimationFrame(function() {
-      document.getElementById('profile-header').classList.add('visible');
-      document.getElementById('tabs-bar').classList.add('visible');
-      document.getElementById('race-context-bar').classList.add('visible');
-      document.getElementById('summary-strip').classList.add('visible');
-      document.getElementById('content').classList.add('visible');
+    // Persistent hashchange handler — replaces the { once: true } reload from the index path.
+    // Fires on cycle-row anchor clicks and browser back/forward. Does NOT fire on loadCycle()
+    // or showTab() which use history.replaceState — no loop risk.
+    window.addEventListener('hashchange', function() {
+      var parts = window.location.hash.replace(/^#/,'').split('#');
+      var cy    = parseInt(parts[0]);
+      var isDet = ALL_CYCLES.indexOf(cy) !== -1;
+      switchView(isDet, cy);
     });
 
-    // Compact header — scroll listener on sentinel (normal-flow sibling before header)
-    (function() {
-      var headerEl      = document.getElementById('profile-header');
-      var tabsBarEl     = document.getElementById('tabs-bar');
-      var sentinelEl    = document.getElementById('profile-header-sentinel');
-      var mainEl        = document.querySelector('.main');
-      var headerH       = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
-      var isCompact      = false;
-      var compactHeaderH = null;
-      var suppressUntil  = 0;
-      function update() {
-        if (Date.now() < suppressUntil) return;
-        var compact = sentinelEl.getBoundingClientRect().top < headerH;
-        if (compact === isCompact) return;
-        isCompact = compact;
-        suppressUntil = Date.now() + 100;
-        if (compact) {
-          var fullH = headerEl.offsetHeight;
-          headerEl.classList.add('compact');
-          if (compactHeaderH === null) compactHeaderH = headerEl.offsetHeight;
-          mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
-          tabsBarEl.style.top = (headerH + compactHeaderH) + 'px';
-        } else {
-          headerEl.classList.remove('compact');
-          mainEl.style.paddingBottom = '';
-          tabsBarEl.style.top = headerH + 'px';
-        }
-      }
-      window.addEventListener('scroll', update, { passive: true });
-      update();
-    })();
-
-    // Load data
-    await loadCycle(activeCycle);
-
-    // Restore tab from hash
-    var tabHash = hashParts[1];
-    if (['summary','raised','spent'].indexOf(tabHash) !== -1) showTab(tabHash);
-
-    // Fetch committees at init — data is small, count needed immediately for trigger label
+    // Reveal profile header once — shared by index and detail view paths
+    document.getElementById('state-msg').style.display = 'none';
+    document.getElementById('profile-header').style.removeProperty('display');
+    requestAnimationFrame(function() {
+      document.getElementById('profile-header').classList.add('visible');
+    });
     fetchAndRenderCommittees();
+
+    await switchView(isDetailView, hashCycle);
 
   } catch(err) {
     var el = document.getElementById('state-msg');

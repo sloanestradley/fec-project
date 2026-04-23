@@ -624,3 +624,107 @@ test.describe('candidate.html — archive threshold (House pre-2008)', () => {
     expect(text).toContain('House');
   });
 });
+
+// ── In-place transitions — index ↔ detail ─────────────────────────────────────
+
+test.describe('candidate.html — in-place transitions', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+  });
+
+  test('no page reload on cycle row click', async ({ page }) => {
+    await page.evaluate(() => { document.body.dataset.loadId = '1'; });
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    const loadId = await page.evaluate(() => document.body.dataset.loadId);
+    expect(loadId).toBe('1');
+  });
+
+  test('#profile-header is the same DOM node after index → detail transition', async ({ page }) => {
+    await page.evaluate(() => { document.getElementById('profile-header').dataset.mark = 'x'; });
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    const mark = await page.evaluate(() => document.getElementById('profile-header').dataset.mark);
+    expect(mark).toBe('x');
+  });
+
+  test('index view elements hidden after transition to detail', async ({ page }) => {
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    await expect(page.locator('#career-strip')).not.toBeVisible();
+    await expect(page.locator('#cycle-index')).not.toBeVisible();
+  });
+
+  test('back button returns to index view', async ({ page }) => {
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    await page.goBack();
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    await expect(page.locator('#career-strip')).toBeVisible();
+    await expect(page.locator('#tabs-bar')).not.toBeVisible();
+  });
+
+  test('back button → index does not re-fetch history or all-totals', async ({ page }) => {
+    let historyRequests = 0;
+    let allTotalsRequests = 0;
+    page.on('request', req => {
+      const url = req.url();
+      if (url.includes('/history/')) historyRequests++;
+      if (url.includes('/totals/') && url.includes('per_page=100')) allTotalsRequests++;
+    });
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    await page.goBack();
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    expect(historyRequests).toBe(0);
+    expect(allTotalsRequests).toBe(0);
+  });
+
+  test('scroll resets to top on index → detail transition', async ({ page }) => {
+    await page.evaluate(() => {
+      document.body.style.minHeight = '3000px';
+      window.scrollTo(0, 500);
+    });
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    const scrollY = await page.evaluate(() => window.scrollY);
+    expect(scrollY).toBeLessThanOrEqual(5);
+  });
+
+  test('fetch race condition: last-clicked cycle wins', async ({ page }) => {
+    // Override cycle-specific totals: delay 2024 by 500ms, fulfill 2022 immediately.
+    // Other totals requests (per_page=100 all-totals already cached from beforeEach) fall through.
+    await page.route('**/api/fec/candidate/**totals**', async route => {
+      const url = route.request().url();
+      if (url.includes('cycle=2024')) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await route.fulfill({
+          status: 200, contentType: 'application/json',
+          body: JSON.stringify({ results: [{ receipts: 2400000, disbursements: 2100000, last_cash_on_hand_end_period: 300000, coverage_end_date: '2024-12-31T00:00:00', cycle: 2024 }], pagination: { count: 1 } }),
+        });
+      } else if (url.includes('cycle=2022')) {
+        await route.fulfill({
+          status: 200, contentType: 'application/json',
+          body: JSON.stringify({ results: [{ receipts: 2200000, disbursements: 1900000, last_cash_on_hand_end_period: 310000, coverage_end_date: '2022-12-31T00:00:00', cycle: 2022 }], pagination: { count: 1 } }),
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+    // Trigger 2024 then immediately 2022 — the 500ms delay on 2024's totals fetch means
+    // 2022 resolves first; the fetch-race token ensures 2024's stale response is discarded.
+    await page.evaluate(() => { window.location.hash = '#2024#summary'; });
+    await page.evaluate(() => { window.location.hash = '#2022#summary'; });
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    await page.waitForFunction(
+      () => { const el = document.getElementById('stat-raised'); return el && el.textContent !== '—'; },
+      { timeout: 12000 }
+    );
+    const raisedText = await page.locator('#stat-raised').textContent();
+    expect(raisedText).toContain('2.2');    // 2022 data: $2.2M
+    expect(raisedText).not.toContain('2.4'); // not 2024 stale data: $2.4M
+  });
+});
