@@ -1665,7 +1665,10 @@ async function init() {
         + distParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + activeCycle;
       labelEl.innerHTML = '<a href="' + href + '">' + formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST) + '</a>';
     })();
-    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null });
+    // view: 'detail' = arrived with #{year}#tab hash; 'index' = bare URL (T5/T6 cycle-index landing)
+    // Note: tests using setup() load without a hash → fire 'index'. Tests asserting on this
+    // property must use a hash in goto URL or explicitly match view: 'index'.
+    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null, view: ALL_CYCLES.indexOf(hashCycle) !== -1 ? 'detail' : 'index' });
 
     var sw = document.getElementById('cycle-switcher');
     ALL_CYCLES.forEach(function(cy) {

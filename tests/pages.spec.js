@@ -411,6 +411,46 @@ test.describe('committee.html — Spent tab sections', () => {
   });
 });
 
+// ── committee.html — assoc section candidate link ─────────────────────────────
+// Default COMMITTEE fixture has no candidate_ids; override to trigger assoc section render.
+
+test.describe('committee.html — assoc section candidate link', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/**', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [{
+            committee_id: 'C00775668',
+            name: 'MARIE FOR CONGRESS',
+            committee_type: 'H',
+            designation: 'P',
+            filing_frequency: 'Q',
+            state: 'WA',
+            cycles: [2022, 2024],
+            first_file_date: '2020-04-24',
+            candidate_ids: ['H2WA03217'],
+          }],
+          pagination: { count: 1 },
+        }),
+      });
+    });
+    await page.goto('/committee.html?id=C00775668');
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+  });
+
+  test('assoc section candidate link is bare URL (no hash anchor)', async ({ page }) => {
+    const link = page.locator('#assoc-list a.candidate-card').first();
+    await expect(link).toBeVisible({ timeout: 8000 });
+    const href = await link.getAttribute('href');
+    expect(href).toMatch(/^\/candidate\//);
+    expect(href).not.toContain('#');
+  });
+});
+
 // ── races.html ────────────────────────────────────────────────────────────────
 
 test.describe('races.html', () => {
@@ -550,12 +590,11 @@ test.describe('race.html', () => {
   });
 
   test('candidate card links to candidate page with cycle hash', async ({ page }) => {
-    // Accept both /candidate/{id}#year#summary (clean URL) and candidate.html?id=...#year
     const link = page.locator('a.candidate-card[href*="candidate"]').first();
     await expect(link).toBeAttached();
     const href = await link.getAttribute('href');
-    // Should include a year anchor like #2024#summary
-    expect(href).toMatch(/#\d{4}/);
+    // Regression guard: race.html is cycle-scoped by design; link must carry #{year}#summary
+    expect(href).toMatch(/#\d{4}#summary/);
   });
 
   test('no 422 errors (office sent as lowercase full word)', async ({ page }) => {
@@ -778,6 +817,7 @@ test.describe('candidates.html', () => {
     await expect(link).toBeVisible({ timeout: 8000 });
     const href = await link.getAttribute('href');
     expect(href).toMatch(/^\/candidate\//);
+    expect(href).not.toContain('#');
   });
 
   test('filter chips appear when a filter is active', async ({ page }) => {
@@ -961,6 +1001,7 @@ test.describe('candidates.html — search mode (?q=)', () => {
     const link = page.locator('a.candidate-card').first();
     const href = await link.getAttribute('href');
     expect(href).toMatch(/^\/candidate\//);
+    expect(href).not.toContain('#');
   });
 
   test('Candidates Searched Amplitude event fires', async ({ page }) => {
@@ -997,6 +1038,7 @@ test.describe('candidates.html — typeahead', () => {
     await expect(link).toBeVisible();
     const href = await link.getAttribute('href');
     expect(href).toMatch(/\/candidate\/[A-Z0-9]+/);
+    expect(href).not.toContain('#');
   });
 
   test('Escape key closes the typeahead', async ({ page }) => {

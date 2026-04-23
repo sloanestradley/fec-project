@@ -107,6 +107,7 @@ test.describe('search.html — typeahead dropdown', () => {
     await expect(link).toBeVisible();
     const href = await link.getAttribute('href');
     expect(href).toMatch(/\/candidate\/[A-Z0-9]+/);
+    expect(href).not.toContain('#');
   });
 
   test('committee row links to /committee/{id}', async ({ page }) => {
@@ -166,6 +167,7 @@ test.describe('search.html — two-group results', () => {
     await expect(link).toBeVisible();
     const href = await link.getAttribute('href');
     expect(href).toMatch(/\/candidate\/[A-Z0-9]+/);
+    expect(href).not.toContain('#');
   });
 
   test('committee results link to /committee/{id}', async ({ page }) => {

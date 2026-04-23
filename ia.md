@@ -1,6 +1,6 @@
 # FECLedger — Information Architecture
 
-*Last updated: 2026-04-09. Update this file whenever pages are added, renamed, or promoted in phase.*
+*Last updated: 2026-04-23. Update this file whenever pages are added, renamed, or promoted in phase.*
 
 ---
 
@@ -106,7 +106,8 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 
 | Page | Clean URL | Required params | Optional params | Notes |
 |---|---|---|---|---|
-| `candidate.html` | `/candidate/{id}` | `id` (path segment) | hash: `#{cycle}#{tab}` | Default fallback: MGP (`H2WA03217`). Tab options: summary, raised, spent |
+| `candidate.html` | `/candidate/{id}` | `id` (path segment) | hash: `#{cycle}#{tab}` | Default fallback: MGP (`H2WA03217`). Tab options: summary, raised, spent. Bare URL (no hash) resolves to the detail view today; after T5/T6 it will resolve to the cycle index — all identity/discovery entry points should use the bare form. |
+| `candidate.html` (future) | `/candidate/{id}#cycles` | `id` (path segment) | — | Cycle index landing state; not yet implemented. Reserved for T5/T6. |
 | `committee.html` | `/committee/{id}` | `id` (path segment) | — | No ID → error state |
 | `race.html` | `/race` | `state`, `year`, `office` | `district` (required for House) | No params → error state |
 | `races.html` | `/races` | — | `cycle`, `office`, `state` | URL sync on all three filters — `pushState` on every filter change, params restored on init. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). |

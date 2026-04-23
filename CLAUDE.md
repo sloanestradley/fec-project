@@ -577,7 +577,10 @@ Search, Process Log, and Design System are **not** in the top nav. No active lin
 
 **`.main` padding:** Global rule `padding-top:var(--header-h)` in `styles.css` handles the fixed nav offset. No per-page media query override needed.
 
-Cycle-anchored links from race view: `candidate.html?id={id}#{year}#summary` — the `#{year}#summary` hash pre-selects the correct election cycle on the candidate page. Use this pattern whenever linking to a candidate from a race context.
+**Candidate page entry-point URL decisions (audited 2026-04-23):**
+- **Bare URL** (`/candidate/{id}`) for all identity/discovery contexts: search.html typeahead, search.html results, candidates.html cards, candidates.html typeahead, committee.html assoc section. `?from=xxx` tracking params may be appended for Amplitude `source` — they don't affect landing behavior.
+- **Cycle-anchored** (`/candidate/{id}#{year}#summary`) only from race.html — that page is cycle-scoped by design, so the link should land the candidate on the matching cycle. Use `candidate.html?id={id}#{year}#summary` when linking from any cycle-scoped context.
+- **`view` property on `Page Viewed`:** `'detail'` when the URL has a valid cycle hash; `'index'` when bare URL (T5/T6 will introduce the index landing state). Tests using `setup()` in candidate.spec.js load without a hash → fire `view: 'index'`. Any test asserting on this property must use a hash in the `goto` URL or explicitly match `'index'`.
 
 ## Senate multi-sub-cycle architecture
 

@@ -452,6 +452,16 @@ test.describe('candidate.html — Amplitude events', () => {
     const event = await findTrackEvent(page, 'Committees Modal Opened');
     expect(event).toBeDefined();
   });
+
+  test('Page Viewed fires with view: detail when URL has cycle hash', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    await page.waitForSelector('.tabs-bar.visible', { timeout: 12000 });
+    const event = await findTrackEvent(page, 'Page Viewed');
+    expect(event).toBeDefined();
+    expect(event.args[1]).toMatchObject({ view: 'detail' });
+  });
 });
 
 // ── Nav active state ──────────────────────────────────────────────────────────
