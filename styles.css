@@ -665,6 +665,55 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   color:var(--subtle); transition:border-color 0.15s, color 0.15s; }
 .retry-btn:hover { border-color:var(--text); color:var(--text); }
 
+/* ── Cycle index ── */
+.cycle-index-header {
+  display:grid;
+  grid-template-columns:1fr 100px 100px 100px 28px;
+  padding:var(--space-8) var(--page-gutter);
+  border-bottom:1px solid var(--border);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.625rem;
+  text-transform:uppercase;
+  letter-spacing:var(--ls-expanded);
+  color:var(--muted);
+}
+a.cycle-row {
+  display:grid;
+  grid-template-columns:1fr 100px 100px 100px 28px;
+  align-items:center;
+  padding:var(--space-16) var(--page-gutter);
+  border-bottom:1px solid var(--border);
+  text-decoration:none;
+  color:inherit;
+  transition:background 0.15s;
+}
+a.cycle-row:hover { background:var(--surface2); }
+.cycle-row-label { font-family:'IBM Plex Sans',sans-serif; font-size:0.875rem; font-weight:500; }
+.cycle-row-stat { font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:var(--subtle); text-align:right; }
+.cycle-row-chevron { font-size:1rem; color:var(--muted); text-align:right; padding-left:var(--space-8); }
+div.cycle-row {
+  display:grid;
+  grid-template-columns:1fr 100px 100px 100px 28px;
+  align-items:center;
+  padding:var(--space-16) var(--page-gutter);
+  border-bottom:1px solid var(--border);
+  color:var(--muted);
+  cursor:default;
+}
+.cycle-archive-divider {
+  display:flex; align-items:center; gap:var(--space-8);
+  padding:var(--space-8) var(--page-gutter);
+  border-bottom:1px solid var(--border);
+  background:var(--surface2);
+}
+.cycle-archive-divider-text {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.625rem;
+  text-transform:uppercase;
+  letter-spacing:var(--ls-expanded);
+  color:var(--muted);
+}
+
 /* ── Responsive ── */
 @media (max-width:860px) {
   :root { --page-gutter: var(--space-16); }
@@ -680,6 +729,10 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   .candidate-card-meta,
   .committee-card-meta { justify-content:flex-start; width:100%; }
 
+  .cycle-index-header,
+  a.cycle-row,
+  div.cycle-row { grid-template-columns:1fr 90px 90px 24px; }
+  .cycle-row-spent-col { display:none; }
   .donors-table th:nth-child(3), .donors-table td:nth-child(3) { display:none; }
   .raised-grid { grid-template-columns:1fr; }
   .stats-grid { grid-template-columns:repeat(2,1fr); }

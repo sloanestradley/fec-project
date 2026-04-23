@@ -1195,7 +1195,50 @@
         <div class="ds-component-notes">Used on <code>candidates.html</code>, <code>committees.html</code>, and <code>feed.html</code>. Shown by JS (<code>style.display = 'block'</code>) when all results have loaded. Sits at the bottom of <code>.results-area</code> inside the <code>#state-results</code> wrapper.</div>
       </div>
 
-      <!-- 13. Toggle switch -->
+      <!-- 13. Cycle index -->
+      <div class="ds-component" id="comp-cycle-index" data-status="candidate-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">cycle-index</span>
+          <span class="ds-status candidate-only">candidate-only</span>
+        </div>
+        <div class="ds-component-classes">.cycle-index-header · a.cycle-row · div.cycle-row · .cycle-row-label · .cycle-row-stat · .cycle-row-spent-col · .cycle-row-chevron · .cycle-archive-divider · .cycle-archive-divider-text · .cycle-row--archive</div>
+        <div class="ds-component-demo" style="border:1px solid var(--border);border-radius:4px;overflow:hidden">
+          <div class="cycle-index-header">
+            <span>Cycle</span>
+            <span style="text-align:right">Raised</span>
+            <span class="cycle-row-spent-col" style="text-align:right">Spent</span>
+            <span style="text-align:right">Cash on Hand</span>
+            <span></span>
+          </div>
+          <a class="cycle-row" href="#" onclick="return false">
+            <span class="cycle-row-label">2025–2026</span>
+            <span class="cycle-row-stat">$1.2M</span>
+            <span class="cycle-row-stat cycle-row-spent-col">$980K</span>
+            <span class="cycle-row-stat">$220K</span>
+            <span class="cycle-row-chevron" aria-hidden="true">›</span>
+          </a>
+          <a class="cycle-row" href="#" onclick="return false">
+            <span class="cycle-row-label">2023–2024</span>
+            <span class="cycle-row-stat">$3.5M</span>
+            <span class="cycle-row-stat cycle-row-spent-col">$3.1M</span>
+            <span class="cycle-row-stat">$450K</span>
+            <span class="cycle-row-chevron" aria-hidden="true">›</span>
+          </a>
+          <div class="cycle-archive-divider">
+            <span class="cycle-archive-divider-text">Archive · summary-only. FEC coverage begins 2008 for House races.</span>
+          </div>
+          <div class="cycle-row cycle-row--archive" tabindex="-1">
+            <span class="cycle-row-label">2005–2006</span>
+            <span class="cycle-row-stat">$800K</span>
+            <span class="cycle-row-stat cycle-row-spent-col">$750K</span>
+            <span class="cycle-row-stat">$50K</span>
+            <span></span>
+          </div>
+        </div>
+        <div class="ds-component-notes">Used on <code>candidate.html</code> in the index view (bare URL landing state). Rows above the archive threshold are <code>a.cycle-row</code> with <code>href="#year#summary"</code>; rows below are <code>div.cycle-row.cycle-row--archive</code> with <code>tabindex="-1"</code> (non-navigable). <code>.cycle-row-spent-col</code> is hidden at ≤860px. Column header uses <code>.cycle-index-header</code>. Year-range labels are derived from <code>coverage_start_date</code> on the totals row (API-sourced — handles Senate multi-year spans correctly). Archive threshold: H: 2008, S: 2012, P: 2012 (stored in <code>ARCHIVE_MIN_YEAR</code> constant).</div>
+      </div>
+
+      <!-- 14. Toggle switch -->
       <div class="ds-component" id="comp-toggle-switch" data-status="stable">
         <div class="ds-component-header">
           <span class="ds-component-name">toggle-switch</span>

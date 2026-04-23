@@ -5,14 +5,15 @@
  * Tests cover: profile header, cycle switcher, stats row, health banner,
  * chart canvas, tab navigation, committees modal, and Amplitude events.
  *
- * Test URL: /candidate.html?id=H2WA03217 (Marie Gluesenkamp Perez, WA-03)
+ * Test URL: /candidate.html?id=H2WA03217#2024#summary (detail view; bare URL → index view)
  */
 
 import { test, expect } from '@playwright/test';
 import { mockAmplitude, findTrackEvent } from './helpers/amp-mock.js';
 import { mockFecApi } from './helpers/api-mock.js';
 
-const CANDIDATE_URL = '/candidate.html?id=H2WA03217';
+// Hash required to land in detail view (bare URL now shows index view — T5/T6 CareerStrip)
+const CANDIDATE_URL = '/candidate.html?id=H2WA03217#2024#summary';
 
 // Shared setup: mock + load + wait for profile to render
 async function setup(page) {
@@ -258,7 +259,7 @@ test.describe('candidate.html — health banner', () => {
 
   test('first stat card is Raised-to-Spent Ratio', async ({ page }) => {
     await setupWithContent(page);
-    const firstLabel = page.locator('.stats-grid .stat-card').first().locator('.stat-label');
+    const firstLabel = page.locator('#summary-strip .stats-grid .stat-card').first().locator('.stat-label');
     await expect(firstLabel).toHaveText('Raised-to-Spent Ratio');
   });
 });
@@ -490,5 +491,136 @@ test.describe('candidate.html — API correctness', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForLoadState('networkidle');
     expect(errors422).toHaveLength(0);
+  });
+});
+
+// ── Landing state — index view (T5/T6) ───────────────────────────────────────
+
+test.describe('candidate.html — landing state (index view)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217'); // bare URL → index view
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+  });
+
+  test('bare URL renders CareerStrip and cycle index, not tabs-bar or summary-strip', async ({ page }) => {
+    await expect(page.locator('#career-strip')).toBeVisible();
+    await expect(page.locator('#cycle-index')).toBeVisible();
+    await expect(page.locator('#tabs-bar')).not.toBeVisible();
+    await expect(page.locator('#summary-strip')).not.toBeVisible();
+  });
+
+  test('#cycles hash also renders index view', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#cycles');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    await expect(page.locator('#cycle-index')).toBeVisible();
+    await expect(page.locator('#tabs-bar')).not.toBeVisible();
+  });
+
+  test('CareerStrip renders four cells with expected labels', async ({ page }) => {
+    const labels = await page.locator('#career-strip .stat-label').allTextContents();
+    expect(labels).toContain('First Filed');
+    expect(labels).toContain('Last Activity');
+    expect(labels).toContain('Career Raised');
+    expect(labels).toContain('Career Spent');
+  });
+
+  test('CareerStrip First Filed cell shows a year', async ({ page }) => {
+    const val = await page.locator('#cstat-first-filed').textContent();
+    expect(val?.trim()).toMatch(/^\d{4}$/);
+  });
+
+  test('cycle index renders one row per cycle from /history/ fixture', async ({ page }) => {
+    // CANDIDATE_HISTORY fixture has cycles: [2022, 2024] → 2 navigable rows
+    const rows = page.locator('#cycle-index a.cycle-row');
+    await expect(rows).toHaveCount(2);
+  });
+
+  test('Page Viewed fires with view: index', async ({ page }) => {
+    const event = await findTrackEvent(page, 'Page Viewed');
+    expect(event).toBeDefined();
+    expect(event.args[1]).toMatchObject({ view: 'index' });
+  });
+
+  test('clicking a cycle row navigates to #{year}#summary URL', async ({ page }) => {
+    const row = page.locator('#cycle-index a.cycle-row').first();
+    const href = await row.getAttribute('href');
+    expect(href).toMatch(/#\d{4}#summary/);
+  });
+
+  test('cycle row labels contain a year range with en-dash', async ({ page }) => {
+    const label = await page.locator('#cycle-index a.cycle-row .cycle-row-label').first().textContent();
+    expect(label?.trim()).toMatch(/^\d{4}[\u2013\-]\d{4}$/);
+  });
+
+  test('#committees-trigger is visible in index view', async ({ page }) => {
+    await expect(page.locator('#committees-trigger')).toBeVisible();
+  });
+});
+
+// ── Landing state regression — detail view unchanged ─────────────────────────
+
+test.describe('candidate.html — landing state regression (detail view unchanged)', () => {
+  test('#{year}#{tab} URL renders detail view, not index', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    await page.waitForSelector('.tabs-bar.visible', { timeout: 12000 });
+    // Positive assertion: detail-view elements are visible (proves the detail path ran)
+    await expect(page.locator('#tabs-bar')).toBeVisible();
+    await expect(page.locator('#summary-strip')).toBeVisible();
+    // Negative assertions: index-view elements are absent
+    await expect(page.locator('#career-strip')).not.toBeVisible();
+    await expect(page.locator('#cycle-index')).not.toBeVisible();
+  });
+});
+
+// ── Archive threshold — House pre-2008 ────────────────────────────────────────
+
+test.describe('candidate.html — archive threshold (House pre-2008)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Override /history/ to include a pre-2008 cycle
+    await page.route('**/api/fec/candidate/**history**', route => {
+      route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          results: [{
+            candidate_id: 'H2WA03217',
+            cycles: [2024, 2006],
+            first_file_date: '2004-01-01',
+            last_file_date: '2024-10-15',
+          }],
+          pagination: { count: 1 },
+        }),
+      });
+    });
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+  });
+
+  test('pre-threshold rows render as non-navigable divs (not anchors)', async ({ page }) => {
+    // 2006 < 2008 House threshold → archive row; 2024 ≥ 2008 → navigable anchor
+    const archiveRows = page.locator('#cycle-index div.cycle-row--archive');
+    await expect(archiveRows).toHaveCount(1);
+    const anchors = page.locator('#cycle-index a.cycle-row');
+    await expect(anchors).toHaveCount(1); // only 2024
+  });
+
+  test('archive rows are not keyboard-focusable (tabindex=-1)', async ({ page }) => {
+    const archiveRow = page.locator('#cycle-index div.cycle-row--archive').first();
+    await expect(archiveRow).toHaveAttribute('tabindex', '-1');
+  });
+
+  test('archive divider is present before archive rows', async ({ page }) => {
+    const divider = page.locator('#cycle-index .cycle-archive-divider');
+    await expect(divider).toBeVisible();
+    const text = await divider.textContent();
+    expect(text).toContain('2008');
+    expect(text).toContain('House');
   });
 });

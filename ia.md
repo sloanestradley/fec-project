@@ -11,7 +11,7 @@
 | `index.html` | Root redirect → search.html | `/` | Live (redirect) | 1 |
 | `search.html` | Name-based candidate + committee search with typeahead | `/search?q={query}` | Live | 2 |
 | `candidates.html` | Browse candidates by filter, or search by name via `?q=` | `/candidates?state=WA&office=H&party=DEM&cycle=2026` or `/candidates?q={query}` | Scaffold + search | 2 |
-| `candidate.html` | Single candidate profile | `/candidate/{fec_candidate_id}#{cycle}#{tab}` | Live | 1 |
+| `candidate.html` | Single candidate profile with career index landing state | `/candidate/{fec_candidate_id}` (index) or `/candidate/{fec_candidate_id}#{cycle}#{tab}` (detail) | Live | 1 |
 | `committees.html` | Browse committees by type/state, or search by name via `?q=` | `/committees?state=WA&type=P` or `/committees?q={query}` | Scaffold + search | 3 |
 | `committee.html` | Single committee profile | `/committee/{fec_committee_id}` | Scaffold+ (tabs + cycle switcher live; Raised tab live; Spent tab live; filing history stub) | 3 |
 | `races.html` | Browse races by year, office, state | `/races` | Live | 3 |
@@ -106,8 +106,8 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 
 | Page | Clean URL | Required params | Optional params | Notes |
 |---|---|---|---|---|
-| `candidate.html` | `/candidate/{id}` | `id` (path segment) | hash: `#{cycle}#{tab}` | Default fallback: MGP (`H2WA03217`). Tab options: summary, raised, spent. Bare URL (no hash) resolves to the detail view today; after T5/T6 it will resolve to the cycle index — all identity/discovery entry points should use the bare form. |
-| `candidate.html` (future) | `/candidate/{id}#cycles` | `id` (path segment) | — | Cycle index landing state; not yet implemented. Reserved for T5/T6. |
+| `candidate.html` | `/candidate/{id}` | `id` (path segment) | hash: `#{cycle}#{tab}` | No ID → error state. Tab options: summary, raised, spent. **Bare URL (no hash) → index view** (CareerStrip + cycle index table). Hash with valid cycle year → detail view. `#cycles` or any non-year hash → also index view. All identity/discovery entry points should use the bare form. |
+| `candidate.html` | `/candidate/{id}#cycles` | `id` (path segment) | — | Alias for index view — `parseInt('cycles')` = NaN → ALL_CYCLES.indexOf(NaN) = -1 → index view. Same landing state as bare URL. |
 | `committee.html` | `/committee/{id}` | `id` (path segment) | — | No ID → error state |
 | `race.html` | `/race` | `state`, `year`, `office` | `district` (required for House) | No params → error state |
 | `races.html` | `/races` | — | `cycle`, `office`, `state` | URL sync on all three filters — `pushState` on every filter change, params restored on init. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). |
@@ -128,7 +128,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 Phase assignments follow `project-brief.md`. Pages listed here by first-built phase.
 
 ### Phase 1 — Candidate page
-- `candidate.html` — profile with cycle switcher, tabs (Summary/Raised/Spent), chart, committees modal
+- `candidate.html` — profile with career index landing state (CareerStrip + cycle index), cycle switcher, tabs (Summary/Raised/Spent), chart, committees modal
 - `process-log.html` — dev diary
 - `design-system.html` — token/component reference
 

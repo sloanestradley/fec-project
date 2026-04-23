@@ -4491,3 +4491,48 @@ An operational call, not a UX one. You knew the key would land in conversation l
 
 - **Wrangler version pin is defensive but gets stale.** `--compatibility-date=2026-04-17` in the dev script avoids a startup failure with wrangler 4.82.2's runtime ceiling. When wrangler gets bumped (next pipeline session, or when a Cloudflare deprecation warning appears), bump the compat date alongside and prefer matching production's actual date rather than just unblocking local. Low salience; just a pointer for the next wrangler-touching session.
 
+
+---
+2026-04-23 14:25
+
+## Process log draft
+
+**The index, or: finally a landing page that earns its keep**
+
+The candidate page has always landed you mid-stream — dropped into a specific cycle's detail view, often the most recent one, with no sense of where you were in a longer story. This session built the thing that should have been there from the start: a career overview that greets you before you pick a cycle.
+
+Changelog:
+- candidate.html now has two distinct entry states: bare URL → index view (CareerStrip + cycle table), hash URL → unchanged detail view
+- CareerStrip: four career-wide stats — First Filed, Last Activity (year + full date), Career Raised, Career Spent (with % of raised)
+- Cycle index: clickable table of election cycles, sorted newest-first, with Raised / Spent / Cash on Hand per cycle; columns sourced from FEC /totals/ filtered to election_full:true
+- Cycle labels are API-sourced (coverage_start_date on each totals row) — Senate shows "2019–2024", not "2023–2024"
+- Pre-coverage-threshold cycles (H:pre-2008, S/P:pre-2012) render as non-navigable archive rows with a divider explaining FEC data availability
+- Navigation: clicking a cycle row changes the hash → hashchange listener fires page.reload() → detail view loads; back button returns to index view
+- Removed MGP hardcoded fallback — no ID now shows a "Browse candidates →" error state instead
+- Fixed trailing slash bug: /candidate/S0NY00410/ was resolving to MGP due to .split('/').pop() returning ''
+- All candidate entry-point links across search.html, candidates.html, committees.html, committee.html audited and confirmed as bare URLs (pre-implementation, commit 81844a0)
+- 22 new Playwright assertions across 3 describe blocks; 2 more added post-review (cycle label format, committees-trigger visibility); 441 total
+
+Field notes:
+What strikes me most about this feature is how much the API already knew. I almost hardcoded a { H: 2, S: 6, P: 4 } span lookup for cycle labels — "House is 2 years, Senate is 6 years, easy." Sloane pushed back: is there somewhere in the API we could derive these values instead? There was. coverage_start_date on election_full totals rows is exactly what you want — it's the actual start of the data coverage for that election cycle, which handles special elections, first-cycle candidates, and future cycles without any Constitutional-term-length trivia baked into the code. The API knew. We just had to ask it.
+
+Stack tags: FEC /history/ endpoint (new), election_years field, election_full totals filter, coverage_start_date, CareerStrip, cycle index, archive threshold
+
+## How Sloane steered the work
+
+**"Is there somewhere in the API we could derive these values?"**
+When I proposed a hardcoded `{ H: 2, S: 6, P: 4 }` span map for cycle label year ranges, Sloane pushed back immediately. Not with a correction — with a question. That question led directly to `coverage_start_date` on the election_full totals rows, which is API-sourced, handles special elections and first-cycle candidates correctly, and doesn't embed constitutional knowledge into the code. The better answer was already in the data; we just needed the right question to find it.
+
+**Removing MGP as the default fallback**
+When I implemented null CANDIDATE_ID as a silent failure, Sloane specified the right behavior: redirect or link to the browse page. The decision to surface "No candidate ID provided. Browse candidates →" instead of silently failing — or defaulting to a specific real candidate — reflects how Sloane thinks about user-facing error states. They should be useful, not embarrassing.
+
+**The `election_years` vs `cycles` bug**
+Sloane caught this through browser testing, not by reading code. The Senate index was showing empty rows for sub-cycles because I was using `cycles` (all FEC 2-year periods) instead of `election_years` (actual election groupings). The fix was correct because Sloane verified it in the browser, not just in the test suite. Manual verification found things automated tests couldn't.
+
+**The through-line:** Sloane consistently steers toward solutions grounded in actual domain data rather than approximations of it. "Use what the API gives you" is the instinct — and it produces code that ages better.
+
+## What to bring to Claude Chat
+
+- **What's the right Phase 4 priority now?** The index view is live — the candidate page has a real entry state. Does that change what comes next (48/24hr reports? AI insights? Transaction search)?
+- **Design question — CareerStrip on mobile:** at ≤860px the 4 stat cards collapse to 2×2. Is that the right treatment or should First Filed + Last Activity collapse differently?
+- **Archive threshold UX:** Pre-coverage cycles render as non-navigable rows with a divider. Is there a better treatment — collapse, hide, or link to an external FEC page for the filing?

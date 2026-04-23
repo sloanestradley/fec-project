@@ -36,6 +36,13 @@
     /* Remove .profile-content top padding on candidate.html since #summary-strip
        now provides the top vertical rhythm; stats-grid margin-bottom handles the gap. */
     .profile-content { padding-top:0; }
+    /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells */
+    #career-strip { opacity:0; transition:opacity 0.3s ease; }
+    #career-strip.visible { opacity:1; }
+    #career-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+    /* Cycle index — index view only */
+    #cycle-index { opacity:0; transition:opacity 0.3s ease; }
+    #cycle-index.visible { opacity:1; }
 
   </style>
 </head>
@@ -118,6 +125,32 @@
     <select id="cycle-switcher" class="form-select cycle-select"></select>
   </div>
   <div class="main-inner">
+
+    <!-- Career overview — index view only (hidden in detail view) -->
+    <div id="career-strip" style="display:none">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">First Filed</div>
+          <div class="stat-value" id="cstat-first-filed">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Last Activity</div>
+          <div class="stat-value" id="cstat-last-activity">—</div>
+          <div class="stat-sub"  id="cstat-last-activity-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Career Raised</div>
+          <div class="stat-value" id="cstat-career-raised">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Career Spent</div>
+          <div class="stat-value" id="cstat-career-spent">—</div>
+          <div class="stat-sub"  id="cstat-career-spent-sub"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="cycle-index" style="display:none" role="list" aria-label="Election cycles"></div>
 
     <div id="race-context-bar" style="display:none"><span id="race-context"></span></div>
 
@@ -314,8 +347,10 @@
 <script>
 // ── Config ─────────────────────────────────────────
 var urlParams    = new URLSearchParams(window.location.search);
-var _pathId      = window.location.pathname.split('/').pop();
-var CANDIDATE_ID = urlParams.get('id') || (_pathId && _pathId !== 'candidate.html' ? _pathId : null) || 'H2WA03217';
+// filter(Boolean) drops empty strings so trailing slashes don't return '' as the last segment
+var _pathParts   = window.location.pathname.split('/').filter(Boolean);
+var _pathId      = _pathParts[_pathParts.length - 1];
+var CANDIDATE_ID = urlParams.get('id') || (_pathId && _pathId !== 'candidate.html' ? _pathId : null) || null;
 var CAND_STATE   = null;   // populated from API in init()
 var CAND_DIST    = null;
 var CAND_OFFICE  = null;   // 'H', 'S', or 'P'
@@ -332,6 +367,8 @@ var usTopoCache          = null;
 var CAND_PARTY           = null;
 var committeesLoaded     = false;
 var CAND_NAME            = null;
+
+var ARCHIVE_MIN_YEAR = { H: 2008, S: 2012, P: 2012 };
 
 var FIPS_TO_ABBR = {
   '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
@@ -1612,8 +1649,89 @@ async function loadCycle(cycle) {
   }
 }
 
+// ── Index view renderers ─────────────────────────────
+function renderCareerStrip(firstFiledYear, lastFileDate, fullTotals) {
+  var careerRaised = fullTotals.reduce(function(s, r) { return s + (r.receipts || 0); }, 0);
+  var careerSpent  = fullTotals.reduce(function(s, r) { return s + (r.disbursements || 0); }, 0);
+  document.getElementById('cstat-first-filed').textContent = firstFiledYear || '—';
+  if (lastFileDate) {
+    var lastYear = String(lastFileDate).slice(0, 4);
+    document.getElementById('cstat-last-activity').textContent = lastYear;
+    document.getElementById('cstat-last-activity-sub').textContent = fmtDate(lastFileDate);
+  }
+  document.getElementById('cstat-career-raised').textContent = careerRaised ? fmt(careerRaised) : '—';
+  document.getElementById('cstat-career-spent').textContent  = careerSpent  ? fmt(careerSpent)  : '—';
+  if (careerRaised > 0) {
+    var pct = Math.round(careerSpent / careerRaised * 100);
+    document.getElementById('cstat-career-spent-sub').textContent = pct + '% of raised';
+  }
+}
+
+function cycleRowHTML(year, raised, spent, coh, isArchive, startYear) {
+  var label = (startYear || year - 1) + '\u2013' + year;
+  if (isArchive) {
+    return '<div class="cycle-row cycle-row--archive" tabindex="-1">'
+      + '<span class="cycle-row-label">' + label + '</span>'
+      + '<span class="cycle-row-stat">' + raised + '</span>'
+      + '<span class="cycle-row-stat cycle-row-spent-col">' + spent + '</span>'
+      + '<span class="cycle-row-stat">' + coh + '</span>'
+      + '<span></span>'
+      + '</div>';
+  }
+  return '<a href="#' + year + '#summary" class="cycle-row">'
+    + '<span class="cycle-row-label">' + label + '</span>'
+    + '<span class="cycle-row-stat">' + raised + '</span>'
+    + '<span class="cycle-row-stat cycle-row-spent-col">' + spent + '</span>'
+    + '<span class="cycle-row-stat">' + coh + '</span>'
+    + '<span class="cycle-row-chevron" aria-hidden="true">\u203a</span>'
+    + '</a>';
+}
+
+function renderCycleIndex(cycles, totalsMap, office) {
+  var threshold = ARCHIVE_MIN_YEAR[office] || 2008;
+  var container = document.getElementById('cycle-index');
+  var html = '<div class="cycle-index-header">'
+    + '<span>Cycle</span>'
+    + '<span style="text-align:right">Raised</span>'
+    + '<span class="cycle-row-spent-col" style="text-align:right">Spent</span>'
+    + '<span style="text-align:right">Cash on Hand</span>'
+    + '<span></span>'
+    + '</div>';
+  var archiveDividerInserted = false;
+  cycles.forEach(function(year) {
+    var isArchive = year < threshold;
+    var t = totalsMap[year];
+    var raised = t ? fmt(t.receipts || 0) : '—';
+    var spent  = t ? fmt(t.disbursements || 0) : '—';
+    var coh    = t ? fmt(t.last_cash_on_hand_end_period || 0) : '—';
+    // Derive cycle start year from coverage_start_date (API-sourced, handles Senate 6yr spans
+    // and special elections). If coverage starts in the election year itself (first-cycle
+    // candidate who filed mid-period), normalize to year-1 to match the FEC 2-year period.
+    var startYear = t && t.coverage_start_date
+      ? parseInt(String(t.coverage_start_date).slice(0, 4), 10)
+      : year - 1;
+    if (startYear >= year) startYear = year - 1;
+    if (isArchive && !archiveDividerInserted) {
+      archiveDividerInserted = true;
+      var officeLabel = { H:'House', S:'Senate', P:'Presidential' }[office] || 'House';
+      html += '<div class="cycle-archive-divider">'
+        + '<span class="cycle-archive-divider-text">Archive \u00b7 summary-only. '
+        + 'FEC coverage begins ' + threshold + ' for ' + officeLabel + ' races.</span>'
+        + '</div>';
+    }
+    html += cycleRowHTML(year, raised, spent, coh, isArchive, startYear);
+  });
+  container.innerHTML = html;
+}
+
 // ── Init ────────────────────────────────────────────
 async function init() {
+  if (!CANDIDATE_ID) {
+    var msg = document.getElementById('state-msg');
+    msg.innerHTML = '<p style="font-family:\'IBM Plex Sans\',sans-serif;font-size:0.875rem;color:var(--muted)">'
+      + 'No candidate ID provided. <a href="/candidates" style="color:var(--accent)">Browse candidates →</a></p>';
+    return;
+  }
   try {
     var candJson = await apiFetch('/candidate/'+CANDIDATE_ID+'/');
     var cand = (candJson.results||[])[0];
@@ -1668,7 +1786,74 @@ async function init() {
     // view: 'detail' = arrived with #{year}#tab hash; 'index' = bare URL (T5/T6 cycle-index landing)
     // Note: tests using setup() load without a hash → fire 'index'. Tests asserting on this
     // property must use a hash in goto URL or explicitly match view: 'index'.
-    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null, view: ALL_CYCLES.indexOf(hashCycle) !== -1 ? 'detail' : 'index' });
+    var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
+    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null, view: isDetailView ? 'detail' : 'index' });
+
+    if (!isDetailView) {
+      // ── INDEX view path ───────────────────────────────────────────────────────
+      try {
+        var [histJson, allTotalsJson] = await Promise.all([
+          apiFetch('/candidate/' + CANDIDATE_ID + '/history/', { per_page: 1 }),
+          apiFetch('/candidate/' + CANDIDATE_ID + '/totals/', { per_page: 100 }),
+        ]);
+        var histData   = histJson.results && histJson.results[0];
+        var fullTotals = (allTotalsJson.results || []).filter(function(r) { return r.election_full; });
+        var totalsMap  = {};
+        fullTotals.forEach(function(r) { totalsMap[r.candidate_election_year] = r; });
+        // coverage_start_date is stored on each totals row and used to derive cycle label spans
+        // Use election_years (actual election groupings) not cycles (all FEC 2-year periods).
+        // For Senate/Presidential, cycles includes sub-periods (2014,2016,2020,2022) that
+        // have no totals and would show as empty rows — election_years has the correct set.
+        var historyCycles = histData && histData.election_years
+          ? histData.election_years
+          : (histData && histData.cycles ? histData.cycles : []);
+        var indexCycles = historyCycles.length
+          ? historyCycles.slice().sort(function(a,b){return b-a;})
+          : ALL_CYCLES;
+        // Warn if /history/ election_years diverge from ALL_CYCLES (election_years from candidate metadata)
+        var allCyclesSet = new Set(ALL_CYCLES);
+        historyCycles.forEach(function(y) {
+          if (!allCyclesSet.has(y)) console.warn('[candidate] history.election_years has ' + y + ' not in ALL_CYCLES');
+        });
+        var idxFirstFiledYear = histData && histData.first_file_date
+          ? String(histData.first_file_date).slice(0, 4)
+          : (cand.first_file_date ? String(cand.first_file_date).slice(0, 4) : '—');
+        var lastFileDate = histData ? histData.last_file_date : null;
+
+        renderCareerStrip(idxFirstFiledYear, lastFileDate, fullTotals);
+        renderCycleIndex(indexCycles, totalsMap, CAND_OFFICE);
+
+        // Reveal index view
+        document.getElementById('state-msg').style.display  = 'none';
+        document.getElementById('profile-header').style.removeProperty('display');
+        document.getElementById('career-strip').style.display = 'block';
+        document.getElementById('cycle-index').style.display  = 'block';
+        requestAnimationFrame(function() {
+          document.getElementById('profile-header').classList.add('visible');
+          document.getElementById('career-strip').classList.add('visible');
+          document.getElementById('cycle-index').classList.add('visible');
+        });
+        // Committees trigger — still useful in index view for quick access
+        document.getElementById('committees-trigger').style.display = 'block';
+        fetchAndRenderCommittees();
+
+        // NOTE: #race-context-bar, #tabs-bar, #summary-strip, #content are NOT revealed here.
+        // They start display:none and are only revealed by the detail-view path below.
+        // The return below ensures the detail path does not run.
+
+        // Cycle-row clicks are <a href="#year#summary"> — same-page hash navigation,
+        // which does NOT reload the page or re-run init(). Force a reload so the
+        // detail view can render. { once: true } auto-removes the listener after firing.
+        window.addEventListener('hashchange', function() {
+          window.location.reload();
+        }, { once: true });
+      } catch(e) {
+        document.getElementById('state-msg').textContent = 'Unable to load candidate data.';
+        console.error('[candidate] index view error:', e);
+      }
+      return; // exit init() — do not run detail view code
+    }
+    // ── DETAIL view path — existing code continues unchanged ─────────────────
 
     var sw = document.getElementById('cycle-switcher');
     ALL_CYCLES.forEach(function(cy) {

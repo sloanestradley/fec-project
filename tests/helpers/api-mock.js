@@ -40,6 +40,50 @@ const TOTALS = {
   pagination: { count: 1 },
 };
 
+// Candidate history — index view path (/candidate/{id}/history/)
+const CANDIDATE_HISTORY = {
+  results: [{
+    candidate_id: 'H2WA03217',
+    cycles: [2022, 2024],          // all FEC 2-year periods (used for sub-cycle detail view)
+    election_years: [2022, 2024],  // actual election groupings (used for cycle index)
+    first_file_date: '2022-02-22',
+    last_file_date: '2024-10-15',
+  }],
+  pagination: { count: 2, pages: 1 },
+};
+
+// All-cycles totals for index view (no cycle param; election_full rows only served to client)
+// Sub-cycle row (election_full: false) intentionally included to verify client-side filter.
+const CANDIDATE_ALL_TOTALS = {
+  results: [
+    {
+      candidate_election_year: 2024,
+      election_full: true,
+      receipts: 3500000,
+      disbursements: 3100000,
+      last_cash_on_hand_end_period: 450000,
+      coverage_start_date: '2023-01-01T00:00:00',
+      coverage_end_date: '2024-12-31T00:00:00',
+    },
+    {
+      candidate_election_year: 2022,
+      election_full: true,
+      receipts: 2200000,
+      disbursements: 1900000,
+      last_cash_on_hand_end_period: 310000,
+      coverage_start_date: '2021-01-01T00:00:00',
+      coverage_end_date: '2022-12-31T00:00:00',
+    },
+    {
+      candidate_election_year: 2024,
+      election_full: false,
+      receipts: 1800000,
+      disbursements: 1600000,
+    },
+  ],
+  pagination: { count: 3 },
+};
+
 // Committees for a candidate (authorized committee list)
 const CANDIDATE_COMMITTEES = {
   results: [{
@@ -410,8 +454,14 @@ export async function mockFecApi(page) {
 function resolveFixture(path, params) {
   // Order matters — more specific patterns first
 
-  // candidate/{id}/totals/
-  if (/\/candidate\/[^/]+\/totals\//.test(path)) return TOTALS;
+  // candidate/{id}/history/
+  if (/\/candidate\/[^/]+\/history\//.test(path)) return CANDIDATE_HISTORY;
+
+  // candidate/{id}/totals/ — branch on cycle param:
+  // detail view passes ?cycle=; index view does not
+  if (/\/candidate\/[^/]+\/totals\//.test(path)) {
+    return params.get('cycle') ? TOTALS : CANDIDATE_ALL_TOTALS;
+  }
 
   // candidate/{id}/committees/
   if (/\/candidate\/[^/]+\/committees\//.test(path)) return CANDIDATE_COMMITTEES;

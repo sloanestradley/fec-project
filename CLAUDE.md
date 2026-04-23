@@ -303,13 +303,14 @@ tests/
 
 ## Candidate page: current state
 
-The candidate page (`candidate.html`) is the main work in progress. It accepts any candidate via `?id=` URL param (e.g. `candidate.html?id=H2WA03217`). MGP is the default fallback for development.
+The candidate page (`candidate.html`) is the main work in progress. It accepts any candidate via `?id=` URL param (e.g. `candidate.html?id=H2WA03217`) or path segment (`/candidate/H2WA03217`). No ID → error state with link to `/candidates` (no MGP fallback).
 
 - **Test candidate:** Marie Gluesenkamp Perez — `H2WA03217` (House, WA-03)
 - **Also verified with:** Kirsten Gillibrand — `S0NY00410` (Senate, NY)
 - **Local dev:** `npm run dev` from project root, then http://127.0.0.1:8788/candidate.html?id=H2WA03217 (or the clean URL http://127.0.0.1:8788/candidate/H2WA03217). See the Local dev block higher in this file for setup incl. `.dev.vars`.
 
 ### What's working
+- **Index view (landing state):** Bare URL (`/candidate/{id}`) → `isDetailView = false` → renders `#career-strip` (4-stat CareerStrip: First Filed / Last Activity / Career Raised / Career Spent) + `#cycle-index` (clickable table of election cycles). No tabs bar, no summary strip, no detail content. Two parallel API calls: `/candidate/{id}/history/?per_page=1` (career dates + `election_years`) and `/candidate/{id}/totals/?per_page=100` (filtered to `election_full: true` rows, keyed by `candidate_election_year`). Cycle labels derived from `coverage_start_date` on each totals row (API-sourced, handles Senate multi-year spans correctly). Cycles below `ARCHIVE_MIN_YEAR[office]` (H: 2008, S: 2012, P: 2012) rendered as non-navigable `div.cycle-row--archive` elements; above threshold rendered as `a.cycle-row` with `href="#year#summary"`. `#cycles` hash → also index view (via `parseInt('cycles') → NaN → ALL_CYCLES.indexOf(NaN) = -1`). Clicking a row triggers `hashchange` → `window.location.reload()` → detail view init. Back button → bare URL → index view. Use `election_years` (not `cycles`) from `/history/` response — `election_years` gives proper election groupings (Senate: [2010,2018,2024…]); `cycles` gives all FEC 2-year periods (Senate: [2010,2012,2014,…]).
 - Profile header: `.candidate-race-label` div above `.profile-header-row` renders a long-form race label (`formatRaceLabelLong()`) in red-700 Oswald 400 uppercase, linking to the race page; `.profile-header-row` below has candidate name + "Committees →" primary-action trigger floating right via `margin-left:auto`; `.meta-row` below the header row (as a sibling inside `.page-header`) carries, in order: party tag → incumbent tag (when applicable, cycle-dependent — inserted by `loadCycle()` via `insertBefore` relative to `.fec-id-tag` so order stays stable across cycle switches) → `FEC ID · {id}` neutral tag → `First filed YYYY` prose span
 - Race context sentence (`.tag-context` pill sourced from `/elections/`, skeleton while loading) lives in a persistent `#race-context-bar` strip between the tab bar and content — visible on all tabs
 - Cycle switcher is a `<select>` element, first child of `.tabs-bar`, populated from `election_years` — `loadCycle()` updates `select.value` in sync; Amplitude `Cycle Switched` fires on `onchange`
@@ -340,7 +341,8 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 ### Key FEC API endpoints in use
 ```
 GET /candidate/{id}/                          — candidate metadata
-GET /candidate/{id}/totals/?cycle={year}      — cycle-level financial totals
+GET /candidate/{id}/history/?per_page=1       — career dates + election cycle list; key fields: election_years (election groupings — use this, not cycles), first_file_date, last_file_date
+GET /candidate/{id}/totals/?cycle={year}      — cycle-level financial totals (pass cycle for detail view); omit cycle + per_page=100 for index view (all cycles, filter to election_full:true, key by candidate_election_year)
 GET /candidate/{id}/committees/               — associated committees (not cycle-scoped; returns all)
 GET /committees/?sponsor_candidate_id={id}    — leadership PACs sponsored by this candidate (separate endpoint!)
 GET /committee/{id}/                          — committee metadata (name, type, designation, status)
@@ -580,7 +582,7 @@ Search, Process Log, and Design System are **not** in the top nav. No active lin
 **Candidate page entry-point URL decisions (audited 2026-04-23):**
 - **Bare URL** (`/candidate/{id}`) for all identity/discovery contexts: search.html typeahead, search.html results, candidates.html cards, candidates.html typeahead, committee.html assoc section. `?from=xxx` tracking params may be appended for Amplitude `source` — they don't affect landing behavior.
 - **Cycle-anchored** (`/candidate/{id}#{year}#summary`) only from race.html — that page is cycle-scoped by design, so the link should land the candidate on the matching cycle. Use `candidate.html?id={id}#{year}#summary` when linking from any cycle-scoped context.
-- **`view` property on `Page Viewed`:** `'detail'` when the URL has a valid cycle hash; `'index'` when bare URL (T5/T6 will introduce the index landing state). Tests using `setup()` in candidate.spec.js load without a hash → fire `view: 'index'`. Any test asserting on this property must use a hash in the `goto` URL or explicitly match `'index'`.
+- **`view` property on `Page Viewed`:** `'detail'` when the URL has a valid cycle hash; `'index'` when bare URL (index landing state — live as of 2026-04-23). Tests in candidate.spec.js that use `setup()` load with `#2024#summary` hash → fire `view: 'detail'`. Index view tests use bare URL → fire `view: 'index'`. Any test asserting on this property must use the appropriate URL form.
 
 ## Senate multi-sub-cycle architecture
 
