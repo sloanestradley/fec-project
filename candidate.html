@@ -1822,9 +1822,6 @@ async function switchView(isDetailView, hashCycle) {
       document.getElementById('content').classList.add('visible');
     });
 
-    // Register compact scroll listener once — before first scroll event can fire
-    if (!compactHeaderInited) { compactHeaderInited = true; initCompactHeader(); }
-
     // Scroll to top so detail view header lands cleanly
     window.scrollTo(0, 0);
 
@@ -1853,20 +1850,18 @@ async function switchView(isDetailView, hashCycle) {
     document.getElementById('profile-header').classList.remove('compact');
     document.querySelector('.main').style.paddingBottom = '';
 
-    // Restore scroll position to where user was before entering detail view
-    window.scrollTo(0, indexScrollY);
-
     amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null, view: 'index' });
 
     if (cachedHistory && cachedAllTotals) {
-      // Cache hit — instant re-render, no fetch needed
+      // Cache hit — render data first so document height is full before scrollTo fires
       document.getElementById('career-strip').style.display = 'block';
       document.getElementById('cycle-index').style.display  = 'block';
+      renderIndexFromData(cachedHistory, cachedAllTotals);
       requestAnimationFrame(function() {
+        window.scrollTo(0, indexScrollY);
         document.getElementById('career-strip').classList.add('visible');
         document.getElementById('cycle-index').classList.add('visible');
       });
-      renderIndexFromData(cachedHistory, cachedAllTotals);
     } else {
       // Cache miss — first visit to index view; fetch then reveal
       var myIdxFetchId = ++currentFetchId;
@@ -1987,6 +1982,11 @@ async function init() {
       document.getElementById('profile-header').classList.add('visible');
     });
     fetchAndRenderCommittees();
+
+    // Compact header scroll listener registered unconditionally — index-only visits
+    // would never call switchView(true), so the listener must be active from init().
+    initCompactHeader();
+    compactHeaderInited = true;
 
     await switchView(isDetailView, hashCycle);
 

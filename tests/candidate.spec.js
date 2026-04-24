@@ -694,6 +694,14 @@ test.describe('candidate.html — in-place transitions', () => {
     expect(scrollY).toBeLessThanOrEqual(5);
   });
 
+  test('compact header engages on index view (no prior detail visit required)', async ({ page }) => {
+    await page.evaluate(() => {
+      document.body.style.minHeight = '3000px';
+      window.scrollTo(0, 400);
+    });
+    await expect(page.locator('#profile-header')).toHaveClass(/compact/, { timeout: 3000 });
+  });
+
   test('fetch race condition: last-clicked cycle wins', async ({ page }) => {
     // Override cycle-specific totals: delay 2024 by 500ms, fulfill 2022 immediately.
     // Other totals requests (per_page=100 all-totals already cached from beforeEach) fall through.
