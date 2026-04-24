@@ -4586,3 +4586,52 @@ The through-line: Sloane steers by identifying the specific failure scenario tha
 - **Next feature priority** — T6.5 closes the candidate page's core UX. Does Phase 3 committee/race polish come next, or does the project shift to Phase 4 (48/24hr reports, AI insights)?
 - **The page.evaluate Playwright scroll pattern** — now documented in TESTING.md. Worth knowing: any test that needs to preserve scrollY across a hash navigation must use page.evaluate instead of element.click(). Playwright's click() auto-scrolls into view first.
 - **design-system.html audit** — no component markup changed this session, but the compact continuity behavior is a new documented behavioral pattern on the profile header. Worth a note on the component card in a future session?
+
+---
+2026-04-24 13:35
+
+## Process log draft
+
+**The rate-limit arc: paying down what we built in the dark**
+
+The candidate page was hitting 429 Too Many Requests errors during ordinary QA — rapid navigation between cycles, not sustained load. Three diagnostic sessions later, the root cause was clear: chart decorations. Eight calls per House cycle, twenty-four per Senate cycle, just to draw dashed lines at filing deadlines and an amber line at election day. The overlays were nice-to-have context; the calls were not. This session removed them.
+
+Changelog:
+- candidate.html: removed /reporting-dates/ fetch block (8–24 calls/cycle), /election-dates/ fetch block (1 call/cycle), both overlay loops in overlayPlugin.afterDraw, two legend HTML items, function signature updated to match
+- utils.js: removed overlayDeadline and overlayElection from CHART_COLORS
+- styles.css: removed --chart-overlay-deadline, --chart-overlay-election CSS vars, .legend-dashed and .legend-amber-dashed rules
+- tests/helpers/api-mock.js: removed REPORTING_DATES and ELECTION_DATES fixtures and their mock routes
+- tests/candidate.spec.js: added one network assertion confirming neither endpoint is called on a detail view load
+- The "today" overlay (no API call) is unchanged
+
+Result: House cycle load ~10 calls (was ~18), Senate ~11 (was ~32). 452/452 Playwright passing.
+
+Field notes:
+The three-session arc (header passthrough → diagnostic → audit → remove) felt longer than it needed to be in retrospect, but each step was actually necessary. The passthrough confirmed the key was upgraded. The diagnostic confirmed the burst limit was the culprit and built the call inventory. The audit mapped value to cost and identified the two endpoints as the weakest links. Without that chain, the removal would have been a guess; with it, the tradeoffs were explicit before any code changed.
+
+The thing that stuck: the /reporting-dates/ endpoint has five CRITICAL implementation notes in CLAUDE.md — the sort order, the per_page limit, the silently-ignored date range params, the MY exclusion, the targeted-call approach to avoid false positives. That documentation represents real investigation cost. All of it now carries a "removed 2026-04-24" footnote rather than being deleted, because the behavioral quirks of that endpoint are worth preserving if it ever comes back (race.html, committee.html, Phase 4 election context). The removal was the right call on the UX tradeoff; the documentation stays because it was earned.
+
+Stack tags: /reporting-dates/ removal, /election-dates/ removal, chart overlay audit, x-ratelimit-limit header passthrough, network-assertion Playwright pattern
+
+## How Sloane steered the work
+
+**"Remove the features, not just the calls."**
+The framing from the start was "these are product features whose call cost outweighs their value" — not "these are slow calls." That distinction mattered. It meant the cleanup extended beyond the JS fetch blocks to the legend items, the CSS rules, the mock fixtures, and the CHART_COLORS entries. A narrower frame ("just stop calling those endpoints") would have left dead references everywhere. You described the whole surface as removable, so the whole surface was cleaned.
+
+**The three-session diagnostic arc as deliberate investment.**
+The passthrough ticket, the rate-limit investigation, the call-to-feature audit, and this removal were four separate sessions. That pace wasn't inefficiency — each step produced findings that shaped the next one. The audit confirmed that the filing-deadline overlays were the value call to scrutinize, not the chart itself or the Raised/Spent pre-fetches. Without the audit, the removal decision would have been less confident. You structured it this way intentionally, and it produced a cleaner outcome than a single "fix the 429s" ticket would have.
+
+**Keeping the "today" overlay.**
+The prompt explicitly scoped the removal to /reporting-dates/ and /election-dates/. The today overlay uses no API call and adds genuine active-cycle context. By scoping the ticket precisely, you avoided a "simplify everything" drift that might have removed something actually worth keeping. The scope boundary was exactly right.
+
+**The through-line:** You make tradeoff calls at the feature level, not the implementation level. "These overlays aren't worth the calls" is a product judgment; the implementation follows. That framing produced tighter scope and cleaner documentation than if the ticket had started from the code.
+
+## What to bring to Claude Chat
+
+- **Next arc: committee.html parity.** The rate-limit arc closes here for candidate.html. The next ticket (per the strategy) is auditing whether committee.html has analogous expensive-but-decorative calls. /reporting-dates/ and /election-dates/ aren't called there, but the Raised/Spent pre-fetch pattern is identical and worth the same audit.
+
+- **Remaining rate-limit arc items.** After committee parity, the strategy called for deferral (lazy-loading Raised/Spent fetches) and caching (/elections/ session-level cache). At ~10 calls/House cycle now, it's worth deciding whether those tickets are still load-bearing or whether this removal alone is sufficient for normal use.
+
+- **`/reporting-dates/` documentation.** Five CRITICAL notes about that endpoint's quirks are still in CLAUDE.md, annotated as removed. If there's no future home (race.html election context, Phase 4 filing-deadlines view), these can be pruned in a future doc pass rather than accumulating as annotated dead weight.
+
+- **Browser verification still outstanding.** Playwright is green, but the manual check — load MGP + Gillibrand, rapid cycle switching, confirm no 429s in DevTools, verify chart renders cleanly without overlays — should happen before declaring the rate-limit arc fully closed.
