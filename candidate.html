@@ -1827,7 +1827,15 @@ async function switchView(isDetailView, hashCycle) {
 
     // If index was compact-engaged, enter detail at the compact threshold so the
     // header state is continuous. If not compact, scroll to top as usual.
-    window.scrollTo(0, indexScrollY >= compactThreshold ? compactThreshold : 0);
+    var targetScrollY = (indexScrollY >= compactThreshold && compactThreshold > 0) ? compactThreshold : 0;
+    var mainEl = document.querySelector('.main');
+    if (targetScrollY > 0) {
+      // Detail view in loading state is shorter than viewport; scrollTo(targetScrollY) would be
+      // clamped to 0. Temporarily extend .main so the document can reach the scroll target.
+      // Cleared after loadCycle() populates real content that fills the document naturally.
+      mainEl.style.minHeight = (targetScrollY + window.innerHeight + 10) + 'px';
+    }
+    window.scrollTo(0, targetScrollY);
 
     amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: hashCycle, source: urlParams.get('from') || null, view: 'detail' });
 
@@ -1838,6 +1846,7 @@ async function switchView(isDetailView, hashCycle) {
 
     activeCycle = hashCycle;
     await loadCycle(hashCycle);
+    if (targetScrollY > 0) mainEl.style.minHeight = '';
 
     // Restore tab — covers initial load AND browser back/forward to #year#tab
     if (['summary','raised','spent'].indexOf(tabHash) !== -1) showTab(tabHash);
