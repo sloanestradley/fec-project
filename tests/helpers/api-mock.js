@@ -207,27 +207,6 @@ const REPORTS = {
   pagination: { count: 3 },
 };
 
-// Filing deadlines
-const REPORTING_DATES = {
-  results: [{
-    report_type:      'Q1',
-    report_type_full: 'APRIL QUARTERLY',
-    due_date:         '2024-04-15',
-  }],
-  pagination: { count: 1 },
-};
-
-// Election dates
-const ELECTION_DATES = {
-  results: [{
-    election_date:      '2024-08-06',
-    election_type_full: 'Primary',
-    office_sought:      'H',
-    election_state:     'WA',
-  }],
-  pagination: { count: 1 },
-};
-
 // Candidate search results
 const SEARCH_RESULTS = {
   results: [{
@@ -477,12 +456,6 @@ function resolveFixture(path, params) {
 
   // committee/{id}/ (metadata)
   if (/\/committee\/[^/]+\/$/.test(path) || /\/committee\/[^/]+$/.test(path)) return COMMITTEE;
-
-  // reporting-dates/
-  if (/\/reporting-dates\//.test(path)) return REPORTING_DATES;
-
-  // election-dates/
-  if (/\/election-dates\//.test(path)) return ELECTION_DATES;
 
   // elections/search/ (available cycles for a race)
   if (/\/elections\/search\//.test(path)) return ELECTIONS_SEARCH;

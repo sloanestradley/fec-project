@@ -88,8 +88,6 @@
   --chart-coh:              rgba(61,191,122,0.85);
   --chart-coh-solid:        rgba(61,191,122,1);
   --chart-spent-bar:        rgba(217,74,74,0.72);
-  --chart-overlay-deadline: rgba(90,96,112,0.4);
-  --chart-overlay-election: rgba(232,160,32,0.75);
   --chart-overlay-today:    rgba(136,144,160,0.18);
 }
 
@@ -275,10 +273,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .chart-legend { display:flex; gap:var(--space-16); flex-wrap:wrap; }
 .legend-item { font-family:'IBM Plex Mono',monospace; display:flex; align-items:center; gap:var(--space-8); font-size:0.625rem; color:var(--muted); }
 .legend-swatch { width:18px; height:2px; flex-shrink:0; }
-.legend-dashed { background:repeating-linear-gradient(
-  to right,var(--chart-overlay-deadline) 0,var(--chart-overlay-deadline) 3px,transparent 3px,transparent 7px); }
-.legend-amber-dashed { background:repeating-linear-gradient(
-  to right,var(--chart-overlay-election) 0,var(--chart-overlay-election) 2px,transparent 2px,transparent 5px); }
 
 /* ── E: Committee rows ── */
 .committee-row { display:grid; grid-template-columns:1fr auto;

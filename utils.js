@@ -223,8 +223,6 @@ var CHART_COLORS = (function() {
     coh:              v('--chart-coh'),
     cohSolid:         v('--chart-coh-solid'),
     spentBar:         v('--chart-spent-bar'),
-    overlayDeadline:  v('--chart-overlay-deadline'),
-    overlayElection:  v('--chart-overlay-election'),
     overlayToday:     v('--chart-overlay-today'),
     tooltipBg:        v('--surface'),
     tooltipTitle:     v('--muted'),

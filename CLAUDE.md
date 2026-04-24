@@ -336,7 +336,7 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 - Points only at actual filing dates (quarterly cadence = 4–8 points per cycle)
 - Raised and Spent: `stepped: 'before'` (cumulative, stair-step between filing dates)
 - Cash on Hand: linear connect (snapshot value, not cumulative)
-- Overlay plugin draws vertical lines: grey dashed = filing deadlines, amber dotted = election dates, subtle = "today" (active cycles only)
+- Overlay plugin draws one vertical line: subtle "today" marker (active cycles only). Filing-deadline and election-date overlays were removed 2026-04-24 — they drove 8–24 extra API calls per cycle load (the primary cause of 429 rate-limit errors) for chart decoration that wasn't load-bearing.
 
 ### Key FEC API endpoints in use
 ```
@@ -348,8 +348,6 @@ GET /committees/?sponsor_candidate_id={id}    — leadership PACs sponsored by t
 GET /committee/{id}/                          — committee metadata (name, type, designation, status)
 GET /committee/{id}/totals/?per_page=1        — committee financial summary (most recent filing)
 GET /committee/{id}/reports/?cycle={year}     — per-period filing reports (chart data)
-GET /reporting-dates/?report_year={year}&report_type={type} — filing deadlines (one call per type)
-GET /election-dates/?election_state=&office_sought=&election_year= — actual election dates
 GET /elections/?state=&cycle=&office=&district= — all candidates in a contest with financial summaries
 GET /elections/search/?state=&office=&district=&per_page= — available election cycles for a race (returns {cycle, district, office, state})
 GET /candidates/search/?q=&per_page=&sort=    — name-based candidate search
@@ -387,18 +385,6 @@ Reports endpoint (`/committee/{id}/reports/`) returns per-filing objects with:
   - `amendment_chain` — array of `file_number` integers tracking the full amendment lineage
   - `most_recent_file_number` — float; the `file_number` of the current authoritative version
   - **`amendment_version` does NOT exist** — remove any logic relying on this field name; it is not present in API responses.
-
-Reporting-dates endpoint (`/reporting-dates/`) returns:
-- `report_type` — short code e.g. `"Q1"`, `"YE"`, `"12G"`, `"M6"`
-- `report_type_full` — human label e.g. `"APRIL QUARTERLY"`, `"YEAR-END"`
-- `due_date` — e.g. `"2027-01-31"` (no timestamp, safe to use directly)
-- No `report_form` or `form_type` field exists on this endpoint
-- **Critical:** `due_date_gte` / `due_date_lte` are silently ignored — API returns all 4,896 records across all time if used
-- **Critical:** Correct filter is `report_year=<year>` (one value per call)
-- **Critical:** Default sort is by creation date descending — always pass `sort=due_date`
-- **Critical:** `per_page` max is 100; 2026 has 182 records so unfiltered fetch cuts off Q3 and YE
-- **Critical:** `MY` (mid-year) appears in results but is a PAC type, not a Form 3 quarterly deadline — exclude it
-- **Correct approach:** 4 parallel calls per cycle year, one each for Q1, Q2, Q3, YE — each returns exactly 1 record, sidestepping pagination and false positives entirely
 
 Candidate totals endpoint returns:
 - `receipts` — cycle total raised (sum of ALL receipt categories below)
@@ -604,7 +590,7 @@ Senate 6-year cycles introduce a multi-sub-cycle pattern worth understanding bef
 - **Health indicator hidden for closed cycles** — replaced with "Cycle Complete" contextual summary
 - **Points only at filing dates** — no interpolation between quarters
 - **YTD field strategy** — use `_ytd` fields from reports and carry year-1 total as base for year-2 (avoids per-period accumulation errors)
-- **Election dates from `/election-dates/`** — not `/elections/` (which returns candidate financial summaries, not actual dates)
+- **Election dates from `/election-dates/`** — not `/elections/` (which returns candidate financial summaries, not actual dates). Note: this endpoint is no longer called by candidate.html (removed 2026-04-24 as part of rate-limit reduction). Still relevant for future use in race.html or other contexts.
 - **Mobile nav search icon** — at smaller breakpoints, search does not collapse into the hamburger drawer. A search icon remains exposed left of the menu icon at all times.
 - **Global nav links** — Home, Candidates, Committees, Races present from launch as stubs; activated as pages are built per phase plan.
 - **Race page** — single contest view; all declared candidates auto-populated from `/elections/`. The comparison builder (selecting candidates across races) is a separate Phase 4 feature, not a mode of the race page.
@@ -619,7 +605,7 @@ Senate 6-year cycles introduce a multi-sub-cycle pattern worth understanding bef
 - `_ytd` fields reset each January 1, so a two-year cycle requires stitching year 1 final YTD + year 2 running YTD
 - Memoed transactions (`memo_code: 'X'`) must be excluded from any manual totals — they are itemization detail of other rows, not standalone money. We avoid double-counting by using FEC-computed `_ytd` fields where possible; when summing Schedule A/B rows directly (e.g. contributor aggregations), explicitly filter `d.memo_code === 'X'` before adding to the total. Conduit platforms (ActBlue, WinRed, Anedot) forward individual contributions and are reported as `memo_code='X'` rows with `entity_type='PAC'` on the recipient committee's Schedule A — the individual donor is the main (non-memo) row on `is_individual=true` queries, and the conduit platform appears only in memos. The Top Conduit Sources table on candidate.html and committee.html (Raised tab) surfaces these memo aggregates as a distinct, legally-honest category — "here is the money routed via X platform, representing individual donors" — separate from Top Committee Contributors which shows committees giving their own money. Both tables draw from the same `/schedules/schedule_a/?is_individual=false` fetch; the aggregation loop splits on `memo_code === 'X'` to populate both accumulators in one pass.
 - The FEC API silently ignores unrecognized query parameters — always verify a filter is working by checking total result counts, not just response shape
-- The FEC `/reporting-dates/` endpoint ignores date range params; use `report_year` + `report_type` for targeted queries
+- The FEC `/reporting-dates/` endpoint ignores date range params; use `report_year` + `report_type` for targeted queries (one call per year/type combination returns exactly 1 record). Note: no longer called by candidate.html — removed 2026-04-24 as part of rate-limit reduction.
 - John (domain expert, congressional campaign manager) is available for validation questions
 
 ---

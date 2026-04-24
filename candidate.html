@@ -198,8 +198,6 @@
               <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-raised)"></div>Raised</div>
               <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-spent)"></div>Spent</div>
               <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-coh)"></div>Cash on Hand</div>
-              <div class="legend-item"><div class="legend-swatch legend-dashed"></div>Filing deadline</div>
-              <div class="legend-item legend-election" style="display:none"><div class="legend-swatch legend-amber-dashed"></div>Election day</div>
             </div>
           </div>
           <div style="position:relative;width:100%;min-width:0;">
@@ -579,8 +577,8 @@ function assessHealth(raised, spent, coh, debt) {
 // Full x-axis = entire FEC two-year cycle, even if data is partial.
 // Only points at actual filing dates — stepped: 'before' for Raised/Spent (cumulative),
 // linear for COH.
-// Overlays: grey dashed = filing deadlines, amber dashed = election dates, subtle = today.
-function renderChart(reports, deadlines, electionDates, cycle) {
+// Overlay: subtle vertical line at today (active cycles only).
+function renderChart(reports, cycle) {
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 
   // X-axis: full election cycle span (H=2yr, S=6yr, P=4yr)
@@ -624,10 +622,6 @@ function renderChart(reports, deadlines, electionDates, cycle) {
   var overspend = cumSpent > cumRaised && cumRaised > 0;
   document.getElementById('overspend-note').style.display = overspend ? 'block' : 'none';
 
-  // Show/hide election legend item
-  var elLegend = document.querySelector('.legend-election');
-  if (elLegend) elLegend.style.display = electionDates.length ? 'flex' : 'none';
-
   // Custom plugin: draws vertical overlays after chart is rendered
   var overlayPlugin = {
     id: 'cycleOverlays',
@@ -659,18 +653,6 @@ function renderChart(reports, deadlines, electionDates, cycle) {
         }
         ctx.restore();
       }
-
-      // Filing deadlines — grey dashed
-      (deadlines||[]).forEach(function(dl) {
-        vLine(toDate(dl.due_date), [4,4], CHART_COLORS.overlayDeadline, 1, null);
-      });
-
-      // Election dates — amber dotted, labeled by type
-      (electionDates||[]).forEach(function(ed) {
-        var dateStr = ed.election_date;
-        if (!dateStr) return;
-        vLine(toDate(dateStr), [2,4], CHART_COLORS.overlayElection, 1.5, null);
-      });
 
       // Today — very subtle, only during active cycle
       if (active && today >= cycleStart && today <= cycleEnd) {
@@ -1486,35 +1468,6 @@ async function loadCycle(cycle) {
       if (curTabEl && curTabEl.getAttribute('href') === '#spent')  renderSpentIfReady();
     }
 
-    var deadlines = [];
-    try {
-      // One targeted call per report type per year — each returns exactly 1 record.
-      // Avoids the per_page=100 cutoff (2026 alone has 182 records sorted ascending).
-      var dlTypes = ['Q1','Q2','Q3','YE'];
-      var dlCalls = [];
-      var dlStartYear = cycle - getCycleSpanYears() + 1;
-      for (var dlYr = dlStartYear; dlYr <= cycle; dlYr++) {
-        dlTypes.forEach(function(t) {
-          dlCalls.push(
-            apiFetch('/reporting-dates/', { report_year: dlYr, report_type: t, per_page: 1 })
-            .catch(function(){ return { results: [] }; })
-          );
-        });
-      }
-      deadlines = (await Promise.all(dlCalls))
-        .reduce(function(acc, r){ return acc.concat(r.results||[]); }, []);
-    } catch(e) { console.warn('Deadlines fetch failed:', e.message); }
-
-    var electionDates = [];
-    try {
-      // /election-dates/ returns actual primary + general election dates per state/office/year.
-      // election_date is the actual date field. election_type_full distinguishes primary vs general.
-      var elParams = { office_sought: CAND_OFFICE, election_year: cycle, per_page: 10 };
-      if (CAND_OFFICE !== 'P') elParams.election_state = CAND_STATE;
-      var elJson = await apiFetch('/election-dates/', elParams);
-      electionDates = elJson.results || [];
-    } catch(e) { console.warn('Election-dates fetch failed:', e.message); }
-
     var electionsData = [];
     try {
       var officeApiParam = function(o) {
@@ -1645,7 +1598,7 @@ async function loadCycle(cycle) {
     }
 
     // ── Step 5: chart ──
-    renderChart(reports, deadlines, electionDates, cycle);
+    renderChart(reports, cycle);
 
     // ── Step 6: update URL hash ──
     var activeTabEl = document.querySelector('.tab.active');

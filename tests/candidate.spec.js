@@ -277,6 +277,18 @@ test.describe('candidate.html — chart', () => {
     const legend = page.locator('.chart-legend .legend-item');
     await expect(legend).not.toHaveCount(0);
   });
+
+  test('does not call /reporting-dates/ or /election-dates/', async ({ page }) => {
+    const forbidden = [];
+    page.on('request', req => {
+      const url = req.url();
+      if (/\/reporting-dates\//.test(url) || /\/election-dates\//.test(url)) {
+        forbidden.push(url);
+      }
+    });
+    await setupWithContent(page);
+    expect(forbidden).toHaveLength(0);
+  });
 });
 
 // ── Tab navigation ────────────────────────────────────────────────────────────
