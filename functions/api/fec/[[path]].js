@@ -37,10 +37,14 @@ export async function onRequest(context) {
 
   const body = await response.text();
 
-  return new Response(body, {
-    status: response.status,
-    headers: {
-      'Content-Type': response.headers.get('Content-Type') || 'application/json',
-    },
-  });
+  const responseHeaders = {
+    'Content-Type': response.headers.get('Content-Type') || 'application/json',
+  };
+
+  for (const h of ['x-ratelimit-limit', 'x-ratelimit-remaining', 'retry-after']) {
+    const v = response.headers.get(h);
+    if (v !== null) responseHeaders[h] = v;
+  }
+
+  return new Response(body, { status: response.status, headers: responseHeaders });
 }
