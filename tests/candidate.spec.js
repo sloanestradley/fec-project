@@ -659,12 +659,31 @@ test.describe('candidate.html — in-place transitions', () => {
   });
 
   test('back button returns to index view', async ({ page }) => {
+    // No pre-scroll — indexScrollY=0, so compact should NOT be active after back
     await page.locator('#cycle-index a.cycle-row').first().click();
     await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
     await page.goBack();
     await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
     await expect(page.locator('#career-strip')).toBeVisible();
     await expect(page.locator('#tabs-bar')).not.toBeVisible();
+    await expect(page.locator('#profile-header')).not.toHaveClass(/compact/);
+  });
+
+  test('back button → index re-engages compact when restored scroll is past threshold', async ({ page }) => {
+    await page.evaluate(() => {
+      document.body.style.minHeight = '3000px';
+      window.scrollTo(0, 500); // past compact threshold
+    });
+    // Wait for compact to engage before clicking
+    await expect(page.locator('#profile-header')).toHaveClass(/compact/, { timeout: 3000 });
+    // Use hash navigation via evaluate — Playwright's click() would scroll the element
+    // into view first, resetting window.scrollY before switchView() can read it.
+    await page.evaluate(() => { window.location.hash = '#2024#summary'; });
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    await page.goBack();
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    // indexScrollY was 500 (past threshold) — compact should re-engage
+    await expect(page.locator('#profile-header')).toHaveClass(/compact/, { timeout: 3000 });
   });
 
   test('back button → index does not re-fetch history or all-totals', async ({ page }) => {
@@ -683,15 +702,29 @@ test.describe('candidate.html — in-place transitions', () => {
     expect(allTotalsRequests).toBe(0);
   });
 
-  test('scroll resets to top on index → detail transition', async ({ page }) => {
+  test('index → detail scroll: compact-engaged index enters detail at compact threshold', async ({ page }) => {
     await page.evaluate(() => {
       document.body.style.minHeight = '3000px';
-      window.scrollTo(0, 500);
+      window.scrollTo(0, 500); // well past any reasonable compact threshold
     });
+    // Use hash navigation via evaluate — Playwright's click() would scroll the element
+    // into view first, resetting window.scrollY before switchView() can read it.
+    await page.evaluate(() => { window.location.hash = '#2024#summary'; });
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    const threshold = await page.evaluate(() => window.compactThreshold);
+    const scrollY = await page.evaluate(() => window.scrollY);
+    expect(scrollY).toBeGreaterThanOrEqual(Math.max(0, threshold - 2));
+    expect(scrollY).toBeLessThanOrEqual(threshold + 10);
+    await expect(page.locator('#profile-header')).toHaveClass(/compact/);
+  });
+
+  test('index → detail scroll: non-compact index enters detail at scrollY 0', async ({ page }) => {
+    // No scroll before click — index is not compact
     await page.locator('#cycle-index a.cycle-row').first().click();
     await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
     const scrollY = await page.evaluate(() => window.scrollY);
     expect(scrollY).toBeLessThanOrEqual(5);
+    await expect(page.locator('#profile-header')).not.toHaveClass(/compact/);
   });
 
   test('compact header engages on index view (no prior detail visit required)', async ({ page }) => {

@@ -372,6 +372,7 @@ var cachedHistory       = null;  // /history/ response — reused on detail→in
 var cachedAllTotals     = null;  // /totals/?per_page=100 — reused on detail→index back-navigation
 var compactHeaderInited = false; // compact scroll listener registered once on first detail entry
 var indexScrollY        = 0;     // scroll Y preserved on index→detail; restored on reverse
+var compactThreshold    = 0;     // scrollY at which compact mode engages; set in initCompactHeader()
 
 var ARCHIVE_MIN_YEAR = { H: 2008, S: 2012, P: 2012 };
 
@@ -1741,6 +1742,8 @@ function initCompactHeader() {
   var sentinelEl    = document.getElementById('profile-header-sentinel');
   var mainEl        = document.querySelector('.main');
   var headerH       = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+  // Expose compact-engage threshold for switchView() — at init time scrollY=0 so BCR.top = page offset
+  compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - headerH + 1);
   var isCompact      = false;
   var compactHeaderH = null;
   var suppressUntil  = 0;
@@ -1822,8 +1825,9 @@ async function switchView(isDetailView, hashCycle) {
       document.getElementById('content').classList.add('visible');
     });
 
-    // Scroll to top so detail view header lands cleanly
-    window.scrollTo(0, 0);
+    // If index was compact-engaged, enter detail at the compact threshold so the
+    // header state is continuous. If not compact, scroll to top as usual.
+    window.scrollTo(0, indexScrollY >= compactThreshold ? compactThreshold : 0);
 
     amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: hashCycle, source: urlParams.get('from') || null, view: 'detail' });
 
@@ -1847,9 +1851,6 @@ async function switchView(isDetailView, hashCycle) {
       el.classList.remove('visible');
       el.style.display = 'none';
     });
-    document.getElementById('profile-header').classList.remove('compact');
-    document.querySelector('.main').style.paddingBottom = '';
-
     amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null, view: 'index' });
 
     if (cachedHistory && cachedAllTotals) {
