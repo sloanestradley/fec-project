@@ -4536,3 +4536,53 @@ Sloane caught this through browser testing, not by reading code. The Senate inde
 - **What's the right Phase 4 priority now?** The index view is live — the candidate page has a real entry state. Does that change what comes next (48/24hr reports? AI insights? Transaction search)?
 - **Design question — CareerStrip on mobile:** at ≤860px the 4 stat cards collapse to 2×2. Is that the right treatment or should First Filed + Last Activity collapse differently?
 - **Archive threshold UX:** Pre-coverage cycles render as non-navigable rows with a divider. Is there a better treatment — collapse, hide, or link to an external FEC page for the filing?
+
+---
+2026-04-24 09:58
+
+## Process log draft
+
+**T5 / T6 / T6.5 — The header that stays put**
+
+After three sessions building the candidate page's new index landing state — career stats, a clickable cycle table, in-place view transitions, and a compact header that carries its state across those transitions — the profile header has become the one stable element on a page where everything else moves. Click into a cycle: the header doesn't reload. Hit back: the index re-renders instantly from cache. Scroll until the header compacts, then click into a cycle: it arrives in detail view already compact, no flicker.
+
+Getting there required a lot of browser testing that automated tests couldn't cover: the `election_years` vs `cycles` bug (Senate showed empty index rows), the `coverage_start_date` fix (cycle labels were hardcoding constitutional term lengths instead of reading API data), and the `scrollTo` clamp bug that closed out this session — the detail view in skeleton state is shorter than the viewport, so `scrollTo(threshold)` was silently clamped to 0 by the browser before any content loaded. The fix was a temporary `minHeight` on `.main` before the scroll, cleared after `loadCycle()` populated real content.
+
+Changelog:
+- CareerStrip: four-cell stat bar (First Filed / Last Activity / Career Raised / Career Spent) on the candidate index view
+- Cycle index: clickable table of election cycles; archive threshold rows non-navigable below H:2008 / S:2012 / P:2012
+- In-place transitions: switchView(true/false) replaces window.location.reload() — profile header is the same DOM node before and after
+- Fetch-race token: last-clicked cycle wins; stale loadCycle() calls discard their DOM writes
+- Data cache: /history/ and /totals/?per_page=100 fetched once on first index visit; reused on back-navigation
+- Tab hash capture: captured before await loadCycle() — loadCycle() overwrites the hash with replaceState
+- Compact continuity: index→detail scrolls to compactThreshold (not 0) when index was compact; initCompactHeader() now called unconditionally at init
+- minHeight fix: temporary .main height expansion before scrollTo prevents browser clamping in skeleton state
+- 10 new Playwright tests (in-place transitions describe block); scroll tests use page.evaluate hash navigation to avoid Playwright's click-triggered scroll-into-view resetting scrollY
+
+Field notes:
+The scrollTo clamp was the most interesting failure of the session. Everything looked right: compactThreshold was non-zero, indexScrollY was captured before any DOM mutation, and the check was a pure number comparison. But the browser enforces scrollTo(0, n) relative to the document's actual scrollable height at the moment of the call — and in skeleton state with display:block detail elements but no loaded content, the document was shorter than the viewport. The scroll was silently succeeding (no error, no warning) while producing scrollY=0. The diagnostic logs confirmed it in one browser session: maxScroll: 0, targetScrollY: 89, outcome: scrolled nowhere. minHeight before the call, cleared after content loads — one line of code, but only findable by reasoning about when the browser forces a layout sync.
+
+Stack tags: switchView(), fetch-race token, data cache, history.scrollRestoration, compact continuity, minHeight scroll fix, Playwright page.evaluate hash navigation
+
+## How Sloane steered the work
+
+**"Is there somewhere in the API we could derive these values?" (prior session, carried through)**
+This question — asked when I proposed hardcoding { H: 2, S: 6, P: 4 } term spans for cycle labels — produced coverage_start_date as the correct answer. The API-sourced label approach also correctly handled the special-election Gillibrand case that a hardcoded map would have gotten wrong.
+
+**Identifying real feature bugs, not test artifacts**
+When manual verification showed the compact-engaged scrollTo landing at 0, Sloane correctly diagnosed that this was a real feature bug and not just a test coverage gap. The framing — "please verify (a), (b), (c)" — forced a systematic check of each possible failure point rather than guessing. That structure is what made the diagnosis efficient: (a) and (b) checked out analytically, (c) was the culprit, and the fix followed directly.
+
+**"Commit and stop — no end-of-session ritual" (used twice)**
+Sloane used this to keep the iteration loop tight. Each transition and bug fix got its own commit without the overhead of a full ritual, so the browser→code→verify loop stayed under a few minutes per pass. The ritual deferred to the end, where it belongs for a coherent session summary.
+
+**Specifying manual verification scenarios in detail**
+The verification checklist at the end of the session — core behavior, the specific flake, regressions, mobile, border case — wasn't boilerplate. Each case targeted a different failure mode: the core case tests the happy path, the detail-scroll-then-back case tests whether detail's scroll state leaks into index restoration, the mobile case tests whether compactThreshold geometry holds at a different viewport width. That level of specificity made the checklist actually useful rather than performative.
+
+The through-line: Sloane steers by identifying the specific failure scenario that a vague "it's not working" report would miss — and by asking the question that leads to the right data source rather than the nearest approximation.
+
+## What to bring to Claude Chat
+
+- **429 rate limit investigation** — this session surfaced mention of it but it was open work. What specifically is hitting the limit, at what volume, and what's the mitigation strategy? Server-side caching in KV (already noted in architectural debt for races.html) or API key tier upgrade?
+- **Next feature priority** — T6.5 closes the candidate page's core UX. Does Phase 3 committee/race polish come next, or does the project shift to Phase 4 (48/24hr reports, AI insights)?
+- **The page.evaluate Playwright scroll pattern** — now documented in TESTING.md. Worth knowing: any test that needs to preserve scrollY across a hash navigation must use page.evaluate instead of element.click(). Playwright's click() auto-scrolls into view first.
+- **design-system.html audit** — no component markup changed this session, but the compact continuity behavior is a new documented behavioral pattern on the profile header. Worth a note on the component card in a future session?
