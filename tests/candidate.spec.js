@@ -820,4 +820,48 @@ test.describe('candidate.html — path-segment URL ID extraction', () => {
     const stateMsg = page.locator('#state-msg');
     await expect(stateMsg).not.toBeVisible();
   });
+
+  test('/candidate (no ID, clean URL) shows friendly error with Browse candidates link', async ({ page }) => {
+    await mockAmplitude(page);
+    await page.route(/\/candidate\/?$/, async route => {
+      const response = await page.context().request.get('http://localhost:8080/candidate.html');
+      const body = await response.text();
+      await route.fulfill({ status: 200, contentType: 'text/html', body });
+    });
+    await page.goto('/candidate');
+    const stateMsg = page.locator('#state-msg');
+    await expect(stateMsg).toContainText('No candidate ID provided');
+    const link = stateMsg.locator('a');
+    await expect(link).toHaveAttribute('href', '/candidates');
+    await expect(link).toContainText('Browse candidates');
+  });
+
+  test('/candidate.html (no ?id= param) shows friendly error with Browse candidates link', async ({ page }) => {
+    await mockAmplitude(page);
+    await page.goto('/candidate.html');
+    const stateMsg = page.locator('#state-msg');
+    await expect(stateMsg).toContainText('No candidate ID provided');
+    const link = stateMsg.locator('a');
+    await expect(link).toHaveAttribute('href', '/candidates');
+  });
+
+  test('non-existent cycle year (e.g. #1999#summary) falls through to index view', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#1999#summary');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    await expect(page.locator('#tabs-bar')).not.toBeVisible();
+    await expect(page.locator('#summary-strip')).not.toBeVisible();
+  });
+
+  test('invalid tab hash (e.g. #2024#bogus) defaults to Summary', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#2024#bogus');
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    const summaryTab = page.locator('.tab[href="#summary"]');
+    await expect(summaryTab).toHaveClass(/active/);
+    const hash = await page.evaluate(() => window.location.hash);
+    expect(hash).toBe('#2024#summary');
+  });
 });

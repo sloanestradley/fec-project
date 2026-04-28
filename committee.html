@@ -340,7 +340,7 @@
 var urlParams    = new URLSearchParams(window.location.search);
 var _pathParts   = window.location.pathname.split('/').filter(Boolean);
 var _pathId      = _pathParts[_pathParts.length - 1];
-var COMMITTEE_ID = urlParams.get('id') || (_pathId && _pathId !== 'committee.html' ? _pathId : null);
+var COMMITTEE_ID = urlParams.get('id') || (_pathId && _pathId !== 'committee.html' && _pathId !== 'committee' ? _pathId : null);
 
 var ALL_TOTALS  = [];    // all cycle records from /totals/
 var ALL_CYCLES  = [];    // sorted desc cycle years from committee metadata
@@ -537,9 +537,9 @@ function initCompactHeader() {
 
 async function init() {
   if (!COMMITTEE_ID) {
-    var el = document.getElementById('state-msg');
-    el.className = 'state-msg error';
-    el.innerHTML = '⚠ No committee specified. Try opening this page from a candidate\'s committees list.';
+    var msg = document.getElementById('state-msg');
+    msg.innerHTML = '<p style="font-family:\'IBM Plex Sans\',sans-serif;font-size:0.875rem;color:var(--muted)">'
+      + 'No committee ID provided. <a href="/committees" style="color:var(--accent)">Browse committees →</a></p>';
     return;
   }
 

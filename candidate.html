@@ -348,7 +348,7 @@ var urlParams    = new URLSearchParams(window.location.search);
 // filter(Boolean) drops empty strings so trailing slashes don't return '' as the last segment
 var _pathParts   = window.location.pathname.split('/').filter(Boolean);
 var _pathId      = _pathParts[_pathParts.length - 1];
-var CANDIDATE_ID = urlParams.get('id') || (_pathId && _pathId !== 'candidate.html' ? _pathId : null) || null;
+var CANDIDATE_ID = urlParams.get('id') || (_pathId && _pathId !== 'candidate.html' && _pathId !== 'candidate' ? _pathId : null) || null;
 var CAND_STATE   = null;   // populated from API in init()
 var CAND_DIST    = null;
 var CAND_OFFICE  = null;   // 'H', 'S', or 'P'

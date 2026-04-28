@@ -837,4 +837,53 @@ test.describe('committee.html — path-segment URL ID extraction', () => {
     const stateMsg = page.locator('#state-msg');
     await expect(stateMsg).not.toBeVisible();
   });
+
+  test('/committee (no ID, clean URL) shows friendly error with Browse committees link', async ({ page }) => {
+    await mockAmplitude(page);
+    // Intercept the bare /committee path (no ID segment)
+    await page.route(/\/committee\/?$/, async route => {
+      const response = await page.context().request.get('http://localhost:8080/committee.html');
+      const body = await response.text();
+      await route.fulfill({ status: 200, contentType: 'text/html', body });
+    });
+    await page.goto('/committee');
+    // Friendly message should render, with a link to /committees
+    const stateMsg = page.locator('#state-msg');
+    await expect(stateMsg).toContainText('No committee ID provided');
+    const link = stateMsg.locator('a');
+    await expect(link).toHaveAttribute('href', '/committees');
+    await expect(link).toContainText('Browse committees');
+  });
+
+  test('/committee.html (no ?id= param) shows friendly error with Browse committees link', async ({ page }) => {
+    await mockAmplitude(page);
+    await page.goto('/committee.html');
+    const stateMsg = page.locator('#state-msg');
+    await expect(stateMsg).toContainText('No committee ID provided');
+    const link = stateMsg.locator('a');
+    await expect(link).toHaveAttribute('href', '/committees');
+  });
+
+  test('non-existent cycle year (e.g. #1999#summary) falls through to index view', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/committee.html?id=C00775668#1999#summary');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    // Index view rendered, detail elements hidden
+    await expect(page.locator('#tabs-bar')).not.toBeVisible();
+    await expect(page.locator('#summary-strip')).not.toBeVisible();
+  });
+
+  test('invalid tab hash (e.g. #2024#bogus) defaults to Summary', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/committee.html?id=C00775668#2024#bogus');
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    // Summary tab should be active
+    const summaryTab = page.locator('.tab[href="#summary"]');
+    await expect(summaryTab).toHaveClass(/active/);
+    // URL hash gets normalized by renderStats's history.replaceState
+    const hash = await page.evaluate(() => window.location.hash);
+    expect(hash).toBe('#2024#summary');
+  });
 });
