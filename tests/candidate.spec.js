@@ -781,3 +781,43 @@ test.describe('candidate.html — in-place transitions', () => {
     expect(raisedText).not.toContain('2.4'); // not 2024 stale data: $2.4M
   });
 });
+
+// ── Path-segment URL ID extraction (regression: trailing slash) ──────────────
+
+test.describe('candidate.html — path-segment URL ID extraction', () => {
+  // /candidate/{id} and /candidate/{id}/ both serve candidate.html via the
+  // Cloudflare Pages Function at functions/candidate/[[catchall]].js. ID
+  // extraction uses .split('/').filter(Boolean) (fix from T5/T6 era; same
+  // pattern now mirrored to committee.html). Route-intercept here mirrors
+  // what the production Function does, since Playwright's webServer is
+  // python3 -m http.server (no Pages Function support).
+  async function routeCandidatePath(page) {
+    await page.route(/\/candidate\/[A-Z0-9]+\/?$/i, async route => {
+      const response = await page.context().request.get('http://localhost:8080/candidate.html');
+      const body = await response.text();
+      await route.fulfill({ status: 200, contentType: 'text/html', body });
+    });
+  }
+
+  test('/candidate/{id} (no trailing slash) extracts ID and renders index', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await routeCandidatePath(page);
+    await page.goto('/candidate/H2WA03217');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    const fecIdTag = await page.locator('.fec-id-tag').textContent();
+    expect(fecIdTag).toContain('H2WA03217');
+  });
+
+  test('/candidate/{id}/ (trailing slash) extracts ID and renders index', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await routeCandidatePath(page);
+    await page.goto('/candidate/H2WA03217/');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    const fecIdTag = await page.locator('.fec-id-tag').textContent();
+    expect(fecIdTag).toContain('H2WA03217');
+    const stateMsg = page.locator('#state-msg');
+    await expect(stateMsg).not.toBeVisible();
+  });
+});

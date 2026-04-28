@@ -791,3 +791,50 @@ test.describe('committee.html — in-place transitions', () => {
     expect(raisedText).not.toContain('3.7');
   });
 });
+
+// ── Path-segment URL ID extraction (regression: trailing slash) ──────────────
+
+test.describe('committee.html — path-segment URL ID extraction', () => {
+  // In production, /committee/{id} and /committee/{id}/ both serve committee.html
+  // via the Cloudflare Pages Function at functions/committee/[[catchall]].js.
+  // The init script extracts the committee ID from window.location.pathname.
+  // Earlier (T8 era) the extraction used .split('/').pop() which returned ''
+  // for trailing-slash URLs, triggering the "No committee specified" error
+  // state. Same class of bug as the candidate.html trailing-slash fix from
+  // the T5/T6 era. Fixed by switching to .split('/').filter(Boolean) before
+  // taking the last segment.
+  //
+  // Playwright's webServer is python3 -m http.server which can't run Pages
+  // Functions, so we route-intercept the path-segment URLs and serve
+  // committee.html directly (mirrors what the production Function does).
+  async function routeCommitteePath(page) {
+    await page.route(/\/committee\/[A-Z0-9]+\/?$/i, async route => {
+      const response = await page.context().request.get('http://localhost:8080/committee.html');
+      const body = await response.text();
+      await route.fulfill({ status: 200, contentType: 'text/html', body });
+    });
+  }
+
+  test('/committee/{id} (no trailing slash) extracts ID and renders index', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await routeCommitteePath(page);
+    await page.goto('/committee/C00775668');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    const fecIdTag = await page.locator('.fec-id-tag').textContent();
+    expect(fecIdTag).toContain('C00775668');
+  });
+
+  test('/committee/{id}/ (trailing slash) extracts ID and renders index', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await routeCommitteePath(page);
+    await page.goto('/committee/C00775668/');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    const fecIdTag = await page.locator('.fec-id-tag').textContent();
+    expect(fecIdTag).toContain('C00775668');
+    // Verify the "no committee specified" error state is NOT present
+    const stateMsg = page.locator('#state-msg');
+    await expect(stateMsg).not.toBeVisible();
+  });
+});

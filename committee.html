@@ -338,7 +338,8 @@
 <script src="/utils.js"></script>
 <script>
 var urlParams    = new URLSearchParams(window.location.search);
-var _pathId      = window.location.pathname.split('/').pop();
+var _pathParts   = window.location.pathname.split('/').filter(Boolean);
+var _pathId      = _pathParts[_pathParts.length - 1];
 var COMMITTEE_ID = urlParams.get('id') || (_pathId && _pathId !== 'committee.html' ? _pathId : null);
 
 var ALL_TOTALS  = [];    // all cycle records from /totals/
