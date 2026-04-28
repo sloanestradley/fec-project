@@ -682,3 +682,106 @@ test.describe('committee.html — assoc section candidate link', () => {
     expect(href).not.toContain('#');
   });
 });
+
+// ── In-place transitions (T10 — mirrors candidate.spec.js's in-place block) ──
+
+test.describe('committee.html — in-place transitions', () => {
+  test.beforeEach(async ({ page }) => { await setupIndex(page); });
+
+  test('no page reload on cycle row click', async ({ page }) => {
+    await page.evaluate(() => { document.body.dataset.loadId = '1'; });
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    const loadId = await page.evaluate(() => document.body.dataset.loadId);
+    expect(loadId).toBe('1');
+  });
+
+  test('#committee-header is the same DOM node after index → detail transition', async ({ page }) => {
+    await page.evaluate(() => { document.getElementById('committee-header').dataset.mark = 'x'; });
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    const mark = await page.evaluate(() => document.getElementById('committee-header').dataset.mark);
+    expect(mark).toBe('x');
+  });
+
+  test('back button returns to index view', async ({ page }) => {
+    // No pre-scroll — indexScrollY=0, so compact should NOT be active after back
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    await page.goBack();
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    await expect(page.locator('#career-strip')).toBeVisible();
+    await expect(page.locator('#tabs-bar')).not.toBeVisible();
+    await expect(page.locator('#committee-header')).not.toHaveClass(/compact/);
+  });
+
+  test('back button → index does not re-fetch metadata or all-totals', async ({ page }) => {
+    let metaRequests = 0;
+    let allTotalsRequests = 0;
+    page.on('request', req => {
+      const url = req.url();
+      // /committee/{id}/  (metadata) — distinct from /committee/{id}/totals/
+      if (/\/committee\/C00775668\/(\?|$)/.test(url) || /\/committee\/C00775668$/.test(url)) metaRequests++;
+      if (url.includes('/committee/') && url.includes('/totals/') && url.includes('per_page=100')) allTotalsRequests++;
+    });
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    await page.goBack();
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    expect(metaRequests).toBe(0);
+    expect(allTotalsRequests).toBe(0);
+  });
+
+  test('index → detail scroll: compact-engaged index enters detail at compact threshold', async ({ page }) => {
+    await page.evaluate(() => {
+      document.body.style.minHeight = '3000px';
+      window.scrollTo(0, 500); // well past any reasonable compact threshold
+    });
+    // Wait for compact to engage
+    await expect(page.locator('#committee-header')).toHaveClass(/compact/, { timeout: 3000 });
+    // Hash navigation via evaluate — Playwright's click() would scroll the element
+    // into view first, resetting window.scrollY before switchTo() can read it.
+    await page.evaluate(() => { window.location.hash = '#2024#summary'; });
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    const scrollY = await page.evaluate(() => window.scrollY);
+    // scrollY should be at the compact threshold (small range; threshold is computed from sentinel BCR)
+    expect(scrollY).toBeGreaterThan(0);
+    await expect(page.locator('#committee-header')).toHaveClass(/compact/);
+  });
+
+  test('index → detail scroll: non-compact index enters detail at scrollY 0', async ({ page }) => {
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    const scrollY = await page.evaluate(() => window.scrollY);
+    expect(scrollY).toBeLessThanOrEqual(5);
+    await expect(page.locator('#committee-header')).not.toHaveClass(/compact/);
+  });
+
+  test('compact header engages on index view (no prior detail visit required)', async ({ page }) => {
+    await page.evaluate(() => {
+      document.body.style.minHeight = '3000px';
+      window.scrollTo(0, 400);
+    });
+    await expect(page.locator('#committee-header')).toHaveClass(/compact/, { timeout: 3000 });
+  });
+
+  test('rapid cycle hash navigation: last cycle wins in summary stats', async ({ page }) => {
+    // Committee renderStats reads from pre-cached ALL_TOTALS synchronously, so summary
+    // stats don't have an async race the way candidate's loadCycle does. This test
+    // verifies the URL-routing flow is robust under rapid clicks: regardless of
+    // intermediate hash flips, the final visible cycle in the URL is what renders.
+    await page.evaluate(() => { window.location.hash = '#2024#summary'; });
+    await page.evaluate(() => { window.location.hash = '#2022#summary'; });
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    await page.waitForFunction(
+      () => { const el = document.getElementById('stat-raised'); return el && el.textContent !== '—'; },
+      { timeout: 12000 }
+    );
+    const switcherValue = await page.locator('#cycle-switcher').inputValue();
+    expect(switcherValue).toBe('2022');
+    const raisedText = await page.locator('#stat-raised').textContent();
+    // 2022 fixture: receipts=2,100,000 → "$2.1M". 2024 fixture: 3,700,000 → "$3.7M"
+    expect(raisedText).toContain('2.1');
+    expect(raisedText).not.toContain('3.7');
+  });
+});

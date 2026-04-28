@@ -1872,6 +1872,9 @@ async function init() {
       renderIndex: function(data) { renderIndexFromData(data.hist, data.allTotals); },
       loadCycle: loadCycle,
       getDetailScrollTarget: function(indexScrollY) {
+        // compactThreshold > 0 guard: defensive against initCompactHeader() not
+        // having run yet, or sentinel BCR returning 0 in some edge case. When
+        // unset, fall through to scrollY 0 — correct fallback (top of page).
         return (indexScrollY >= compactThreshold && compactThreshold > 0) ? compactThreshold : 0;
       },
       restoreTab: function(tabHash) {

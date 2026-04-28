@@ -360,6 +360,13 @@ var spentDonutInstance = null;
 var spentDataPromise   = null;
 var spentRendered      = false;
 
+var cachedMeta          = null;  // /committee/{id}/ — reused on detail→index back-navigation
+var cachedAllTotalsRes  = null;  // /committee/{id}/totals/?per_page=100 — reused on back-nav
+var compactThreshold    = 0;     // scrollY at which compact mode engages; set in initCompactHeader()
+var compactHeaderInited = false; // compact scroll listener registered once at init
+var cycleFetchToken     = null;  // claimed in renderStats; checked in renderRaisedIfReady/renderSpentIfReady
+var view                = null;  // initViewSwitcher instance — created in init() before first switchTo
+
 var FIPS_TO_ABBR = {
   '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
   '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
@@ -472,6 +479,61 @@ function renderCycleIndex(cycles, totalsMap) {
   container.innerHTML = html;
 }
 
+// ── View switcher callbacks ──────────────────────────────────────────────────
+// Index data fetcher — caches /committee/{id}/ + /totals/ so back-navigation
+// from detail view re-renders without re-fetching. Cache lives in module
+// scope (per-page) for now; T13 will add a session-level cache layer above
+// this without touching the helper.
+async function fetchIndexData() {
+  if (cachedMeta && cachedAllTotalsRes) {
+    return { metaRes: cachedMeta, allTotalsRes: cachedAllTotalsRes };
+  }
+  var idxResults = await Promise.all([
+    apiFetch('/committee/' + COMMITTEE_ID + '/'),
+    apiFetch('/committee/' + COMMITTEE_ID + '/totals/', { per_page: 100, sort: '-coverage_end_date' })
+  ]);
+  cachedMeta         = idxResults[0];
+  cachedAllTotalsRes = idxResults[1];
+  return { metaRes: cachedMeta, allTotalsRes: cachedAllTotalsRes };
+}
+
+// ── Compact header — scroll listener ─────────────────────────────────────────
+// Mirrors candidate.html's initCompactHeader(). Exposes compactThreshold so
+// the helper's getDetailScrollTarget callback can read it. Called once from
+// init() before initViewSwitcher is instantiated.
+function initCompactHeader() {
+  var headerEl   = document.getElementById('committee-header');
+  var tabsBarEl  = document.getElementById('tabs-bar');
+  var sentinelEl = document.getElementById('profile-header-sentinel');
+  var mainEl     = document.querySelector('.main');
+  var headerH    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+  // Expose compact-engage threshold for getDetailScrollTarget — at init time scrollY=0 so BCR.top = page offset
+  compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - headerH + 1);
+  var isCompact      = false;
+  var compactHeaderH = null;
+  var suppressUntil  = 0;
+  function update() {
+    if (Date.now() < suppressUntil) return;
+    var compact = sentinelEl.getBoundingClientRect().top < headerH;
+    if (compact === isCompact) return;
+    isCompact = compact;
+    suppressUntil = Date.now() + 100;
+    if (compact) {
+      var fullH = headerEl.offsetHeight;
+      headerEl.classList.add('compact');
+      if (compactHeaderH === null) compactHeaderH = headerEl.offsetHeight;
+      mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
+      tabsBarEl.style.top = (headerH + compactHeaderH) + 'px';
+    } else {
+      headerEl.classList.remove('compact');
+      mainEl.style.paddingBottom = '';
+      tabsBarEl.style.top = headerH + 'px';
+    }
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+}
+
 async function init() {
   if (!COMMITTEE_ID) {
     var el = document.getElementById('state-msg');
@@ -480,16 +542,12 @@ async function init() {
     return;
   }
 
+  history.scrollRestoration = 'manual';
   try {
-    // Parallel fetch: metadata + all cycle totals
-    var [metaRes, totalsRes] = await Promise.all([
-      apiFetch('/committee/' + COMMITTEE_ID + '/'),
-      apiFetch('/committee/' + COMMITTEE_ID + '/totals/', { per_page: 100, sort: '-coverage_end_date' })
-    ]);
-
-    var committee = (metaRes.results || [])[0];
+    var data = await fetchIndexData();
+    var committee = (data.metaRes.results || [])[0];
     if (!committee) throw new Error('Committee not found');
-    ALL_TOTALS = totalsRes.results || [];
+    ALL_TOTALS = data.allTotalsRes.results || [];
 
     renderHeader(committee);
 
@@ -498,95 +556,89 @@ async function init() {
     // through cleanly because parseInt('all') is also NaN.
     var hashParts = window.location.hash.replace(/^#/, '').split('#');
     var hashCycle = parseInt(hashParts[0], 10);
-    var hashTab   = hashParts[1];
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
+    // Reveal profile header once — shared by index and detail view paths
     document.getElementById('state-msg').style.display = 'none';
     document.getElementById('committee-header').style.removeProperty('display');
+    requestAnimationFrame(function() {
+      document.getElementById('committee-header').classList.add('visible');
+    });
 
-    if (isDetailView) {
-      // ── Detail view ──────────────────────────────────────────────────────
-      activeCycle = hashCycle;
-      document.getElementById('cycle-switcher').value = String(activeCycle);
-      renderStats(activeCycle);
-
-      // Relationship type detection — only fetched on detail view (the assoc
-      // section lives inside #committee-content which is hidden on index view)
-      var sponsorIds    = committee.sponsor_candidate_ids || [];
-      var authorizedIds = committee.candidate_ids || [];
-      var allCandIds    = [].concat(sponsorIds, authorizedIds).filter(Boolean);
-      if (allCandIds.length) {
-        var relType = sponsorIds.indexOf(allCandIds[0]) !== -1 ? 'sponsor' : 'authorized';
-        fetchAndRenderAssocSection(allCandIds[0], relType);
-      }
-
-      document.getElementById('tabs-bar').style.display          = 'flex';
-      document.getElementById('summary-strip').style.display     = 'block';
-      document.getElementById('committee-content').style.display = 'block';
-      requestAnimationFrame(function() {
-        document.getElementById('committee-header').classList.add('visible');
-        document.getElementById('tabs-bar').classList.add('visible');
-        document.getElementById('summary-strip').classList.add('visible');
-        document.getElementById('committee-content').classList.add('visible');
-      });
-
-      amplitude.track('Page Viewed', { page: 'committee', committee_id: COMMITTEE_ID, cycle: activeCycle, source: urlParams.get('from') || null, view: 'detail' });
-
-      // Restore tab from hash after reveal
-      if (['summary', 'raised', 'spent'].indexOf(hashTab) !== -1) showTab(hashTab);
-
-    } else {
-      // ── Index view ───────────────────────────────────────────────────────
-      var totalsMap = {};
-      ALL_TOTALS.forEach(function(r) { totalsMap[r.cycle] = r; });
-
-      var firstFiledYear = committee.first_file_date ? String(committee.first_file_date).slice(0, 4) : '';
-      renderCareerStrip(firstFiledYear, committee.last_file_date, ALL_TOTALS);
-      renderCycleIndex(ALL_CYCLES, totalsMap);
-
-      document.getElementById('career-strip').style.display = 'block';
-      document.getElementById('cycle-index').style.display  = 'block';
-      requestAnimationFrame(function() {
-        document.getElementById('committee-header').classList.add('visible');
-        document.getElementById('career-strip').classList.add('visible');
-        document.getElementById('cycle-index').classList.add('visible');
-      });
-
-      amplitude.track('Page Viewed', { page: 'committee', committee_id: COMMITTEE_ID, source: urlParams.get('from') || null, view: 'index' });
+    // Relationship type detection — moved out of the detail-view branch in T10
+    // so in-place transitions to detail (cycle-row clicks) don't need to re-run
+    // init. Result lands in #assoc-section (inside #committee-content) which is
+    // hidden on index; DOM writes to hidden nodes are harmless.
+    var sponsorIds    = committee.sponsor_candidate_ids || [];
+    var authorizedIds = committee.candidate_ids || [];
+    var allCandIds    = [].concat(sponsorIds, authorizedIds).filter(Boolean);
+    if (allCandIds.length) {
+      var relType = sponsorIds.indexOf(allCandIds[0]) !== -1 ? 'sponsor' : 'authorized';
+      fetchAndRenderAssocSection(allCandIds[0], relType);
     }
 
-    // Compact header — scroll listener on sentinel. Same wiring as detail view;
-    // on index view #tabs-bar is hidden, but writing to its style.top is harmless.
-    (function() {
-      var headerEl      = document.getElementById('committee-header');
-      var tabsBarEl     = document.getElementById('tabs-bar');
-      var sentinelEl    = document.getElementById('profile-header-sentinel');
-      var mainEl        = document.querySelector('.main');
-      var headerH       = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
-      var isCompact      = false;
-      var compactHeaderH = null;
-      var suppressUntil  = 0;
-      function update() {
-        if (Date.now() < suppressUntil) return;
-        var compact = sentinelEl.getBoundingClientRect().top < headerH;
-        if (compact === isCompact) return;
-        isCompact = compact;
-        suppressUntil = Date.now() + 100;
-        if (compact) {
-          var fullH = headerEl.offsetHeight;
-          headerEl.classList.add('compact');
-          if (compactHeaderH === null) compactHeaderH = headerEl.offsetHeight;
-          mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
-          tabsBarEl.style.top = (headerH + compactHeaderH) + 'px';
-        } else {
-          headerEl.classList.remove('compact');
-          mainEl.style.paddingBottom = '';
-          tabsBarEl.style.top = headerH + 'px';
-        }
+    // Compact header scroll listener registered unconditionally — index-only visits
+    // would never enter the detail view, so the listener must be active from init().
+    // Must run BEFORE the helper is instantiated so compactThreshold is set when
+    // getDetailScrollTarget reads it.
+    initCompactHeader();
+    compactHeaderInited = true;
+
+    view = initViewSwitcher({
+      indexElements: [
+        { id: 'career-strip', display: 'block' },
+        { id: 'cycle-index',  display: 'block' }
+      ],
+      detailElements: [
+        { id: 'tabs-bar',          display: 'flex'  },
+        { id: 'summary-strip',     display: 'block' },
+        { id: 'committee-content', display: 'block' }
+      ],
+      mainEl: document.querySelector('.main'),
+      fetchIndexData: fetchIndexData,
+      renderIndex: function(data) {
+        var totalsMap = {};
+        (data.allTotalsRes.results || []).forEach(function(r) { totalsMap[r.cycle] = r; });
+        var c = (data.metaRes.results || [])[0];
+        var firstFiledYear = c && c.first_file_date ? String(c.first_file_date).slice(0, 4) : '';
+        renderCareerStrip(firstFiledYear, c && c.last_file_date, data.allTotalsRes.results || []);
+        renderCycleIndex(ALL_CYCLES, totalsMap);
+      },
+      loadCycle: function(cycle) { renderStats(cycle); return Promise.resolve(); },
+      getDetailScrollTarget: function(indexScrollY) {
+        // compactThreshold > 0 guard: defensive against initCompactHeader() not
+        // having run yet, or sentinel BCR returning 0 in some edge case. When
+        // unset, fall through to scrollY 0 — correct fallback (top of page).
+        return (indexScrollY >= compactThreshold && compactThreshold > 0) ? compactThreshold : 0;
+      },
+      restoreTab: function(tabHash) {
+        if (['summary','raised','spent'].indexOf(tabHash) !== -1) showTab(tabHash);
+      },
+      trackPageViewed: function(viewName) {
+        amplitude.track('Page Viewed', {
+          page: 'committee', committee_id: COMMITTEE_ID, cycle: activeCycle,
+          source: urlParams.get('from') || null, view: viewName
+        });
+      },
+      onIndexError: function(err) {
+        var el = document.getElementById('state-msg');
+        el.className = 'state-msg error';
+        el.textContent = '⚠ Could not load committee.';
+        console.error('[committee] index view error:', err);
       }
-      window.addEventListener('scroll', update, { passive: true });
-      update();
-    })();
+    });
+
+    // Persistent hashchange handler — fires on cycle-row anchor clicks and
+    // browser back/forward. Does NOT fire on showTab() / renderStats's
+    // history.replaceState — no loop risk.
+    window.addEventListener('hashchange', function() {
+      var parts = window.location.hash.replace(/^#/,'').split('#');
+      var cy    = parseInt(parts[0]);
+      var isDet = ALL_CYCLES.indexOf(cy) !== -1;
+      view.switchTo(isDet, cy);
+    });
+
+    await view.switchTo(isDetailView, hashCycle);
 
   } catch(err) {
     var el = document.getElementById('state-msg');
@@ -650,6 +702,12 @@ function renderHeader(c) {
 }
 
 function renderStats(cycleOrAll) {
+  activeCycle = cycleOrAll;
+  // Single fetch-race token covers both raised + spent passes — both kick off
+  // immediately below, both invalidate together when the next cycle change arrives.
+  cycleFetchToken = view.claimToken();
+  var sw = document.getElementById('cycle-switcher');
+  if (sw) sw.value = String(cycleOrAll);
   var rec = null;
   for (var i = 0; i < ALL_TOTALS.length; i++) {
     if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
@@ -1226,12 +1284,14 @@ function renderTopConduits(conduits) {
 async function renderRaisedIfReady() {
   if (raisedRendered) return;
   if (!raisedDataPromise) return;
+  var myToken   = cycleFetchToken;
   var loadEl    = document.getElementById('raised-loading');
   var contentEl = document.getElementById('raised-content');
   loadEl.style.display    = 'flex';
   contentEl.style.display = 'none';
   try {
     var data = await raisedDataPromise;
+    if (!view.isCurrentToken(myToken)) return; // discard: a newer cycle was requested
     // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
     loadEl.style.display    = 'none';
     contentEl.style.display = 'block';
@@ -1612,12 +1672,14 @@ function renderSpendDetail(transactions) {
 async function renderSpentIfReady() {
   if (spentRendered) return;
   if (!spentDataPromise) return;
+  var myToken   = cycleFetchToken;
   var loadEl    = document.getElementById('spent-loading');
   var contentEl = document.getElementById('spent-content');
   loadEl.style.display    = 'flex';
   contentEl.style.display = 'none';
   try {
     var data = await spentDataPromise;
+    if (!view.isCurrentToken(myToken)) return; // discard: a newer cycle was requested
     // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
     loadEl.style.display    = 'none';
     contentEl.style.display = 'block';
@@ -1674,14 +1736,6 @@ async function fetchAndRenderAssocSection(candidateId, relType) {
 }
 
 init();
-
-// T8 ships with full-page navigation between index ↔ detail. Cycle-row anchors
-// in #cycle-index use href="#{year}#summary", which only updates the hash —
-// browsers don't auto-reload on hashchange. Without this listener the URL changes
-// but the view doesn't. T10 will replace this with an in-place switchView() call.
-window.addEventListener('hashchange', function() {
-  window.location.reload();
-});
 </script>
 
 </body>
