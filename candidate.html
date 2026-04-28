@@ -365,12 +365,11 @@ var usTopoCache          = null;
 var CAND_PARTY           = null;
 var committeesLoaded     = false;
 var CAND_NAME            = null;
-var currentFetchId      = 0;     // fetch-race token — incremented on every loadCycle() call
 var cachedHistory       = null;  // /history/ response — reused on detail→index back-navigation
 var cachedAllTotals     = null;  // /totals/?per_page=100 — reused on detail→index back-navigation
 var compactHeaderInited = false; // compact scroll listener registered once on first detail entry
-var indexScrollY        = 0;     // scroll Y preserved on index→detail; restored on reverse
 var compactThreshold    = 0;     // scrollY at which compact mode engages; set in initCompactHeader()
+var view                = null;  // initViewSwitcher instance — created in init() before first switchTo
 
 var ARCHIVE_MIN_YEAR = { H: 2008, S: 2012, P: 2012 };
 
@@ -1355,7 +1354,7 @@ async function renderSpentIfReady() {
 
 // ── Load one cycle ──────────────────────────────────
 async function loadCycle(cycle) {
-  var myFetchId = ++currentFetchId;
+  var myFetchId = view.claimToken();
   activeCycle = cycle;
 
   // Reset raised tab state for new cycle
@@ -1400,7 +1399,7 @@ async function loadCycle(cycle) {
                .catch(function(){ return { results: [] }; });
       }));
     var fetchResults = await Promise.all(fetchArgs);
-    if (myFetchId !== currentFetchId) return; // discard: a newer cycle was requested
+    if (!view.isCurrentToken(myFetchId)) return; // discard: a newer cycle was requested
     var committees   = fetchResults[0].results || [];
     var allTotalsArr = fetchResults.slice(1);
     var principal    = committees.find(function(c){ return c.designation==='P'; }) || committees[0];
@@ -1479,7 +1478,7 @@ async function loadCycle(cycle) {
       var eJson = await apiFetch('/elections/', eParams);
       electionsData = eJson.results || [];
     } catch(e) { electionsData = []; console.warn('Elections fetch failed:', e.message); }
-    if (myFetchId !== currentFetchId) return; // discard: a newer cycle was requested
+    if (!view.isCurrentToken(myFetchId)) return; // discard: a newer cycle was requested
 
     // ── Race context sentence ──────────────────────────────────────
     (function() {
@@ -1695,7 +1694,7 @@ function initCompactHeader() {
   var sentinelEl    = document.getElementById('profile-header-sentinel');
   var mainEl        = document.querySelector('.main');
   var headerH       = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
-  // Expose compact-engage threshold for switchView() — at init time scrollY=0 so BCR.top = page offset
+  // Expose compact-engage threshold for getDetailScrollTarget — at init time scrollY=0 so BCR.top = page offset
   compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - headerH + 1);
   var isCompact      = false;
   var compactHeaderH = null;
@@ -1723,7 +1722,7 @@ function initCompactHeader() {
 }
 
 // ── Index view data processor ─────────────────────────────────────────────────
-// Shared by cache-miss fetch and cache-hit re-render paths in switchView().
+// Called by the helper's renderIndex callback after fetchIndexData resolves.
 function renderIndexFromData(histJson, allTotalsJson) {
   var histData   = histJson.results && histJson.results[0];
   var fullTotals = (allTotalsJson.results || []).filter(function(r) { return r.election_full; });
@@ -1747,108 +1746,22 @@ function renderIndexFromData(histJson, allTotalsJson) {
   renderCycleIndex(indexCycles, totalsMap, CAND_OFFICE);
 }
 
-// ── View switcher ─────────────────────────────────────────────────────────────
-// Manages the index ↔ detail in-place transition without page reload.
-// Called once by init() on landing, then again by the hashchange handler on every
-// navigation. Profile header is never touched here — it's revealed once in init().
-// Designed for extraction to utils.js when committee.html adopts the same pattern.
-async function switchView(isDetailView, hashCycle) {
-  if (isDetailView) {
-    // ── Detail view ──────────────────────────────────────────────────────────
-
-    // Capture scroll before hiding index view (restored on back-navigation)
-    indexScrollY = window.scrollY;
-
-    // Hide index-view elements
-    ['career-strip', 'cycle-index'].forEach(function(id) {
-      var el = document.getElementById(id);
-      el.classList.remove('visible');
-      el.style.display = 'none';
-    });
-
-    // Show detail-view elements; structure appears first, data fills in async
-    document.getElementById('tabs-bar').style.display        = 'flex';
-    document.getElementById('race-context-bar').style.display = 'block';
-    document.getElementById('summary-strip').style.display   = 'block';
-    document.getElementById('content').style.display         = 'block';
-    requestAnimationFrame(function() {
-      document.getElementById('tabs-bar').classList.add('visible');
-      document.getElementById('race-context-bar').classList.add('visible');
-      document.getElementById('summary-strip').classList.add('visible');
-      document.getElementById('content').classList.add('visible');
-    });
-
-    // If index was compact-engaged, enter detail at the compact threshold so the
-    // header state is continuous. If not compact, scroll to top as usual.
-    var targetScrollY = (indexScrollY >= compactThreshold && compactThreshold > 0) ? compactThreshold : 0;
-    var mainEl = document.querySelector('.main');
-    if (targetScrollY > 0) {
-      // Detail view in loading state is shorter than viewport; scrollTo(targetScrollY) would be
-      // clamped to 0. Temporarily extend .main so the document can reach the scroll target.
-      // Cleared after loadCycle() populates real content that fills the document naturally.
-      mainEl.style.minHeight = (targetScrollY + window.innerHeight + 10) + 'px';
-    }
-    window.scrollTo(0, targetScrollY);
-
-    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: hashCycle, source: urlParams.get('from') || null, view: 'detail' });
-
-    // Capture tab hash before loadCycle — replaceState inside loadCycle sets #cycle#summary,
-    // overwriting the original #cycle#tab hash before we can read it.
-    var hParts  = window.location.hash.replace(/^#/,'').split('#');
-    var tabHash = hParts[1];
-
-    activeCycle = hashCycle;
-    await loadCycle(hashCycle);
-    if (targetScrollY > 0) mainEl.style.minHeight = '';
-
-    // Restore tab — covers initial load AND browser back/forward to #year#tab
-    if (['summary','raised','spent'].indexOf(tabHash) !== -1) showTab(tabHash);
-
-  } else {
-    // ── Index view ───────────────────────────────────────────────────────────
-
-    // Hide detail-view elements; reset compact state if it was active
-    ['tabs-bar', 'race-context-bar', 'summary-strip', 'content'].forEach(function(id) {
-      var el = document.getElementById(id);
-      el.classList.remove('visible');
-      el.style.display = 'none';
-    });
-    amplitude.track('Page Viewed', { page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME, cycle: activeCycle, source: urlParams.get('from') || null, view: 'index' });
-
-    if (cachedHistory && cachedAllTotals) {
-      // Cache hit — render data first so document height is full before scrollTo fires
-      document.getElementById('career-strip').style.display = 'block';
-      document.getElementById('cycle-index').style.display  = 'block';
-      renderIndexFromData(cachedHistory, cachedAllTotals);
-      requestAnimationFrame(function() {
-        window.scrollTo(0, indexScrollY);
-        document.getElementById('career-strip').classList.add('visible');
-        document.getElementById('cycle-index').classList.add('visible');
-      });
-    } else {
-      // Cache miss — first visit to index view; fetch then reveal
-      var myIdxFetchId = ++currentFetchId;
-      try {
-        var idxResults = await Promise.all([
-          apiFetch('/candidate/' + CANDIDATE_ID + '/history/', { per_page: 1 }),
-          apiFetch('/candidate/' + CANDIDATE_ID + '/totals/', { per_page: 100 }),
-        ]);
-        if (myIdxFetchId !== currentFetchId) return;
-        cachedHistory   = idxResults[0];
-        cachedAllTotals = idxResults[1];
-        document.getElementById('career-strip').style.display = 'block';
-        document.getElementById('cycle-index').style.display  = 'block';
-        requestAnimationFrame(function() {
-          document.getElementById('career-strip').classList.add('visible');
-          document.getElementById('cycle-index').classList.add('visible');
-        });
-        renderIndexFromData(cachedHistory, cachedAllTotals);
-      } catch(e) {
-        document.getElementById('state-msg').textContent = 'Unable to load candidate data.';
-        console.error('[candidate] index view error:', e);
-      }
-    }
+// ── View switcher callbacks ──────────────────────────────────────────────────
+// Index data fetcher — caches /history/ + /totals/ results so back-navigation
+// from detail view re-renders without re-fetching. Cache lives in module scope
+// (per-page) for now; T13 will add a session-level cache layer above this
+// without touching the helper.
+async function fetchIndexData() {
+  if (cachedHistory && cachedAllTotals) {
+    return { hist: cachedHistory, allTotals: cachedAllTotals };
   }
+  var idxResults = await Promise.all([
+    apiFetch('/candidate/' + CANDIDATE_ID + '/history/', { per_page: 1 }),
+    apiFetch('/candidate/' + CANDIDATE_ID + '/totals/', { per_page: 100 }),
+  ]);
+  cachedHistory   = idxResults[0];
+  cachedAllTotals = idxResults[1];
+  return { hist: cachedHistory, allTotals: cachedAllTotals };
 }
 
 // ── Init ────────────────────────────────────────────
@@ -1928,16 +1841,6 @@ async function init() {
       loadCycle(cy);
     };
 
-    // Persistent hashchange handler — replaces the { once: true } reload from the index path.
-    // Fires on cycle-row anchor clicks and browser back/forward. Does NOT fire on loadCycle()
-    // or showTab() which use history.replaceState — no loop risk.
-    window.addEventListener('hashchange', function() {
-      var parts = window.location.hash.replace(/^#/,'').split('#');
-      var cy    = parseInt(parts[0]);
-      var isDet = ALL_CYCLES.indexOf(cy) !== -1;
-      switchView(isDet, cy);
-    });
-
     // Reveal profile header once — shared by index and detail view paths
     document.getElementById('state-msg').style.display = 'none';
     document.getElementById('profile-header').style.removeProperty('display');
@@ -1947,11 +1850,56 @@ async function init() {
     fetchAndRenderCommittees();
 
     // Compact header scroll listener registered unconditionally — index-only visits
-    // would never call switchView(true), so the listener must be active from init().
+    // would never enter the detail view, so the listener must be active from init().
+    // Must run BEFORE the helper is instantiated so compactThreshold is set when
+    // getDetailScrollTarget reads it.
     initCompactHeader();
     compactHeaderInited = true;
 
-    await switchView(isDetailView, hashCycle);
+    view = initViewSwitcher({
+      indexElements: [
+        { id: 'career-strip', display: 'block' },
+        { id: 'cycle-index',  display: 'block' }
+      ],
+      detailElements: [
+        { id: 'tabs-bar',         display: 'flex'  },
+        { id: 'race-context-bar', display: 'block' },
+        { id: 'summary-strip',    display: 'block' },
+        { id: 'content',          display: 'block' }
+      ],
+      mainEl: document.querySelector('.main'),
+      fetchIndexData: fetchIndexData,
+      renderIndex: function(data) { renderIndexFromData(data.hist, data.allTotals); },
+      loadCycle: loadCycle,
+      getDetailScrollTarget: function(indexScrollY) {
+        return (indexScrollY >= compactThreshold && compactThreshold > 0) ? compactThreshold : 0;
+      },
+      restoreTab: function(tabHash) {
+        if (['summary','raised','spent'].indexOf(tabHash) !== -1) showTab(tabHash);
+      },
+      trackPageViewed: function(viewName) {
+        amplitude.track('Page Viewed', {
+          page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME,
+          cycle: activeCycle, source: urlParams.get('from') || null, view: viewName
+        });
+      },
+      onIndexError: function(err) {
+        document.getElementById('state-msg').textContent = 'Unable to load candidate data.';
+        console.error('[candidate] index view error:', err);
+      }
+    });
+
+    // Persistent hashchange handler — fires on cycle-row anchor clicks and
+    // browser back/forward. Does NOT fire on loadCycle() or showTab() which
+    // use history.replaceState — no loop risk.
+    window.addEventListener('hashchange', function() {
+      var parts = window.location.hash.replace(/^#/,'').split('#');
+      var cy    = parseInt(parts[0]);
+      var isDet = ALL_CYCLES.indexOf(cy) !== -1;
+      view.switchTo(isDet, cy);
+    });
+
+    await view.switchTo(isDetailView, hashCycle);
 
   } catch(err) {
     var el = document.getElementById('state-msg');

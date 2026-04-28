@@ -446,3 +446,110 @@ function initComboDropdown(config) {
     }
   };
 }
+
+// ── initViewSwitcher ─────────────────────────────────────────────────────────
+// Profile-page in-place transitions between an index view (career stats + cycle
+// table) and a detail view (cycle-scoped tabs + content). Lifted from
+// candidate.html in T9 with committee.html as the second consumer (T10).
+//
+// Behavior preserved from candidate.html's original switchView():
+//   - Detail entry: capture window.scrollY, hide index, show detail w/ RAF
+//     reveal, scroll to compact-aware target, await loadCycle, restore tab
+//   - Index entry: hide detail, await fetchIndexData, render, RAF reveal +
+//     scrollTo restore (no-op on first visit when scrollY=0)
+//   - Fetch-race token: helper-owned counter, exposed via claimToken/
+//     isCurrentToken so the page's own loadCycle can participate in the same
+//     namespace. Single counter is required — separate counters wouldn't
+//     invalidate each other's in-flight fetches and stale DOM writes could
+//     land on hidden elements.
+//
+// config:
+//   indexElements          — [{id, display}] elements to show on index entry
+//   detailElements         — [{id, display}] elements to show on detail entry
+//   mainEl                 — HTMLElement for minHeight scroll-clamp guard
+//   fetchIndexData         — () => Promise<any>   page handles caching
+//   renderIndex            — (data) => void       sync DOM render
+//   loadCycle              — (cycle) => Promise   page's existing loader
+//   getDetailScrollTarget  — (indexScrollY) => number   compact-aware target
+//   restoreTab             — (tabHash) => void    page picks tab from hash
+//   trackPageViewed        — (viewName) => void   'detail' | 'index'
+//   onIndexError           — (err) => void        page's error UI
+//
+// Returns: { switchTo(isDetailView, hashCycle), claimToken(), isCurrentToken(id) }
+function initViewSwitcher(config) {
+  var indexElements         = config.indexElements;
+  var detailElements        = config.detailElements;
+  var mainEl                = config.mainEl;
+  var fetchIndexData        = config.fetchIndexData;
+  var renderIndex           = config.renderIndex;
+  var loadCycle             = config.loadCycle;
+  var getDetailScrollTarget = config.getDetailScrollTarget;
+  var restoreTab            = config.restoreTab;
+  var trackPageViewed       = config.trackPageViewed;
+  var onIndexError          = config.onIndexError;
+
+  var tokenCounter = 0;
+  var indexScrollY = 0;
+
+  function show(spec)  { var el = document.getElementById(spec.id); el.style.display = spec.display; return el; }
+  function hide(spec)  { var el = document.getElementById(spec.id); el.classList.remove('visible'); el.style.display = 'none'; }
+  function reveal(spec){ document.getElementById(spec.id).classList.add('visible'); }
+
+  async function switchTo(isDetailView, hashCycle) {
+    if (isDetailView) {
+      // Capture scroll BEFORE hiding index — restored on back-navigation
+      indexScrollY = window.scrollY;
+      indexElements.forEach(hide);
+      detailElements.forEach(show);
+      requestAnimationFrame(function() { detailElements.forEach(reveal); });
+
+      // Compact-aware scroll target. If extending past 0, .main needs a
+      // temporary minHeight so the document can reach the target — detail
+      // view in skeleton state is shorter than viewport and scrollTo would
+      // be silently clamped to 0 by the browser.
+      var targetScrollY = getDetailScrollTarget(indexScrollY);
+      if (targetScrollY > 0) {
+        mainEl.style.minHeight = (targetScrollY + window.innerHeight + 10) + 'px';
+      }
+      window.scrollTo(0, targetScrollY);
+
+      trackPageViewed('detail');
+
+      // Capture tab hash BEFORE await — loadCycle calls history.replaceState
+      // with #cycle#summary which overwrites the original #cycle#tab hash.
+      var hParts  = window.location.hash.replace(/^#/, '').split('#');
+      var tabHash = hParts[1];
+
+      await loadCycle(hashCycle);
+      // minHeight cleanup assumes loadCycle never rejects (it has its own
+      // internal try/catch). If loadCycle ever rejects, minHeight leaks.
+      if (targetScrollY > 0) mainEl.style.minHeight = '';
+
+      restoreTab(tabHash);
+
+    } else {
+      detailElements.forEach(hide);
+      trackPageViewed('index');
+
+      var myToken = ++tokenCounter;
+      try {
+        var data = await fetchIndexData();
+        if (myToken !== tokenCounter) return; // newer transition started
+        indexElements.forEach(show);
+        renderIndex(data);
+        requestAnimationFrame(function() {
+          window.scrollTo(0, indexScrollY);
+          indexElements.forEach(reveal);
+        });
+      } catch(err) {
+        onIndexError(err);
+      }
+    }
+  }
+
+  return {
+    switchTo: switchTo,
+    claimToken: function() { return ++tokenCounter; },
+    isCurrentToken: function(id) { return id === tokenCounter; }
+  };
+}
