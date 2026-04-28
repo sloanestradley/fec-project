@@ -1,6 +1,6 @@
 # FECLedger — Information Architecture
 
-*Last updated: 2026-04-23. Update this file whenever pages are added, renamed, or promoted in phase.*
+*Last updated: 2026-04-28. Update this file whenever pages are added, renamed, or promoted in phase.*
 
 ---
 
@@ -13,7 +13,7 @@
 | `candidates.html` | Browse candidates by filter, or search by name via `?q=` | `/candidates?state=WA&office=H&party=DEM&cycle=2026` or `/candidates?q={query}` | Scaffold + search | 2 |
 | `candidate.html` | Single candidate profile with career index landing state | `/candidate/{fec_candidate_id}` (index) or `/candidate/{fec_candidate_id}#{cycle}#{tab}` (detail) | Live | 1 |
 | `committees.html` | Browse committees by type/state, or search by name via `?q=` | `/committees?state=WA&type=P` or `/committees?q={query}` | Scaffold + search | 3 |
-| `committee.html` | Single committee profile with lifetime index landing state | `/committee/{fec_committee_id}` (index) or `/committee/{fec_committee_id}#{cycle}#{tab}` (detail) | Live | 3 |
+| `committee.html` | Single committee profile — in-place index↔detail transitions (T10) | `/committee/{fec_committee_id}` (index) or `/committee/{fec_committee_id}#{cycle}#{tab}` (detail) | Live | 3 |
 | `races.html` | Browse races by year, office, state | `/races` | Live | 3 |
 | `race.html` | Single race view — all candidates in a contest | `/race?state=WA&district=03&year=2026&office=H` | Scaffold | 3 |
 | `feed.html` | Live filing feed — recent candidate committee filings | `/feed` | Live | 3 |

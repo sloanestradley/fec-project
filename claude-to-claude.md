@@ -4692,3 +4692,66 @@ You tested in the browser while I was finishing the implementation, and caught t
 - **No domain decisions for John this session** — T8 was a pure architectural parity exercise. Nothing here needs validation with him.
 
 - **Test count growth.** 452 → 476 (+24 net: +72 committee.spec.js tests, –48 from pages.spec.js move). Long-term, committee.spec.js will likely grow as T9/T10 add more behavior to test; the file is now positioned to absorb that growth cleanly.
+
+---
+2026-04-28 11:25
+
+## Process log draft
+
+T9 + T10 — The two-page helper
+
+The committee.html parity arc that opened with T8 (the index landing state, All-time mode removed) closed in two more sessions. T9 lifted candidate.html's switchView() into a reusable initViewSwitcher() factory in utils.js. T10 made committee.html consume it, retiring the T8-era window.location.reload() patch in the process.
+
+What you have now: both profile pages share the same transition machinery. Click a cycle row, the profile header doesn't reflow — only the content below it swaps. Browser back restores the index from cache without re-fetching. Compact-engaged scroll position carries through transitions.
+
+Changelog (T9 — `8ec232b`):
+- Added initViewSwitcher(config) factory to utils.js (~110 lines). Returns { switchTo(isDetailView, hashCycle), claimToken(), isCurrentToken(id) }
+- Single fetch-race counter owned by the helper, exposed via claim/check API so the page's own loadCycle can participate in the same namespace
+- Helper compact-naive — getDetailScrollTarget(indexScrollY) callback closes over the page's compactThreshold
+- Per-page index data cache stays per-page (cachedHistory/cachedAllTotals on candidate); helper just calls fetchIndexData() and gets back data
+- candidate.html refactored to consume helper: deleted currentFetchId and indexScrollY module vars; loadCycle uses view.claimToken()/view.isCurrentToken()
+- minHeight cleanup carries an inline note: "behavior assumes loadCycle never rejects" (per Sloane's flag)
+
+Changelog (T10 — `0eef3df`):
+- committee.html adopts initViewSwitcher with committee-specific config
+- Promise.all upfront extracted into fetchIndexData() with cachedMeta/cachedAllTotalsRes module vars
+- Compact IIFE replaced with named initCompactHeader() exposing compactThreshold
+- fetchAndRenderAssocSection moved out of detail-view branch — fires once in init
+- cycleFetchToken claimed in renderStats; checked in renderRaisedIfReady/renderSpentIfReady before DOM writes (Schedule A/B fetches are the actual race surface)
+- Bottom-of-script reload listener deleted; replaced with view.switchTo() inside init
+- Cycle-switcher onchange unchanged — token claim happens automatically via renderStats
+- Mirrored the compactThreshold > 0 guard inline comment back to candidate.html (parity polish, pure docs)
+- 8 new in-place transition tests on committee.spec.js; 0 modifications to existing tests (the cycle-row-click test was already observably equivalent under reload vs in-place — it asserts on final DOM state, not on the transition mechanism)
+
+Test count: 484/484 Track 1 passing (476 baseline + 8 new committee tests).
+
+Field notes:
+
+The most interesting part of the arc was committee's renderStats. Candidate's loadCycle is async — it awaits Promise.all on totals fetches. Committee's renderStats is synchronous — totals are pre-fetched into ALL_TOTALS at init, summary stats render from a lookup. So when the prompt said "loadCycle is a sync wrap — Promise.resolve(renderStats(cycle))", I built that wrap, and then realized the token mechanism needed a different home. Renderstats's "race surface" isn't the summary writes (those finish before the function returns). It's the raised/spent fetches that renderStats kicks off and stores in raisedDataPromise/spentDataPromise — the renderXIfReady functions await those promises and write DOM. Without a token check there, rapid cycle clicks let stale Schedule A/B writes clobber fresh DOM. One module-scoped cycleFetchToken claimed at the top of renderStats and checked in both renderXIfReady functions did the job. Single token covers both raised+spent because both belong to the same cycle change.
+
+The "0 existing tests needed updates" outcome surprised me. I'd planned to update one — the cycle-row-click test that previously assumed full-page reload. Turns out the assertion (wait for #summary-strip.visible, check URL) is true under both behaviors. The test is a survivor by good design — it asserts on observable end state, not implementation. The 8 new tests fill in the previously-untested gaps (no-reload, DOM identity preserved, back-cache hit on metadata fetches, scroll behavior, compact continuity, rapid hash navigation).
+
+The fetchAndRenderAssocSection move was the small but important detail. Under T8, it lived inside the detail-view branch of init() — fine because every detail entry was a fresh page load. Under T10, init() runs once; the in-place cycle clicks don't re-trigger it. So if assoc fetching stayed in the detail-branch, the second-and-onward cycle clicks would show an empty assoc section. Moving it to init-unconditional fires it once per page lifetime; result lands in #assoc-section which is hidden on index but visible on detail. DOM writes to hidden nodes are harmless. Same pattern candidate.html uses with fetchAndRenderCommittees().
+
+Stack tags: initViewSwitcher factory pattern (mirrors initComboDropdown), single-counter token namespace exposed via API, per-page fetchIndexData cache lambda, sync loadCycle wrap with token-protected downstream renderXIfReady, compact-naive helper via callback decoupling
+
+## How Sloane steered the work
+
+"Add an inline comment near the minHeight cleanup logic noting that the current behavior assumes loadCycle never rejects."
+This came at the end of the T10 plan review. The minHeight-after-await pattern works today because loadCycle's internal try/catch never lets it reject — but that's an implicit contract, not an explicit one. The instinct was right and the action was small: a one-line comment in utils.js so future-CC reading the helper doesn't have to re-derive the assumption. Plus the prompt explicitly mirrors that to candidate.html (the parity comment in step 9 of the plan). The pattern shows up again: defensive code without explanation is a future-debugging trap; the cost of the comment is two minutes, the cost of the trap is hours.
+
+"The compactThreshold > 0 guard checks for the case where initCompactHeader() hasn't run. Mirror the comment to candidate.html."
+Same instinct, applied to a different defensive guard. T9 added the guard to candidate.html without an inline explanation. T10's plan added the explanation to committee.html. Sloane's note caught that the parity needed to be true at the comment level too, not just the code level. Extra five-line edit; pure documentation; preserves the symmetry that makes the two pages readable as a unit.
+
+The plan-review pattern itself.
+You read the plan, agreed with the four architecture decisions including the mildly contentious one (token exposure), and added one small precision request before approval. No big-shape pushback because the plan was solid; one small precision because that's the kind of detail that decays fast if not captured. The cost-benefit of plan review is asymmetric in the right direction — five minutes to surface a future-debugging risk vs. hours to debug it later.
+
+The through-line: you steer for code that ages well. Rules-of-thumb you've applied repeatedly across the arc — "verify the input data before writing the SQL," "defensive guards deserve inline explanations," "if two pages share a pattern, the parity should hold at every layer (code, comments, tests)" — all share a common DNA: future-CC won't have your mental context, so encode it now while it's cheap.
+
+## What to bring to Claude Chat
+
+- T11 / T12 / T13 scoping. The committee parity arc is closed; the next ticket from the original CLAUDE.md backlog is "deferral or session-level caching beyond the per-page index cache." T13 (session-level caching) was explicitly future-scoped during T9 — the helper's per-page cache choice was made to NOT paint T13 into a corner. Worth a planning session before the first T11-T13 ticket lands so the caching layer's shape gets set deliberately.
+- The "0 tests needed updating" outcome. T10's existing cycle-row-click test passed unchanged because it asserts on observable end state, not on whether a reload happened. Worth banking as a test-design pattern: assertions on final DOM state are robust across implementation refactors; assertions on URL state alone are fragile (the T8 close-out caught this when an assertion passed because URL changed even though the view didn't render — see claude-to-claude.md T8 entry). The lesson: test the destination, not the transition mechanism.
+- Manual browser verification still outstanding. Playwright is comprehensively green (484/484 including the 8 new in-place transition tests for committee), but I haven't loaded /committee/C00806174 or /committee/C00010603 in a real browser this session. The dev server is running on port 8788 — would be worth a 5-minute eyeball before next session, especially the long-history DCCC case for archive-divider behavior under in-place transitions and the Marie case for the compact-continuity flow.
+- Renderstats's race surface vs. switchTo's race surface. Worth understanding for future profile-page work: candidate.html's race protection lives in loadCycle (await-based, totals fetches); committee.html's race protection lives in the renderXIfReady functions (Schedule A/B fetches that renderStats kicks off and forgets). The token mechanism is the same; the place it gets checked is different. If race.html ever gains an in-place pattern, it'll have its own race-surface to identify.
+- The minHeight-after-await assumption. Documented inline now per your flag, but if a future loadCycle ever rejects (committee-side, or a new page's), minHeight will leak. Two options if/when that becomes real: (a) wrap in try/finally inside the helper, (b) require loadCycle to never reject as part of the helper contract. Today's behavior matches (b) implicitly. Worth deciding which we want when the question stops being hypothetical.
