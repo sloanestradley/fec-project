@@ -521,9 +521,21 @@ function initViewSwitcher(config) {
       var tabHash = hParts[1];
 
       await loadCycle(hashCycle);
-      // minHeight cleanup assumes loadCycle never rejects (it has its own
-      // internal try/catch). If loadCycle ever rejects, minHeight leaks.
-      if (targetScrollY > 0) mainEl.style.minHeight = '';
+      // minHeight is intentionally NOT cleared here. The original T6.5 design
+      // cleared it after loadCycle, on the assumption that loadCycle populates
+      // enough content to fill the document naturally — true on candidate.html
+      // (loadCycle awaits totals fetches and DOM grows during the await) but
+      // false on committee.html (loadCycle is a sync wrap; detail content stays
+      // skeleton-short with raised/spent tabs in lazy-load state). Clearing
+      // mid-flight collapses the document, the browser silently clamps scrollY
+      // to its new max (often 0), and the compact scroll listener subsequently
+      // disengages compact. We can't measure natural content height while
+      // minHeight is set (mainEl.scrollHeight reflects the clamped value), and
+      // even a momentary clear-then-restore triggers the browser-side scroll
+      // clamp. Leaving minHeight as a floor is harmless: when natural content
+      // exceeds it (typical after tab switches) it's a no-op; when natural is
+      // shorter (committee detail in skeleton state) it preserves the document
+      // height required for the in-place scroll target to remain valid.
 
       restoreTab(tabHash);
 

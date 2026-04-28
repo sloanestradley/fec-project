@@ -733,18 +733,24 @@ test.describe('committee.html — in-place transitions', () => {
   });
 
   test('index → detail scroll: compact-engaged index enters detail at compact threshold', async ({ page }) => {
+    // Inflate INDEX content only (cycle-index padding) so user can scroll past
+    // compact threshold. Detail content stays naturally short — that's the
+    // condition that exposes scroll-clamp regressions when minHeight is cleared
+    // before natural detail content has filled the document. Earlier scaffolding
+    // via body.minHeight=3000px masked this class of bug by keeping document
+    // height permanently inflated; index-only inflation simulates the real flow.
     await page.evaluate(() => {
-      document.body.style.minHeight = '3000px';
-      window.scrollTo(0, 500); // well past any reasonable compact threshold
+      document.getElementById('cycle-index').style.paddingBottom = '2000px';
+      window.scrollTo(0, 500);
     });
-    // Wait for compact to engage
     await expect(page.locator('#committee-header')).toHaveClass(/compact/, { timeout: 3000 });
     // Hash navigation via evaluate — Playwright's click() would scroll the element
     // into view first, resetting window.scrollY before switchTo() can read it.
     await page.evaluate(() => { window.location.hash = '#2024#summary'; });
     await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    // Allow scroll listener cooldown + any clamp to settle
+    await page.waitForTimeout(200);
     const scrollY = await page.evaluate(() => window.scrollY);
-    // scrollY should be at the compact threshold (small range; threshold is computed from sentinel BCR)
     expect(scrollY).toBeGreaterThan(0);
     await expect(page.locator('#committee-header')).toHaveClass(/compact/);
   });
