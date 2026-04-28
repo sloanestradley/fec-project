@@ -4635,3 +4635,60 @@ The prompt explicitly scoped the removal to /reporting-dates/ and /election-date
 - **`/reporting-dates/` documentation.** Five CRITICAL notes about that endpoint's quirks are still in CLAUDE.md, annotated as removed. If there's no future home (race.html election context, Phase 4 filing-deadlines view), these can be pruned in a future doc pass rather than accumulating as annotated dead weight.
 
 - **Browser verification still outstanding.** Playwright is green, but the manual check — load MGP + Gillibrand, rapid cycle switching, confirm no 429s in DevTools, verify chart renders cleanly without overlays — should happen before declaring the rate-limit arc fully closed.
+
+---
+2026-04-27 21:15
+
+## Process log draft
+
+T8 — Symmetry with the candidate page, minus the All-time aggregate
+
+The candidate page got an index landing state in the T5/T6 arc — bare URL → CareerStrip + cycle table, hash URL → detail view. committee.html was the only profile page still dropping users into a synthetic "All time" aggregate by default. T8 closes that gap. Bare URL `/committee/{id}` now lands on the same shape: lifetime stats up top, clickable cycle table below. The All-time mode is gone entirely — the index view is the all-time view, and keeping the option would have created two doors to the same room.
+
+The interesting moment was a bug you caught during manual testing while I was finishing the implementation: clicking a cycle row updated the URL hash but didn't switch the view. The Playwright test I'd written asserted the URL change, not the view change — green test, broken UX. The fix was a single hashchange listener that calls `location.reload()`; the test got rewritten to wait for `#summary-strip.visible` and verify `#career-strip` is hidden. URL assertions are necessary but not sufficient when navigation is client-side.
+
+Changelog:
+- Bare URL `/committee/{id}` → index view (#career-strip + #cycle-index); hash `#{year}#{tab}` → detail view; `#cycles` and old `#all#summary` bookmarks fall through to index via parseInt(NaN) → ALL_CYCLES.indexOf(NaN) = -1
+- CareerStrip cells: First Filed / Last Activity / Lifetime Raised / Lifetime Spent — sourced from `/committee/{id}/` metadata (first_file_date, last_file_date) plus summed /totals/ rows
+- All-time mode removed: ~32 logic branches + 5 text strings swept across renderStats, fetchRaisedData, renderRaisedIfReady, fetchSpentData, renderSpentIfReady, cycle switcher
+- Single archive threshold of 2008 for committees (vs candidate.html's office-keyed H:2008/S:2012/P:2012); divider copy drops the office reference
+- per_page bumped 20→100 on /committee/{id}/totals/ for long-history committees (verified live: one row per cycle, single page even at SLF PAC's 6 cycles)
+- Cycle-row anchors fire hashchange → window.location.reload() (T8 ships with full-page nav; T10 will replace with in-place switchView)
+- /committee/{id}/totals/ live verification confirmed naive sum is correct: pre-aggregated per-cycle rows, no sub-cycle decomposition, no amendment fields on the totals endpoint
+- Tests split into new tests/committee.spec.js for parity with candidate.spec.js: 6 existing describe blocks moved (minus 4 All-time-specific tests), 4 new blocks added (index landing, detail regression, archive threshold, All-time removal regressions). 72 committee tests; 476/476 Track 1 passing
+- design-system.html cycle-index card promoted candidate-only → stable; archive divider copy updated to drop "for House races" suffix
+
+Field notes:
+The All-time removal was bigger than the surface count suggested. 32 branches scattered across 5 functions, each with its own pair of cycle-vs-aggregate paths. The right tactical decision was to delete the All-time path everywhere rather than refactor it — a lot of "what does this branch do on All time?" questions resolve to "this branch no longer exists." The function bodies got smaller, the variable names (cycleOrAll) stayed because changing them would have rippled into 30+ call sites that don't care.
+
+The cycle-row click bug is the lesson worth banking. The Playwright test for "clicking a cycle row navigates to #{year}#summary" passed because Playwright tests assert URL state — they don't load the resulting URL fresh and check what renders there. After the fix, the test waits for `#summary-strip.visible` and checks `#career-strip` is hidden. Future tests for client-side navigation should always assert the destination state, not just the URL.
+
+Stack tags: hashchange + location.reload (T8 full-page nav pattern), parseInt(NaN) routing quirk shared between candidate.html and committee.html, ARCHIVE_MIN_YEAR_COMMITTEE single-threshold, /committee/{id}/totals/ pagination shape verified, test file split (parity with candidate.spec.js)
+
+## How Sloane steered the work
+
+**"Split to new tests/committee.spec.js" — overrode my recommended option.**
+
+I asked the test-file question expecting you to pick the lower-diff option (keep adding to pages.spec.js). You picked the parity option instead — split out a dedicated committee.spec.js mirroring candidate.spec.js. That added ~700 lines of move-only diff in this PR, but the structural payoff is real: pages.spec.js is now genuinely "all the other pages" rather than "everything else plus 45 committee tests buried inside." Future T9/T10 work lands in a single coherent file.
+
+**"On Risk #5, intentional, parity is the priority" — preserved a tiny redundancy.**
+
+I flagged that `first_file_date` shows up twice on committee.html — once in the meta-row as "Active since YYYY" prose, once in the CareerStrip as "First Filed". You confirmed it was intentional. That's a parity-over-local-optimization call: candidate.html has the same redundancy, and breaking the symmetry to remove a 4-character duplication on one page would have made T9/T10 (lifting render functions to shared utilities) more expensive.
+
+**Manual testing caught a bug Playwright didn't.**
+
+You tested in the browser while I was finishing the implementation, and caught that cycle-row clicks changed the URL but didn't switch the view. The Playwright test I'd written passed because it asserted URL state, not render state — a class of bug the test couldn't catch. The fix was trivial (one-line hashchange listener); the discovery wasn't. The test got rewritten to verify the post-reload DOM, which is the right pattern going forward for client-side navigation.
+
+**The through-line:** you optimize for system coherence over local edits. When I picked the lower-diff option, you picked parity. When I flagged a small redundancy, you preserved it for symmetry. When the implementation passed the structural tests, you went and tested it in a real browser anyway. That's the same instinct showing up at three different scales — file structure, copy, and verification — and it's what makes the candidate.html and committee.html implementations look like they were designed together.
+
+## What to bring to Claude Chat
+
+- **T9 / T10 scoping.** T8 ships with full-page reload between index ↔ detail (the hashchange listener calls `location.reload()`). T9 lifts `switchView()` to a shared utility; T10 wires committee.html to use it for in-place transitions. Worth scoping T9 with both pages in mind — committee.html has no `/history/` endpoint, no `race-context-bar`, no `compactThreshold` continuity hooks beyond basic compact header. The candidate.html implementation has these baked in; the shared utility will need parameterization or hook points.
+
+- **The cycle-row click bug as a test-discipline note.** Generalize the lesson: client-side navigation tests must assert the destination DOM, not just the URL. Worth a CLAUDE.md ritual addition for the next UI-touching session.
+
+- **Manual browser checks paid off, again.** Two of the last three sessions (this one, T6.5) had real bugs that Playwright didn't catch and you caught manually. The current ritual ("load each affected page in a real browser") is doing what it's supposed to. Worth recognizing that explicitly — the ritual cost is small, the catch rate is meaningful.
+
+- **No domain decisions for John this session** — T8 was a pure architectural parity exercise. Nothing here needs validation with him.
+
+- **Test count growth.** 452 → 476 (+24 net: +72 committee.spec.js tests, –48 from pages.spec.js move). Long-term, committee.spec.js will likely grow as T9/T10 add more behavior to test; the file is now positioned to absorb that growth cleanly.
