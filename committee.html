@@ -31,6 +31,13 @@
     /* Remove .profile-content top padding on committee.html since #summary-strip
        now provides the top vertical rhythm; stats-grid margin-bottom handles the gap. */
     .profile-content { padding-top:0; }
+    /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells */
+    #career-strip { opacity:0; transition:opacity 0.3s ease; }
+    #career-strip.visible { opacity:1; }
+    #career-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+    /* Cycle index — index view only */
+    #cycle-index { opacity:0; transition:opacity 0.3s ease; }
+    #cycle-index.visible { opacity:1; }
 
     /* Associated candidates */
     .assoc-list { display:flex; flex-direction:column; }
@@ -114,6 +121,32 @@
     <select id="cycle-switcher" class="form-select cycle-select"></select>
   </div>
   <div class="main-inner">
+
+    <!-- Career overview — index view only (hidden in detail view) -->
+    <div id="career-strip" style="display:none">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">First Filed</div>
+          <div class="stat-value" id="cstat-first-filed">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Last Activity</div>
+          <div class="stat-value" id="cstat-last-activity">—</div>
+          <div class="stat-sub"  id="cstat-last-activity-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Lifetime Raised</div>
+          <div class="stat-value" id="cstat-career-raised">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Lifetime Spent</div>
+          <div class="stat-value" id="cstat-career-spent">—</div>
+          <div class="stat-sub"  id="cstat-career-spent-sub"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="cycle-index" style="display:none" role="list" aria-label="Committee filing cycles"></div>
 
     <!-- Persistent across all tabs: cycle stats -->
     <div id="summary-strip" style="display:none">
@@ -214,7 +247,7 @@
             </table>
           </div>
           <div class="donors-card">
-            <div class="donors-head">Top Individual Contributors · Most recent cycle</div>
+            <div class="donors-head">Top Individual Contributors</div>
             <table class="donors-table">
               <thead><tr>
                 <th style="width:2rem">#</th>
@@ -310,7 +343,12 @@ var COMMITTEE_ID = urlParams.get('id') || (_pathId && _pathId !== 'committee.htm
 
 var ALL_TOTALS  = [];    // all cycle records from /totals/
 var ALL_CYCLES  = [];    // sorted desc cycle years from committee metadata
-var activeCycle = 'all'; // 'all' or integer cycle year
+var activeCycle = null;  // integer cycle year — set in detail-view branch of init()
+
+// Archive threshold — cycles below this year render as non-navigable rows in the
+// index view's cycle table. FEC committee bulk coverage begins 2008 across all
+// committee types, so a single threshold applies (vs candidate.html's office-keyed map).
+var ARCHIVE_MIN_YEAR_COMMITTEE = 2008;
 
 var COMM_PARTY        = null;
 var COMM_TYPE         = null;
@@ -359,9 +397,82 @@ function showTab(name, e) {
   if (name === 'spent')  renderSpentIfReady();
 }
 
-async function init() {
-  amplitude.track('Page Viewed', { page: 'committee', committee_id: COMMITTEE_ID || null, source: urlParams.get('from') || null });
+// ── Index view renderers ─────────────────────────────
+// Mirrors candidate.html's CareerStrip + cycle-index pattern. Field sources adapted:
+// First Filed/Last Activity come from /committee/{id}/ main metadata directly;
+// committees have no /history/ endpoint.
+function renderCareerStrip(firstFiledYear, lastFileDate, allTotals) {
+  var lifetimeRaised = allTotals.reduce(function(s, r){ return s + (r.receipts || 0); }, 0);
+  var lifetimeSpent  = allTotals.reduce(function(s, r){ return s + (r.disbursements || 0); }, 0);
+  document.getElementById('cstat-first-filed').textContent = firstFiledYear || '—';
+  if (lastFileDate) {
+    document.getElementById('cstat-last-activity').textContent = String(lastFileDate).slice(0, 4);
+    document.getElementById('cstat-last-activity-sub').textContent = fmtDate(lastFileDate);
+  }
+  document.getElementById('cstat-career-raised').textContent = lifetimeRaised ? fmt(lifetimeRaised) : '—';
+  document.getElementById('cstat-career-spent').textContent  = lifetimeSpent  ? fmt(lifetimeSpent)  : '—';
+  if (lifetimeRaised > 0) {
+    var pct = Math.round(lifetimeSpent / lifetimeRaised * 100);
+    document.getElementById('cstat-career-spent-sub').textContent = pct + '% of raised';
+  }
+}
 
+function cycleRowHTML(year, raised, spent, coh, isArchive, startYear) {
+  var label = (startYear || year - 1) + '–' + year;
+  if (isArchive) {
+    return '<div class="cycle-row cycle-row--archive" tabindex="-1">'
+      + '<span class="cycle-row-label">' + label + '</span>'
+      + '<span class="cycle-row-stat">' + raised + '</span>'
+      + '<span class="cycle-row-stat cycle-row-spent-col">' + spent + '</span>'
+      + '<span class="cycle-row-stat">' + coh + '</span>'
+      + '<span></span>'
+      + '</div>';
+  }
+  return '<a href="#' + year + '#summary" class="cycle-row">'
+    + '<span class="cycle-row-label">' + label + '</span>'
+    + '<span class="cycle-row-stat">' + raised + '</span>'
+    + '<span class="cycle-row-stat cycle-row-spent-col">' + spent + '</span>'
+    + '<span class="cycle-row-stat">' + coh + '</span>'
+    + '<span class="cycle-row-chevron" aria-hidden="true">›</span>'
+    + '</a>';
+}
+
+function renderCycleIndex(cycles, totalsMap) {
+  var threshold = ARCHIVE_MIN_YEAR_COMMITTEE;
+  var container = document.getElementById('cycle-index');
+  var html = '<div class="cycle-index-header">'
+    + '<span>Cycle</span>'
+    + '<span style="text-align:right">Raised</span>'
+    + '<span class="cycle-row-spent-col" style="text-align:right">Spent</span>'
+    + '<span style="text-align:right">Cash on Hand</span>'
+    + '<span></span>'
+    + '</div>';
+  var archiveDividerInserted = false;
+  cycles.forEach(function(year) {
+    var isArchive = year < threshold;
+    var t = totalsMap[year];
+    var raised = t ? fmt(t.receipts || 0) : '—';
+    var spent  = t ? fmt(t.disbursements || 0) : '—';
+    var coh    = t ? fmt(t.last_cash_on_hand_end_period || 0) : '—';
+    // Derive cycle start year from coverage_start_date when available; falls back to
+    // year-1 (standard 2-year period). Same pattern as candidate.html.
+    var startYear = t && t.coverage_start_date
+      ? parseInt(String(t.coverage_start_date).slice(0, 4), 10)
+      : year - 1;
+    if (startYear >= year) startYear = year - 1;
+    if (isArchive && !archiveDividerInserted) {
+      archiveDividerInserted = true;
+      html += '<div class="cycle-archive-divider">'
+        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
+        + 'FEC coverage begins ' + threshold + '.</span>'
+        + '</div>';
+    }
+    html += cycleRowHTML(year, raised, spent, coh, isArchive, startYear);
+  });
+  container.innerHTML = html;
+}
+
+async function init() {
   if (!COMMITTEE_ID) {
     var el = document.getElementById('state-msg');
     el.className = 'state-msg error';
@@ -373,7 +484,7 @@ async function init() {
     // Parallel fetch: metadata + all cycle totals
     var [metaRes, totalsRes] = await Promise.all([
       apiFetch('/committee/' + COMMITTEE_ID + '/'),
-      apiFetch('/committee/' + COMMITTEE_ID + '/totals/', { per_page: 20, sort: '-coverage_end_date' })
+      apiFetch('/committee/' + COMMITTEE_ID + '/totals/', { per_page: 100, sort: '-coverage_end_date' })
     ]);
 
     var committee = (metaRes.results || [])[0];
@@ -382,42 +493,70 @@ async function init() {
 
     renderHeader(committee);
 
-    // Read hash: #cycleOrAll#tab — must happen after renderHeader() populates ALL_CYCLES
+    // Determine view from hash. Mirrors candidate.html: parseInt(non-numeric)=NaN,
+    // ALL_CYCLES.indexOf(NaN)=-1 → index view. Old `#all#summary` bookmarks fall
+    // through cleanly because parseInt('all') is also NaN.
     var hashParts = window.location.hash.replace(/^#/, '').split('#');
-    var hashCycle = hashParts[0];
+    var hashCycle = parseInt(hashParts[0], 10);
     var hashTab   = hashParts[1];
-    if (hashCycle === 'all') {
-      activeCycle = 'all';
-    } else {
-      var parsedCycle = parseInt(hashCycle, 10);
-      if (ALL_CYCLES.indexOf(parsedCycle) !== -1) activeCycle = parsedCycle;
-    }
-    document.getElementById('cycle-switcher').value = String(activeCycle);
+    var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
-    renderStats(activeCycle);
-
-    // Relationship type detection
-    var sponsorIds    = committee.sponsor_candidate_ids || [];
-    var authorizedIds = committee.candidate_ids || [];
-    var allCandIds    = [].concat(sponsorIds, authorizedIds).filter(Boolean);
-    if (allCandIds.length) {
-      var relType = sponsorIds.indexOf(allCandIds[0]) !== -1 ? 'sponsor' : 'authorized';
-      fetchAndRenderAssocSection(allCandIds[0], relType);
-    }
-
-    document.getElementById('state-msg').style.display       = 'none';
+    document.getElementById('state-msg').style.display = 'none';
     document.getElementById('committee-header').style.removeProperty('display');
-    document.getElementById('tabs-bar').style.display         = 'flex';
-    document.getElementById('summary-strip').style.display    = 'block';
-    document.getElementById('committee-content').style.display = 'block';
-    requestAnimationFrame(function() {
-      document.getElementById('committee-header').classList.add('visible');
-      document.getElementById('tabs-bar').classList.add('visible');
-      document.getElementById('summary-strip').classList.add('visible');
-      document.getElementById('committee-content').classList.add('visible');
-    });
 
-    // Compact header — scroll listener on sentinel
+    if (isDetailView) {
+      // ── Detail view ──────────────────────────────────────────────────────
+      activeCycle = hashCycle;
+      document.getElementById('cycle-switcher').value = String(activeCycle);
+      renderStats(activeCycle);
+
+      // Relationship type detection — only fetched on detail view (the assoc
+      // section lives inside #committee-content which is hidden on index view)
+      var sponsorIds    = committee.sponsor_candidate_ids || [];
+      var authorizedIds = committee.candidate_ids || [];
+      var allCandIds    = [].concat(sponsorIds, authorizedIds).filter(Boolean);
+      if (allCandIds.length) {
+        var relType = sponsorIds.indexOf(allCandIds[0]) !== -1 ? 'sponsor' : 'authorized';
+        fetchAndRenderAssocSection(allCandIds[0], relType);
+      }
+
+      document.getElementById('tabs-bar').style.display          = 'flex';
+      document.getElementById('summary-strip').style.display     = 'block';
+      document.getElementById('committee-content').style.display = 'block';
+      requestAnimationFrame(function() {
+        document.getElementById('committee-header').classList.add('visible');
+        document.getElementById('tabs-bar').classList.add('visible');
+        document.getElementById('summary-strip').classList.add('visible');
+        document.getElementById('committee-content').classList.add('visible');
+      });
+
+      amplitude.track('Page Viewed', { page: 'committee', committee_id: COMMITTEE_ID, cycle: activeCycle, source: urlParams.get('from') || null, view: 'detail' });
+
+      // Restore tab from hash after reveal
+      if (['summary', 'raised', 'spent'].indexOf(hashTab) !== -1) showTab(hashTab);
+
+    } else {
+      // ── Index view ───────────────────────────────────────────────────────
+      var totalsMap = {};
+      ALL_TOTALS.forEach(function(r) { totalsMap[r.cycle] = r; });
+
+      var firstFiledYear = committee.first_file_date ? String(committee.first_file_date).slice(0, 4) : '';
+      renderCareerStrip(firstFiledYear, committee.last_file_date, ALL_TOTALS);
+      renderCycleIndex(ALL_CYCLES, totalsMap);
+
+      document.getElementById('career-strip').style.display = 'block';
+      document.getElementById('cycle-index').style.display  = 'block';
+      requestAnimationFrame(function() {
+        document.getElementById('committee-header').classList.add('visible');
+        document.getElementById('career-strip').classList.add('visible');
+        document.getElementById('cycle-index').classList.add('visible');
+      });
+
+      amplitude.track('Page Viewed', { page: 'committee', committee_id: COMMITTEE_ID, source: urlParams.get('from') || null, view: 'index' });
+    }
+
+    // Compact header — scroll listener on sentinel. Same wiring as detail view;
+    // on index view #tabs-bar is hidden, but writing to its style.top is harmless.
     (function() {
       var headerEl      = document.getElementById('committee-header');
       var tabsBarEl     = document.getElementById('tabs-bar');
@@ -448,9 +587,6 @@ async function init() {
       window.addEventListener('scroll', update, { passive: true });
       update();
     })();
-
-    // Restore tab from hash after reveal
-    if (['summary', 'raised', 'spent'].indexOf(hashTab) !== -1) showTab(hashTab);
 
   } catch(err) {
     var el = document.getElementById('state-msg');
@@ -493,48 +629,38 @@ function renderHeader(c) {
   COMM_PARTY = c.party || null;
   COMM_TYPE  = c.committee_type || null;
 
-  // Populate cycle switcher from c.cycles
+  // Populate cycle switcher from c.cycles. Numeric options only — the index view
+  // replaces the prior "All time" option (removed in T8). The switcher is only
+  // visible on detail view; init()'s detail branch sets sw.value to the URL hash
+  // cycle. On index view the switcher is in #tabs-bar which stays hidden.
   ALL_CYCLES = (c.cycles || []).slice().sort(function(a,b){ return b - a; });
   var sw = document.getElementById('cycle-switcher');
-  sw.innerHTML = '<option value="all">All time</option>';
+  sw.innerHTML = '';
   ALL_CYCLES.forEach(function(cy) {
     var opt = document.createElement('option');
     opt.value = cy;
     opt.textContent = cy;
     sw.appendChild(opt);
   });
-  sw.value = 'all';
   sw.onchange = function() {
-    activeCycle = sw.value === 'all' ? 'all' : parseInt(sw.value, 10);
+    activeCycle = parseInt(sw.value, 10);
     amplitude.track('Cycle Switched', { cycle: activeCycle, committee_id: COMMITTEE_ID });
     renderStats(activeCycle);
   };
 }
 
 function renderStats(cycleOrAll) {
-  var receipts, disbursements, coh, coverageDate;
-
-  if (cycleOrAll === 'all') {
-    receipts      = ALL_TOTALS.reduce(function(s, r){ return s + (r.receipts || 0); }, 0);
-    disbursements = ALL_TOTALS.reduce(function(s, r){ return s + (r.disbursements || 0); }, 0);
-    var recent    = ALL_TOTALS[0] || {};
-    coh           = recent.last_cash_on_hand_end_period;
-    coverageDate  = recent.coverage_end_date;
-    document.getElementById('stat-raised-sub').textContent = 'All cycles';
-    document.getElementById('stat-spent-sub').textContent  = 'All cycles';
-  } else {
-    var rec = null;
-    for (var i = 0; i < ALL_TOTALS.length; i++) {
-      if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
-    }
-    receipts      = rec ? rec.receipts : null;
-    disbursements = rec ? rec.disbursements : null;
-    coh           = rec ? rec.last_cash_on_hand_end_period : null;
-    coverageDate  = rec ? rec.coverage_end_date : null;
-    var startYear = cycleOrAll - 1;
-    document.getElementById('stat-raised-sub').textContent = startYear + '–' + cycleOrAll + ' cycle';
-    document.getElementById('stat-spent-sub').textContent  = startYear + '–' + cycleOrAll + ' cycle';
+  var rec = null;
+  for (var i = 0; i < ALL_TOTALS.length; i++) {
+    if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
   }
+  var receipts      = rec ? rec.receipts : null;
+  var disbursements = rec ? rec.disbursements : null;
+  var coh           = rec ? rec.last_cash_on_hand_end_period : null;
+  var coverageDate  = rec ? rec.coverage_end_date : null;
+  var startYear     = cycleOrAll - 1;
+  document.getElementById('stat-raised-sub').textContent = startYear + '–' + cycleOrAll + ' cycle';
+  document.getElementById('stat-spent-sub').textContent  = startYear + '–' + cycleOrAll + ' cycle';
 
   document.getElementById('stat-raised').textContent   = receipts != null ? fmt(receipts) : '—';
   document.getElementById('stat-spent').textContent    = disbursements != null ? fmt(disbursements) : '—';
@@ -544,19 +670,14 @@ function renderStats(cycleOrAll) {
 
   // Overspend note
   var overspendEl = document.getElementById('overspend-note');
-  overspendEl.style.display = (cycleOrAll !== 'all' && receipts > 0 && disbursements > receipts) ? 'block' : 'none';
+  overspendEl.style.display = (receipts > 0 && disbursements > receipts) ? 'block' : 'none';
 
   // Data note
   var noteEl = document.getElementById('committee-meta-note');
-  if (cycleOrAll === 'all') {
-    noteEl.textContent = 'Source: FEC — Committee ID ' + COMMITTEE_ID + '. All-cycle aggregate. Data updated nightly by FEC.';
-  } else {
-    var cy = cycleOrAll;
-    noteEl.textContent = 'Source: FEC — Committee ID ' + COMMITTEE_ID + '. '
-      + (cy - 1) + '–' + cy + ' cycle.'
-      + (coverageDate ? ' Coverage through ' + fmtDate(coverageDate) + '.' : '')
-      + ' Data updated nightly by FEC.';
-  }
+  noteEl.textContent = 'Source: FEC — Committee ID ' + COMMITTEE_ID + '. '
+    + startYear + '–' + cycleOrAll + ' cycle.'
+    + (coverageDate ? ' Coverage through ' + fmtDate(coverageDate) + '.' : '')
+    + ' Data updated nightly by FEC.';
 
   // Sync URL hash
   var tabEl = document.querySelector('.tab.active');
@@ -636,26 +757,17 @@ async function fetchRaisedData(cycleOrAll) {
   var totalRaised = 0;
   var covDate = null;
 
-  if (cycleOrAll === 'all') {
-    ALL_TOTALS.forEach(function(t) {
-      Object.keys(breakdown).forEach(function(k){ breakdown[k] += t[k] || 0; });
-      totalRaised += t.receipts || 0;
-    });
-    var recent = ALL_TOTALS[0] || {};
-    covDate = recent.coverage_end_date ? recent.coverage_end_date.split('T')[0] : null;
-  } else {
-    var rec = null;
-    for (var i = 0; i < ALL_TOTALS.length; i++) {
-      if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
-    }
-    if (rec) {
-      Object.keys(breakdown).forEach(function(k){ breakdown[k] = rec[k] || 0; });
-      totalRaised = rec.receipts || 0;
-      covDate = rec.coverage_end_date ? rec.coverage_end_date.split('T')[0] : null;
-    }
+  var rec = null;
+  for (var i = 0; i < ALL_TOTALS.length; i++) {
+    if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
+  }
+  if (rec) {
+    Object.keys(breakdown).forEach(function(k){ breakdown[k] = rec[k] || 0; });
+    totalRaised = rec.receipts || 0;
+    covDate = rec.coverage_end_date ? rec.coverage_end_date.split('T')[0] : null;
   }
 
-  // by_state: one call, filter client-side by d.cycle
+  // by_state: one call, filter client-side by d.cycle.
   // two_year_transaction_period is silently ignored on this endpoint — all cycles are
   // always returned; the cycle field on each result record is the reliable filter.
   var byState = [];
@@ -665,11 +777,7 @@ async function fetchRaisedData(cycleOrAll) {
     });
     var stateMap = {};
     (stateRes.results || []).forEach(function(d) {
-      if (cycleOrAll === 'all') {
-        if (ALL_CYCLES.indexOf(d.cycle) === -1) return;
-      } else {
-        if (d.cycle !== cycleOrAll) return;
-      }
+      if (d.cycle !== cycleOrAll) return;
       var k = d.state;
       if (!k) return;
       if (!stateMap[k]) stateMap[k] = { state: d.state, state_full: d.state_full, total: 0, count: 0 };
@@ -679,13 +787,9 @@ async function fetchRaisedData(cycleOrAll) {
     byState = Object.values(stateMap).sort(function(a,b){ return b.total - a.total; });
   } catch(e) { console.warn('by_state fetch failed:', e.message); }
 
-  // Contributor tables: use most recent cycle for 'all' (aggregating individual
-  // contributions across all cycles isn't meaningful and would be expensive)
-  var period = cycleOrAll === 'all' ? ALL_CYCLES[0] : cycleOrAll;
+  var period = cycleOrAll;
 
-  // Top individual contributors — KV-first, always. `period` is the selected
-  // cycle for a specific view, or ALL_CYCLES[0] (most recent cycle) on 'All time';
-  // the same branch tree runs either way so results stay consistent across views.
+  // Top individual contributors — KV-first, always.
   //   Hit  → pre-computed top 25 from FEC bulk data (DuckDB GROUP BY, full cycle).
   //   Miss → paginate /schedules/schedule_a/?is_individual=true to exhaustion if
   //          pages ≤ PAGE_THRESHOLD; otherwise mark unavailable (honest empty
@@ -750,7 +854,7 @@ async function fetchRaisedData(cycleOrAll) {
     }
   } catch(e) { console.warn('Top individual contributors fetch failed:', e.message); }
 
-  // Top committee contributors — KV-first when a specific cycle is selected.
+  // Top committee contributors — KV-first.
   //   Hit  → pre-computed top 25 from pas2 bulk data (DuckDB GROUP BY).
   //   Miss → aggregate non-memo rows from the paginated Schedule A fetch if
   //          pages ≤ PAGE_THRESHOLD; otherwise mark unavailable (mega-committees
@@ -759,15 +863,13 @@ async function fetchRaisedData(cycleOrAll) {
   // (memo_code='X'). No bulk-data equivalent exists; when the Schedule A fetch
   // is too large to paginate, conduits are unavailable even if top committees
   // came back from KV.
-  // Both surfaces hidden entirely on 'All time' (aggregating committee-to-
-  // committee money across every cycle isn't a meaningful number).
   var topCommittees = [];
   var topCommitteesSource = 'api';  // 'bulk' | 'api' | 'unavailable' | 'unavailable-coverage-gap'
   var topCommitteesPas2Gap = false;
   var topCommitteesIsConduit = false;
   var topConduits = [];
   var topConduitsTooLarge = false;
-  if (cycleOrAll !== 'all') {
+  {
     try {
       var PAGE_THRESHOLD = 100; // 10,000 transactions — matches individuals gate
 
@@ -1144,70 +1246,52 @@ async function renderRaisedIfReady() {
 
     var commCard     = document.getElementById('committee-donors-card');
     var conduitsCard = document.getElementById('conduits-card');
-    if (data.cycleOrAll === 'all') {
-      commCard.style.display = 'none';
-      conduitsCard.style.display = 'none';
+    commCard.style.display = '';
+    conduitsCard.style.display = '';
+    if (data.topCommitteesSource === 'unavailable-coverage-gap') {
+      document.getElementById('committee-donors-tbody').innerHTML =
+        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Committee contribution data is not available for this committee type.</td></tr>';
+    } else if (data.topCommitteesSource === 'unavailable') {
+      document.getElementById('committee-donors-tbody').innerHTML =
+        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
     } else {
-      commCard.style.display = '';
-      conduitsCard.style.display = '';
-      if (data.topCommitteesSource === 'unavailable-coverage-gap') {
-        document.getElementById('committee-donors-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Committee contribution data is not available for this committee type.</td></tr>';
-      } else if (data.topCommitteesSource === 'unavailable') {
-        document.getElementById('committee-donors-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
-      } else {
-        renderCommitteeDonors(data.topCommittees);
-      }
-      if (data.topCommitteesIsConduit) {
-        // Top Conduit Sources is semantically meaningless on a conduit
-        // committee — the conduit IS the conduit source. Hide the card
-        // entirely rather than relabel it.
-        conduitsCard.style.display = 'none';
-      } else if (data.topConduitsTooLarge) {
-        document.getElementById('conduits-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
-      } else {
-        renderTopConduits(data.topConduits);
-      }
+      renderCommitteeDonors(data.topCommittees);
+    }
+    if (data.topCommitteesIsConduit) {
+      // Top Conduit Sources is semantically meaningless on a conduit
+      // committee — the conduit IS the conduit source. Hide the card
+      // entirely rather than relabel it.
+      conduitsCard.style.display = 'none';
+    } else if (data.topConduitsTooLarge) {
+      document.getElementById('conduits-tbody').innerHTML =
+        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
+    } else {
+      renderTopConduits(data.topConduits);
     }
 
-    var cycleLabel = data.cycleOrAll === 'all'
-      ? 'Most recent cycle'
-      : (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
+    var cycleLabel = (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
     document.querySelector('#individual-donors-tbody').closest('.donors-card').querySelector('.donors-head')
       .textContent = 'Top Individual Contributors · ' + cycleLabel;
-    if (data.cycleOrAll !== 'all') {
-      document.querySelector('#committee-donors-tbody').closest('.donors-card').querySelector('.donors-head')
-        .textContent = 'Top Committee Contributors · ' + cycleLabel;
-      document.querySelector('#conduits-tbody').closest('.donors-card').querySelector('.donors-head')
-        .textContent = 'Top Conduit Sources · ' + cycleLabel;
-    }
+    document.querySelector('#committee-donors-tbody').closest('.donors-card').querySelector('.donors-head')
+      .textContent = 'Top Committee Contributors · ' + cycleLabel;
+    document.querySelector('#conduits-tbody').closest('.donors-card').querySelector('.donors-head')
+      .textContent = 'Top Conduit Sources · ' + cycleLabel;
 
     var note = 'Raised breakdown from FEC totals endpoint. ' +
       'Geography reflects itemized individual contributions by state (Schedule A). ' +
       'State totals may differ from summary figures due to FEC amendment processing.';
     if (data.topIndividualsSource === 'bulk') {
       note += ' Top individual contributors pre-computed from FEC bulk data, refreshed daily.';
-      if (data.cycleOrAll === 'all') {
-        note += ' They reflect the most recent cycle only.';
-      }
     } else if (data.topIndividualsSource === 'api') {
-      if (data.cycleOrAll === 'all') {
-        note += ' Top individual contributors reflect the most recent cycle only.';
-      } else {
-        note += ' Top individual contributors: ' + cycleLabel + '.';
-      }
+      note += ' Top individual contributors: ' + cycleLabel + '.';
     }
-    if (data.cycleOrAll !== 'all') {
-      if (data.topCommitteesSource === 'bulk') {
-        note += ' Top committee contributors pre-computed from FEC bulk data (pas2), refreshed daily.';
-      } else if (data.topCommitteesSource === 'api') {
-        note += ' Top committee contributors: complete ' + cycleLabel + ' cycle, deduplicated by committee ID.';
-      }
-      if (!data.topConduitsTooLarge && !data.topCommitteesIsConduit) {
-        note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
-      }
+    if (data.topCommitteesSource === 'bulk') {
+      note += ' Top committee contributors pre-computed from FEC bulk data (pas2), refreshed daily.';
+    } else if (data.topCommitteesSource === 'api') {
+      note += ' Top committee contributors: complete ' + cycleLabel + ' cycle, deduplicated by committee ID.';
+    }
+    if (!data.topConduitsTooLarge && !data.topCommitteesIsConduit) {
+      note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
     }
     if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
     note += ' Small-dollar contributions ≤$200 are not itemized.';
@@ -1240,34 +1324,24 @@ async function fetchSpentData(cycleOrAll) {
   var totalSpent = 0;
   var covDate = null;
 
-  if (cycleOrAll === 'all') {
-    ALL_TOTALS.forEach(function(t) {
-      CATEGORY_KEYS.forEach(function(k){ breakdown[k] += t[k] || 0; });
-      totalSpent += t.disbursements || 0;
-    });
-    var recent = ALL_TOTALS[0] || {};
-    covDate = recent.coverage_end_date ? recent.coverage_end_date.split('T')[0] : null;
-  } else {
-    var rec = null;
-    for (var i = 0; i < ALL_TOTALS.length; i++) {
-      if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
-    }
-    if (rec) {
-      CATEGORY_KEYS.forEach(function(k){ breakdown[k] = rec[k] || 0; });
-      totalSpent = rec.disbursements || 0;
-      covDate = rec.coverage_end_date ? rec.coverage_end_date.split('T')[0] : null;
-    }
+  var rec = null;
+  for (var i = 0; i < ALL_TOTALS.length; i++) {
+    if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
+  }
+  if (rec) {
+    CATEGORY_KEYS.forEach(function(k){ breakdown[k] = rec[k] || 0; });
+    totalSpent = rec.disbursements || 0;
+    covDate = rec.coverage_end_date ? rec.coverage_end_date.split('T')[0] : null;
   }
   // Compute "other" as remainder so donut always covers 100% of spending
   var knownSum = CATEGORY_KEYS.reduce(function(s, k){ return s + breakdown[k]; }, 0);
   breakdown.other_disbursements = Math.max(0, totalSpent - knownSum);
 
-  // Schedule B: use most recent cycle for 'all' (same rationale as Raised tab).
-  // Two parallel fetches: main opex fetch (for purpose bars + vendor table)
-  // and a dedicated contributions fetch (entity_type=CCM, paginated fully,
-  // deduped by recipient). Separate fetches prevent opex volume from crowding
-  // out contributions in the 500-transaction cap.
-  var period = cycleOrAll === 'all' ? ALL_CYCLES[0] : cycleOrAll;
+  // Schedule B: two parallel fetches — main opex fetch (for purpose bars + vendor
+  // table) and a dedicated contributions fetch (entity_type=CCM, paginated fully,
+  // deduped by recipient). Separate fetches prevent opex volume from crowding out
+  // contributions in the 500-transaction cap.
+  var period = cycleOrAll;
   var allTransactions = [];
   var capped = false;
   var contributions = [];
@@ -1552,8 +1626,7 @@ async function renderSpentIfReady() {
     renderTopVendors(data.topVendors || []);
     renderContributions(data.contributions || []);
 
-    var periodLabel = data.cycleOrAll === 'all' ? 'All time'
-      : (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
+    var periodLabel = (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
     var vendorsHead = document.getElementById('vendors-head');
     if (vendorsHead) vendorsHead.textContent = 'Top Vendors · ' + periodLabel;
 
@@ -1601,6 +1674,14 @@ async function fetchAndRenderAssocSection(candidateId, relType) {
 }
 
 init();
+
+// T8 ships with full-page navigation between index ↔ detail. Cycle-row anchors
+// in #cycle-index use href="#{year}#summary", which only updates the hash —
+// browsers don't auto-reload on hashchange. Without this listener the URL changes
+// but the view doesn't. T10 will replace this with an in-place switchView() call.
+window.addEventListener('hashchange', function() {
+  window.location.reload();
+});
 </script>
 
 </body>

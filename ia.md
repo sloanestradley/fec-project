@@ -13,7 +13,7 @@
 | `candidates.html` | Browse candidates by filter, or search by name via `?q=` | `/candidates?state=WA&office=H&party=DEM&cycle=2026` or `/candidates?q={query}` | Scaffold + search | 2 |
 | `candidate.html` | Single candidate profile with career index landing state | `/candidate/{fec_candidate_id}` (index) or `/candidate/{fec_candidate_id}#{cycle}#{tab}` (detail) | Live | 1 |
 | `committees.html` | Browse committees by type/state, or search by name via `?q=` | `/committees?state=WA&type=P` or `/committees?q={query}` | Scaffold + search | 3 |
-| `committee.html` | Single committee profile | `/committee/{fec_committee_id}` | Scaffold+ (tabs + cycle switcher live; Raised tab live; Spent tab live; filing history stub) | 3 |
+| `committee.html` | Single committee profile with lifetime index landing state | `/committee/{fec_committee_id}` (index) or `/committee/{fec_committee_id}#{cycle}#{tab}` (detail) | Live | 3 |
 | `races.html` | Browse races by year, office, state | `/races` | Live | 3 |
 | `race.html` | Single race view — all candidates in a contest | `/race?state=WA&district=03&year=2026&office=H` | Scaffold | 3 |
 | `feed.html` | Live filing feed — recent candidate committee filings | `/feed` | Live | 3 |
@@ -81,7 +81,7 @@ Search, Process Log, and Design System are **not** nav link items. Search is acc
 | From | To | Trigger | Link pattern |
 |---|---|---|---|
 | `candidate.html` | `committee.html` | Committees modal — click committee name | `/committee/{committee_id}` |
-| `committee.html` | `candidate.html` | Back-link in header | `candidate.html?id={candidate_id}` |
+| `committee.html` | `candidate.html` | Associated-candidate card on detail view | `/candidate/{candidate_id}` |
 | `race.html` | `candidate.html` | Candidate card click | `candidate.html?id={id}#{race_year}#summary` |
 
 ### Race flow
@@ -108,7 +108,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 |---|---|---|---|---|
 | `candidate.html` | `/candidate/{id}` | `id` (path segment) | hash: `#{cycle}#{tab}` | No ID → error state. Tab options: summary, raised, spent. **Bare URL (no hash) → index view** (CareerStrip + cycle index table). Hash with valid cycle year → detail view. `#cycles` or any non-year hash → also index view. All identity/discovery entry points should use the bare form. |
 | `candidate.html` | `/candidate/{id}#cycles` | `id` (path segment) | — | Alias for index view — `parseInt('cycles')` = NaN → ALL_CYCLES.indexOf(NaN) = -1 → index view. Same landing state as bare URL. |
-| `committee.html` | `/committee/{id}` | `id` (path segment) | — | No ID → error state |
+| `committee.html` | `/committee/{id}` | `id` (path segment) | hash: `#{cycle}#{tab}` | No ID → error state. Tab options: summary, raised, spent. **Bare URL (no hash) → index view** (CareerStrip + cycle index table). Hash with valid cycle year → detail view. `#cycles` or any non-year hash → also index view. Old `#all#{tab}` bookmarks fall through to index view via NaN routing (post-T8). |
 | `race.html` | `/race` | `state`, `year`, `office` | `district` (required for House) | No params → error state |
 | `races.html` | `/races` | — | `cycle`, `office`, `state` | URL sync on all three filters — `pushState` on every filter change, params restored on init. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). |
 | `candidates.html` | `/candidates` | — | `state`, `office`, `party`, `cycle`, `q` | All params are unified — filter bar always visible, results auto-load on page visit. `?q=` populates the inline search field and pre-fires search. All result cards link to `/candidate/{id}`. Filter chips + URL sync on every change. |

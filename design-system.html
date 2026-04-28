@@ -1196,10 +1196,10 @@
       </div>
 
       <!-- 13. Cycle index -->
-      <div class="ds-component" id="comp-cycle-index" data-status="candidate-only">
+      <div class="ds-component" id="comp-cycle-index" data-status="stable">
         <div class="ds-component-header">
           <span class="ds-component-name">cycle-index</span>
-          <span class="ds-status candidate-only">candidate-only</span>
+          <span class="ds-status stable">stable</span>
         </div>
         <div class="ds-component-classes">.cycle-index-header · a.cycle-row · div.cycle-row · .cycle-row-label · .cycle-row-stat · .cycle-row-spent-col · .cycle-row-chevron · .cycle-archive-divider · .cycle-archive-divider-text · .cycle-row--archive</div>
         <div class="ds-component-demo" style="border:1px solid var(--border);border-radius:4px;overflow:hidden">
@@ -1225,7 +1225,7 @@
             <span class="cycle-row-chevron" aria-hidden="true">›</span>
           </a>
           <div class="cycle-archive-divider">
-            <span class="cycle-archive-divider-text">Archive · summary-only. FEC coverage begins 2008 for House races.</span>
+            <span class="cycle-archive-divider-text">Archive · summary-only. FEC coverage begins 2008.</span>
           </div>
           <div class="cycle-row cycle-row--archive" tabindex="-1">
             <span class="cycle-row-label">2005–2006</span>
@@ -1235,7 +1235,7 @@
             <span></span>
           </div>
         </div>
-        <div class="ds-component-notes">Used on <code>candidate.html</code> in the index view (bare URL landing state). Rows above the archive threshold are <code>a.cycle-row</code> with <code>href="#year#summary"</code>; rows below are <code>div.cycle-row.cycle-row--archive</code> with <code>tabindex="-1"</code> (non-navigable). <code>.cycle-row-spent-col</code> is hidden at ≤860px. Column header uses <code>.cycle-index-header</code>. Year-range labels are derived from <code>coverage_start_date</code> on the totals row (API-sourced — handles Senate multi-year spans correctly). Archive threshold: H: 2008, S: 2012, P: 2012 (stored in <code>ARCHIVE_MIN_YEAR</code> constant).</div>
+        <div class="ds-component-notes">Used on <code>candidate.html</code> AND <code>committee.html</code> in the index view (bare URL landing state). Rows above the archive threshold are <code>a.cycle-row</code> with <code>href="#year#summary"</code>; rows below are <code>div.cycle-row.cycle-row--archive</code> with <code>tabindex="-1"</code> (non-navigable). <code>.cycle-row-spent-col</code> is hidden at ≤860px. Column header uses <code>.cycle-index-header</code>. Year-range labels are derived from <code>coverage_start_date</code> on the totals row (API-sourced — handles Senate multi-year spans correctly). Archive threshold differs by page: candidate.html keys by office (H: 2008, S: 2012, P: 2012 via <code>ARCHIVE_MIN_YEAR</code>) and the divider copy includes the office label ("FEC coverage begins 2008 for House races"); committee.html uses a single 2008 threshold (<code>ARCHIVE_MIN_YEAR_COMMITTEE</code>) with no office reference in the divider copy.</div>
       </div>
 
       <!-- 14. Toggle switch -->

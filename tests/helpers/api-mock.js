@@ -120,18 +120,44 @@ const COMMITTEE = {
     organization_type_full: null,
     cycles: [2022, 2024, 2026],
     first_file_date: '2020-04-24',
+    last_file_date:  '2026-04-15',
   }],
   pagination: { count: 1 },
 };
 
-// Committee financial totals — 2 records only; 2026 intentionally absent to exercise "no record → show —" path
-// Breakdown fields added for Raised and Spent tab donuts.
+// Committee financial totals — 3 records (2026 + 2024 + 2022) so the index view's
+// CareerStrip and cycle index render against a non-degenerate dataset.
+// coverage_start_date drives the cycle-row label (e.g. "2025–2026").
+// Breakdown fields cover Raised and Spent tab donuts.
 const COMMITTEE_TOTALS = {
   results: [
     {
+      cycle: 2026,
+      receipts: 1800000, disbursements: 600000,
+      last_cash_on_hand_end_period: 1200000,
+      coverage_start_date: '2025-01-01T00:00:00',
+      coverage_end_date:   '2026-03-31T00:00:00',
+      // Raised breakdown
+      individual_itemized_contributions: 900000,
+      individual_unitemized_contributions: 200000,
+      other_political_committee_contributions: 400000,
+      political_party_committee_contributions: 50000,
+      transfers_from_other_authorized_committee: 50000,
+      candidate_contribution: 0,
+      other_receipts: 200000,
+      // Spent breakdown
+      operating_expenditures: 450000,
+      transfers_to_affiliated_committee: 50000,
+      loan_repayments_made: 0,
+      contribution_refunds: 25000,
+      other_disbursements: 75000,
+    },
+    {
       cycle: 2024,
       receipts: 3700000, disbursements: 3100000,
-      last_cash_on_hand_end_period: 450000, coverage_end_date: '2024-12-31T00:00:00',
+      last_cash_on_hand_end_period: 450000,
+      coverage_start_date: '2023-01-01T00:00:00',
+      coverage_end_date:   '2024-12-31T00:00:00',
       // Raised breakdown
       individual_itemized_contributions: 2000000,
       individual_unitemized_contributions: 500000,
@@ -151,7 +177,9 @@ const COMMITTEE_TOTALS = {
     {
       cycle: 2022,
       receipts: 2100000, disbursements: 1950000,
-      last_cash_on_hand_end_period: 170000, coverage_end_date: '2022-12-31T00:00:00',
+      last_cash_on_hand_end_period: 170000,
+      coverage_start_date: '2021-01-01T00:00:00',
+      coverage_end_date:   '2022-12-31T00:00:00',
       // Raised breakdown
       individual_itemized_contributions: 1200000,
       individual_unitemized_contributions: 300000,
@@ -168,7 +196,7 @@ const COMMITTEE_TOTALS = {
       other_disbursements: 100000,
     },
   ],
-  pagination: { count: 2 },
+  pagination: { count: 3 },
 };
 
 // Per-period filing reports (used for chart data)
