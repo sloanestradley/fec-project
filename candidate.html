@@ -439,6 +439,11 @@ function renderCommitteeGroups(comms, muted) {
 }
 
 async function fetchAndRenderCommittees() {
+  // Race-guard: flip the gate the moment the fetch starts, not on completion.
+  // A second click during the in-flight window short-circuits at the
+  // `if (!committeesLoaded)` check in openCommitteesModal(). Reset to false
+  // in the catch so a failed fetch can be retried on next click.
+  committeesLoaded = true;
   var activeEl  = document.getElementById('modal-active-list');
   var historyEl = document.getElementById('modal-history-list');
   activeEl.innerHTML = '<div style="display:flex;align-items:center;gap:0.75rem;color:var(--muted);font-size:0.75rem;padding:1rem 0"><div class="loader"></div>Loading…</div>';
@@ -475,16 +480,15 @@ async function fetchAndRenderCommittees() {
       document.getElementById('modal-history-tab-btn').style.display = 'inline-block';
     }
 
-    // Update trigger label, show it, and update tab counts
-    var triggerBtn = document.querySelector('#committees-trigger .committees-link');
-    if (triggerBtn) triggerBtn.textContent = 'Committees (' + active.length + ') →';
-    if (active.length || terminated.length) document.getElementById('committees-trigger').style.display = 'block';
+    // In-modal tab badges — populate after fetch resolves. The trigger button
+    // label is intentionally NOT updated; it stays "Committees →" by design (T11).
     document.getElementById('modal-active-count').textContent  = ' (' + active.length + ')';
     document.getElementById('modal-history-count').textContent = ' (' + terminated.length + ')';
-
-    committeesLoaded = true;
   } catch(err) {
-    activeEl.innerHTML = '<div style="color:var(--red);font-size:0.75rem;padding:1rem 0">⚠ Could not load committees: '+err.message+'</div>';
+    // Clear loader, surface friendly retry message, allow a subsequent click to retry.
+    committeesLoaded = false;
+    activeEl.innerHTML = '<div style="color:var(--red);font-size:0.75rem;padding:1rem 0">⚠ Could not load committees. Close and reopen to retry.</div>';
+    console.error('fetchAndRenderCommittees:', err);
   }
 }
 
@@ -1847,7 +1851,10 @@ async function init() {
     requestAnimationFrame(function() {
       document.getElementById('profile-header').classList.add('visible');
     });
-    fetchAndRenderCommittees();
+    // Reveal Committees trigger unconditionally — every FEC-registered candidate
+    // has at least a Principal Campaign Committee, so the modal is always meaningful.
+    // The data fetch is deferred to modal-open (T11).
+    document.getElementById('committees-trigger').style.display = 'block';
 
     // Compact header scroll listener registered unconditionally — index-only visits
     // would never enter the detail view, so the listener must be active from init().

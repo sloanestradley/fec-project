@@ -174,15 +174,16 @@ test.describe('candidate.html — profile header', () => {
     await expect(options).not.toHaveCount(0);
   });
 
-  test('committees trigger shows count immediately', async ({ page }) => {
+  test('committees trigger shows no count, ready immediately', async ({ page }) => {
     await setup(page);
-    // Committees are fetched eagerly at init — trigger shows count right away
+    // T11: committees fetch is deferred to modal-open. The trigger is revealed
+    // unconditionally on init and reads "Committees →" with no parenthetical.
     const trigger = page.locator('#committees-trigger');
     await expect(trigger).toBeVisible({ timeout: 8000 });
     const btn = trigger.locator('.committees-link');
     const text = await btn.textContent();
-    // Should show "Committees (N) →" with a number
-    expect(text).toMatch(/Committees\s*\(\d+\)/);
+    expect(text?.trim()).toBe('Committees →');
+    expect(text).not.toMatch(/\(\d+\)/);
   });
 });
 
@@ -416,6 +417,97 @@ test.describe('candidate.html — committees modal', () => {
     );
     const modal = page.locator('#committees-modal');
     await expect(modal).not.toBeVisible();
+  });
+});
+
+// ── Committees modal network behavior (T11 — deferred fetch) ──────────────────
+//
+// These tests do NOT use the parent describe block's beforeEach (which auto-
+// opens the modal). Each test installs a request listener BEFORE setup() so
+// it captures any committees-related requests fired during cycle load.
+
+test.describe('candidate.html — committees modal network (T11 deferral)', () => {
+  function attachCommitteesListener(page, capturedArr) {
+    page.on('request', req => {
+      const url = req.url();
+      // Match only the MODAL fetches: /candidate/{id}/committees/?per_page=50 (no cycle)
+      // and /committees/?sponsor_candidate_id=. The cycle-scoped /candidate/.../
+      // committees/?cycle=YYYY call inside loadCycle() is a separate concern (used
+      // by Raised/Spent tabs for the principal committee lookup) and is NOT what
+      // T11 defers — T12 will handle that path when Raised/Spent fetches go lazy.
+      if (/\/candidate\/[^/]+\/committees\/.*per_page=50/.test(url) ||
+          /sponsor_candidate_id=/.test(url)) {
+        capturedArr.push(url);
+      }
+    });
+  }
+
+  test('no committees calls fire on cycle load', async ({ page }) => {
+    const captured = [];
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    attachCommitteesListener(page, captured);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    // Allow any in-flight calls to settle (none expected post-T11)
+    await page.waitForTimeout(500);
+    expect(captured).toEqual([]);
+  });
+
+  test('first modal open fires both committees calls', async ({ page }) => {
+    const captured = [];
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    attachCommitteesListener(page, captured);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#committees-trigger', { timeout: 12000 });
+    expect(captured).toEqual([]);
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('.committee-row', { timeout: 8000 });
+    expect(captured.some(u => /\/candidate\/[^/]+\/committees\//.test(u))).toBe(true);
+    expect(captured.some(u => /sponsor_candidate_id=/.test(u))).toBe(true);
+  });
+
+  test('second modal open does not re-fire (cache hit)', async ({ page }) => {
+    const captured = [];
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    attachCommitteesListener(page, captured);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#committees-trigger', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('.committee-row', { timeout: 8000 });
+    const firstCount = captured.length;
+    expect(firstCount).toBeGreaterThanOrEqual(2);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(
+      () => document.getElementById('committees-modal').style.display === 'none',
+      { timeout: 3000 }
+    );
+    await page.locator('.committees-link').click();
+    await page.waitForFunction(
+      () => document.getElementById('committees-modal').style.display === 'flex',
+      { timeout: 3000 }
+    );
+    await page.waitForTimeout(300);
+    expect(captured.length).toBe(firstCount);
+  });
+
+  test('page reload re-fires committees calls on first open', async ({ page }) => {
+    const captured = [];
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    attachCommitteesListener(page, captured);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#committees-trigger', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('.committee-row', { timeout: 8000 });
+    const firstCount = captured.length;
+    await page.reload();
+    await page.waitForSelector('#committees-trigger', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('.committee-row', { timeout: 8000 });
+    expect(captured.length).toBeGreaterThan(firstCount);
   });
 });
 
