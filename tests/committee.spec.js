@@ -495,10 +495,12 @@ test.describe('committee.html — Raised tab sections', () => {
   test.beforeEach(async ({ page }) => {
     await setupDetail(page);
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    // Wait for slow-tier Top Conduit Sources card visible (T12 progressive render —
+    // its visibility means both fast and slow tiers have resolved + rendered)
     await page.waitForFunction(
       () => {
-        const el = document.getElementById('raised-content');
-        return el && el.style.display !== 'none';
+        const card = document.getElementById('conduits-card');
+        return card && card.style.display !== 'none';
       },
       { timeout: 15000 }
     );
@@ -586,8 +588,9 @@ test.describe('committee.html — Raised tab unavailable-state copy', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    // Wait for individual-donors-card visible (T12: slow tier reveals it on KV miss + unavailable)
     await page.waitForFunction(
-      () => { const el = document.getElementById('raised-content'); return el && el.style.display !== 'none'; },
+      () => { const c = document.getElementById('individual-donors-card'); return c && c.style.display !== 'none'; },
       { timeout: 15000 }
     );
 
@@ -885,5 +888,113 @@ test.describe('committee.html — path-segment URL ID extraction', () => {
     // URL hash gets normalized by renderStats's history.replaceState
     const hash = await page.evaluate(() => window.location.hash);
     expect(hash).toBe('#2024#summary');
+  });
+});
+
+// ── T12: Raised/Spent loading-state behavior ─────────────────────────────────
+
+test.describe('committee.html — Raised/Spent loading states (T12)', () => {
+  test('Raised: donut renders synchronously, slow-tier skeletons visible while in flight', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_a/?**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        await new Promise(r => setTimeout(r, 3000));
+      }
+      route.fallback();
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    // Donut canvas renders synchronously from totals
+    await expect(page.locator('#chart-donut')).toBeVisible({ timeout: 2000 });
+    // Slow-tier skeletons visible
+    await expect(page.locator('#raised-comm-skeleton')).toBeVisible();
+    await expect(page.locator('#raised-conduits-skeleton')).toBeVisible();
+  });
+
+  test('Raised: no skeleton flash when fetch already resolved before tab click', async ({ page }) => {
+    await setupDetail(page);
+    await page.waitForTimeout(800);
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await page.waitForTimeout(400);
+    await expect(page.locator('#raised-comm-skeleton')).toBeHidden();
+    await expect(page.locator('#raised-conduits-skeleton')).toBeHidden();
+    await expect(page.locator('#conduits-card')).toBeVisible();
+  });
+
+  test('Raised: slow-tier failure renders error with retry button', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        route.abort('failed');
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    const err = page.locator('#raised-slow-error');
+    await expect(err).toBeVisible({ timeout: 8000 });
+    await expect(err.locator('.tab-retry-btn')).toBeVisible();
+  });
+
+  test('Raised: skeleton has substantive height (scroll-clamp guard)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_a/?**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        await new Promise(r => setTimeout(r, 5000));
+      }
+      route.fallback();
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    const commHeight = await page.locator('#raised-comm-skeleton').evaluate(el => el.getBoundingClientRect().height);
+    const conduitsHeight = await page.locator('#raised-conduits-skeleton').evaluate(el => el.getBoundingClientRect().height);
+    expect(commHeight).toBeGreaterThanOrEqual(200);
+    expect(conduitsHeight).toBeGreaterThanOrEqual(200);
+  });
+
+  test('Spent: failure renders error with retry button', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_b/**', (route) => route.abort('failed'));
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Spent' }).click();
+    const err = page.locator('#spent-error');
+    await expect(err).toBeVisible({ timeout: 8000 });
+    await expect(err.locator('.tab-retry-btn')).toBeVisible();
+  });
+
+  test('Spent: retry click re-fires fetch and renders content', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    let abortNext = true;
+    await page.route('**/api/fec/schedules/schedule_b/**', (route) => {
+      if (abortNext) route.abort('failed');
+      else route.fallback();
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Spent' }).click();
+    await expect(page.locator('#spent-error')).toBeVisible({ timeout: 8000 });
+    abortNext = false;
+    await page.locator('#spent-error .tab-retry-btn').click();
+    // Direct DOM observation of display flip — more reliable than toBeVisible chains
+    // under parallel-worker timing
+    await page.waitForFunction(
+      () => document.getElementById('spent-content').style.display === 'block',
+      { timeout: 10000 }
+    );
+    await expect(page.locator('#spent-content')).toBeVisible();
+    await expect(page.locator('#spent-error')).toBeHidden();
   });
 });

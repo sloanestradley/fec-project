@@ -194,35 +194,43 @@
       </div>
 
       <div id="tab-raised" style="display:none">
-        <div id="raised-loading" class="state-msg" style="padding:var(--space-48) 0">
-          <div class="loader"></div><span>Loading contributor data…</span>
-        </div>
-        <div id="raised-content" style="display:none">
-          <div class="raised-grid">
-            <div class="raised-cell">
-              <div class="raised-cell-title">Raised breakdown</div>
-              <div class="donut-wrap">
-                <div class="donut-chart-wrap">
-                  <canvas id="chart-donut"></canvas>
-                  <div class="donut-center">
-                    <div class="donut-center-val" id="donut-center-val">—</div>
-                    <div class="donut-center-lbl">Total Raised</div>
-                  </div>
+        <div class="raised-grid">
+          <div class="raised-cell">
+            <div class="raised-cell-title">Raised breakdown</div>
+            <div class="donut-wrap">
+              <div class="donut-chart-wrap">
+                <canvas id="chart-donut"></canvas>
+                <div class="donut-center">
+                  <div class="donut-center-val" id="donut-center-val">—</div>
+                  <div class="donut-center-lbl">Total Raised</div>
                 </div>
-                <div class="donut-legend" id="donut-legend"></div>
               </div>
-            </div>
-            <div class="raised-cell">
-              <div class="raised-cell-title">Where Individual Contributions Come From</div>
-              <div class="map-svg-wrap" id="map-container"></div>
-              <div class="map-legend" id="map-legend" style="display:none">
-                <span class="map-legend-lbl">Less</span>
-                <div class="map-legend-bar" id="map-legend-bar"></div>
-                <span class="map-legend-lbl">More</span>
-              </div>
+              <div class="donut-legend" id="donut-legend"></div>
             </div>
           </div>
-          <div class="donors-card" id="committee-donors-card">
+          <div class="raised-cell">
+            <div class="raised-cell-title">Where Individual Contributions Come From</div>
+            <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
+            <div class="map-svg-wrap" id="map-container" style="display:none"></div>
+            <div class="map-legend" id="map-legend" style="display:none">
+              <span class="map-legend-lbl">Less</span>
+              <div class="map-legend-bar" id="map-legend-bar"></div>
+              <span class="map-legend-lbl">More</span>
+            </div>
+            <div class="tab-error" id="raised-fast-error" style="display:none">
+              <span class="tab-error-msg">⚠ Could not load contribution geography.</span>
+              <button class="tab-retry-btn" data-retry="raised-fast">Retry</button>
+            </div>
+          </div>
+        </div>
+        <div id="raised-slow-tier">
+          <div class="skeleton tab-skeleton skeleton-table" id="raised-comm-skeleton"></div>
+          <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+          <div class="skeleton tab-skeleton skeleton-table" id="raised-indiv-skeleton"></div>
+          <div class="tab-still-loading" id="raised-still-loading" style="display:none">
+            This is taking longer than usual — large committees can take 30+ seconds…
+          </div>
+          <div class="donors-card" id="committee-donors-card" style="display:none">
             <div class="donors-head">Top Committee Contributors</div>
             <table class="donors-table">
               <thead><tr>
@@ -234,7 +242,7 @@
               <tbody id="committee-donors-tbody"></tbody>
             </table>
           </div>
-          <div class="donors-card" id="conduits-card">
+          <div class="donors-card" id="conduits-card" style="display:none">
             <div class="donors-head">Top Conduit Sources</div>
             <table class="donors-table">
               <thead><tr>
@@ -246,7 +254,7 @@
               <tbody id="conduits-tbody"></tbody>
             </table>
           </div>
-          <div class="donors-card">
+          <div class="donors-card" id="individual-donors-card" style="display:none">
             <div class="donors-head">Top Individual Contributors</div>
             <table class="donors-table">
               <thead><tr>
@@ -258,13 +266,24 @@
               <tbody id="individual-donors-tbody"></tbody>
             </table>
           </div>
-          <div class="data-note" id="raised-data-note"></div>
+          <div class="tab-error" id="raised-slow-error" style="display:none">
+            <span class="tab-error-msg">⚠ Could not load top contributors.</span>
+            <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
+          </div>
         </div>
+        <div class="data-note" id="raised-data-note" style="display:none"></div>
       </div>
 
       <div id="tab-spent" style="display:none">
-        <div id="spent-loading" class="state-msg" style="padding:var(--space-48) 0">
-          <div class="loader"></div><span>Loading spending data…</span>
+        <div id="spent-skeleton-wrap">
+          <div class="raised-grid">
+            <div class="skeleton tab-skeleton skeleton-donut"></div>
+            <div class="skeleton tab-skeleton skeleton-bars"></div>
+          </div>
+          <div class="skeleton tab-skeleton skeleton-table"></div>
+          <div class="tab-still-loading" id="spent-still-loading" style="display:none">
+            This is taking longer than usual — full transaction history can take 10–20 seconds…
+          </div>
         </div>
         <div id="spent-content" style="display:none">
           <div class="raised-grid">
@@ -320,6 +339,10 @@
 
           <div class="data-note" id="spent-data-note"></div>
         </div>
+        <div class="tab-error" id="spent-error" style="display:none">
+          <span class="tab-error-msg">⚠ Could not load spending data.</span>
+          <button class="tab-retry-btn" data-retry="spent">Retry</button>
+        </div>
       </div>
 
     </div>
@@ -355,11 +378,27 @@ var COMM_PARTY        = null;
 var COMM_TYPE         = null;
 var donutInstance      = null;
 var usTopoCache        = null;
-var raisedDataPromise  = null;
-var raisedRendered     = false;
-var spentDonutInstance = null;
-var spentDataPromise   = null;
-var spentRendered      = false;
+// T12 progressive-render state — same shape as candidate.html, with KV-aware fast tier.
+// Fast tier on committee.html resolves: byState (always), topIndividuals (KV hit only),
+// topCommittees (KV hit only). Slow tier handles: topConduits (always), topCommittees
+// (KV-miss fallback), topIndividuals (KV-miss fallback).
+var raisedFastData       = null;
+var raisedFastError      = null;
+var raisedFastRendered   = false;
+var raisedSlowData       = null;
+var raisedSlowError      = null;
+var raisedSlowRendered   = false;
+var raisedDonutRendered  = false;
+var raisedStillLoadingTimer = null;
+var spentDonutInstance   = null;
+var spentData            = null;
+var spentError           = null;
+var spentRendered        = false;
+var spentStillLoadingTimer = null;
+// Retry context — captured in renderStats so retry handlers can re-fire fetches
+var currentCycleScope         = null;
+var currentTotalsRecord       = null;
+var currentRaisedFastPromise  = null;  // slow tier awaits this for KV state
 
 var cachedMeta          = null;  // /committee/{id}/ — reused on detail→index back-navigation
 var cachedAllTotalsRes  = null;  // /committee/{id}/totals/?per_page=100 — reused on back-nav
@@ -388,9 +427,12 @@ function designationLabel(d) {
 
 function showTab(name, e) {
   if (e) e.preventDefault();
-  // Lock document height before switching to an unrendered tab to prevent scroll clamping
+  // Lock document height before switching to a tab whose progressive render is incomplete
+  // (T6.5/T10 belt-and-suspenders guard; mostly redundant post-T12 since skeletons have
+  // explicit pixel heights, but kept for safety).
   var mainEl = document.querySelector('.main');
-  if ((name === 'raised' && !raisedRendered) || (name === 'spent' && !spentRendered)) {
+  var raisedFullyRendered = raisedDonutRendered && raisedFastRendered && raisedSlowRendered;
+  if ((name === 'raised' && !raisedFullyRendered) || (name === 'spent' && !spentRendered)) {
     mainEl.style.minHeight = document.body.scrollHeight + 'px';
   }
   ['summary','raised','spent'].forEach(function(t) {
@@ -702,6 +744,123 @@ function renderHeader(c) {
   };
 }
 
+// ── T12 fetch kickoffs (called from renderStats + retry handlers) ─────
+function kickoffRaisedFastFetch(token) {
+  // Capture the raw fetch promise (before .then/.catch) so the slow tier can await it
+  // for KV state. The slow tier needs to know whether KV hit for individuals/committees
+  // to decide whether to fire the Schedule A indiv pagination fallback.
+  var fastP = fetchRaisedFastData(currentCycleScope);
+  currentRaisedFastPromise = fastP.catch(function(err) {
+    // Slow tier expects an object with KV slots; on fast-tier error, return an empty
+    // shape so slow tier proceeds with no KV results (full fallback path).
+    return { byState: [], topIndividualsKV: null, topCommitteesKV: null };
+  });
+  fastP
+    .then(function(d) {
+      if (!view.isCurrentToken(token)) return;
+      raisedFastData = d;
+      renderRaisedIfReady();
+    })
+    .catch(function(err) {
+      if (!view.isCurrentToken(token)) return;
+      raisedFastError = err;
+      console.warn('fetchRaisedFastData failed:', err.message);
+      renderRaisedIfReady();
+    });
+  return fastP;
+}
+
+function kickoffRaisedSlowFetch(token) {
+  // 10s "still loading" timer fires globally regardless of which tab the user is on;
+  // visibility is gated by parent #tab-raised display.
+  raisedStillLoadingTimer = setTimeout(function() {
+    if (!view.isCurrentToken(token)) return;
+    if (raisedSlowRendered) return;
+    var el = document.getElementById('raised-still-loading');
+    if (el) el.style.display = 'block';
+  }, 10000);
+  // Slow tier needs fast tier's KV state to decide whether to paginate Schedule A indiv.
+  // Pass the in-flight fast promise; slow function awaits it internally.
+  var fastP = currentRaisedFastPromise;
+  fetchRaisedSlowData(currentCycleScope, fastP)
+    .then(function(d) {
+      clearTimeout(raisedStillLoadingTimer);
+      if (!view.isCurrentToken(token)) return;
+      raisedSlowData = d;
+      renderRaisedIfReady();
+    })
+    .catch(function(err) {
+      clearTimeout(raisedStillLoadingTimer);
+      if (!view.isCurrentToken(token)) return;
+      raisedSlowError = err;
+      console.warn('fetchRaisedSlowData failed:', err.message);
+      renderRaisedIfReady();
+    });
+}
+
+function kickoffSpentFetch(token) {
+  spentStillLoadingTimer = setTimeout(function() {
+    if (!view.isCurrentToken(token)) return;
+    if (spentRendered) return;
+    var el = document.getElementById('spent-still-loading');
+    if (el) el.style.display = 'block';
+  }, 10000);
+  fetchSpentData(currentCycleScope)
+    .then(function(d) {
+      clearTimeout(spentStillLoadingTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentData = d;
+      renderSpentIfReady();
+    })
+    .catch(function(err) {
+      clearTimeout(spentStillLoadingTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentError = err;
+      console.warn('fetchSpentData failed:', err.message);
+      renderSpentIfReady();
+    });
+}
+
+// Retry handlers — clear failed tier state, restore skeleton, refire fetch
+function retryRaisedFast() {
+  raisedFastData = null; raisedFastError = null; raisedFastRendered = false;
+  document.getElementById('raised-fast-error').style.display = 'none';
+  document.getElementById('raised-fast-skeleton').style.display = 'block';
+  var token = view.claimToken();
+  cycleFetchToken = token;
+  // kickoffRaisedFastFetch sets currentRaisedFastPromise internally — to a .catch-wrapped
+  // version that returns an empty shape on rejection, which is what the slow tier expects.
+  kickoffRaisedFastFetch(token);
+}
+function retryRaisedSlow() {
+  raisedSlowData = null; raisedSlowError = null; raisedSlowRendered = false;
+  document.getElementById('raised-slow-error').style.display = 'none';
+  document.getElementById('raised-comm-skeleton').style.display = 'block';
+  document.getElementById('raised-conduits-skeleton').style.display = 'block';
+  document.getElementById('raised-indiv-skeleton').style.display = 'block';
+  // Slow needs an in-flight fast promise; use whatever's currently set
+  var token = view.claimToken();
+  cycleFetchToken = token;
+  kickoffRaisedSlowFetch(token);
+}
+function retrySpent() {
+  spentData = null; spentError = null; spentRendered = false;
+  document.getElementById('spent-error').style.display = 'none';
+  document.getElementById('spent-skeleton-wrap').style.display = 'block';
+  var token = view.claimToken();
+  cycleFetchToken = token;
+  kickoffSpentFetch(token);
+}
+// Delegated retry click handler (registered once)
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-retry]');
+  if (!btn) return;
+  var what = btn.getAttribute('data-retry');
+  if (what === 'raised-fast') retryRaisedFast();
+  else if (what === 'raised-slow') retryRaisedSlow();
+  else if (what === 'spent') retrySpent();
+});
+
 function renderStats(cycleOrAll) {
   activeCycle = cycleOrAll;
   // Single fetch-race token covers both raised + spent passes — both kick off
@@ -743,35 +902,51 @@ function renderStats(cycleOrAll) {
   var tabName = tabEl ? tabEl.getAttribute('href').replace('#', '') : 'summary';
   history.replaceState(null, '', '#' + cycleOrAll + '#' + tabName);
 
-  // Reset and kick off raised tab data fetch
-  raisedRendered = false;
-  raisedDataPromise = null;
+  // T12 — capture retry context, reset progressive-render state + DOM, kick off fetches
+  currentCycleScope   = cycleOrAll;
+  currentTotalsRecord = rec;
+
+  // Reset Raised tab state + DOM
+  raisedFastData = null; raisedFastError = null; raisedFastRendered = false;
+  raisedSlowData = null; raisedSlowError = null; raisedSlowRendered = false;
+  raisedDonutRendered = false;
+  if (raisedStillLoadingTimer) { clearTimeout(raisedStillLoadingTimer); raisedStillLoadingTimer = null; }
   if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
   var mapEl = document.getElementById('map-container');
-  if (mapEl) mapEl.innerHTML = '';
+  if (mapEl) { mapEl.innerHTML = ''; mapEl.style.display = 'none'; }
   var mapLegEl = document.getElementById('map-legend');
   if (mapLegEl) mapLegEl.style.display = 'none';
   var mapTtEl = document.getElementById('map-tt');
   if (mapTtEl) mapTtEl.style.display = 'none';
-  var raisedLoadEl = document.getElementById('raised-loading');
-  if (raisedLoadEl) raisedLoadEl.style.display = 'flex';
-  var raisedContentEl = document.getElementById('raised-content');
-  if (raisedContentEl) raisedContentEl.style.display = 'none';
+  document.getElementById('raised-fast-skeleton').style.display = 'block';
+  document.getElementById('raised-fast-error').style.display = 'none';
+  document.getElementById('raised-comm-skeleton').style.display = 'block';
+  document.getElementById('raised-conduits-skeleton').style.display = 'block';
+  document.getElementById('raised-indiv-skeleton').style.display = 'block';
+  document.getElementById('raised-still-loading').style.display = 'none';
+  document.getElementById('raised-slow-error').style.display = 'none';
+  document.getElementById('committee-donors-card').style.display = 'none';
+  document.getElementById('conduits-card').style.display = 'none';
+  document.getElementById('individual-donors-card').style.display = 'none';
+  document.getElementById('raised-data-note').style.display = 'none';
 
-  raisedDataPromise = fetchRaisedData(cycleOrAll);
+  // Reset Spent tab state + DOM
+  spentData = null; spentError = null; spentRendered = false;
+  if (spentStillLoadingTimer) { clearTimeout(spentStillLoadingTimer); spentStillLoadingTimer = null; }
+  if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
+  document.getElementById('spent-skeleton-wrap').style.display = 'block';
+  document.getElementById('spent-still-loading').style.display = 'none';
+  document.getElementById('spent-content').style.display = 'none';
+  document.getElementById('spent-error').style.display = 'none';
+
+  kickoffRaisedFastFetch(cycleFetchToken);
+  kickoffRaisedSlowFetch(cycleFetchToken);
+  kickoffSpentFetch(cycleFetchToken);
+
+  // If user is already on raised or spent tab, render whatever has settled (donut renders instantly)
   var curTabEl = document.querySelector('.tab.active');
   if (curTabEl && curTabEl.getAttribute('href') === '#raised') renderRaisedIfReady();
-
-  // Reset and kick off spent tab data fetch
-  spentRendered = false;
-  spentDataPromise = null;
-  if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
-  var spentLoadEl = document.getElementById('spent-loading');
-  if (spentLoadEl) spentLoadEl.style.display = 'flex';
-  var spentContentEl = document.getElementById('spent-content');
-  if (spentContentEl) spentContentEl.style.display = 'none';
-  spentDataPromise = fetchSpentData(cycleOrAll);
-  if (curTabEl && curTabEl.getAttribute('href') === '#spent') renderSpentIfReady();
+  if (curTabEl && curTabEl.getAttribute('href') === '#spent')  renderSpentIfReady();
 }
 
 // ── Raised tab utilities ─────────────────────────────
@@ -796,63 +971,51 @@ function makeStripePattern(color, bg) {
 }
 
 // ── Raised tab: data fetch ───────────────────────────
-async function fetchRaisedData(cycleOrAll) {
-  // Build breakdown from ALL_TOTALS (no extra fetch needed)
-  var breakdown = {
-    individual_itemized_contributions: 0,
-    individual_unitemized_contributions: 0,
-    other_political_committee_contributions: 0,
-    political_party_committee_contributions: 0,
-    transfers_from_other_authorized_committee: 0,
-    candidate_contribution: 0,
-    other_receipts: 0,
-    loans_made_by_candidate: 0,
-    all_other_loans: 0,
-    federal_funds: 0,
-    offsets_to_operating_expenditures: 0,
-    offsets_to_fundraising_expenditures: 0,
-    offsets_to_legal_accounting: 0
-  };
-  var totalRaised = 0;
-  var covDate = null;
+// T12 — Fast tier: by_state + KV reads (top-individuals + top-committees). Three parallel
+// calls; sub-second typical when KV hits. Returns null in *KV slots when KV missed so the
+// slow tier can decide whether to fall back to paginated Schedule A.
+async function fetchRaisedFastData(cycleOrAll) {
+  var stateP = apiFetch('/schedules/schedule_a/by_state/', {
+    committee_id: COMMITTEE_ID, per_page: 100, sort: '-total'
+  }).catch(function(){ return { results: [] }; });
 
-  var rec = null;
-  for (var i = 0; i < ALL_TOTALS.length; i++) {
-    if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
-  }
-  if (rec) {
-    Object.keys(breakdown).forEach(function(k){ breakdown[k] = rec[k] || 0; });
-    totalRaised = rec.receipts || 0;
-    covDate = rec.coverage_end_date ? rec.coverage_end_date.split('T')[0] : null;
-  }
+  var kvIndivP = fetch('/api/aggregations/top-contributors?committee_id=' +
+    encodeURIComponent(COMMITTEE_ID) + '&cycle=' + encodeURIComponent(cycleOrAll))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .catch(function(){ return null; });
 
-  // by_state: one call, filter client-side by d.cycle.
-  // two_year_transaction_period is silently ignored on this endpoint — all cycles are
-  // always returned; the cycle field on each result record is the reliable filter.
-  var byState = [];
-  try {
-    var stateRes = await apiFetch('/schedules/schedule_a/by_state/', {
-      committee_id: COMMITTEE_ID, per_page: 100, sort: '-total'
-    });
-    var stateMap = {};
-    (stateRes.results || []).forEach(function(d) {
-      if (d.cycle !== cycleOrAll) return;
-      var k = d.state;
-      if (!k) return;
-      if (!stateMap[k]) stateMap[k] = { state: d.state, state_full: d.state_full, total: 0, count: 0 };
-      stateMap[k].total += d.total  || 0;
-      stateMap[k].count += d.count  || 0;
-    });
-    byState = Object.values(stateMap).sort(function(a,b){ return b.total - a.total; });
-  } catch(e) { console.warn('by_state fetch failed:', e.message); }
+  var kvCommP = fetch('/api/aggregations/top-committees?committee_id=' +
+    encodeURIComponent(COMMITTEE_ID) + '&cycle=' + encodeURIComponent(cycleOrAll))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .catch(function(){ return null; });
 
-  var period = cycleOrAll;
+  var [stateRes, kvIndivRes, kvCommRes] = await Promise.all([stateP, kvIndivP, kvCommP]);
 
-  // Top individual contributors — KV-first, always.
-  //   Hit  → pre-computed top 25 from FEC bulk data (DuckDB GROUP BY, full cycle).
-  //   Miss → paginate /schedules/schedule_a/?is_individual=true to exhaustion if
-  //          pages ≤ PAGE_THRESHOLD; otherwise mark unavailable (honest empty
-  //          state, no approximation).
+  // by_state — filter client-side by d.cycle (two_year_transaction_period silently ignored)
+  var stateMap = {};
+  (stateRes.results || []).forEach(function(d) {
+    if (d.cycle !== cycleOrAll) return;
+    var k = d.state;
+    if (!k) return;
+    if (!stateMap[k]) stateMap[k] = { state: d.state, state_full: d.state_full, total: 0, count: 0 };
+    stateMap[k].total += d.total  || 0;
+    stateMap[k].count += d.count  || 0;
+  });
+  var byState = Object.values(stateMap).sort(function(a,b){ return b.total - a.total; });
+
+  var topIndividualsKV = (kvIndivRes && kvIndivRes.source === 'bulk' && Array.isArray(kvIndivRes.results))
+    ? kvIndivRes.results.slice(0, 10) : null;
+  var topCommitteesKV = (kvCommRes && kvCommRes.source === 'bulk' && Array.isArray(kvCommRes.results))
+    ? kvCommRes.results.slice(0, 10) : null;
+
+  return { byState: byState, topIndividualsKV: topIndividualsKV, topCommitteesKV: topCommitteesKV };
+}
+
+// T12 — Slow tier: paginated Schedule A. Always fires for non-indiv (used for top conduits
+// + KV-miss fallback for top committees). Conditionally fires for indiv (only on KV miss
+// for top individuals). Awaits fast tier's KV state to decide indiv pagination — a small
+// sequential dependency (~400ms typical) inside an otherwise multi-second fetch.
+async function fetchRaisedSlowData(cycleOrAll, fastDataPromise) {
   function aggregateIndividualRows(rows) {
     var seen = {};
     rows.forEach(function(d) {
@@ -866,190 +1029,128 @@ async function fetchRaisedData(cycleOrAll) {
       };
       seen[key].total += d.contribution_receipt_amount || 0;
     });
-    return Object.values(seen)
-      .sort(function(a,b){ return b.total - a.total; })
-      .slice(0, 10);
+    return Object.values(seen).sort(function(a,b){ return b.total - a.total; }).slice(0, 10);
   }
 
-  var topIndividuals = [];
-  var topIndividualsSource = 'api';  // 'bulk' | 'api' | 'unavailable'
-  try {
-    var kvUrl = '/api/aggregations/top-contributors?committee_id=' +
-      encodeURIComponent(COMMITTEE_ID) + '&cycle=' + encodeURIComponent(period);
-    var kvRes = await fetch(kvUrl).then(function(r){ return r.ok ? r.json() : null; })
-      .catch(function(){ return null; });
-    if (kvRes && kvRes.source === 'bulk' && Array.isArray(kvRes.results)) {
-      topIndividuals = kvRes.results.slice(0, 10);
-      topIndividualsSource = 'bulk';
-    } else {
-      var INDIV_PAGE_THRESHOLD = 100;  // 10,000 transactions — matches committee contributors gate
-      var indivParams = {
-        committee_id: COMMITTEE_ID,
-        two_year_transaction_period: period,
-        is_individual: true,
-        sort: '-contribution_receipt_amount',
-        per_page: 100
-      };
-      var indivRes1 = await apiFetch('/schedules/schedule_a/', indivParams);
-      var indivPag  = indivRes1.pagination || {};
-      if ((indivPag.pages || 1) > INDIV_PAGE_THRESHOLD) {
-        topIndividualsSource = 'unavailable';
-      } else {
-        var indivRows = (indivRes1.results || []).slice();
-        while (indivRows.length < (indivPag.count || 0)) {
-          var idxI = indivPag.last_indexes || {};
-          if (!idxI.last_index) break;
-          indivParams = Object.assign({}, indivParams, {
-            last_index: idxI.last_index,
-            last_contribution_receipt_amount: idxI.last_contribution_receipt_amount
-          });
-          var nextRes = await apiFetch('/schedules/schedule_a/', indivParams);
-          indivPag = nextRes.pagination || {};
-          indivRows = indivRows.concat(nextRes.results || []);
-        }
-        topIndividuals = aggregateIndividualRows(indivRows);
-        topIndividualsSource = 'api';
-      }
-    }
-  } catch(e) { console.warn('Top individual contributors fetch failed:', e.message); }
+  var period = cycleOrAll;
+  var PAGE_THRESHOLD = 100;
 
-  // Top committee contributors — KV-first.
-  //   Hit  → pre-computed top 25 from pas2 bulk data (DuckDB GROUP BY).
-  //   Miss → aggregate non-memo rows from the paginated Schedule A fetch if
-  //          pages ≤ PAGE_THRESHOLD; otherwise mark unavailable (mega-committees
-  //          like ActBlue/WinRed — 100k+ pages — get this honest empty state).
-  // Top conduit sources — always derived from the Schedule A fetch's memo rows
-  // (memo_code='X'). No bulk-data equivalent exists; when the Schedule A fetch
-  // is too large to paginate, conduits are unavailable even if top committees
-  // came back from KV.
-  var topCommittees = [];
-  var topCommitteesSource = 'api';  // 'bulk' | 'api' | 'unavailable' | 'unavailable-coverage-gap'
+  // ── Schedule A non-indiv (always fires) ──
+  var topCommitteesAPI = null;
+  var topCommitteesSource = 'api';
   var topCommitteesPas2Gap = false;
   var topCommitteesIsConduit = false;
   var topConduits = [];
   var topConduitsTooLarge = false;
-  {
-    try {
-      var PAGE_THRESHOLD = 100; // 10,000 transactions — matches individuals gate
 
-      // Kick off KV fetch in parallel with Schedule A page 1 so the network
-      // round-trips overlap.
-      var kvCommUrl = '/api/aggregations/top-committees?committee_id=' +
-        encodeURIComponent(COMMITTEE_ID) + '&cycle=' + encodeURIComponent(period);
-      var kvCommFetch = fetch(kvCommUrl).then(function(r){ return r.ok ? r.json() : null; })
-        .catch(function(){ return null; });
+  var commParams = {
+    committee_id: COMMITTEE_ID, two_year_transaction_period: period, is_individual: false,
+    sort: '-contribution_receipt_amount', per_page: 100
+  };
+  var commRes = await apiFetch('/schedules/schedule_a/', commParams);
+  var commPag = commRes.pagination || {};
+  var commRows = [];
 
-      var commParams = {
-        committee_id: COMMITTEE_ID,
-        two_year_transaction_period: period,
-        is_individual: false,
-        sort: '-contribution_receipt_amount',
-        per_page: 100
+  if ((commPag.pages || 1) > PAGE_THRESHOLD) {
+    topConduitsTooLarge = true;
+    var isParty   = COMM_TYPE === 'X' || COMM_TYPE === 'Y';
+    var isConduit = (commPag.count || 0) > 500000;
+    topCommitteesPas2Gap  = isParty || isConduit;
+    topCommitteesIsConduit = isConduit;
+  } else {
+    commRows = (commRes.results || []).slice();
+    while (commRows.length < (commPag.count || 0)) {
+      var idxC = commPag.last_indexes || {};
+      if (!idxC.last_index) break;
+      commParams = Object.assign({}, commParams, {
+        last_index: idxC.last_index,
+        last_contribution_receipt_amount: idxC.last_contribution_receipt_amount
+      });
+      commRes = await apiFetch('/schedules/schedule_a/', commParams);
+      commPag = commRes.pagination || {};
+      commRows = commRows.concat(commRes.results || []);
+    }
+    // Conduits — memo rows only
+    var seenConduits = {};
+    commRows.forEach(function(d) {
+      if (d.memo_code !== 'X') return;
+      var ckey = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
+      if (!ckey) return;
+      if (!seenConduits[ckey]) seenConduits[ckey] = {
+        name: d.contributor_name || '—',
+        entity_type: d.entity_type || '',
+        total: 0
       };
-      var commRes = await apiFetch('/schedules/schedule_a/', commParams);
-      var commPag = commRes.pagination || {};
-      var commRows = [];
-
-      if ((commPag.pages || 1) > PAGE_THRESHOLD) {
-        // Schedule A too large — conduits are unavailable regardless of KV.
-        topConduitsTooLarge = true;
-
-        // Distinguish "high volume" from "pas2 coverage gap" so the empty-state
-        // copy can be honest. Parties: inbound is FEC transfers, not
-        // contributions, so pas2 is blind. Conduits: Schedule A is overwhelmingly
-        // memo'd individual donations forwarded through the platform, also
-        // absent from pas2. Both surface as the same fetch-time failure but
-        // deserve different copy.
-        //
-        // Conduit detection uses commPag.count rather than a memo-rate sample.
-        // Sorting by -contribution_receipt_amount (which we do for the
-        // aggregation itself) biases the first page toward the few large
-        // non-memo rows a conduit has at the top of its distribution — ActBlue's
-        // page 1 is 0% memo even though ~99% of the full 11M-row dataset is
-        // memo'd. Total-row count is a cleaner signal: no legitimate
-        // committee-to-committee filer has 500k+ inbound non-individual rows in
-        // a single cycle; ActBlue (~11M) and WinRed (~5M) sit well above.
-        var isParty   = COMM_TYPE === 'X' || COMM_TYPE === 'Y';
-        var isConduit = (commPag.count || 0) > 500000;
-        topCommitteesPas2Gap  = isParty || isConduit;
-        topCommitteesIsConduit = isConduit;
-      } else {
-        // Paginate Schedule A to exhaustion — rows serve both the API-fallback
-        // path for top committees and the conduit aggregation.
-        commRows = (commRes.results || []).slice();
-        while (commRows.length < (commPag.count || 0)) {
-          var idxC = commPag.last_indexes || {};
-          if (!idxC.last_index) break;
-          commParams = Object.assign({}, commParams, {
-            last_index: idxC.last_index,
-            last_contribution_receipt_amount: idxC.last_contribution_receipt_amount
-          });
-          commRes = await apiFetch('/schedules/schedule_a/', commParams);
-          commPag = commRes.pagination || {};
-          commRows = commRows.concat(commRes.results || []);
-        }
-        // Conduit sources — memo rows only.
-        var seenConduits = {};
-        commRows.forEach(function(d) {
-          if (d.memo_code !== 'X') return;
-          var ckey = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
-          if (!ckey) return;
-          if (!seenConduits[ckey]) seenConduits[ckey] = {
-            name: d.contributor_name || '—',
-            entity_type: d.entity_type || '',
-            total: 0
-          };
-          seenConduits[ckey].total += (d.contribution_receipt_amount || 0);
-        });
-        topConduits = Object.values(seenConduits)
-          .sort(function(a,b){ return b.total - a.total; })
-          .slice(0, 10);
-      }
-
-      // Top committees: KV first, then API-fallback aggregation over
-      // non-memo rows we already have in hand.
-      var kvCommRes = await kvCommFetch;
-      if (kvCommRes && kvCommRes.source === 'bulk' && Array.isArray(kvCommRes.results)) {
-        topCommittees = kvCommRes.results.slice(0, 10);
-        topCommitteesSource = 'bulk';
-      } else if (topConduitsTooLarge) {
-        // Schedule A too large AND KV missed — honest empty state.
-        // pas2 coverage gap (parties/conduits) vs. genuine high volume
-        // get different copy downstream.
-        topCommitteesSource = topCommitteesPas2Gap
-          ? 'unavailable-coverage-gap'
-          : 'unavailable';
-      } else {
-        var seenComm = {};
-        commRows.forEach(function(d) {
-          if (d.memo_code === 'X') return;
-          var amt = d.contribution_receipt_amount || 0;
-          var key = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
-          if (!key) return;
-          if (!seenComm[key]) seenComm[key] = {
-            name: d.contributor_name || '—',
-            entity_type: d.entity_type || '',
-            total: 0
-          };
-          seenComm[key].total += amt;
-        });
-        topCommittees = Object.values(seenComm)
-          .sort(function(a,b){ return b.total - a.total; })
-          .slice(0, 10);
-        topCommitteesSource = 'api';
-      }
-    } catch(e) { console.warn('Top committee contributors fetch failed:', e.message); }
+      seenConduits[ckey].total += (d.contribution_receipt_amount || 0);
+    });
+    topConduits = Object.values(seenConduits).sort(function(a,b){ return b.total - a.total; }).slice(0, 10);
   }
 
-  return { byState: byState, breakdown: breakdown, totalRaised: totalRaised,
-           covDate: covDate, topIndividuals: topIndividuals,
-           topIndividualsSource: topIndividualsSource,
-           topCommittees: topCommittees,
-           topCommitteesSource: topCommitteesSource,
-           topCommitteesIsConduit: topCommitteesIsConduit,
-           topConduits: topConduits,
-           topConduitsTooLarge: topConduitsTooLarge,
-           cycleOrAll: cycleOrAll };
+  // ── Top committees: read fast tier's KV result, fall back to API rows on miss ──
+  var fastData = await fastDataPromise;
+  if (fastData.topCommitteesKV) {
+    topCommitteesAPI = null;
+    topCommitteesSource = 'bulk';
+  } else if (topConduitsTooLarge) {
+    topCommitteesSource = topCommitteesPas2Gap ? 'unavailable-coverage-gap' : 'unavailable';
+  } else {
+    var seenComm = {};
+    commRows.forEach(function(d) {
+      if (d.memo_code === 'X') return;
+      var amt = d.contribution_receipt_amount || 0;
+      var key = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
+      if (!key) return;
+      if (!seenComm[key]) seenComm[key] = {
+        name: d.contributor_name || '—',
+        entity_type: d.entity_type || '',
+        total: 0
+      };
+      seenComm[key].total += amt;
+    });
+    topCommitteesAPI = Object.values(seenComm).sort(function(a,b){ return b.total - a.total; }).slice(0, 10);
+    topCommitteesSource = 'api';
+  }
+
+  // ── Schedule A indiv (only fires on KV miss for individuals) ──
+  var topIndividualsAPI = null;
+  var topIndividualsSource = fastData.topIndividualsKV ? 'bulk' : 'api';
+  if (!fastData.topIndividualsKV) {
+    var INDIV_PAGE_THRESHOLD = 100;
+    var indivParams = {
+      committee_id: COMMITTEE_ID, two_year_transaction_period: period, is_individual: true,
+      sort: '-contribution_receipt_amount', per_page: 100
+    };
+    var indivRes1 = await apiFetch('/schedules/schedule_a/', indivParams);
+    var indivPag  = indivRes1.pagination || {};
+    if ((indivPag.pages || 1) > INDIV_PAGE_THRESHOLD) {
+      topIndividualsSource = 'unavailable';
+    } else {
+      var indivRows = (indivRes1.results || []).slice();
+      while (indivRows.length < (indivPag.count || 0)) {
+        var idxI = indivPag.last_indexes || {};
+        if (!idxI.last_index) break;
+        indivParams = Object.assign({}, indivParams, {
+          last_index: idxI.last_index,
+          last_contribution_receipt_amount: idxI.last_contribution_receipt_amount
+        });
+        var nextRes = await apiFetch('/schedules/schedule_a/', indivParams);
+        indivPag = nextRes.pagination || {};
+        indivRows = indivRows.concat(nextRes.results || []);
+      }
+      topIndividualsAPI = aggregateIndividualRows(indivRows);
+    }
+  }
+
+  return {
+    topCommitteesAPI: topCommitteesAPI,
+    topCommitteesSource: topCommitteesSource,
+    topCommitteesPas2Gap: topCommitteesPas2Gap,
+    topCommitteesIsConduit: topCommitteesIsConduit,
+    topConduits: topConduits,
+    topConduitsTooLarge: topConduitsTooLarge,
+    topIndividualsAPI: topIndividualsAPI,
+    topIndividualsSource: topIndividualsSource
+  };
 }
 
 // ── Raised tab: donut chart ──────────────────────────
@@ -1282,88 +1383,148 @@ function renderTopConduits(conduits) {
 }
 
 // ── Raised tab: orchestrate render ──────────────────
-async function renderRaisedIfReady() {
-  if (raisedRendered) return;
-  if (!raisedDataPromise) return;
-  var myToken   = cycleFetchToken;
-  var loadEl    = document.getElementById('raised-loading');
-  var contentEl = document.getElementById('raised-content');
-  loadEl.style.display    = 'flex';
-  contentEl.style.display = 'none';
-  try {
-    var data = await raisedDataPromise;
-    if (!view.isCurrentToken(myToken)) return; // discard: a newer cycle was requested
-    // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
-    loadEl.style.display    = 'none';
-    contentEl.style.display = 'block';
-    renderContributorDonut(data.breakdown, data.totalRaised);
-    await renderChoropleth(data.byState);
-    if (data.topIndividualsSource === 'unavailable') {
-      document.getElementById('individual-donors-tbody').innerHTML =
-        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
-    } else {
-      renderIndividualDonors(data.topIndividuals);
+// T12 progressive rendering. Idempotent — safe to call multiple times. Donut renders
+// synchronously from breakdown (already in memory). Fast tier (choropleth) and slow tier
+// (top contributors / top committees / top conduits) each render independently when
+// their fetch resolves.
+function renderRaisedIfReady() {
+  // Render only when user is on Raised tab — Chart.js needs a visible canvas
+  var curTab = document.querySelector('.tab.active');
+  if (!curTab || curTab.getAttribute('href') !== '#raised') return;
+  if (!currentTotalsRecord && !raisedDonutRendered) return; // no totals yet — too early
+
+  // Donut — synchronous from current totals record
+  if (!raisedDonutRendered && currentTotalsRecord) {
+    var rec = currentTotalsRecord;
+    var breakdown = {};
+    ['individual_itemized_contributions','individual_unitemized_contributions',
+     'other_political_committee_contributions','political_party_committee_contributions',
+     'transfers_from_other_authorized_committee','candidate_contribution',
+     'other_receipts','loans_made_by_candidate','all_other_loans','federal_funds',
+     'offsets_to_operating_expenditures','offsets_to_fundraising_expenditures',
+     'offsets_to_legal_accounting'].forEach(function(k){ breakdown[k] = rec[k] || 0; });
+    renderContributorDonut(breakdown, rec.receipts || 0);
+    raisedDonutRendered = true;
+  }
+
+  // Fast tier — choropleth + KV-resolved top individuals + KV-resolved top committees
+  if (raisedFastError && !raisedFastRendered) {
+    document.getElementById('raised-fast-skeleton').style.display = 'none';
+    document.getElementById('raised-fast-error').style.display = 'flex';
+    raisedFastRendered = true;
+  } else if (raisedFastData && !raisedFastRendered) {
+    document.getElementById('raised-fast-skeleton').style.display = 'none';
+    document.getElementById('raised-fast-error').style.display = 'none';
+    document.getElementById('map-container').style.display = 'block';
+    renderChoropleth(raisedFastData.byState);
+
+    // KV-hit surfaces resolve in the fast tier; KV-miss surfaces wait for slow tier
+    if (raisedFastData.topIndividualsKV) {
+      document.getElementById('raised-indiv-skeleton').style.display = 'none';
+      document.getElementById('individual-donors-card').style.display = 'block';
+      renderIndividualDonors(raisedFastData.topIndividualsKV);
+    }
+    if (raisedFastData.topCommitteesKV) {
+      document.getElementById('raised-comm-skeleton').style.display = 'none';
+      document.getElementById('committee-donors-card').style.display = 'block';
+      renderCommitteeDonors(raisedFastData.topCommitteesKV);
+    }
+    raisedFastRendered = true;
+  }
+
+  // Slow tier — top conduits, KV-miss fallback for top committees + top individuals
+  if (raisedSlowError && !raisedSlowRendered) {
+    document.getElementById('raised-comm-skeleton').style.display = 'none';
+    document.getElementById('raised-conduits-skeleton').style.display = 'none';
+    document.getElementById('raised-indiv-skeleton').style.display = 'none';
+    document.getElementById('raised-still-loading').style.display = 'none';
+    document.getElementById('raised-slow-error').style.display = 'flex';
+    raisedSlowRendered = true;
+  } else if (raisedSlowData && !raisedSlowRendered) {
+    var d = raisedSlowData;
+    document.getElementById('raised-comm-skeleton').style.display = 'none';
+    document.getElementById('raised-conduits-skeleton').style.display = 'none';
+    document.getElementById('raised-indiv-skeleton').style.display = 'none';
+    document.getElementById('raised-still-loading').style.display = 'none';
+    document.getElementById('raised-slow-error').style.display = 'none';
+
+    // Top Individual Contributors — only render here if KV missed (otherwise fast tier handled it)
+    if (!raisedFastRendered || !(raisedFastData && raisedFastData.topIndividualsKV)) {
+      document.getElementById('individual-donors-card').style.display = 'block';
+      if (d.topIndividualsSource === 'unavailable') {
+        document.getElementById('individual-donors-tbody').innerHTML =
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
+      } else if (d.topIndividualsAPI) {
+        renderIndividualDonors(d.topIndividualsAPI);
+      }
     }
 
-    var commCard     = document.getElementById('committee-donors-card');
-    var conduitsCard = document.getElementById('conduits-card');
-    commCard.style.display = '';
-    conduitsCard.style.display = '';
-    if (data.topCommitteesSource === 'unavailable-coverage-gap') {
-      document.getElementById('committee-donors-tbody').innerHTML =
-        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Committee contribution data is not available for this committee type.</td></tr>';
-    } else if (data.topCommitteesSource === 'unavailable') {
-      document.getElementById('committee-donors-tbody').innerHTML =
-        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
-    } else {
-      renderCommitteeDonors(data.topCommittees);
-    }
-    if (data.topCommitteesIsConduit) {
-      // Top Conduit Sources is semantically meaningless on a conduit
-      // committee — the conduit IS the conduit source. Hide the card
-      // entirely rather than relabel it.
-      conduitsCard.style.display = 'none';
-    } else if (data.topConduitsTooLarge) {
-      document.getElementById('conduits-tbody').innerHTML =
-        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
-    } else {
-      renderTopConduits(data.topConduits);
+    // Top Committee Contributors — only render here if KV missed
+    if (!raisedFastRendered || !(raisedFastData && raisedFastData.topCommitteesKV)) {
+      document.getElementById('committee-donors-card').style.display = 'block';
+      if (d.topCommitteesSource === 'unavailable-coverage-gap') {
+        document.getElementById('committee-donors-tbody').innerHTML =
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Committee contribution data is not available for this committee type.</td></tr>';
+      } else if (d.topCommitteesSource === 'unavailable') {
+        document.getElementById('committee-donors-tbody').innerHTML =
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
+      } else if (d.topCommitteesAPI) {
+        renderCommitteeDonors(d.topCommitteesAPI);
+      }
     }
 
-    var cycleLabel = (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
-    document.querySelector('#individual-donors-tbody').closest('.donors-card').querySelector('.donors-head')
-      .textContent = 'Top Individual Contributors · ' + cycleLabel;
-    document.querySelector('#committee-donors-tbody').closest('.donors-card').querySelector('.donors-head')
-      .textContent = 'Top Committee Contributors · ' + cycleLabel;
-    document.querySelector('#conduits-tbody').closest('.donors-card').querySelector('.donors-head')
-      .textContent = 'Top Conduit Sources · ' + cycleLabel;
+    // Top Conduit Sources
+    if (d.topCommitteesIsConduit) {
+      // Hide the card on conduit committees — semantically meaningless
+      document.getElementById('conduits-card').style.display = 'none';
+    } else {
+      document.getElementById('conduits-card').style.display = 'block';
+      if (d.topConduitsTooLarge) {
+        document.getElementById('conduits-tbody').innerHTML =
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
+      } else {
+        renderTopConduits(d.topConduits);
+      }
+    }
+
+    // Cycle labels + data note
+    var cycleLabel = (currentCycleScope - 1) + '–' + currentCycleScope;
+    var indivCard = document.getElementById('individual-donors-card');
+    var commCard  = document.getElementById('committee-donors-card');
+    var condCard  = document.getElementById('conduits-card');
+    if (indivCard) indivCard.querySelector('.donors-head').textContent = 'Top Individual Contributors · ' + cycleLabel;
+    if (commCard)  commCard.querySelector('.donors-head').textContent  = 'Top Committee Contributors · ' + cycleLabel;
+    if (condCard)  condCard.querySelector('.donors-head').textContent  = 'Top Conduit Sources · ' + cycleLabel;
 
     var note = 'Raised breakdown from FEC totals endpoint. ' +
       'Geography reflects itemized individual contributions by state (Schedule A). ' +
       'State totals may differ from summary figures due to FEC amendment processing.';
-    if (data.topIndividualsSource === 'bulk') {
+    if (d.topIndividualsSource === 'bulk') {
       note += ' Top individual contributors pre-computed from FEC bulk data, refreshed daily.';
-    } else if (data.topIndividualsSource === 'api') {
+    } else if (d.topIndividualsSource === 'api') {
       note += ' Top individual contributors: ' + cycleLabel + '.';
     }
-    if (data.topCommitteesSource === 'bulk') {
+    if (d.topCommitteesSource === 'bulk') {
       note += ' Top committee contributors pre-computed from FEC bulk data (pas2), refreshed daily.';
-    } else if (data.topCommitteesSource === 'api') {
+    } else if (d.topCommitteesSource === 'api') {
       note += ' Top committee contributors: complete ' + cycleLabel + ' cycle, deduplicated by committee ID.';
     }
-    if (!data.topConduitsTooLarge && !data.topCommitteesIsConduit) {
+    if (!d.topConduitsTooLarge && !d.topCommitteesIsConduit) {
       note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
     }
-    if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
+    var covDate = currentTotalsRecord && currentTotalsRecord.coverage_end_date
+      ? currentTotalsRecord.coverage_end_date.split('T')[0] : null;
+    if (covDate) note += ' Coverage through ' + fmtDate(covDate) + '.';
     note += ' Small-dollar contributions ≤$200 are not itemized.';
-    document.getElementById('raised-data-note').innerHTML = note;
+    var noteEl = document.getElementById('raised-data-note');
+    noteEl.innerHTML = note;
+    noteEl.style.display = 'block';
 
-    raisedRendered = true;
+    raisedSlowRendered = true;
+  }
+
+  if (raisedDonutRendered && raisedFastRendered && raisedSlowRendered) {
     document.querySelector('.main').style.minHeight = '';
-  } catch(e) {
-    document.querySelector('.main').style.minHeight = '';
-    loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading contributor data: ' + e.message + '</span>';
-    console.error('renderRaisedIfReady:', e);
   }
 }
 
@@ -1407,80 +1568,78 @@ async function fetchSpentData(cycleOrAll) {
   var capped = false;
   var contributions = [];
 
+  // T12: errors propagate to renderSpentIfReady's tab-level error UI; previous inner
+  // try/catch silently suppressed failures and rendered empty tables.
   await Promise.all([
     // Main opex fetch — for purpose bars + vendor table
     (async function() {
-      try {
-        var MAX_PAGES = 5;
-        var params = {
-          committee_id: COMMITTEE_ID,
-          two_year_transaction_period: period,
-          sort: '-disbursement_amount',
-          per_page: 100
-        };
-        for (var page = 0; page < MAX_PAGES; page++) {
-          var res = await apiFetch('/schedules/schedule_b/', params);
-          var results = res.results || [];
-          allTransactions = allTransactions.concat(results);
-          var pagination = res.pagination || {};
-          if (page + 1 >= (pagination.pages || 1)) break;
-          if (page + 1 >= MAX_PAGES) { capped = true; break; }
-          var idx = pagination.last_indexes || {};
-          if (!idx.last_index) break;
-          params = Object.assign({}, params, {
-            last_index: idx.last_index,
-            last_disbursement_amount: idx.last_disbursement_amount
-          });
-        }
-      } catch(e) { console.warn('Schedule B fetch failed:', e.message); }
+      var MAX_PAGES = 5;
+      var params = {
+        committee_id: COMMITTEE_ID,
+        two_year_transaction_period: period,
+        sort: '-disbursement_amount',
+        per_page: 100
+      };
+      for (var page = 0; page < MAX_PAGES; page++) {
+        var res = await apiFetch('/schedules/schedule_b/', params);
+        var results = res.results || [];
+        allTransactions = allTransactions.concat(results);
+        var pagination = res.pagination || {};
+        if (page + 1 >= (pagination.pages || 1)) break;
+        if (page + 1 >= MAX_PAGES) { capped = true; break; }
+        var idx = pagination.last_indexes || {};
+        if (!idx.last_index) break;
+        params = Object.assign({}, params, {
+          last_index: idx.last_index,
+          last_disbursement_amount: idx.last_disbursement_amount
+        });
+      }
     })(),
 
     // Dedicated contributions fetch — entity_type=CCM, paginated independently
     (async function() {
-      try {
-        var MAX_PAGES_C = 3;
-        var params = {
-          committee_id: COMMITTEE_ID,
-          two_year_transaction_period: period,
-          entity_type: 'CCM',
-          sort: '-disbursement_amount',
-          per_page: 100
+      var MAX_PAGES_C = 3;
+      var params = {
+        committee_id: COMMITTEE_ID,
+        two_year_transaction_period: period,
+        entity_type: 'CCM',
+        sort: '-disbursement_amount',
+        per_page: 100
+      };
+      var rawContribs = [];
+      for (var page = 0; page < MAX_PAGES_C; page++) {
+        var res = await apiFetch('/schedules/schedule_b/', params);
+        var results = res.results || [];
+        rawContribs = rawContribs.concat(results);
+        var pagination = res.pagination || {};
+        if (page + 1 >= (pagination.pages || 1)) break;
+        if (page + 1 >= MAX_PAGES_C) break;
+        var idx = pagination.last_indexes || {};
+        if (!idx.last_index) break;
+        params = Object.assign({}, params, {
+          last_index: idx.last_index,
+          last_disbursement_amount: idx.last_disbursement_amount
+        });
+      }
+      // Filter to political contributions only, then deduplicate by recipient
+      rawContribs = rawContribs.filter(function(d) {
+        return d.entity_type === 'CCM' || d.disbursement_purpose_category === 'CONTRIBUTIONS';
+      });
+      var seen = {};
+      rawContribs.forEach(function(d) {
+        var key = d.recipient_committee_id || (d.recipient_name || '').trim().toUpperCase();
+        if (!key) return;
+        if (!seen[key]) seen[key] = {
+          name: d.recipient_name || '—',
+          recipient_committee_id: d.recipient_committee_id || null,
+          candidate_name: d.candidate_name || null,
+          candidate_office: d.candidate_office || null,
+          candidate_office_state: d.candidate_office_state || null,
+          total: 0
         };
-        var rawContribs = [];
-        for (var page = 0; page < MAX_PAGES_C; page++) {
-          var res = await apiFetch('/schedules/schedule_b/', params);
-          var results = res.results || [];
-          rawContribs = rawContribs.concat(results);
-          var pagination = res.pagination || {};
-          if (page + 1 >= (pagination.pages || 1)) break;
-          if (page + 1 >= MAX_PAGES_C) break;
-          var idx = pagination.last_indexes || {};
-          if (!idx.last_index) break;
-          params = Object.assign({}, params, {
-            last_index: idx.last_index,
-            last_disbursement_amount: idx.last_disbursement_amount
-          });
-        }
-        // Filter to political contributions only, then deduplicate by recipient
-        rawContribs = rawContribs.filter(function(d) {
-          return d.entity_type === 'CCM' || d.disbursement_purpose_category === 'CONTRIBUTIONS';
-        });
-        var seen = {};
-        rawContribs.forEach(function(d) {
-          var key = d.recipient_committee_id || (d.recipient_name || '').trim().toUpperCase();
-          if (!key) return;
-          if (!seen[key]) seen[key] = {
-            name: d.recipient_name || '—',
-            recipient_committee_id: d.recipient_committee_id || null,
-            candidate_name: d.candidate_name || null,
-            candidate_office: d.candidate_office || null,
-            candidate_office_state: d.candidate_office_state || null,
-            total: 0
-          };
-          seen[key].total += (d.disbursement_amount || 0);
-        });
-        contributions = Object.values(seen).sort(function(a,b){ return b.total - a.total; });
-      } catch(e) { console.warn('Contributions fetch failed:', e.message); }
+        seen[key].total += (d.disbursement_amount || 0);
+      });
+      contributions = Object.values(seen).sort(function(a,b){ return b.total - a.total; });
     })()
   ]);
 
@@ -1669,43 +1828,45 @@ function renderSpendDetail(transactions) {
   }).join('');
 }
 
-// ── Spent tab: orchestrate render ────────────────────
-async function renderSpentIfReady() {
+// T12 — single-tier render. Skeleton until promise resolves; content swaps in;
+// 10s timer reveals "still loading" if fetch is slow; tab-level error UI with retry.
+function renderSpentIfReady() {
   if (spentRendered) return;
-  if (!spentDataPromise) return;
-  var myToken   = cycleFetchToken;
-  var loadEl    = document.getElementById('spent-loading');
-  var contentEl = document.getElementById('spent-content');
-  loadEl.style.display    = 'flex';
-  contentEl.style.display = 'none';
-  try {
-    var data = await spentDataPromise;
-    if (!view.isCurrentToken(myToken)) return; // discard: a newer cycle was requested
-    // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
-    loadEl.style.display    = 'none';
-    contentEl.style.display = 'block';
-    renderSpentDonut(data.breakdown, data.totalSpent);
-    renderSpendDetail(data.allTransactions || []);
-    renderTopVendors(data.topVendors || []);
-    renderContributions(data.contributions || []);
+  // Render only when user is on Spent tab — Chart.js needs a visible canvas
+  var curTab = document.querySelector('.tab.active');
+  if (!curTab || curTab.getAttribute('href') !== '#spent') return;
 
-    var periodLabel = (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
-    var vendorsHead = document.getElementById('vendors-head');
-    if (vendorsHead) vendorsHead.textContent = 'Top Vendors · ' + periodLabel;
-
-    var note = 'Spending by Purpose: keyword mapping of FEC disbursement descriptions '
-      + 'from Schedule B' + (data.capped ? ' (capped at 500 transactions)' : '') + '. '
-      + 'Spending by Category: FEC totals. Top vendors deduplicated by recipient.';
-    if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
-    document.getElementById('spent-data-note').innerHTML = note;
-
+  if (spentError) {
+    document.getElementById('spent-skeleton-wrap').style.display = 'none';
+    document.getElementById('spent-content').style.display = 'none';
+    document.getElementById('spent-error').style.display = 'flex';
     spentRendered = true;
     document.querySelector('.main').style.minHeight = '';
-  } catch(e) {
-    document.querySelector('.main').style.minHeight = '';
-    loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading spending data: ' + e.message + '</span>';
-    console.error('renderSpentIfReady:', e);
+    return;
   }
+  if (!spentData) return; // still pending — skeleton already visible
+
+  var data = spentData;
+  document.getElementById('spent-skeleton-wrap').style.display = 'none';
+  document.getElementById('spent-error').style.display = 'none';
+  document.getElementById('spent-content').style.display = 'block';
+  renderSpentDonut(data.breakdown, data.totalSpent);
+  renderSpendDetail(data.allTransactions || []);
+  renderTopVendors(data.topVendors || []);
+  renderContributions(data.contributions || []);
+
+  var periodLabel = (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
+  var vendorsHead = document.getElementById('vendors-head');
+  if (vendorsHead) vendorsHead.textContent = 'Top Vendors · ' + periodLabel;
+
+  var note = 'Spending by Purpose: keyword mapping of FEC disbursement descriptions '
+    + 'from Schedule B' + (data.capped ? ' (capped at 500 transactions)' : '') + '. '
+    + 'Spending by Category: FEC totals. Top vendors deduplicated by recipient.';
+  if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
+  document.getElementById('spent-data-note').innerHTML = note;
+
+  spentRendered = true;
+  document.querySelector('.main').style.minHeight = '';
 }
 
 

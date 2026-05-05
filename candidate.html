@@ -211,37 +211,47 @@
         <div class="data-note" id="data-note"></div>
       </div>
 
-      <!-- Raised tab -->
+      <!-- Raised tab — progressive rendering: donut renders synchronously,
+           fast tier (choropleth) shows skeleton until by_state resolves,
+           slow tier (top committees + top conduits) shows skeletons until
+           Schedule A non-indiv pagination resolves. -->
       <div id="tab-raised" style="display:none">
-        <div id="raised-loading" class="state-msg" style="padding:var(--space-48) 0">
-          <div class="loader"></div><span>Loading contributor data…</span>
-        </div>
-        <div id="raised-content" style="display:none">
-          <div class="raised-grid">
-            <div class="raised-cell">
-              <div class="raised-cell-title">Raised breakdown</div>
-              <div class="donut-wrap">
-                <div class="donut-chart-wrap">
-                  <canvas id="chart-donut"></canvas>
-                  <div class="donut-center">
-                    <div class="donut-center-val" id="donut-center-val">—</div>
-                    <div class="donut-center-lbl">Total Raised</div>
-                  </div>
+        <div class="raised-grid">
+          <div class="raised-cell">
+            <div class="raised-cell-title">Raised breakdown</div>
+            <div class="donut-wrap">
+              <div class="donut-chart-wrap">
+                <canvas id="chart-donut"></canvas>
+                <div class="donut-center">
+                  <div class="donut-center-val" id="donut-center-val">—</div>
+                  <div class="donut-center-lbl">Total Raised</div>
                 </div>
-                <div class="donut-legend" id="donut-legend"></div>
               </div>
-            </div>
-            <div class="raised-cell">
-              <div class="raised-cell-title">Where Individual Contributions Come From</div>
-              <div class="map-svg-wrap" id="map-container"></div>
-              <div class="map-legend" id="map-legend" style="display:none">
-                <span class="map-legend-lbl">Less</span>
-                <div class="map-legend-bar" id="map-legend-bar"></div>
-                <span class="map-legend-lbl">More</span>
-              </div>
+              <div class="donut-legend" id="donut-legend"></div>
             </div>
           </div>
-          <div class="donors-card">
+          <div class="raised-cell">
+            <div class="raised-cell-title">Where Individual Contributions Come From</div>
+            <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
+            <div class="map-svg-wrap" id="map-container" style="display:none"></div>
+            <div class="map-legend" id="map-legend" style="display:none">
+              <span class="map-legend-lbl">Less</span>
+              <div class="map-legend-bar" id="map-legend-bar"></div>
+              <span class="map-legend-lbl">More</span>
+            </div>
+            <div class="tab-error" id="raised-fast-error" style="display:none">
+              <span class="tab-error-msg">⚠ Could not load contribution geography.</span>
+              <button class="tab-retry-btn" data-retry="raised-fast">Retry</button>
+            </div>
+          </div>
+        </div>
+        <div id="raised-slow-tier">
+          <div class="skeleton tab-skeleton skeleton-table" id="raised-donors-skeleton"></div>
+          <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+          <div class="tab-still-loading" id="raised-still-loading" style="display:none">
+            This is taking longer than usual — large committees can take 30+ seconds…
+          </div>
+          <div class="donors-card" id="donors-card" style="display:none">
             <div class="donors-head">Top Committee Contributors</div>
             <table class="donors-table">
               <thead><tr>
@@ -253,7 +263,7 @@
               <tbody id="donors-tbody"></tbody>
             </table>
           </div>
-          <div class="donors-card" id="conduits-card">
+          <div class="donors-card" id="conduits-card" style="display:none">
             <div class="donors-head">Top Conduit Sources</div>
             <table class="donors-table">
               <thead><tr>
@@ -265,14 +275,25 @@
               <tbody id="conduits-tbody"></tbody>
             </table>
           </div>
-          <div class="data-note" id="raised-data-note"></div>
+          <div class="tab-error" id="raised-slow-error" style="display:none">
+            <span class="tab-error-msg">⚠ Could not load top contributors.</span>
+            <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
+          </div>
         </div>
+        <div class="data-note" id="raised-data-note" style="display:none"></div>
       </div>
 
-      <!-- Spent tab -->
+      <!-- Spent tab — unified skeleton, single mid-tier latency surface -->
       <div id="tab-spent" style="display:none">
-        <div id="spent-loading" class="state-msg" style="padding:var(--space-48) 0">
-          <div class="loader"></div><span>Loading spending data…</span>
+        <div id="spent-skeleton-wrap">
+          <div class="raised-grid">
+            <div class="skeleton tab-skeleton skeleton-donut"></div>
+            <div class="skeleton tab-skeleton skeleton-bars"></div>
+          </div>
+          <div class="skeleton tab-skeleton skeleton-table"></div>
+          <div class="tab-still-loading" id="spent-still-loading" style="display:none">
+            This is taking longer than usual — full transaction history can take 10–20 seconds…
+          </div>
         </div>
         <div id="spent-content" style="display:none">
           <div class="raised-grid">
@@ -308,6 +329,10 @@
             </table>
           </div>
           <div class="data-note" id="spent-data-note"></div>
+        </div>
+        <div class="tab-error" id="spent-error" style="display:none">
+          <span class="tab-error-msg">⚠ Could not load spending data.</span>
+          <button class="tab-retry-btn" data-retry="spent">Retry</button>
         </div>
       </div>
 
@@ -357,10 +382,28 @@ var activeCycle  = null;
 var chartInstance = null;
 var donutInstance = null;
 var spentDonutInstance = null;
-var raisedDataPromise    = null;
-var raisedRendered       = false;
-var spentDataPromise     = null;
+// T12 progressive-render state (Raised tab — fast tier + slow tier; Spent tab — single tier).
+// Data is fetched eagerly in loadCycle; render runs only when the user is on the relevant tab.
+var raisedFastData       = null;  // resolved fast-tier payload (byState, etc.)
+var raisedFastError      = null;
+var raisedFastRendered   = false;
+var raisedSlowData       = null;  // resolved slow-tier payload (topDonors, topConduits)
+var raisedSlowError      = null;
+var raisedSlowRendered   = false;
+var raisedDonutRendered  = false;
+var raisedStillLoadingTimer = null;
+var spentData            = null;
+var spentError           = null;
 var spentRendered        = false;
+var spentStillLoadingTimer = null;
+// Retry context — captured in loadCycle so retry handlers can re-fire fetches with the right args
+var currentPrincipalId       = null;
+var currentSubCycles         = null;
+var currentTotalsBreakdown   = null;
+var currentTotalRaised       = null;
+var currentDisbursementsBreakdown = null;
+var currentTotalSpent        = null;
+var currentCovDate           = null;
 var usTopoCache          = null;
 var CAND_PARTY           = null;
 var committeesLoaded     = false;
@@ -541,9 +584,12 @@ function getSubCycles(cycle) {
 // ── Tab routing ─────────────────────────────────────
 function showTab(name, e) {
   if (e) e.preventDefault();
-  // Lock document height before switching to an unrendered tab to prevent scroll clamping
+  // Lock document height before switching to a tab whose progressive render is incomplete.
+  // T12 skeletons have explicit pixel heights so this is mostly redundant, but kept as a
+  // belt-and-suspenders guard against scroll clamping (T6.5/T10 pattern).
   var mainEl = document.querySelector('.main');
-  if ((name === 'raised' && !raisedRendered) || (name === 'spent' && !spentRendered)) {
+  var raisedFullyRendered = raisedDonutRendered && raisedFastRendered && raisedSlowRendered;
+  if ((name === 'raised' && !raisedFullyRendered) || (name === 'spent' && !spentRendered)) {
     mainEl.style.minHeight = document.body.scrollHeight + 'px';
   }
   ['summary','raised','spent'].forEach(function(t) {
@@ -778,101 +824,89 @@ function renderChart(reports, cycle) {
 }
 
 // ── Raised tab: data fetch ───────────────────────────
-async function fetchRaisedData(committeeId, subCycles, totalsBreakdown, totalRaised, covDate) {
-  // by_state — one call; filter client-side by sub-cycle (two_year_transaction_period param
-  // is silently ignored on this endpoint — cycle field in results is the reliable filter)
-  var byState = [];
-  try {
-    var stateRes = await apiFetch('/schedules/schedule_a/by_state/', {
-      committee_id: committeeId, per_page: 100, sort: '-total'
-    });
-    var stateMap = {};
-    (stateRes.results || []).forEach(function(d) {
-      if (subCycles.indexOf(d.cycle) === -1) return;
-      var k = d.state;
-      if (!stateMap[k]) stateMap[k] = { state: d.state, state_full: d.state_full, total: 0, count: 0 };
-      stateMap[k].total += d.total  || 0;
-      stateMap[k].count += d.count  || 0;
-    });
-    byState = Object.values(stateMap).sort(function(a,b){ return b.total - a.total; });
-  } catch(e) { console.warn('by_state fetch failed:', e.message); }
+// T12 — Fast tier: by_state for the choropleth. Sub-second typical (<300ms).
+// One call; filter client-side by sub-cycle (two_year_transaction_period param is silently
+// ignored on this endpoint — cycle field in results is the reliable filter).
+async function fetchRaisedFastData(committeeId, subCycles) {
+  var stateRes = await apiFetch('/schedules/schedule_a/by_state/', {
+    committee_id: committeeId, per_page: 100, sort: '-total'
+  });
+  var stateMap = {};
+  (stateRes.results || []).forEach(function(d) {
+    if (subCycles.indexOf(d.cycle) === -1) return;
+    var k = d.state;
+    if (!stateMap[k]) stateMap[k] = { state: d.state, state_full: d.state_full, total: 0, count: 0 };
+    stateMap[k].total += d.total  || 0;
+    stateMap[k].count += d.count  || 0;
+  });
+  var byState = Object.values(stateMap).sort(function(a,b){ return b.total - a.total; });
+  return { byState: byState };
+}
 
-  // Top committee contributors — PAC/party/other committee transactions, aggregated across
-  // all sub-cycles (House: 1; Senate: 3; Presidential: 2). Paginated per sub-cycle via cursor
-  // to full exhaustion — no artificial cap, since candidate committees have bounded committee-
-  // to-committee transfer volume (worst case ~100 pages for a heavily-funded Senate cycle).
-  // apiFetch's MAX_CONCURRENT=4 queue bounds parallelism across sub-cycles.
-  // Top conduit sources — same fetch, second aggregation over memo_code='X' rows. These are
-  // conduit platforms (ActBlue, WinRed, etc.) forwarding individual contributions. Not new
-  // API calls — same `allRows` data, different filter.
-  var topDonors = [];
-  var topConduits = [];
-  try {
-    async function fetchSubCycleCommittees(sc) {
-      var params = {
-        committee_id: committeeId,
-        two_year_transaction_period: sc,
-        is_individual: false,
-        sort: '-contribution_receipt_amount',
-        per_page: 100
-      };
-      var rows = [];
-      while (true) {
-        var res = await apiFetch('/schedules/schedule_a/', params);
-        rows = rows.concat(res.results || []);
-        var pagination = res.pagination || {};
-        if (rows.length >= (pagination.count || 0)) break;
-        var idx = pagination.last_indexes || {};
-        if (!idx.last_index) break;
-        params = Object.assign({}, params, {
-          last_index: idx.last_index,
-          last_contribution_receipt_amount: idx.last_contribution_receipt_amount
-        });
-      }
-      return rows;
+// T12 — Slow tier: Schedule A non-individual paginated to exhaustion across all sub-cycles.
+// House: 1 sub-cycle. Senate: 3. Presidential: 2. apiFetch's MAX_CONCURRENT=4 queue bounds
+// parallelism across sub-cycles, but pagination within a sub-cycle is sequential by
+// construction (cursor depends on the previous page's last_indexes). Long pole: 5–25s on
+// principal CCs, often longer on cold-cache historical cycles. The data feeds two surfaces —
+// Top Committee Contributors (non-memo rows) and Top Conduit Sources (memo_code='X' rows).
+async function fetchRaisedSlowData(committeeId, subCycles) {
+  async function fetchSubCycleCommittees(sc) {
+    var params = {
+      committee_id: committeeId,
+      two_year_transaction_period: sc,
+      is_individual: false,
+      sort: '-contribution_receipt_amount',
+      per_page: 100
+    };
+    var rows = [];
+    while (true) {
+      var res = await apiFetch('/schedules/schedule_a/', params);
+      rows = rows.concat(res.results || []);
+      var pagination = res.pagination || {};
+      if (rows.length >= (pagination.count || 0)) break;
+      var idx = pagination.last_indexes || {};
+      if (!idx.last_index) break;
+      params = Object.assign({}, params, {
+        last_index: idx.last_index,
+        last_contribution_receipt_amount: idx.last_contribution_receipt_amount
+      });
     }
-    var perCycle = await Promise.all(subCycles.map(fetchSubCycleCommittees));
-    var allRows = [];
-    perCycle.forEach(function(rows) { allRows = allRows.concat(rows); });
-    var seen = {};
-    var seenConduits = {};
-    allRows.forEach(function(d) {
-      var amt = d.contribution_receipt_amount || 0;
-      if (d.memo_code === 'X') {
-        // Memo entries annotate conduit platforms forwarding individual contributions.
-        // Aggregate separately for the Top Conduit Sources surface.
-        var ckey = d.contributor_committee_id || (d.contributor_name || '').trim().toUpperCase();
-        if (!ckey) return;
-        if (!seenConduits[ckey]) seenConduits[ckey] = {
-          name: d.contributor_name || '—',
-          entity_type: d.entity_type || '',
-          total: 0
-        };
-        seenConduits[ckey].total += amt;
-        return;
-      }
-      // Non-memo committee-to-committee contributions — the "real" committee contributor rows.
-      var key = d.contributor_committee_id || (d.contributor_name || '').trim().toUpperCase();
-      if (!key) return;
-      if (!seen[key]) seen[key] = {
+    return rows;
+  }
+  var perCycle = await Promise.all(subCycles.map(fetchSubCycleCommittees));
+  var allRows = [];
+  perCycle.forEach(function(rows) { allRows = allRows.concat(rows); });
+  var seen = {};
+  var seenConduits = {};
+  allRows.forEach(function(d) {
+    var amt = d.contribution_receipt_amount || 0;
+    if (d.memo_code === 'X') {
+      var ckey = d.contributor_committee_id || (d.contributor_name || '').trim().toUpperCase();
+      if (!ckey) return;
+      if (!seenConduits[ckey]) seenConduits[ckey] = {
         name: d.contributor_name || '—',
         entity_type: d.entity_type || '',
         total: 0
       };
-      seen[key].total += amt;
-    });
-    topDonors = Object.values(seen)
-      .sort(function(a,b){ return b.total - a.total; })
-      .slice(0, 10);
-    topConduits = Object.values(seenConduits)
-      .sort(function(a,b){ return b.total - a.total; })
-      .slice(0, 10);
-  } catch(e) { console.warn('Top committee contributors fetch failed:', e.message); }
-
-  return { byState: byState, breakdown: totalsBreakdown,
-           topDonors: topDonors, topConduits: topConduits,
-           totalRaised: totalRaised,
-           covDate: covDate, subCycles: subCycles };
+      seenConduits[ckey].total += amt;
+      return;
+    }
+    var key = d.contributor_committee_id || (d.contributor_name || '').trim().toUpperCase();
+    if (!key) return;
+    if (!seen[key]) seen[key] = {
+      name: d.contributor_name || '—',
+      entity_type: d.entity_type || '',
+      total: 0
+    };
+    seen[key].total += amt;
+  });
+  var topDonors = Object.values(seen)
+    .sort(function(a,b){ return b.total - a.total; })
+    .slice(0, 10);
+  var topConduits = Object.values(seenConduits)
+    .sort(function(a,b){ return b.total - a.total; })
+    .slice(0, 10);
+  return { topDonors: topDonors, topConduits: topConduits, subCycles: subCycles };
 }
 
 // ── Raised tab: donut chart ──────────────────────────
@@ -1087,47 +1121,73 @@ function renderTopConduits(conduits) {
 }
 
 // ── Raised tab: orchestrate render ──────────────────
-async function renderRaisedIfReady() {
-  if (raisedRendered) return;
-  if (!raisedDataPromise) return;
-  var loadEl    = document.getElementById('raised-loading');
-  var contentEl = document.getElementById('raised-content');
-  loadEl.style.display    = 'flex';
-  contentEl.style.display = 'none';
-  try {
-    var data = await raisedDataPromise;
-    // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
-    loadEl.style.display    = 'none';
-    contentEl.style.display = 'block';
-    renderContributorDonut(data.breakdown, data.totalRaised);
-    await renderChoropleth(data.byState);
-    renderTopDonors(data.topDonors);
-    renderTopConduits(data.topConduits);
+// T12 progressive rendering. Donut renders synchronously from totals data. Fast tier
+// (choropleth) and slow tier (top committees + top conduits) each render independently
+// when their fetch resolves. Idempotent — safe to call multiple times (each tier short-
+// circuits via *Rendered flag once rendered or errored).
+function renderRaisedIfReady() {
+  // Render only when user is on Raised tab — Chart.js needs a visible canvas
+  var curTab = document.querySelector('.tab.active');
+  if (!curTab || curTab.getAttribute('href') !== '#raised') return;
 
-    // Year range spanning the full data window: start year of the earliest sub-cycle
-    // through end year of the latest sub-cycle. House: 2-year (e.g. "2025–2026").
-    // Senate: 6-year (e.g. "2021–2026"). Presidential: 4-year (e.g. "2023–2026").
-    // Recomputed on every render so cycle-switcher changes propagate (loadCycle resets
-    // raisedRendered/spentRendered, then renderRaisedIfReady/renderSpentIfReady re-run).
-    var cycleLabel = (data.subCycles[0] - 1) + '–' + data.subCycles[data.subCycles.length - 1];
-    document.querySelector('#donors-tbody').closest('.donors-card').querySelector('.donors-head')
+  // Donut — synchronous from totals already in memory
+  if (!raisedDonutRendered && currentTotalsBreakdown) {
+    renderContributorDonut(currentTotalsBreakdown, currentTotalRaised);
+    raisedDonutRendered = true;
+  }
+
+  // Fast tier
+  if (raisedFastError && !raisedFastRendered) {
+    document.getElementById('raised-fast-skeleton').style.display = 'none';
+    document.getElementById('raised-fast-error').style.display = 'flex';
+    raisedFastRendered = true;
+  } else if (raisedFastData && !raisedFastRendered) {
+    document.getElementById('raised-fast-skeleton').style.display = 'none';
+    document.getElementById('raised-fast-error').style.display = 'none';
+    document.getElementById('map-container').style.display = 'block';
+    renderChoropleth(raisedFastData.byState);
+    raisedFastRendered = true;
+  }
+
+  // Slow tier
+  if (raisedSlowError && !raisedSlowRendered) {
+    document.getElementById('raised-donors-skeleton').style.display = 'none';
+    document.getElementById('raised-conduits-skeleton').style.display = 'none';
+    document.getElementById('raised-still-loading').style.display = 'none';
+    document.getElementById('raised-slow-error').style.display = 'flex';
+    raisedSlowRendered = true;
+  } else if (raisedSlowData && !raisedSlowRendered) {
+    document.getElementById('raised-donors-skeleton').style.display = 'none';
+    document.getElementById('raised-conduits-skeleton').style.display = 'none';
+    document.getElementById('raised-still-loading').style.display = 'none';
+    document.getElementById('raised-slow-error').style.display = 'none';
+    document.getElementById('donors-card').style.display = 'block';
+    document.getElementById('conduits-card').style.display = 'block';
+    renderTopDonors(raisedSlowData.topDonors);
+    renderTopConduits(raisedSlowData.topConduits);
+
+    // Cycle label + data note. Recomputed on every render so cycle-switcher changes propagate.
+    var subCycles = raisedSlowData.subCycles;
+    var cycleLabel = (subCycles[0] - 1) + '–' + subCycles[subCycles.length - 1];
+    document.querySelector('#donors-card .donors-head')
       .textContent = 'Top Committee Contributors · ' + cycleLabel;
-    document.querySelector('#conduits-tbody').closest('.donors-card').querySelector('.donors-head')
+    document.querySelector('#conduits-card .donors-head')
       .textContent = 'Top Conduit Sources · ' + cycleLabel;
 
     var note = 'Raised breakdown from FEC totals endpoint. Geography reflects itemized individual contributions by state (Schedule A). ' +
       'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID. ' +
       'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect the individuals\' money, not the platforms\' own funds.';
-    if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
+    if (currentCovDate) note += ' Coverage through ' + fmtDate(currentCovDate) + '.';
     note += ' Small-dollar contributions ≤$200 are not itemized.';
-    document.getElementById('raised-data-note').innerHTML = note;
+    var noteEl = document.getElementById('raised-data-note');
+    noteEl.innerHTML = note;
+    noteEl.style.display = 'block';
+    raisedSlowRendered = true;
+  }
 
-    raisedRendered = true;
+  // Once both tiers are settled (rendered or errored), release the showTab minHeight floor
+  if (raisedDonutRendered && raisedFastRendered && raisedSlowRendered) {
     document.querySelector('.main').style.minHeight = '';
-  } catch(e) {
-    document.querySelector('.main').style.minHeight = '';
-    loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading contributor data: ' + e.message + '</span>';
-    console.error('renderRaisedIfReady:', e);
   }
 }
 
@@ -1137,30 +1197,30 @@ async function fetchSpentData(committeeId, subCycles, disbursementsBreakdown, to
   // Paginate via cursor until all records retrieved, cap at 5 pages (500 transactions).
   var allTransactions = [];
   var capped = false;
-  try {
-    var MAX_PAGES = 5;
-    var params = {
-      committee_id: committeeId,
-      two_year_transaction_period: subCycles[subCycles.length - 1],
-      sort: '-disbursement_amount',
-      per_page: 100
-    };
-    for (var page = 0; page < MAX_PAGES; page++) {
-      var res = await apiFetch('/schedules/schedule_b/', params);
-      var results = res.results || [];
-      allTransactions = allTransactions.concat(results);
-      var pagination = res.pagination || {};
-      if (page + 1 >= (pagination.pages || 1)) break; // all pages fetched
-      if (page + 1 >= MAX_PAGES) { capped = true; break; }
-      // Advance cursor for next page
-      var idx = pagination.last_indexes || {};
-      if (!idx.last_index) break;
-      params = Object.assign({}, params, {
-        last_index: idx.last_index,
-        last_disbursement_amount: idx.last_disbursement_amount
-      });
-    }
-  } catch(e) { console.warn('Schedule B fetch failed:', e.message); }
+  // T12: errors propagate to renderSpentIfReady's tab-level error UI; previous inner
+  // try/catch silently suppressed failures and rendered empty tables.
+  var MAX_PAGES = 5;
+  var params = {
+    committee_id: committeeId,
+    two_year_transaction_period: subCycles[subCycles.length - 1],
+    sort: '-disbursement_amount',
+    per_page: 100
+  };
+  for (var page = 0; page < MAX_PAGES; page++) {
+    var res = await apiFetch('/schedules/schedule_b/', params);
+    var results = res.results || [];
+    allTransactions = allTransactions.concat(results);
+    var pagination = res.pagination || {};
+    if (page + 1 >= (pagination.pages || 1)) break; // all pages fetched
+    if (page + 1 >= MAX_PAGES) { capped = true; break; }
+    // Advance cursor for next page
+    var idx = pagination.last_indexes || {};
+    if (!idx.last_index) break;
+    params = Object.assign({}, params, {
+      last_index: idx.last_index,
+      last_disbursement_amount: idx.last_disbursement_amount
+    });
+  }
 
   // Top vendors — deduped by recipient, top 10 by amount
   var seen = {};
@@ -1316,67 +1376,174 @@ function renderSpendDetail(transactions) {
   }).join('');
 }
 
-// ── Spent tab: orchestrate render ────────────────────
-async function renderSpentIfReady() {
+// T12 — single-tier render. Skeleton until promise resolves; content swaps in;
+// 10s timer reveals the "still loading" augmentation if fetch is slow; tab-level
+// error UI with retry on fetch failure.
+function renderSpentIfReady() {
   if (spentRendered) return;
-  if (!spentDataPromise) return;
-  var loadEl    = document.getElementById('spent-loading');
-  var contentEl = document.getElementById('spent-content');
-  loadEl.style.display    = 'flex';
-  contentEl.style.display = 'none';
-  try {
-    var data = await spentDataPromise;
-    // Show content before rendering charts — Chart.js needs a visible canvas to size correctly
-    loadEl.style.display    = 'none';
-    contentEl.style.display = 'block';
-    renderSpendDetail(data.allTransactions || []);
-    renderSpentDonut(data.breakdown, data.totalSpent);
-    renderTopVendors(data.topVendors);
+  // Render only when user is on Spent tab — Chart.js needs a visible canvas
+  var curTab = document.querySelector('.tab.active');
+  if (!curTab || curTab.getAttribute('href') !== '#spent') return;
 
-    // Year range spanning the full data window: start year of the earliest sub-cycle
-    // through end year of the latest sub-cycle. House: 2-year (e.g. "2025–2026").
-    // Senate: 6-year (e.g. "2021–2026"). Presidential: 4-year (e.g. "2023–2026").
-    // Recomputed on every render so cycle-switcher changes propagate (loadCycle resets
-    // raisedRendered/spentRendered, then renderRaisedIfReady/renderSpentIfReady re-run).
-    var cycleLabel = (data.subCycles[0] - 1) + '–' + data.subCycles[data.subCycles.length - 1];
-    var note = 'Spending by Purpose: keyword mapping of FEC disbursement descriptions from Schedule B, most recent sub-cycle' +
-      (data.capped ? ' (capped at 500 transactions)' : '') + '. ' +
-      'Spending by Category: FEC totals endpoint. ' +
-      'Top vendors deduplicated by recipient.';
-    if (data.subCycles.length > 1) note += ' Senate category totals aggregated across sub-cycles.';
-    if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
-    document.getElementById('spent-data-note').innerHTML = note;
-
+  if (spentError) {
+    document.getElementById('spent-skeleton-wrap').style.display = 'none';
+    document.getElementById('spent-content').style.display = 'none';
+    document.getElementById('spent-error').style.display = 'flex';
     spentRendered = true;
     document.querySelector('.main').style.minHeight = '';
-  } catch(e) {
-    document.querySelector('.main').style.minHeight = '';
-    loadEl.innerHTML = '<span style="color:var(--red)">⚠ Error loading spending data: ' + e.message + '</span>';
-    console.error('renderSpentIfReady:', e);
+    return;
   }
+  if (!spentData) return; // still pending — skeleton already visible
+
+  document.getElementById('spent-skeleton-wrap').style.display = 'none';
+  document.getElementById('spent-error').style.display = 'none';
+  document.getElementById('spent-content').style.display = 'block';
+  renderSpendDetail(spentData.allTransactions || []);
+  renderSpentDonut(spentData.breakdown, spentData.totalSpent);
+  renderTopVendors(spentData.topVendors);
+
+  // Cycle label + data note
+  var subCycles = spentData.subCycles;
+  var cycleLabel = (subCycles[0] - 1) + '–' + subCycles[subCycles.length - 1];
+  var note = 'Spending by Purpose: keyword mapping of FEC disbursement descriptions from Schedule B, most recent sub-cycle' +
+    (spentData.capped ? ' (capped at 500 transactions)' : '') + '. ' +
+    'Spending by Category: FEC totals endpoint. ' +
+    'Top vendors deduplicated by recipient.';
+  if (subCycles.length > 1) note += ' Senate category totals aggregated across sub-cycles.';
+  if (spentData.covDate) note += ' Coverage through ' + fmtDate(spentData.covDate) + '.';
+  document.getElementById('spent-data-note').innerHTML = note;
+
+  spentRendered = true;
+  document.querySelector('.main').style.minHeight = '';
 }
+
+// ── T12 fetch kickoffs (called from loadCycle + retry handlers) ─────
+function kickoffRaisedFastFetch(token) {
+  fetchRaisedFastData(currentPrincipalId, currentSubCycles)
+    .then(function(d) {
+      if (!view.isCurrentToken(token)) return;
+      raisedFastData = d;
+      renderRaisedIfReady();
+    })
+    .catch(function(err) {
+      if (!view.isCurrentToken(token)) return;
+      raisedFastError = err;
+      console.warn('fetchRaisedFastData failed:', err.message);
+      renderRaisedIfReady();
+    });
+}
+
+function kickoffRaisedSlowFetch(token) {
+  // 10s "still loading" timer fires globally regardless of which tab the user is on;
+  // visibility is gated by parent #tab-raised display.
+  raisedStillLoadingTimer = setTimeout(function() {
+    if (!view.isCurrentToken(token)) return;
+    if (raisedSlowRendered) return;
+    var el = document.getElementById('raised-still-loading');
+    if (el) el.style.display = 'block';
+  }, 10000);
+  fetchRaisedSlowData(currentPrincipalId, currentSubCycles)
+    .then(function(d) {
+      clearTimeout(raisedStillLoadingTimer);
+      if (!view.isCurrentToken(token)) return;
+      raisedSlowData = d;
+      renderRaisedIfReady();
+    })
+    .catch(function(err) {
+      clearTimeout(raisedStillLoadingTimer);
+      if (!view.isCurrentToken(token)) return;
+      raisedSlowError = err;
+      console.warn('fetchRaisedSlowData failed:', err.message);
+      renderRaisedIfReady();
+    });
+}
+
+function kickoffSpentFetch(token) {
+  spentStillLoadingTimer = setTimeout(function() {
+    if (!view.isCurrentToken(token)) return;
+    if (spentRendered) return;
+    var el = document.getElementById('spent-still-loading');
+    if (el) el.style.display = 'block';
+  }, 10000);
+  fetchSpentData(currentPrincipalId, currentSubCycles, currentDisbursementsBreakdown, currentTotalSpent, currentCovDate)
+    .then(function(d) {
+      clearTimeout(spentStillLoadingTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentData = d;
+      renderSpentIfReady();
+    })
+    .catch(function(err) {
+      clearTimeout(spentStillLoadingTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentError = err;
+      console.warn('fetchSpentData failed:', err.message);
+      renderSpentIfReady();
+    });
+}
+
+// Retry handlers — clear the failed tier's state, restore skeleton, refire the fetch
+function retryRaisedFast() {
+  raisedFastData = null; raisedFastError = null; raisedFastRendered = false;
+  document.getElementById('raised-fast-error').style.display = 'none';
+  document.getElementById('raised-fast-skeleton').style.display = 'block';
+  kickoffRaisedFastFetch(view.claimToken());
+}
+function retryRaisedSlow() {
+  raisedSlowData = null; raisedSlowError = null; raisedSlowRendered = false;
+  document.getElementById('raised-slow-error').style.display = 'none';
+  document.getElementById('raised-donors-skeleton').style.display = 'block';
+  document.getElementById('raised-conduits-skeleton').style.display = 'block';
+  kickoffRaisedSlowFetch(view.claimToken());
+}
+function retrySpent() {
+  spentData = null; spentError = null; spentRendered = false;
+  document.getElementById('spent-error').style.display = 'none';
+  document.getElementById('spent-skeleton-wrap').style.display = 'block';
+  kickoffSpentFetch(view.claimToken());
+}
+// Delegated retry click handler (registered once on first init)
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-retry]');
+  if (!btn) return;
+  var what = btn.getAttribute('data-retry');
+  if (what === 'raised-fast') retryRaisedFast();
+  else if (what === 'raised-slow') retryRaisedSlow();
+  else if (what === 'spent') retrySpent();
+});
 
 // ── Load one cycle ──────────────────────────────────
 async function loadCycle(cycle) {
   var myFetchId = view.claimToken();
   activeCycle = cycle;
 
-  // Reset raised tab state for new cycle
-  raisedDataPromise = null;
-  raisedRendered    = false;
+  // Reset Raised tab progressive-render state + DOM for new cycle
+  raisedFastData = null; raisedFastError = null; raisedFastRendered = false;
+  raisedSlowData = null; raisedSlowError = null; raisedSlowRendered = false;
+  raisedDonutRendered = false;
+  if (raisedStillLoadingTimer) { clearTimeout(raisedStillLoadingTimer); raisedStillLoadingTimer = null; }
   if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
   document.getElementById('map-container').innerHTML = '';
+  document.getElementById('map-container').style.display = 'none';
   document.getElementById('map-legend').style.display = 'none';
   document.getElementById('map-tt').style.display = 'none';
-  document.getElementById('raised-loading').style.display = 'flex';
-  document.getElementById('raised-content').style.display = 'none';
+  document.getElementById('raised-fast-skeleton').style.display = 'block';
+  document.getElementById('raised-fast-error').style.display = 'none';
+  document.getElementById('raised-donors-skeleton').style.display = 'block';
+  document.getElementById('raised-conduits-skeleton').style.display = 'block';
+  document.getElementById('raised-still-loading').style.display = 'none';
+  document.getElementById('raised-slow-error').style.display = 'none';
+  document.getElementById('donors-card').style.display = 'none';
+  document.getElementById('conduits-card').style.display = 'none';
+  document.getElementById('raised-data-note').style.display = 'none';
 
-  // Reset spent tab state for new cycle
-  spentDataPromise  = null;
-  spentRendered     = false;
+  // Reset Spent tab state + DOM for new cycle
+  spentData = null; spentError = null; spentRendered = false;
+  if (spentStillLoadingTimer) { clearTimeout(spentStillLoadingTimer); spentStillLoadingTimer = null; }
   if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
-  document.getElementById('spent-loading').style.display = 'flex';
+  document.getElementById('spent-skeleton-wrap').style.display = 'block';
+  document.getElementById('spent-still-loading').style.display = 'none';
   document.getElementById('spent-content').style.display = 'none';
+  document.getElementById('spent-error').style.display = 'none';
 
   // Update cycle select value
   var sw = document.getElementById('cycle-switcher');
@@ -1461,11 +1628,24 @@ async function loadCycle(cycle) {
       } catch(e) { console.warn('Reports fetch failed:', e.message); }
     }
 
-    // Start raised + spent tab data fetches in background (non-blocking)
+    // T12 — kick off Raised (fast + slow tiers) and Spent fetches in background.
+    // Each fetch's resolution lands data in module-scoped state vars and calls the
+    // corresponding renderIfReady; render runs only when user is on the relevant tab.
     if (principal) {
-      raisedDataPromise = fetchRaisedData(principal.committee_id, subCycles, totalsBreakdown, raised, covDate);
-      spentDataPromise  = fetchSpentData(principal.committee_id, subCycles, disbursementsBreakdown, spent, covDate);
-      // If user is already on raised or spent tab, render immediately
+      // Capture retry context — retry handlers re-fire the same fetch with these args
+      currentPrincipalId             = principal.committee_id;
+      currentSubCycles               = subCycles;
+      currentTotalsBreakdown         = totalsBreakdown;
+      currentTotalRaised             = raised;
+      currentDisbursementsBreakdown  = disbursementsBreakdown;
+      currentTotalSpent              = spent;
+      currentCovDate                 = covDate;
+
+      kickoffRaisedFastFetch(myFetchId);
+      kickoffRaisedSlowFetch(myFetchId);
+      kickoffSpentFetch(myFetchId);
+
+      // If user is already on raised or spent tab, render whatever has settled (donut renders instantly)
       var curTabEl = document.querySelector('.tab.active');
       if (curTabEl && curTabEl.getAttribute('href') === '#raised') renderRaisedIfReady();
       if (curTabEl && curTabEl.getAttribute('href') === '#spent')  renderSpentIfReady();
