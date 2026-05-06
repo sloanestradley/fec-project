@@ -334,7 +334,6 @@
              skeleton; hidden by renderContributions() if no contributions resolve. -->
         <div class="donors-card" id="contributions-section">
           <div class="donors-head">Contributions to Candidates &amp; Committees</div>
-          <p class="data-note" style="margin-bottom:.75rem">Direct contributions to other federal candidates and committees.</p>
           <div class="skeleton tab-skeleton skeleton-table" id="spent-contributions-skeleton"></div>
           <div id="contributions-content" style="display:none">
             <table class="donors-table">
@@ -345,6 +344,7 @@
               </tr></thead>
               <tbody id="contributions-tbody"></tbody>
             </table>
+            <p class="data-note" style="margin-top:.75rem">Direct contributions to other federal candidates and committees.</p>
           </div>
         </div>
 
@@ -1844,17 +1844,25 @@ function renderContributions(contributions) {
     var name = c.name
       ? c.name.toLowerCase().replace(/\b([a-z])/g, function(x){ return x.toUpperCase(); })
       : '—';
-    var nameCell = c.recipient_committee_id
-      ? '<a href="/committee/' + c.recipient_committee_id + '">' + name + '</a>'
-      : name;
     var candidateInfo = '';
     if (c.candidate_name) {
       var candName = formatCandidateName(c.candidate_name);
       var officeInfo = [c.candidate_office, c.candidate_office_state].filter(Boolean).join('-');
       candidateInfo = candName + (officeInfo ? '<span style="font-size:0.625rem;color:var(--muted)"> · ' + officeInfo + '</span>' : '');
     }
+    // Whole-row link via absolute overlay on the first cell — preserves native
+    // <a> semantics (middle-click, keyboard focus, screen reader announcement)
+    // while making the entire row clickable. Rows without a recipient_committee_id
+    // render plain (no link, no hover state).
+    if (c.recipient_committee_id) {
+      return '<tr class="contributions-row">' +
+        '<td class="contributions-link-cell"><a class="contributions-row-link" href="/committee/' + c.recipient_committee_id + '"><div class="dn">' + name + '</div></a></td>' +
+        '<td style="font-size:0.625rem;color:var(--muted)">' + candidateInfo + '</td>' +
+        '<td class="da">' + fmtFull(c.total) + '</td>' +
+      '</tr>';
+    }
     return '<tr>' +
-      '<td><div class="dn">' + nameCell + '</div></td>' +
+      '<td><div class="dn">' + name + '</div></td>' +
       '<td style="font-size:0.625rem;color:var(--muted)">' + candidateInfo + '</td>' +
       '<td class="da">' + fmtFull(c.total) + '</td>' +
     '</tr>';
