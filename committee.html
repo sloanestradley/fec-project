@@ -227,47 +227,53 @@
           </div>
         </div>
         <div id="raised-slow-tier">
-          <div class="skeleton tab-skeleton skeleton-table" id="raised-comm-skeleton"></div>
-          <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
-          <div class="skeleton tab-skeleton skeleton-table" id="raised-indiv-skeleton"></div>
+          <div class="donors-card" id="committee-donors-card">
+            <div class="donors-head">Top Committee Contributors</div>
+            <div class="skeleton tab-skeleton skeleton-table" id="raised-comm-skeleton"></div>
+            <div id="committee-donors-content" style="display:none">
+              <table class="donors-table">
+                <thead><tr>
+                  <th style="width:2rem">#</th>
+                  <th>Committee</th>
+                  <th>Type</th>
+                  <th class="r">Total</th>
+                </tr></thead>
+                <tbody id="committee-donors-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="donors-card" id="conduits-card">
+            <div class="donors-head">Top Conduit Sources</div>
+            <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+            <div id="conduits-content" style="display:none">
+              <table class="donors-table">
+                <thead><tr>
+                  <th style="width:2rem">#</th>
+                  <th>Source</th>
+                  <th>Type</th>
+                  <th class="r">Total</th>
+                </tr></thead>
+                <tbody id="conduits-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="donors-card" id="individual-donors-card">
+            <div class="donors-head">Top Individual Contributors</div>
+            <div class="skeleton tab-skeleton skeleton-table" id="raised-indiv-skeleton"></div>
+            <div id="individual-donors-content" style="display:none">
+              <table class="donors-table">
+                <thead><tr>
+                  <th style="width:2rem">#</th>
+                  <th>Contributor</th>
+                  <th>Location</th>
+                  <th class="r">Amount</th>
+                </tr></thead>
+                <tbody id="individual-donors-tbody"></tbody>
+              </table>
+            </div>
+          </div>
           <div class="tab-still-loading" id="raised-still-loading" style="display:none">
             This is taking longer than usual — large committees can take 30+ seconds…
-          </div>
-          <div class="donors-card" id="committee-donors-card" style="display:none">
-            <div class="donors-head">Top Committee Contributors</div>
-            <table class="donors-table">
-              <thead><tr>
-                <th style="width:2rem">#</th>
-                <th>Committee</th>
-                <th>Type</th>
-                <th class="r">Total</th>
-              </tr></thead>
-              <tbody id="committee-donors-tbody"></tbody>
-            </table>
-          </div>
-          <div class="donors-card" id="conduits-card" style="display:none">
-            <div class="donors-head">Top Conduit Sources</div>
-            <table class="donors-table">
-              <thead><tr>
-                <th style="width:2rem">#</th>
-                <th>Source</th>
-                <th>Type</th>
-                <th class="r">Total</th>
-              </tr></thead>
-              <tbody id="conduits-tbody"></tbody>
-            </table>
-          </div>
-          <div class="donors-card" id="individual-donors-card" style="display:none">
-            <div class="donors-head">Top Individual Contributors</div>
-            <table class="donors-table">
-              <thead><tr>
-                <th style="width:2rem">#</th>
-                <th>Contributor</th>
-                <th>Location</th>
-                <th class="r">Amount</th>
-              </tr></thead>
-              <tbody id="individual-donors-tbody"></tbody>
-            </table>
           </div>
           <div class="tab-error" id="raised-slow-error" style="display:none">
             <span class="tab-error-msg">⚠ Could not load top contributors.</span>
@@ -278,21 +284,12 @@
       </div>
 
       <div id="tab-spent" style="display:none">
-        <div id="spent-skeleton-wrap">
-          <div class="raised-grid">
-            <div class="skeleton tab-skeleton skeleton-donut"></div>
-            <div class="skeleton tab-skeleton skeleton-bars"></div>
-          </div>
-          <div class="skeleton tab-skeleton skeleton-table"></div>
-          <div class="tab-still-loading" id="spent-still-loading" style="display:none">
-            This is taking longer than usual — full transaction history can take 10–20 seconds…
-          </div>
-        </div>
-        <div id="spent-content" style="display:none">
-          <div class="raised-grid">
-            <!-- Left: Spending by Category donut -->
-            <div class="raised-cell">
-              <div class="raised-cell-title">Spending by Category</div>
+        <div class="raised-grid">
+          <!-- Left: Spending by Category donut -->
+          <div class="raised-cell">
+            <div class="raised-cell-title">Spending by Category</div>
+            <div class="skeleton tab-skeleton skeleton-donut" id="spent-donut-skeleton"></div>
+            <div id="spent-donut-content" style="display:none">
               <div class="donut-wrap">
                 <div class="donut-chart-wrap">
                   <canvas id="chart-spent-donut"></canvas>
@@ -304,17 +301,23 @@
                 <div class="donut-legend" id="spent-donut-legend"></div>
               </div>
             </div>
-            <!-- Right: Spending by Purpose breakdown bars -->
-            <div class="raised-cell">
-              <div class="raised-cell-title">Spending by Purpose</div>
+          </div>
+          <!-- Right: Spending by Purpose breakdown bars -->
+          <div class="raised-cell">
+            <div class="raised-cell-title">Spending by Purpose</div>
+            <div class="skeleton tab-skeleton skeleton-bars" id="spent-bars-skeleton"></div>
+            <div id="spent-bars-content" style="display:none">
               <div id="spend-detail-bars"></div>
               <div class="data-note" style="margin-top:0.75rem">Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized.</div>
             </div>
           </div>
+        </div>
 
-          <!-- Top Vendors table -->
-          <div class="donors-card">
-            <div class="donors-head" id="vendors-head">Top Vendors</div>
+        <!-- Top Vendors table -->
+        <div class="donors-card">
+          <div class="donors-head" id="vendors-head">Top Vendors</div>
+          <div class="skeleton tab-skeleton skeleton-table" id="spent-vendors-skeleton"></div>
+          <div id="spent-vendors-content" style="display:none">
             <table class="donors-table">
               <thead><tr>
                 <th style="width:2rem">#</th>
@@ -325,11 +328,15 @@
               <tbody id="vendors-tbody"></tbody>
             </table>
           </div>
+        </div>
 
-          <!-- Contributions to Candidates & Committees (conditional — hidden when empty) -->
-          <div class="donors-card" id="contributions-section" style="display:none">
-            <div class="donors-head">Contributions to Candidates &amp; Committees</div>
-            <p class="data-note" style="margin-bottom:.75rem">Direct contributions to other federal candidates and committees.</p>
+        <!-- Contributions to Candidates & Committees — visible during loading with
+             skeleton; hidden by renderContributions() if no contributions resolve. -->
+        <div class="donors-card" id="contributions-section">
+          <div class="donors-head">Contributions to Candidates &amp; Committees</div>
+          <p class="data-note" style="margin-bottom:.75rem">Direct contributions to other federal candidates and committees.</p>
+          <div class="skeleton tab-skeleton skeleton-table" id="spent-contributions-skeleton"></div>
+          <div id="contributions-content" style="display:none">
             <table class="donors-table">
               <thead><tr>
                 <th>Recipient</th>
@@ -339,9 +346,12 @@
               <tbody id="contributions-tbody"></tbody>
             </table>
           </div>
-
-          <div class="data-note" id="spent-data-note"></div>
         </div>
+
+        <div class="tab-still-loading" id="spent-still-loading" style="display:none">
+          This is taking longer than usual — full transaction history can take 10–20 seconds…
+        </div>
+        <div class="data-note" id="spent-data-note" style="display:none"></div>
         <div class="tab-error" id="spent-error" style="display:none">
           <span class="tab-error-msg">⚠ Could not load spending data.</span>
           <button class="tab-retry-btn" data-retry="spent">Retry</button>
@@ -849,7 +859,15 @@ function retryRaisedSlow() {
 function retrySpent() {
   spentData = null; spentError = null; spentRendered = false;
   document.getElementById('spent-error').style.display = 'none';
-  document.getElementById('spent-skeleton-wrap').style.display = 'block';
+  document.getElementById('spent-donut-skeleton').style.display = 'block';
+  document.getElementById('spent-bars-skeleton').style.display = 'block';
+  document.getElementById('spent-vendors-skeleton').style.display = 'block';
+  document.getElementById('spent-contributions-skeleton').style.display = 'block';
+  document.getElementById('contributions-section').style.display = 'block';
+  document.getElementById('spent-donut-content').style.display = 'none';
+  document.getElementById('spent-bars-content').style.display = 'none';
+  document.getElementById('spent-vendors-content').style.display = 'none';
+  document.getElementById('contributions-content').style.display = 'none';
   var token = view.claimToken();
   cycleFetchToken = token;
   kickoffSpentFetch(token);
@@ -930,18 +948,26 @@ function renderStats(cycleOrAll) {
   document.getElementById('raised-indiv-skeleton').style.display = 'block';
   document.getElementById('raised-still-loading').style.display = 'none';
   document.getElementById('raised-slow-error').style.display = 'none';
-  document.getElementById('committee-donors-card').style.display = 'none';
-  document.getElementById('conduits-card').style.display = 'none';
-  document.getElementById('individual-donors-card').style.display = 'none';
+  document.getElementById('committee-donors-content').style.display = 'none';
+  document.getElementById('conduits-content').style.display = 'none';
+  document.getElementById('individual-donors-content').style.display = 'none';
   document.getElementById('raised-data-note').style.display = 'none';
 
   // Reset Spent tab state + DOM
   spentData = null; spentError = null; spentRendered = false;
   if (spentStillLoadingTimer) { clearTimeout(spentStillLoadingTimer); spentStillLoadingTimer = null; }
   if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
-  document.getElementById('spent-skeleton-wrap').style.display = 'block';
+  document.getElementById('spent-donut-skeleton').style.display = 'block';
+  document.getElementById('spent-bars-skeleton').style.display = 'block';
+  document.getElementById('spent-vendors-skeleton').style.display = 'block';
+  document.getElementById('spent-contributions-skeleton').style.display = 'block';
+  document.getElementById('contributions-section').style.display = 'block';
+  document.getElementById('spent-donut-content').style.display = 'none';
+  document.getElementById('spent-bars-content').style.display = 'none';
+  document.getElementById('spent-vendors-content').style.display = 'none';
+  document.getElementById('contributions-content').style.display = 'none';
   document.getElementById('spent-still-loading').style.display = 'none';
-  document.getElementById('spent-content').style.display = 'none';
+  document.getElementById('spent-data-note').style.display = 'none';
   document.getElementById('spent-error').style.display = 'none';
 
   kickoffRaisedFastFetch(cycleFetchToken);
@@ -1459,12 +1485,12 @@ function renderRaisedIfReady() {
     // KV-hit surfaces resolve in the fast tier; KV-miss surfaces wait for slow tier
     if (raisedFastData.topIndividualsKV) {
       document.getElementById('raised-indiv-skeleton').style.display = 'none';
-      document.getElementById('individual-donors-card').style.display = 'block';
+      document.getElementById('individual-donors-content').style.display = 'block';
       renderIndividualDonors(raisedFastData.topIndividualsKV);
     }
     if (raisedFastData.topCommitteesKV) {
       document.getElementById('raised-comm-skeleton').style.display = 'none';
-      document.getElementById('committee-donors-card').style.display = 'block';
+      document.getElementById('committee-donors-content').style.display = 'block';
       renderCommitteeDonors(raisedFastData.topCommitteesKV);
     }
     raisedFastRendered = true;
@@ -1492,7 +1518,7 @@ function renderRaisedIfReady() {
 
     // Top Individual Contributors — only render here if KV missed (otherwise fast tier handled it)
     if (!raisedFastRendered || !(raisedFastData && raisedFastData.topIndividualsKV)) {
-      document.getElementById('individual-donors-card').style.display = 'block';
+      document.getElementById('individual-donors-content').style.display = 'block';
       if (d.topIndividualsSource === 'unavailable') {
         document.getElementById('individual-donors-tbody').innerHTML =
           '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
@@ -1503,7 +1529,7 @@ function renderRaisedIfReady() {
 
     // Top Committee Contributors — only render here if KV missed
     if (!raisedFastRendered || !(raisedFastData && raisedFastData.topCommitteesKV)) {
-      document.getElementById('committee-donors-card').style.display = 'block';
+      document.getElementById('committee-donors-content').style.display = 'block';
       if (d.topCommitteesSource === 'unavailable-coverage-gap') {
         document.getElementById('committee-donors-tbody').innerHTML =
           '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Committee contribution data is not available for this committee type.</td></tr>';
@@ -1520,7 +1546,7 @@ function renderRaisedIfReady() {
       // Hide the card on conduit committees — semantically meaningless
       document.getElementById('conduits-card').style.display = 'none';
     } else {
-      document.getElementById('conduits-card').style.display = 'block';
+      document.getElementById('conduits-content').style.display = 'block';
       if (d.topConduitsTooLarge) {
         document.getElementById('conduits-tbody').innerHTML =
           '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
@@ -1802,13 +1828,18 @@ function renderTopVendors(vendors) {
 
 // ── Spent tab: contributions to candidates & committees ───
 function renderContributions(contributions) {
-  var section = document.getElementById('contributions-section');
-  var tbody   = document.getElementById('contributions-tbody');
+  var section  = document.getElementById('contributions-section');
+  var tbody    = document.getElementById('contributions-tbody');
+  var skel     = document.getElementById('spent-contributions-skeleton');
+  var content  = document.getElementById('contributions-content');
+  // Hide skeleton in either branch — data has resolved
+  if (skel)    skel.style.display = 'none';
   if (!contributions || !contributions.length) {
     if (section) section.style.display = 'none';
     return;
   }
   section.style.display = 'block';
+  if (content) content.style.display = 'block';
   tbody.innerHTML = contributions.map(function(c) {
     var name = c.name
       ? c.name.toLowerCase().replace(/\b([a-z])/g, function(x){ return x.toUpperCase(); })
@@ -1879,8 +1910,11 @@ function renderSpentIfReady() {
   if (!curTab || curTab.getAttribute('href') !== '#spent') return;
 
   if (spentError) {
-    document.getElementById('spent-skeleton-wrap').style.display = 'none';
-    document.getElementById('spent-content').style.display = 'none';
+    document.getElementById('spent-donut-skeleton').style.display = 'none';
+    document.getElementById('spent-bars-skeleton').style.display = 'none';
+    document.getElementById('spent-vendors-skeleton').style.display = 'none';
+    document.getElementById('spent-contributions-skeleton').style.display = 'none';
+    document.getElementById('spent-still-loading').style.display = 'none';
     showTabError(
       document.getElementById('spent-error'),
       spentError,
@@ -1890,12 +1924,19 @@ function renderSpentIfReady() {
     document.querySelector('.main').style.minHeight = '';
     return;
   }
-  if (!spentData) return; // still pending — skeleton already visible
+  if (!spentData) return; // still pending — skeletons already visible
 
   var data = spentData;
-  document.getElementById('spent-skeleton-wrap').style.display = 'none';
+  document.getElementById('spent-donut-skeleton').style.display = 'none';
+  document.getElementById('spent-bars-skeleton').style.display = 'none';
+  document.getElementById('spent-vendors-skeleton').style.display = 'none';
+  document.getElementById('spent-still-loading').style.display = 'none';
   document.getElementById('spent-error').style.display = 'none';
-  document.getElementById('spent-content').style.display = 'block';
+  document.getElementById('spent-donut-content').style.display = 'block';
+  document.getElementById('spent-bars-content').style.display = 'block';
+  document.getElementById('spent-vendors-content').style.display = 'block';
+  // (spent-contributions-skeleton + contributions-content + section visibility
+  // are managed by renderContributions below — section may hide if empty.)
   renderSpentDonut(data.breakdown, data.totalSpent);
   renderSpendDetail(data.allTransactions || []);
   renderTopVendors(data.topVendors || []);
@@ -1910,6 +1951,7 @@ function renderSpentIfReady() {
     + 'Spending by Category: FEC totals. Top vendors deduplicated by recipient.';
   if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
   document.getElementById('spent-data-note').innerHTML = note;
+  document.getElementById('spent-data-note').style.display = 'block';
 
   spentRendered = true;
   document.querySelector('.main').style.minHeight = '';

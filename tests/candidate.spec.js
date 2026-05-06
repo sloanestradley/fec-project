@@ -1068,13 +1068,12 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await expect(page.locator('#spent-error')).toBeVisible({ timeout: 8000 });
     abortNext = false;
     await page.locator('#spent-error .tab-retry-btn').click();
-    // Wait for spent-content's display style to flip to block — direct DOM observation
-    // is more reliable than chained toBeVisible assertions under parallel-worker load
+    // Wait for spent vendors content to flip to block (post-refactor signal)
     await page.waitForFunction(
-      () => document.getElementById('spent-content').style.display === 'block',
+      () => document.getElementById('spent-vendors-content').style.display === 'block',
       { timeout: 10000 }
     );
-    await expect(page.locator('#spent-content')).toBeVisible();
+    await expect(page.locator('#spent-vendors-content')).toBeVisible();
     await expect(page.locator('#spent-error')).toBeHidden();
   });
 });

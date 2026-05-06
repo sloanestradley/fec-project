@@ -249,34 +249,38 @@
           </div>
         </div>
         <div id="raised-slow-tier">
-          <div class="skeleton tab-skeleton skeleton-table" id="raised-donors-skeleton"></div>
-          <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+          <div class="donors-card" id="donors-card">
+            <div class="donors-head">Top Committee Contributors</div>
+            <div class="skeleton tab-skeleton skeleton-table" id="raised-donors-skeleton"></div>
+            <div id="donors-content" style="display:none">
+              <table class="donors-table">
+                <thead><tr>
+                  <th style="width:2rem">#</th>
+                  <th>Committee</th>
+                  <th>Type</th>
+                  <th class="r">Total</th>
+                </tr></thead>
+                <tbody id="donors-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="donors-card" id="conduits-card">
+            <div class="donors-head">Top Conduit Sources</div>
+            <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+            <div id="conduits-content" style="display:none">
+              <table class="donors-table">
+                <thead><tr>
+                  <th style="width:2rem">#</th>
+                  <th>Source</th>
+                  <th>Type</th>
+                  <th class="r">Total</th>
+                </tr></thead>
+                <tbody id="conduits-tbody"></tbody>
+              </table>
+            </div>
+          </div>
           <div class="tab-still-loading" id="raised-still-loading" style="display:none">
             This is taking longer than usual — large committees can take 30+ seconds…
-          </div>
-          <div class="donors-card" id="donors-card" style="display:none">
-            <div class="donors-head">Top Committee Contributors</div>
-            <table class="donors-table">
-              <thead><tr>
-                <th style="width:2rem">#</th>
-                <th>Committee</th>
-                <th>Type</th>
-                <th class="r">Total</th>
-              </tr></thead>
-              <tbody id="donors-tbody"></tbody>
-            </table>
-          </div>
-          <div class="donors-card" id="conduits-card" style="display:none">
-            <div class="donors-head">Top Conduit Sources</div>
-            <table class="donors-table">
-              <thead><tr>
-                <th style="width:2rem">#</th>
-                <th>Source</th>
-                <th>Type</th>
-                <th class="r">Total</th>
-              </tr></thead>
-              <tbody id="conduits-tbody"></tbody>
-            </table>
           </div>
           <div class="tab-error" id="raised-slow-error" style="display:none">
             <span class="tab-error-msg">⚠ Could not load top contributors.</span>
@@ -286,22 +290,13 @@
         <div class="data-note" id="raised-data-note" style="display:none"></div>
       </div>
 
-      <!-- Spent tab — unified skeleton, single mid-tier latency surface -->
+      <!-- Spent tab — per-section skeletons; titles always visible -->
       <div id="tab-spent" style="display:none">
-        <div id="spent-skeleton-wrap">
-          <div class="raised-grid">
-            <div class="skeleton tab-skeleton skeleton-donut"></div>
-            <div class="skeleton tab-skeleton skeleton-bars"></div>
-          </div>
-          <div class="skeleton tab-skeleton skeleton-table"></div>
-          <div class="tab-still-loading" id="spent-still-loading" style="display:none">
-            This is taking longer than usual — full transaction history can take 10–20 seconds…
-          </div>
-        </div>
-        <div id="spent-content" style="display:none">
-          <div class="raised-grid">
-            <div class="raised-cell">
-              <div class="raised-cell-title">Spending by Category</div>
+        <div class="raised-grid">
+          <div class="raised-cell">
+            <div class="raised-cell-title">Spending by Category</div>
+            <div class="skeleton tab-skeleton skeleton-donut" id="spent-donut-skeleton"></div>
+            <div id="spent-donut-content" style="display:none">
               <div class="donut-wrap">
                 <div class="donut-chart-wrap">
                   <canvas id="chart-spent-donut"></canvas>
@@ -313,14 +308,20 @@
                 <div class="donut-legend" id="spent-donut-legend"></div>
               </div>
             </div>
-            <div class="raised-cell">
-              <div class="raised-cell-title">Spending by Purpose</div>
+          </div>
+          <div class="raised-cell">
+            <div class="raised-cell-title">Spending by Purpose</div>
+            <div class="skeleton tab-skeleton skeleton-bars" id="spent-bars-skeleton"></div>
+            <div id="spent-bars-content" style="display:none">
               <div id="spend-detail-bars"></div>
               <div class="data-note" style="margin-top:0.75rem">Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle.</div>
             </div>
           </div>
-          <div class="donors-card">
-            <div class="donors-head">Top Vendors · Most Recent Sub-Cycle</div>
+        </div>
+        <div class="donors-card">
+          <div class="donors-head">Top Vendors · Most Recent Sub-Cycle</div>
+          <div class="skeleton tab-skeleton skeleton-table" id="spent-vendors-skeleton"></div>
+          <div id="spent-vendors-content" style="display:none">
             <table class="donors-table">
               <thead><tr>
                 <th style="width:2rem">#</th>
@@ -331,8 +332,11 @@
               <tbody id="vendors-tbody"></tbody>
             </table>
           </div>
-          <div class="data-note" id="spent-data-note"></div>
         </div>
+        <div class="tab-still-loading" id="spent-still-loading" style="display:none">
+          This is taking longer than usual — full transaction history can take 10–20 seconds…
+        </div>
+        <div class="data-note" id="spent-data-note" style="display:none"></div>
         <div class="tab-error" id="spent-error" style="display:none">
           <span class="tab-error-msg">⚠ Could not load spending data.</span>
           <button class="tab-retry-btn" data-retry="spent">Retry</button>
@@ -1201,8 +1205,8 @@ function renderRaisedIfReady() {
     document.getElementById('raised-conduits-skeleton').style.display = 'none';
     document.getElementById('raised-still-loading').style.display = 'none';
     document.getElementById('raised-slow-error').style.display = 'none';
-    document.getElementById('donors-card').style.display = 'block';
-    document.getElementById('conduits-card').style.display = 'block';
+    document.getElementById('donors-content').style.display = 'block';
+    document.getElementById('conduits-content').style.display = 'block';
     renderTopDonors(raisedSlowData.topDonors);
     renderTopConduits(raisedSlowData.topConduits);
 
@@ -1426,8 +1430,10 @@ function renderSpentIfReady() {
   if (!curTab || curTab.getAttribute('href') !== '#spent') return;
 
   if (spentError) {
-    document.getElementById('spent-skeleton-wrap').style.display = 'none';
-    document.getElementById('spent-content').style.display = 'none';
+    document.getElementById('spent-donut-skeleton').style.display = 'none';
+    document.getElementById('spent-bars-skeleton').style.display = 'none';
+    document.getElementById('spent-vendors-skeleton').style.display = 'none';
+    document.getElementById('spent-still-loading').style.display = 'none';
     showTabError(
       document.getElementById('spent-error'),
       spentError,
@@ -1437,11 +1443,16 @@ function renderSpentIfReady() {
     document.querySelector('.main').style.minHeight = '';
     return;
   }
-  if (!spentData) return; // still pending — skeleton already visible
+  if (!spentData) return; // still pending — skeletons already visible
 
-  document.getElementById('spent-skeleton-wrap').style.display = 'none';
+  document.getElementById('spent-donut-skeleton').style.display = 'none';
+  document.getElementById('spent-bars-skeleton').style.display = 'none';
+  document.getElementById('spent-vendors-skeleton').style.display = 'none';
+  document.getElementById('spent-still-loading').style.display = 'none';
   document.getElementById('spent-error').style.display = 'none';
-  document.getElementById('spent-content').style.display = 'block';
+  document.getElementById('spent-donut-content').style.display = 'block';
+  document.getElementById('spent-bars-content').style.display = 'block';
+  document.getElementById('spent-vendors-content').style.display = 'block';
   renderSpendDetail(spentData.allTransactions || []);
   renderSpentDonut(spentData.breakdown, spentData.totalSpent);
   renderTopVendors(spentData.topVendors);
@@ -1456,6 +1467,7 @@ function renderSpentIfReady() {
   if (subCycles.length > 1) note += ' Senate category totals aggregated across sub-cycles.';
   if (spentData.covDate) note += ' Coverage through ' + fmtDate(spentData.covDate) + '.';
   document.getElementById('spent-data-note').innerHTML = note;
+  document.getElementById('spent-data-note').style.display = 'block';
 
   spentRendered = true;
   document.querySelector('.main').style.minHeight = '';
@@ -1542,7 +1554,12 @@ function retryRaisedSlow() {
 function retrySpent() {
   spentData = null; spentError = null; spentRendered = false;
   document.getElementById('spent-error').style.display = 'none';
-  document.getElementById('spent-skeleton-wrap').style.display = 'block';
+  document.getElementById('spent-donut-skeleton').style.display = 'block';
+  document.getElementById('spent-bars-skeleton').style.display = 'block';
+  document.getElementById('spent-vendors-skeleton').style.display = 'block';
+  document.getElementById('spent-donut-content').style.display = 'none';
+  document.getElementById('spent-bars-content').style.display = 'none';
+  document.getElementById('spent-vendors-content').style.display = 'none';
   kickoffSpentFetch(view.claimToken());
 }
 // Delegated retry click handler (registered once on first init)
@@ -1578,17 +1595,22 @@ async function loadCycle(cycle) {
   document.getElementById('raised-conduits-skeleton').style.display = 'block';
   document.getElementById('raised-still-loading').style.display = 'none';
   document.getElementById('raised-slow-error').style.display = 'none';
-  document.getElementById('donors-card').style.display = 'none';
-  document.getElementById('conduits-card').style.display = 'none';
+  document.getElementById('donors-content').style.display = 'none';
+  document.getElementById('conduits-content').style.display = 'none';
   document.getElementById('raised-data-note').style.display = 'none';
 
   // Reset Spent tab state + DOM for new cycle
   spentData = null; spentError = null; spentRendered = false;
   if (spentStillLoadingTimer) { clearTimeout(spentStillLoadingTimer); spentStillLoadingTimer = null; }
   if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
-  document.getElementById('spent-skeleton-wrap').style.display = 'block';
+  document.getElementById('spent-donut-skeleton').style.display = 'block';
+  document.getElementById('spent-bars-skeleton').style.display = 'block';
+  document.getElementById('spent-vendors-skeleton').style.display = 'block';
+  document.getElementById('spent-donut-content').style.display = 'none';
+  document.getElementById('spent-bars-content').style.display = 'none';
+  document.getElementById('spent-vendors-content').style.display = 'none';
   document.getElementById('spent-still-loading').style.display = 'none';
-  document.getElementById('spent-content').style.display = 'none';
+  document.getElementById('spent-data-note').style.display = 'none';
   document.getElementById('spent-error').style.display = 'none';
 
   // Update cycle select value

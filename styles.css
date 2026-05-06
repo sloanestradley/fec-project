@@ -311,7 +311,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 
 /* ── F: Data table ── */
 .donors-card { padding-top:var(--space-24); margin-bottom:var(--section-gap); }
-.donors-head { padding-bottom:var(--space-16); border-bottom:1px solid var(--border);
+.donors-head { padding-bottom:var(--space-16);
   font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--text); }
 .donors-table { width:100%; border-collapse:collapse; }
 .donors-table th { padding:var(--space-8) var(--space-16); font-family:'IBM Plex Mono',monospace; font-size:0.625rem; text-transform:uppercase; color:var(--muted); text-align:left; border-bottom:1px solid var(--border); }

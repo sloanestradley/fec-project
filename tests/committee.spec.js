@@ -605,8 +605,9 @@ test.describe('committee.html — Spent tab sections', () => {
   test.beforeEach(async ({ page }) => {
     await setupDetail(page);
     await page.locator('.tab').filter({ hasText: 'Spent' }).click();
+    // Wait for spent vendors content to render (signal that fetch resolved + render ran)
     await page.waitForFunction(
-      () => { const el = document.getElementById('spent-content'); return el && el.style.display !== 'none'; },
+      () => { const el = document.getElementById('spent-vendors-content'); return el && el.style.display !== 'none'; },
       { timeout: 15000 }
     );
   });
@@ -988,13 +989,12 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await expect(page.locator('#spent-error')).toBeVisible({ timeout: 8000 });
     abortNext = false;
     await page.locator('#spent-error .tab-retry-btn').click();
-    // Direct DOM observation of display flip — more reliable than toBeVisible chains
-    // under parallel-worker timing
+    // Wait for spent vendors content to flip to block (post-refactor signal)
     await page.waitForFunction(
-      () => document.getElementById('spent-content').style.display === 'block',
+      () => document.getElementById('spent-vendors-content').style.display === 'block',
       { timeout: 10000 }
     );
-    await expect(page.locator('#spent-content')).toBeVisible();
+    await expect(page.locator('#spent-vendors-content')).toBeVisible();
     await expect(page.locator('#spent-error')).toBeHidden();
   });
 });
