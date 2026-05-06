@@ -248,22 +248,7 @@ function renderCommitteeGroup(committees, total, query) {
     return;
   }
   list.innerHTML = committees.map(function(c, i) {
-    var dotCls  = filingFrequencyDotClass(c.filing_frequency);
-    var freqLbl = filingFrequencyLabel(c.filing_frequency);
-    var typeLbl = committeeTypeLabel(c.committee_type);
-    return '<a class="committee-result-row" href="/committee/' + c.committee_id + '?from=search"'
-      + ' onclick="amplitude.track(\'Committee Result Clicked\',{'
-      + 'committee_id:' + JSON.stringify(c.committee_id) + ','
-      + 'query:' + JSON.stringify(query) + ','
-      + 'result_position:' + i + ','
-      + 'from_page:\'search\'})">'
-      + '<span class="committee-result-name">' + c.name + '</span>'
-      + '<span class="committee-card-meta">'
-      + '<span class="tag tag-neutral">' + typeLbl + '</span>'
-      + '<span class="tag tag-neutral" style="font-size:0.625rem">'
-      + '<span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span>'
-      + '</span>'
-      + '</a>';
+    return committeeRowHTML(c, { fromPage: 'search', resultPosition: i, query: query });
   }).join('');
 
   var n = total;

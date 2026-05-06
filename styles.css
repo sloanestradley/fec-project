@@ -305,9 +305,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   border-bottom:1px solid var(--border); transition:background 0.15s;
   text-decoration:none; color:inherit; }
 .committee-row:hover { background:var(--surface2); }
-.committee-name,
-.committee-result-name { font-size:0.875rem; font-weight:500; color:var(--text); }
-.committee-result-name { flex:1; min-width:0; }
+.committee-name { font-size:0.875rem; font-weight:500; color:var(--text); }
 
 /* ── F: Data table ── */
 .donors-card { padding-top:var(--space-24); margin-bottom:var(--section-gap); }
@@ -388,7 +386,6 @@ tr.contributions-row { position:relative; cursor:pointer; }
 .modal-tab-btn.active { color:var(--text); border-bottom-color:var(--accent); }
 .modal-tab-btn:hover:not(.active) { color:var(--subtle); }
 .modal-body { overflow-y:auto; padding:var(--space-24); flex:1; }
-.modal-body .committee-row { margin-bottom:var(--space-24); }
 
 /* ── J: Choropleth map ── */
 .map-svg-wrap { width:100%; line-height:0; }
@@ -455,14 +452,6 @@ tr.contributions-row { position:relative; cursor:pointer; }
   text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--muted); }
 .candidate-card-stat-val { font-family:'Oswald',sans-serif; font-size:1.25rem;
   font-weight:400; text-transform:uppercase; color:var(--text); }
-
-/* ── O: Committee name link (in committee rows) ── */
-/* .committee-name-link — used in candidate.html committees modal; removed from committees.html row (now a full <a>). Keep until modal is refactored. */
-.committee-name-link { color:inherit; text-decoration:underline;
-  text-decoration-color:transparent; text-underline-offset:2px;
-  transition:color 0.15s, text-decoration-color 0.15s; }
-.committee-name-link:hover { color:var(--accent); text-decoration-color:var(--accent); }
-
 
 /* ── Page header — shared by candidate, committee, race profile pages ─────── */
 .page-header { padding:var(--space-40) var(--page-gutter) var(--space-32); }
@@ -608,13 +597,6 @@ tr.contributions-row { position:relative; cursor:pointer; }
   color:var(--accent); text-decoration:none;
   text-transform:uppercase; margin-left:var(--space-16); }
 .results-view-all:hover { text-decoration:underline; }
-.committee-result-row {
-  display:flex; align-items:flex-start; justify-content:space-between;
-  gap:var(--space-8) var(--space-16); padding:var(--space-16) var(--space-8);
-  border-bottom:1px solid var(--border);
-  text-decoration:none; transition:background 0.15s;
-  color:inherit; }
-.committee-result-row:hover { background:var(--surface2); }
 
 /* ── R: Browse page chrome ── */
 .filter-bar-wrap { padding:var(--space-24) var(--page-gutter); border-bottom:1px solid var(--border); }
@@ -756,7 +738,6 @@ div.cycle-row {
   .global-banner-text { padding:0 var(--page-gutter); }
   .committee-row { grid-template-columns:1fr; gap:var(--space-4); }
   .candidate-card { grid-template-columns:1fr; }
-  .committee-result-row { flex-wrap:wrap; }
   .candidate-card-meta,
   .committee-card-meta { justify-content:flex-start; width:100%; }
 

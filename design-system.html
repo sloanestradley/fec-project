@@ -1033,26 +1033,6 @@
         </div>
       </div>
 
-      <!-- committee-result-row -->
-      <div class="ds-component" id="comp-committee-result-row" data-status="stable">
-        <div class="ds-component-header">
-          <span class="ds-component-name">committee-result-row</span>
-          <span class="ds-status stable">stable</span>
-        </div>
-        <div class="ds-component-classes">.committee-result-row · .committee-result-name · .committee-card-meta — flex row: name left (flex:1), meta right. .committee-card-meta is the shared wrapper (comma-grouped with .candidate-card-meta). Type and status rendered as tag tag-neutral. Used on search.html</div>
-        <div class="ds-component-demo" style="max-width:560px">
-          <a class="committee-result-row" href="#">
-            <span class="committee-result-name">Cantwell for Senate</span>
-            <span class="committee-card-meta">
-              <span class="tag tag-neutral">Principal CC</span>
-              <span class="tag tag-neutral">
-                <span class="status-dot dot-active"></span>Monthly
-              </span>
-            </span>
-          </a>
-        </div>
-      </div>
-
       <!-- Search Results Groups -->
       <div class="ds-component" id="comp-results-groups" data-status="stable">
         <div class="ds-component-header">
@@ -1081,12 +1061,12 @@
                 Committees
                 <a class="results-view-all" href="#">View all →</a>
               </div>
-              <a class="committee-result-row" href="#">
-                <span class="committee-result-name">MGP for Congress</span>
-                <span class="committee-card-meta">
+              <a class="committee-row" href="#">
+                <div class="committee-name">MGP for Congress</div>
+                <div class="committee-card-meta">
                   <span class="tag tag-neutral">Principal CC</span>
                   <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Monthly</span>
-                </span>
+                </div>
               </a>
             </div>
           </div>
@@ -1602,38 +1582,48 @@
     <div class="modal-body">
       <div id="ds-modal-active">
         <div class="section-title">Principal Committee</div>
-        <div class="committee-row">
-          <div class="committee-name"><a href="/committee/C00213512" class="committee-name-link">Nancy Pelosi for Congress</a></div>
-          <div class="committee-type">House Candidate Committee</div>
-          <div class="committee-id">C00213512</div>
-        </div>
+        <a class="committee-row" href="/committee/C00213512">
+          <div class="committee-name">Nancy Pelosi for Congress</div>
+          <div class="committee-card-meta">
+            <span class="tag tag-neutral">House Candidate Committee</span>
+            <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Quarterly</span>
+          </div>
+        </a>
         <div class="section-title">Leadership PAC</div>
-        <div class="committee-row" style="border-left:2px solid var(--amber);padding-left:0.75rem">
-          <div class="committee-name"><a href="/committee/C00344234" class="committee-name-link">Pac to the Future</a></div>
-          <div class="committee-type">PAC — Qualified</div>
-          <div class="committee-id">C00344234</div>
-        </div>
+        <a class="committee-row" href="/committee/C00344234">
+          <div class="committee-name">Pac to the Future</div>
+          <div class="committee-card-meta">
+            <span class="tag tag-neutral">PAC — Qualified</span>
+            <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Monthly</span>
+          </div>
+        </a>
         <div class="section-title">Other</div>
-        <div class="committee-row">
-          <div class="committee-name"><a href="/committee/C00492421" class="committee-name-link">Nancy Pelosi Victory Fund</a></div>
-          <div class="committee-type">PAC — Non-Qualified</div>
-          <div class="committee-id">C00492421</div>
-        </div>
+        <a class="committee-row" href="/committee/C00492421">
+          <div class="committee-name">Nancy Pelosi Victory Fund</div>
+          <div class="committee-card-meta">
+            <span class="tag tag-neutral">PAC — Non-Qualified</span>
+            <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Quarterly</span>
+          </div>
+        </a>
       </div>
       <div id="ds-modal-terminated" style="display:none">
         <div class="section-title">Other</div>
-        <div class="committee-row">
-          <div class="committee-name" style="color:var(--muted)"><a href="/committee/C00410100" class="committee-name-link" style="color:var(--muted)">Speaker Nancy Pelosi's Majority Fund</a></div>
-          <div class="committee-type">PAC — Non-Qualified</div>
-          <div class="committee-id">C00410100</div>
-        </div>
-        <div class="committee-row">
-          <div class="committee-name" style="color:var(--muted)"><a href="/committee/C00376400" class="committee-name-link" style="color:var(--muted)">Team Majority</a></div>
-          <div class="committee-type">PAC — Qualified</div>
-          <div class="committee-id">C00376400</div>
-        </div>
+        <a class="committee-row" href="/committee/C00410100">
+          <div class="committee-name">Speaker Nancy Pelosi's Majority Fund</div>
+          <div class="committee-card-meta">
+            <span class="tag tag-neutral">PAC — Non-Qualified</span>
+            <span class="tag tag-neutral"><span class="status-dot dot-terminated"></span>Terminated</span>
+          </div>
+        </a>
+        <a class="committee-row" href="/committee/C00376400">
+          <div class="committee-name">Team Majority</div>
+          <div class="committee-card-meta">
+            <span class="tag tag-neutral">PAC — Qualified</span>
+            <span class="tag tag-neutral"><span class="status-dot dot-terminated"></span>Terminated</span>
+          </div>
+        </a>
       </div>
-      <div class="data-note">Real data — Nancy Pelosi (H8CA05035). Populated dynamically in production via <code style="font-size:0.625rem">fetchAndRenderCommittees()</code>. Leadership PAC gets amber left border; terminated committees render muted. Note: JFAs organized by the candidate may appear as "Other" if the FEC assigns <code style="font-size:0.625rem">committee_type</code> other than <code style="font-size:0.625rem">'J'</code>.</div>
+      <div class="data-note">Real data — Nancy Pelosi (H8CA05035). Populated dynamically in production via <code style="font-size:0.625rem">fetchAndRenderCommittees()</code> using the shared <code style="font-size:0.625rem">committeeRowHTML()</code> helper from utils.js — same row shape as /committees and /search. Status dot in the meta tag carries the active/terminated signal.</div>
     </div>
   </div>
 </div>

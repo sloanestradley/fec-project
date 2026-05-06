@@ -329,19 +329,7 @@ function showState(name) {
 // ── Row builder ───────────────────────────────────────────────────────────────
 
 function buildRow(c, i, fromPage) {
-  var dotCls  = filingFrequencyDotClass(c.filing_frequency);
-  var freqLbl = filingFrequencyLabel(c.filing_frequency);
-
-  return '<a class="committee-row" href="/committee/' + c.committee_id + '?from=' + (fromPage || 'committees') + '"'
-    + ' onclick="amplitude.track(\'Committee Result Clicked\',{committee_id:'
-    + JSON.stringify(c.committee_id) + ',from_page:' + JSON.stringify(fromPage || 'committees')
-    + ',result_position:' + i + '})">'
-    + '<div class="committee-name">' + (c.name || '—') + '</div>'
-    + '<div class="committee-card-meta">'
-    + '<span class="tag tag-neutral">' + committeeTypeLabel(c.committee_type) + '</span>'
-    + '<span class="tag tag-neutral"><span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span>'
-    + '</div>'
-    + '</a>';
+  return committeeRowHTML(c, { fromPage: fromPage || 'committees', resultPosition: i });
 }
 
 // ── Unified fetch ─────────────────────────────────────────────────────────────

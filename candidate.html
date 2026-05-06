@@ -455,7 +455,7 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeCommitteesModal();
 });
 
-function renderCommitteeGroups(comms, muted) {
+function renderCommitteeGroups(comms) {
   if (!comms.length) return '';
   var assigned = new Set();
   function takeGroup(pred) {
@@ -471,19 +471,13 @@ function renderCommitteeGroups(comms, muted) {
     { label: 'Other Authorized',    items: takeGroup(function(c){ return c.designation === 'A'; }) },
     { label: 'Other',               items: takeGroup(function(c){ return true; }) }
   ].filter(function(g){ return g.items.length > 0; });
-  return groups.map(function(g) {
+  // Each row uses the shared committeeRowHTML helper from utils.js — same shape as
+  // /committees browse + /search results. The status-dot tag in the meta carries the
+  // active/terminated signal, so no per-row "muted" treatment is needed.
+  return groups.map(function(g, gi) {
     return '<div class="section-title">'+g.label+'</div>' +
-      g.items.map(function(c) {
-        var nameStyle = muted ? 'color:var(--muted)' : '';
-        return '<div class="committee-row">'+
-          '<div class="committee-name"'+(nameStyle?' style="'+nameStyle+'"':'')+'>'+
-            (c.committee_id
-              ? '<a href="/committee/'+c.committee_id+'" class="committee-name-link">'+( c.name||'—')+'</a>'
-              : (c.name||'—'))+
-          '</div>'+
-          '<div class="committee-type">'+committeeTypeLabel(c.committee_type)+'</div>'+
-          '<div class="committee-id">'+(c.committee_id||'')+'</div>'+
-        '</div>';
+      g.items.map(function(c, i) {
+        return committeeRowHTML(c, { fromPage: 'candidate-modal', resultPosition: i });
       }).join('');
   }).join('');
 }
@@ -520,13 +514,13 @@ async function fetchAndRenderCommittees() {
     var terminated = unique.filter(function(c){ return c.filing_frequency === 'T' || c.filing_frequency === 'A'; });
 
     // Render Active tab
-    var activeHtml = renderCommitteeGroups(active, false);
+    var activeHtml = renderCommitteeGroups(active);
     activeEl.innerHTML = activeHtml ||
       '<div style="color:var(--muted);font-size:0.75rem;padding:1rem 0">No active committee data available.</div>';
 
     // Render History tab — only if terminated committees exist
     if (terminated.length) {
-      historyEl.innerHTML = renderCommitteeGroups(terminated, true);
+      historyEl.innerHTML = renderCommitteeGroups(terminated);
       document.getElementById('modal-history-tab-btn').style.display = 'inline-block';
     }
 

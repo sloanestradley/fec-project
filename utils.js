@@ -225,6 +225,36 @@ function committeeTypeLabel(t) {
   return map[t] || ('Type ' + t);
 }
 
+// Shared committee row markup. Single source of truth for the row shape rendered
+// on candidates' committee modal, /committees browse, and /search results. All
+// callers get the same hover/border/spacing via .committee-row + .committee-card-meta
+// CSS, with whole-row link semantics (the <a> is the row itself).
+//
+// opts:
+//   fromPage       — string, used for ?from= URL param + amplitude from_page
+//   resultPosition — int, position in list (logged in amplitude)
+//   query          — optional string, logged in amplitude (search context)
+//   trackEvent     — defaults to 'Committee Result Clicked' (aggregates across
+//                    callers in dashboards; from_page distinguishes context)
+function committeeRowHTML(c, opts) {
+  opts = opts || {};
+  var fromPage  = opts.fromPage || 'committee-row';
+  var dotCls    = filingFrequencyDotClass(c.filing_frequency);
+  var freqLbl   = filingFrequencyLabel(c.filing_frequency);
+  var trackProps = { committee_id: c.committee_id, from_page: fromPage };
+  if (opts.resultPosition != null) trackProps.result_position = opts.resultPosition;
+  if (opts.query) trackProps.query = opts.query;
+  var trackName = opts.trackEvent || 'Committee Result Clicked';
+  return '<a class="committee-row" href="/committee/' + c.committee_id + '?from=' + encodeURIComponent(fromPage) + '"'
+    + ' onclick="amplitude.track(' + JSON.stringify(trackName) + ',' + JSON.stringify(trackProps) + ')">'
+    + '<div class="committee-name">' + (c.name || '—') + '</div>'
+    + '<div class="committee-card-meta">'
+    + '<span class="tag tag-neutral">' + committeeTypeLabel(c.committee_type) + '</span>'
+    + '<span class="tag tag-neutral"><span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span>'
+    + '</div>'
+    + '</a>';
+}
+
 // ── Shared chart color palette ────────────────────────────────────────────────
 // Used by any page with Chart.js charts (candidate.html, committee.html, etc.)
 var CHART_COLORS = (function() {
