@@ -4840,3 +4840,58 @@ When section titles in the modal were sitting flush against the last row, my fir
 - **Process: this session ran 9 commits + 7 docs files updated in one ritual close.** Per-commit rituals would have produced repetitive log entries; the one-shot consolidated approach worked well here. Worth remembering when the next multi-week arc lands — the audit-then-execute shape is reusable.
 
 - **The committee-row consolidation is the kind of cross-page pattern audit that's hard to schedule and easy to lose.** The .committee-result-row / .committee-result-name / .committee-name-link rules had been "well, search.html is shipped, leave it alone" technical debt for months. Sloane's push to consolidate during this session was the right move. Worth a periodic sweep — maybe once a quarter — looking for class-name parallels across pages that could be unified into shared helpers.
+
+---
+2026-05-06
+
+## Process log draft
+
+**Restyling errors: when state-msg and tab-error became cousins**
+
+Two visual tweaks this session — vertical centering on browse-row name and meta when one side wraps, and a tab-error component refresh to feel closer to the state-msg family. Plus a one-off Playwright probe that exercised all four T12.5 error-surface scenarios against production with mocked API responses, confirming the restyle didn't break any of the variant logic.
+
+Changelog:
+- `.candidate-card` and `.committee-row` switched from `align-items:flex-start` to `center` — when one side wraps and the other doesn't, the shorter side now sits vertically centered (typical case: long candidate name wraps to 2 lines on narrow viewport while meta tags stay single-line)
+- `.tab-error` reshaped to share visual family with `.state-msg.error`: red text, centered, border on all four sides (replaced the 3px red border-left + 1px border-everywhere + surface fill alert-box treatment), `flex-wrap:wrap` added for narrow-viewport graceful stacking, retry button now sits beside the message instead of pushed right
+- design-system.html Tab Error component card moved between Loader / State Message and Skeleton Loading (was after Tab Skeleton) — conceptually-related loading/error states now adjacent in the design system
+- T12.5 four-scenario verification probe (init-stage 429, tab-fetch 429, tab-fetch non-429 with retry refire, init-stage non-429) ran against production with mocked /api/fec/* responses; all four passed
+- One observation parked for future UX work: slow-tier errors render below all three donor cards rather than inside any one of them — fetch-shape-honest (one fetch covers all three sections) but creates extra spacing between the failed section and the error message
+
+Field notes:
+The most useful thing this session was the false alarm. A reported "duplicate Top Committee Contributors tables on DCCC" turned out to be a screenshot tool artifact, not a render bug. Confirming that took a one-off Playwright probe loading production with route mocks and capturing the live DOM — three minutes from question to definitive answer. The pattern is becoming a reusable ritual: when a visual anomaly is reported, write a short probe, take a screenshot, compare to expectation, delete after review. We've now done it twice (dccc-dom-probe and t12-5-verification); both produced clean answers and both were cleaned up immediately.
+
+The other lesson worth banking: when investigating "what's the cost to align two CSS naming patterns," resist bundling the rename with the visual fix. Option A (full rename of `.committee-row` → `.committee-card` + `.committee-name` → `.committee-card-name` for parity with `.candidate-card`) was scoped at ~30 touch points across runtime code, design-system docs, and 4 spec files. The internal inconsistency aged fine — committed naming choices from prior consolidations, no active drift. Cost-to-value ratio of a rename is poor when nothing else is in flux. Deferred to a future CSS audit pass.
+
+Stack tags: .tab-error restyle (centered + red + bordered all sides), flex-wrap:wrap for narrow-viewport handling, .candidate-card + .committee-row align-items:center, design-system component reorder, one-off Playwright probe pattern (route mocks + screenshots, deleted after review), page.route() with mutable counter for retry-refire verification, init-stage failure mock-target precision (cycle-scoped /committees/ throws cleanly; /totals/ has inline catch that swallows)
+
+## How Sloane steered the work
+
+**"Wait — keep the border on all four sides, not just remove the border-left."**
+After my proposal removed the entire alert-box treatment, you clarified that you wanted to keep a 1px border on all four sides (just losing the 3px red border-left accent). That single clarification preserved enough visual containment to keep the error UI scannable while reducing the heaviness. My original proposal would have stripped the border entirely; your call kept the right amount of structure.
+
+**"Reorder design-system.html so Tab Error sits between Loader / State Message and Skeleton Loading."**
+You called this in the same message as the visual restyle. Putting conceptually-related error/loading patterns adjacent in the design system is how a designer actually scans them — "show me all the loading + error states in one place." Without the move, the Tab Error card was buried after Tab Skeleton, separated from its closest design relatives.
+
+**"Tab Error is quite different from State Message. I would like to see these become closer in styling."**
+The framing for the entire restyle. You named the visual gap as a problem before specifying the fix — "I want these to feel closer." That target was specific enough that I could propose a CSS spec without designing from scratch. The result reads as a family of patterns rather than three components that happen to all show messages.
+
+**Accepted the false-alarm finding without insisting on continued investigation.**
+When the duplicate-tables probe showed exactly one `#committee-donors-card` with one title in the live DOM, you accepted that as a real answer and reported back the next day that you'd verified live and the original screenshot was a tool artifact. That cost discipline matters — three minutes of probe instead of hours of bisection looking for a bug that wasn't there.
+
+**Skipped Option A on the `.candidate-card-name` vs `.committee-name` rename.**
+After seeing the 30-touch-point cost, you skipped it. The internal naming inconsistency exists because of historical consolidation choices that aged fine. The decision to skip preserved a small win (centering shipped) instead of bundling it with a 30-file ripple that would have introduced its own risk surface.
+
+**"Wait for my call to push" after each commit.**
+Tightened the commit/push loop so visual changes are committed locally first and only pushed when you've decided to verify them on the live site. Worked particularly well for the centering and tab-error commits — they shipped in clean separate commits that you could verify independently.
+
+**Through-line:** you steer toward visual coherence at the family level while resisting bundling renames or other expansions with the visual fixes themselves. Each scope stays tight. The result is small commits that each deliver a clean win, and the architectural-debt observations get parked rather than acted on out of impulse.
+
+## What to bring to Claude Chat
+
+- **The placement-of-tab-error UX question is parked.** Slow-tier errors render below all three donor cards (Top Committee Contributors, Top Conduit Sources, Top Individual Contributors) rather than inside any one of them. This is fetch-shape-honest — one slow fetch failure affects all three sections — but creates noticeable spacing between the empty section titles and the error message. Options I sketched: (a) hide the empty section cards on slow-tier failure (cleanest visual, loses the "these surfaces tried to load" signal), (b) move the error visually closer (would misrepresent scope), (c) section-level errors duplicating the message (regression in honesty). Worth a UX-focused conversation about which trade is right.
+
+- **Three-component error-message family persists.** `.state-msg.error` (page-level full-state replacement), `.error-prompt` + `.retry-btn` (page-level retry on browse pages), `.tab-error` + `.tab-retry-btn` (section-level inline). Today's restyle brought `.tab-error` visually closer to `.state-msg.error` but the three-component architectural shape persists. Worth a future design-system audit: should one error-component family with scope variants replace all three, or is the three-tier shape intentional and worth a CLAUDE.md note explaining when to use which?
+
+- **Option A naming alignment deferred.** Full rename of `.committee-row` → `.committee-card` and `.committee-name` → `.committee-card-name` (for parity with the `.candidate-card` family) was scoped at ~30 touch points and skipped. If a broader CSS audit pass happens, that's the natural moment to bundle it with related cleanups (e.g. `id="committee-name"` → `id="committee-page-title"` on the page H1, `committeeRowHTML` → `committeeCardHTML`).
+
+- **One-off Playwright probe pattern is starting to feel canonical.** Two probes this session arc (dccc-dom-probe last session, t12-5-verification this session). Both followed the same shape: write spec hitting production with route mocks → capture DOM + screenshots → delete after review. If this becomes a recurring tool, worth giving it a name or template — currently just inline-comments-from-memory each time.
