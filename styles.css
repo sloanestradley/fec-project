@@ -386,6 +386,12 @@ tr.contributions-row { position:relative; cursor:pointer; }
 .modal-tab-btn.active { color:var(--text); border-bottom-color:var(--accent); }
 .modal-tab-btn:hover:not(.active) { color:var(--subtle); }
 .modal-body { overflow-y:auto; padding:var(--space-24); flex:1; }
+/* Section-title spacing inside the committees modal — only when a title
+   follows a committee-row (i.e. a new group after the previous group's last
+   row). The first title in the modal is preceded by .modal-tabs, not a row,
+   so it gets no extra margin. Adjacent sibling keeps scope minimal — no
+   global change to .section-title elsewhere. */
+.modal-body .committee-row + .section-title { margin-top:var(--space-24); }
 
 /* ── J: Choropleth map ── */
 .map-svg-wrap { width:100%; line-height:0; }
