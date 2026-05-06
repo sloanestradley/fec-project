@@ -419,6 +419,95 @@ test.describe('candidate.html — committees modal', () => {
     const modal = page.locator('#committees-modal');
     await expect(modal).not.toBeVisible();
   });
+
+  // Committee-row consolidation regression — locks in the shared shape from utils.js
+  // (committeeRowHTML helper used by modal + /committees + /search). Catches drift if
+  // someone reverts to the deprecated 3-column div or the .committee-result-row variant.
+  test('modal rows render canonical .committee-row shape (no .committee-result-row, no .committee-name-link)', async ({ page }) => {
+    const firstRow = page.locator('#committees-modal .committee-row').first();
+    await expect(firstRow).toBeVisible();
+    // <a> not <div>
+    const tagName = await firstRow.evaluate(el => el.tagName.toLowerCase());
+    expect(tagName).toBe('a');
+    // Canonical children
+    await expect(firstRow.locator('.committee-name')).toBeVisible();
+    await expect(firstRow.locator('.committee-card-meta')).toBeVisible();
+    // Deprecated classes must be gone everywhere
+    await expect(page.locator('.committee-result-row')).toHaveCount(0);
+    await expect(page.locator('.committee-name-link')).toHaveCount(0);
+  });
+});
+
+// ── T12.5/skeleton arc regression locks (2026-05-06) ─────────────────────────
+
+test.describe('candidate.html — title-always-visible during loading', () => {
+  test('Raised section titles visible at the same time as their skeletons', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Delay the slow tier so skeletons stay visible at click time
+    await page.route('**/api/fec/schedules/schedule_a/?**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        await new Promise(r => setTimeout(r, 3000));
+      }
+      route.fallback();
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+    // Slow-tier skeletons visible
+    await expect(page.locator('#raised-donors-skeleton')).toBeVisible();
+    await expect(page.locator('#raised-conduits-skeleton')).toBeVisible();
+    // Section titles ALSO visible at the same time (title-always-visible pattern)
+    await expect(page.locator('#donors-card .donors-head')).toBeVisible();
+    await expect(page.locator('#donors-card .donors-head')).toContainText(/Top Committee Contributors/);
+    await expect(page.locator('#conduits-card .donors-head')).toBeVisible();
+    await expect(page.locator('#conduits-card .donors-head')).toContainText(/Top Conduit Sources/);
+    // Raised breakdown title (above the donut) also visible
+    await expect(page.locator('.raised-cell-title').first()).toContainText('Raised breakdown');
+  });
+});
+
+test.describe('candidate.html — modal section-title spacing (adjacent sibling combinator)', () => {
+  test('second .section-title in modal has top margin; first does not', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Per-test override: return a leadership PAC via /committees/?sponsor_candidate_id= so
+    // the modal renders 2 groups (Principal Committee + Leadership PAC)
+    await page.route('**/api/fec/committees/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('sponsor_candidate_id')) {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            results: [{
+              committee_id: 'C00999999',
+              name: 'TEST LEADERSHIP PAC',
+              committee_type: 'D',
+              committee_type_full: 'Leadership PAC',
+              filing_frequency: 'Q',
+              filing_frequency_full: 'Quarterly',
+              leadership_pac: true,
+            }],
+            pagination: { count: 1 },
+          }),
+        });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
+    const titleMargins = await page.locator('#committees-modal .modal-body .section-title').evaluateAll(els =>
+      els.map(el => parseFloat(getComputedStyle(el).marginTop))
+    );
+    expect(titleMargins.length).toBeGreaterThanOrEqual(2);
+    expect(titleMargins[0]).toBe(0);
+    expect(titleMargins[1]).toBeGreaterThan(0);
+  });
 });
 
 // ── Committees modal network behavior (T11 — deferred fetch) ──────────────────

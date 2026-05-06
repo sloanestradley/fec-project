@@ -1115,3 +1115,54 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#raised-donut-content')).toBeVisible();
   });
 });
+
+// ── T12.5/skeleton arc regression locks (2026-05-06) ─────────────────────────
+
+test.describe('committee.html — title-always-visible during loading', () => {
+  test('Raised section titles visible at the same time as their skeletons', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_a/?**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        await new Promise(r => setTimeout(r, 3000));
+      }
+      route.fallback();
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    // Slow-tier skeletons visible
+    await expect(page.locator('#raised-comm-skeleton')).toBeVisible();
+    await expect(page.locator('#raised-conduits-skeleton')).toBeVisible();
+    // Section titles ALSO visible at the same time
+    await expect(page.locator('#committee-donors-card .donors-head')).toBeVisible();
+    await expect(page.locator('#committee-donors-card .donors-head')).toContainText(/Top Committee Contributors/);
+    await expect(page.locator('#conduits-card .donors-head')).toBeVisible();
+    await expect(page.locator('#conduits-card .donors-head')).toContainText(/Top Conduit Sources/);
+    await expect(page.locator('#individual-donors-card .donors-head')).toBeVisible();
+    await expect(page.locator('#individual-donors-card .donors-head')).toContainText(/Top Individual Contributors/);
+    // Raised breakdown title (above the donut) also visible
+    await expect(page.locator('.raised-cell-title').first()).toContainText('Raised breakdown');
+  });
+});
+
+test.describe('committee.html — committee-row consolidation regression', () => {
+  test('search.html / committees.html / modal share the canonical .committee-row shape', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Spot-check via /committees/ browse page — the third caller of committeeRowHTML.
+    // (Search results parity is checked by candidate.spec.js modal test asserting
+    // .committee-result-row count is 0 site-wide; this test confirms /committees uses
+    // the same shape too.)
+    await page.goto('/committees.html');
+    await page.waitForSelector('.committee-row', { timeout: 12000 });
+    const firstRow = page.locator('.committee-row').first();
+    const tagName = await firstRow.evaluate(el => el.tagName.toLowerCase());
+    expect(tagName).toBe('a');
+    await expect(firstRow.locator('.committee-name')).toBeVisible();
+    await expect(firstRow.locator('.committee-card-meta')).toBeVisible();
+    // Deprecated class must be gone everywhere
+    await expect(page.locator('.committee-result-row')).toHaveCount(0);
+  });
+});
