@@ -328,12 +328,13 @@ test.describe('candidate.html — Raised tab sections', () => {
     await setup(page);
     await page.waitForSelector('#tabs-bar', { timeout: 8000 });
     await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
-    // Wait for the slow-tier donor card to become visible (T12 progressive render —
-    // signal that both fast and slow tiers have resolved + rendered)
+    // Wait for the slow-tier donors content to render — signal that both fast
+    // and slow tiers have resolved. (.donors-card is now inside a tab panel;
+    // its style.display is no longer the load-state signal — content is.)
     await page.waitForFunction(
       () => {
-        const card = document.getElementById('donors-card');
-        return card && card.style.display !== 'none';
+        const c = document.getElementById('donors-content');
+        return c && c.style.display === 'block';
       },
       { timeout: 12000 }
     );
@@ -350,6 +351,8 @@ test.describe('candidate.html — Raised tab sections', () => {
   });
 
   test('top conduit sources table exists and renders the mocked memo row', async ({ page }) => {
+    // Conduits is a non-default tab — click the Conduits tab to reveal the panel
+    await page.locator('#raised-tab-btn-conduits').click();
     const card = page.locator('#conduits-card');
     await expect(card).toBeVisible();
     const rows = page.locator('#conduits-tbody tr');
@@ -441,7 +444,7 @@ test.describe('candidate.html — committees modal', () => {
 // ── T12.5/skeleton arc regression locks (2026-05-06) ─────────────────────────
 
 test.describe('candidate.html — title-always-visible during loading', () => {
-  test('Raised section titles visible at the same time as their skeletons', async ({ page }) => {
+  test('Raised section title visible at the same time as the active panel skeleton', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     // Delay the slow tier so skeletons stay visible at click time
@@ -455,14 +458,16 @@ test.describe('candidate.html — title-always-visible during loading', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
-    // Slow-tier skeletons visible
+    // Active (default = Committees) panel's skeleton visible
     await expect(page.locator('#raised-donors-skeleton')).toBeVisible();
+    // Section title (single source for the section) visible at the same time —
+    // title-always-visible pattern, now at section level rather than per-card.
+    await expect(page.locator('#raised-tab-section-title')).toBeVisible();
+    await expect(page.locator('#raised-tab-section-title')).toContainText(/Top Contributors by type/);
+    // Switching tabs reveals the other panel's skeleton; section title stays put
+    await page.locator('#raised-tab-btn-conduits').click();
     await expect(page.locator('#raised-conduits-skeleton')).toBeVisible();
-    // Section titles ALSO visible at the same time (title-always-visible pattern)
-    await expect(page.locator('#donors-card .donors-head')).toBeVisible();
-    await expect(page.locator('#donors-card .donors-head')).toContainText(/Top Committee Contributors/);
-    await expect(page.locator('#conduits-card .donors-head')).toBeVisible();
-    await expect(page.locator('#conduits-card .donors-head')).toContainText(/Top Conduit Sources/);
+    await expect(page.locator('#raised-tab-section-title')).toBeVisible();
     // Raised breakdown title (above the donut) also visible
     await expect(page.locator('.raised-cell-title').first()).toContainText('Raised breakdown');
   });
@@ -1076,9 +1081,11 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
     // Donut canvas renders synchronously from totals
     await expect(page.locator('#chart-donut')).toBeVisible({ timeout: 2000 });
-    // Slow-tier skeletons visible (3s delay still in flight)
+    // Active panel (Committees default) skeleton visible while in flight
     await expect(page.locator('#raised-donors-skeleton')).toBeVisible();
-    await expect(page.locator('#raised-conduits-skeleton')).toBeVisible();
+    // Conduits panel skeleton is in DOM but hidden (parent panel has [hidden])
+    await expect(page.locator('#raised-conduits-skeleton')).toBeHidden();
+    await expect(page.locator('#raised-conduits-skeleton')).toBeAttached();
   });
 
   test('Raised: no skeleton flash when fetch already resolved before tab click', async ({ page }) => {
@@ -1086,9 +1093,8 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await page.waitForTimeout(800); // give the eager fetch time to resolve through mocks
     await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
     await page.waitForTimeout(400);
-    // Skeletons should be hidden because data was already in memory
+    // Active panel skeleton should be hidden because data was already in memory
     await expect(page.locator('#raised-donors-skeleton')).toBeHidden();
-    await expect(page.locator('#raised-conduits-skeleton')).toBeHidden();
     await expect(page.locator('#donors-card')).toBeVisible();
   });
 
@@ -1124,10 +1130,12 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
-    // Both skeleton tables should be at least 200px tall (sized for scroll-clamp guard)
+    // Active panel's skeleton has substantive height. Inactive panel skeletons
+    // collapse with their hidden parent — measure each by activating its tab.
     const donorsHeight = await page.locator('#raised-donors-skeleton').evaluate(el => el.getBoundingClientRect().height);
-    const conduitsHeight = await page.locator('#raised-conduits-skeleton').evaluate(el => el.getBoundingClientRect().height);
     expect(donorsHeight).toBeGreaterThanOrEqual(200);
+    await page.locator('#raised-tab-btn-conduits').click();
+    const conduitsHeight = await page.locator('#raised-conduits-skeleton').evaluate(el => el.getBoundingClientRect().height);
     expect(conduitsHeight).toBeGreaterThanOrEqual(200);
   });
 
@@ -1301,5 +1309,50 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
       { timeout: 8000 }
     );
     await expect(page.locator('#raised-donut-skeleton')).toBeHidden();
+  });
+});
+
+// ── Tab section: WAI-ARIA tabs for top contributors ──────────────────────────
+
+test.describe('candidate.html — tab section (top contributors)', () => {
+  // Raised tab content is display:none until user clicks Raised — every test
+  // here clicks Raised before asserting on the tab section markup.
+  test.beforeEach(async ({ page }) => {
+    await setup(page);
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+  });
+
+  test('tablist and tabs render with correct ARIA roles', async ({ page }) => {
+    await expect(page.locator('#raised-tab-section [role="tablist"]')).toHaveCount(1);
+    await expect(page.locator('#raised-tab-section [role="tab"]')).toHaveCount(2);
+    const committees = page.locator('#raised-tab-btn-committees');
+    await expect(committees).toHaveAttribute('aria-selected', 'true');
+    await expect(committees).toHaveAttribute('aria-controls', 'raised-tab-panel-committees');
+    const conduits = page.locator('#raised-tab-btn-conduits');
+    await expect(conduits).toHaveAttribute('aria-selected', 'false');
+    await expect(page.locator('#raised-tab-panel-committees')).toBeVisible();
+    await expect(page.locator('#raised-tab-panel-conduits')).toHaveAttribute('hidden', '');
+  });
+
+  test('clicking Conduits tab switches active panel and aria-selected state', async ({ page }) => {
+    await page.locator('#raised-tab-btn-conduits').click();
+    await expect(page.locator('#raised-tab-btn-conduits')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#raised-tab-btn-committees')).toHaveAttribute('aria-selected', 'false');
+    await expect(page.locator('#raised-tab-panel-conduits')).toBeVisible();
+    await expect(page.locator('#raised-tab-panel-committees')).toHaveAttribute('hidden', '');
+  });
+
+  test('keyboard arrow navigation moves between tabs', async ({ page }) => {
+    await page.locator('#raised-tab-btn-committees').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#raised-tab-btn-conduits')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('#raised-tab-btn-committees')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('section title carries the cycle range', async ({ page }) => {
+    await expect(page.locator('#raised-tab-section-title')).toHaveText(
+      /Top Contributors by type · 20\d\d–20\d\d/, { timeout: 15000 }
+    );
   });
 });

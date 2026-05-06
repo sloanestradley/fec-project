@@ -249,36 +249,49 @@
           </div>
         </div>
         <div id="raised-slow-tier">
-          <div class="donors-card" id="donors-card">
-            <div class="donors-head">Top Committee Contributors</div>
-            <div class="skeleton tab-skeleton skeleton-table" id="raised-donors-skeleton"></div>
-            <div id="donors-content" style="display:none">
-              <table class="donors-table">
-                <thead><tr>
-                  <th style="width:2rem">#</th>
-                  <th>Committee</th>
-                  <th>Type</th>
-                  <th class="r">Total</th>
-                </tr></thead>
-                <tbody id="donors-tbody"></tbody>
-              </table>
+          <section class="tab-section" id="raised-tab-section">
+            <div class="tab-section-header">
+              <h3 class="tab-section-title" id="raised-tab-section-title">Top Contributors by type</h3>
+              <div class="tab-section-tablist button-group" role="tablist" aria-label="Top contributors by type">
+                <button class="button-group-btn" role="tab" id="raised-tab-btn-committees"
+                        aria-controls="raised-tab-panel-committees" aria-selected="true" tabindex="0">Committees</button>
+                <button class="button-group-btn" role="tab" id="raised-tab-btn-conduits"
+                        aria-controls="raised-tab-panel-conduits" aria-selected="false" tabindex="-1">Conduits</button>
+              </div>
             </div>
-          </div>
-          <div class="donors-card" id="conduits-card">
-            <div class="donors-head">Top Conduit Sources</div>
-            <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
-            <div id="conduits-content" style="display:none">
-              <table class="donors-table">
-                <thead><tr>
-                  <th style="width:2rem">#</th>
-                  <th>Source</th>
-                  <th>Type</th>
-                  <th class="r">Total</th>
-                </tr></thead>
-                <tbody id="conduits-tbody"></tbody>
-              </table>
+            <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-committees" aria-labelledby="raised-tab-btn-committees">
+              <div class="donors-card" id="donors-card">
+                <div class="skeleton tab-skeleton skeleton-table" id="raised-donors-skeleton"></div>
+                <div id="donors-content" style="display:none">
+                  <table class="donors-table">
+                    <thead><tr>
+                      <th style="width:2rem">#</th>
+                      <th>Committee</th>
+                      <th>Type</th>
+                      <th class="r">Total</th>
+                    </tr></thead>
+                    <tbody id="donors-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
+            <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-conduits" aria-labelledby="raised-tab-btn-conduits" hidden>
+              <div class="donors-card" id="conduits-card">
+                <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+                <div id="conduits-content" style="display:none">
+                  <table class="donors-table">
+                    <thead><tr>
+                      <th style="width:2rem">#</th>
+                      <th>Source</th>
+                      <th>Type</th>
+                      <th class="r">Total</th>
+                    </tr></thead>
+                    <tbody id="conduits-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
           <div class="tab-still-loading" id="raised-still-loading" style="display:none">
             This is taking longer than usual — large committees can take 30+ seconds…
           </div>
@@ -420,6 +433,7 @@ var cachedAllTotals     = null;  // /totals/?per_page=100 — reused on detail�
 var compactHeaderInited = false; // compact scroll listener registered once on first detail entry
 var compactThreshold    = 0;     // scrollY at which compact mode engages; set in initCompactHeader()
 var view                = null;  // initViewSwitcher instance — created in init() before first switchTo
+var raisedTabSection    = null;  // initTabSection instance for #raised-tab-section — created in init()
 
 var ARCHIVE_MIN_YEAR = { H: 2008, S: 2012, P: 2012 };
 
@@ -1207,10 +1221,8 @@ function renderRaisedIfReady() {
     // Cycle label + data note. Recomputed on every render so cycle-switcher changes propagate.
     var subCycles = raisedSlowData.subCycles;
     var cycleLabel = (subCycles[0] - 1) + '–' + subCycles[subCycles.length - 1];
-    document.querySelector('#donors-card .donors-head')
-      .textContent = 'Top Committee Contributors · ' + cycleLabel;
-    document.querySelector('#conduits-card .donors-head')
-      .textContent = 'Top Conduit Sources · ' + cycleLabel;
+    document.getElementById('raised-tab-section-title')
+      .textContent = 'Top Contributors by type · ' + cycleLabel;
 
     var note = 'Raised breakdown from FEC totals endpoint. Geography reflects itemized individual contributions by state (Schedule A). ' +
       'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID. ' +
@@ -2120,6 +2132,11 @@ async function init() {
     // getDetailScrollTarget reads it.
     initCompactHeader();
     compactHeaderInited = true;
+
+    // Tab section for top contributors (Raised tab) — wires WAI-ARIA tabs.
+    // Both panels are slow-tier-fed, so indicator visibility doesn't gate on
+    // active tab here (committee.html does — see applyIndicatorVisibility there).
+    raisedTabSection = initTabSection(document.getElementById('raised-tab-section'));
 
     view = initViewSwitcher({
       indexElements: [

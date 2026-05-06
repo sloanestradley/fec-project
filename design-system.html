@@ -1560,6 +1560,39 @@
         </div>
       </div>
 
+      <!-- Tab Section — WAI-ARIA tabs over related content panels -->
+      <div class="ds-component" id="comp-tab-section" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Tab Section</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.tab-section · .tab-section-header · .tab-section-title · .tab-section-tablist · .tab-section-panel — composes <code>.button-group</code> internally for the tablist; ARIA + keyboard wired by <code>initTabSection(rootEl)</code> in utils.js.</div>
+        <div class="ds-component-demo">
+          <section class="tab-section" id="ds-tab-section-demo">
+            <div class="tab-section-header">
+              <h3 class="tab-section-title">Top Contributors by type · 2025–2026</h3>
+              <div class="tab-section-tablist button-group" role="tablist" aria-label="Top contributors by type">
+                <button class="button-group-btn active" role="tab" aria-selected="true" aria-controls="ds-tab-panel-a" id="ds-tab-btn-a" tabindex="0">Committees</button>
+                <button class="button-group-btn" role="tab" aria-selected="false" aria-controls="ds-tab-panel-b" id="ds-tab-btn-b" tabindex="-1">Conduits</button>
+                <button class="button-group-btn" role="tab" aria-selected="false" aria-controls="ds-tab-panel-c" id="ds-tab-btn-c" tabindex="-1">Individuals</button>
+              </div>
+            </div>
+            <div class="tab-section-panel" role="tabpanel" id="ds-tab-panel-a" aria-labelledby="ds-tab-btn-a">
+              <div style="padding:1rem;font-size:0.75rem;color:var(--muted)">Committees panel content.</div>
+            </div>
+            <div class="tab-section-panel" role="tabpanel" id="ds-tab-panel-b" aria-labelledby="ds-tab-btn-b" hidden>
+              <div style="padding:1rem;font-size:0.75rem;color:var(--muted)">Conduits panel content.</div>
+            </div>
+            <div class="tab-section-panel" role="tabpanel" id="ds-tab-panel-c" aria-labelledby="ds-tab-btn-c" hidden>
+              <div style="padding:1rem;font-size:0.75rem;color:var(--muted)">Individuals panel content.</div>
+            </div>
+          </section>
+        </div>
+        <div class="ds-component-notes">
+          Section-level wrapper for tabbed content. <strong>Layout:</strong> header is flex row (title left, tablist right) on desktop; stacks vertically below 860px. Tablist composes <code>.button-group</code> for visual treatment — selected tab uses the same navy-filled active state as filter toggles, focus state adds a 2px <code>--accent</code> outline. Panels show via <code>display:block</code> default, hide via <code>[hidden]</code>. <code>.donors-card</code> nested inside a panel collapses its top-padding + bottom-margin (handled in styles.css). <strong>ARIA + keyboard:</strong> wired by <code>initTabSection(rootEl)</code> in utils.js — <code>role=tablist/tab/tabpanel</code>, <code>aria-selected</code>, roving tabindex, ←/→ arrow nav with wrap, Home/End jump, Enter/Space activates focused tab. Helper returns <code>{ activate, getActive, removeTab }</code> and emits a <code>tab-section:change</code> CustomEvent on the root so consumers can react (e.g. committee.html toggles slow-tier indicator visibility based on which tab is active). <strong>Used on:</strong> candidate.html + committee.html Raised tab for top contributors. Reusable; design intent supports race.html or future profile surfaces with related-but-distinct data views.
+        </div>
+      </div>
+
       <!-- 19. Skeleton loading -->
       <div class="ds-component" id="comp-skeleton" data-status="stable">
         <div class="ds-component-header">

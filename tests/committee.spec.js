@@ -495,12 +495,13 @@ test.describe('committee.html — Raised tab sections', () => {
   test.beforeEach(async ({ page }) => {
     await setupDetail(page);
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
-    // Wait for slow-tier Top Conduit Sources card visible (T12 progressive render —
-    // its visibility means both fast and slow tiers have resolved + rendered)
+    // Wait for slow-tier Top Conduit Sources content to render — signal that
+    // both fast and slow tiers have resolved. (.conduits-card is now inside a
+    // tab panel; its style.display is no longer the load-state signal.)
     await page.waitForFunction(
       () => {
-        const card = document.getElementById('conduits-card');
-        return card && card.style.display !== 'none';
+        const c = document.getElementById('conduits-content');
+        return c && c.style.display === 'block';
       },
       { timeout: 15000 }
     );
@@ -543,18 +544,22 @@ test.describe('committee.html — Raised tab sections', () => {
   });
 
   test('conduits card is visible and populated on a specific cycle', async ({ page }) => {
+    // Conduits is a non-default tab — click to reveal its panel
+    await page.locator('#raised-tab-btn-conduits').click();
     await expect(page.locator('#conduits-card')).toBeVisible();
     const rows = page.locator('#conduits-tbody tr');
     await expect(rows).not.toHaveCount(0);
     await expect(page.locator('#conduits-tbody')).toContainText(/Actblue/i);
   });
 
-  test('Top Individual Contributors card header includes cycle label (no "Most recent cycle" copy)', async ({ page }) => {
-    const head = page.locator('#individual-donors-tbody').locator('xpath=ancestor::div[contains(@class,"donors-card")]').locator('.donors-head');
-    // Wait for the dynamic header update — it lands AFTER raised-content becomes visible
-    // because renderRaisedIfReady continues writing to the DOM after revealing contentEl.
-    await expect(head).toHaveText(/Top Individual Contributors · 20\d\d–20\d\d/, { timeout: 15000 });
-    const text = await head.textContent();
+  test('Tab section title carries cycle label (no "Most recent cycle" copy)', async ({ page }) => {
+    const title = page.locator('#raised-tab-section-title');
+    // Wait for the dynamic title update — it lands AFTER raised-content becomes
+    // visible because renderRaisedIfReady continues writing to the DOM after
+    // revealing contentEl. The cycle range is now on the section title (single
+    // source) rather than per-card heads.
+    await expect(title).toHaveText(/Top Contributors by type · 20\d\d–20\d\d/, { timeout: 15000 });
+    const text = await title.textContent();
     expect(text).not.toContain('Most recent cycle');
   });
 });
@@ -588,14 +593,12 @@ test.describe('committee.html — Raised tab unavailable-state copy', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
-    // Wait for individual-donors-card visible (T12: slow tier reveals it on KV miss + unavailable)
-    await page.waitForFunction(
-      () => { const c = document.getElementById('individual-donors-card'); return c && c.style.display !== 'none'; },
-      { timeout: 15000 }
-    );
-
+    // Wait for the unavailable copy to land in the Individuals tbody — signal
+    // that slow tier resolved with the topIndividualsSource = 'unavailable' branch.
+    // (Individuals is a non-default tab, but the tbody renders regardless of
+    // panel visibility — content rendering is the load signal here, not tab activation.)
     const tbody = page.locator('#individual-donors-tbody');
-    await expect(tbody).toContainText('Unable to show due to high transaction volume.');
+    await expect(tbody).toContainText('Unable to show due to high transaction volume.', { timeout: 15000 });
   });
 });
 
@@ -910,9 +913,13 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
     // Donut canvas renders synchronously from totals
     await expect(page.locator('#chart-donut')).toBeVisible({ timeout: 2000 });
-    // Slow-tier skeletons visible
+    // Active panel (Committees default) skeleton visible while in flight
     await expect(page.locator('#raised-comm-skeleton')).toBeVisible();
-    await expect(page.locator('#raised-conduits-skeleton')).toBeVisible();
+    // Other panels' skeletons attached to DOM but hidden (parent panels [hidden])
+    await expect(page.locator('#raised-conduits-skeleton')).toBeAttached();
+    await expect(page.locator('#raised-conduits-skeleton')).toBeHidden();
+    await expect(page.locator('#raised-indiv-skeleton')).toBeAttached();
+    await expect(page.locator('#raised-indiv-skeleton')).toBeHidden();
   });
 
   test('Raised: no skeleton flash when fetch already resolved before tab click', async ({ page }) => {
@@ -920,7 +927,10 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await page.waitForTimeout(800);
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
     await page.waitForTimeout(400);
+    // Active panel skeleton hidden because data was already in memory
     await expect(page.locator('#raised-comm-skeleton')).toBeHidden();
+    // Switch to Conduits tab — content rendered, no skeleton flash
+    await page.locator('#raised-tab-btn-conduits').click();
     await expect(page.locator('#raised-conduits-skeleton')).toBeHidden();
     await expect(page.locator('#conduits-card')).toBeVisible();
   });
@@ -957,9 +967,12 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    // Active panel's skeleton has substantive height. Inactive panel skeletons
+    // collapse with their hidden parent — measure each by activating its tab.
     const commHeight = await page.locator('#raised-comm-skeleton').evaluate(el => el.getBoundingClientRect().height);
-    const conduitsHeight = await page.locator('#raised-conduits-skeleton').evaluate(el => el.getBoundingClientRect().height);
     expect(commHeight).toBeGreaterThanOrEqual(200);
+    await page.locator('#raised-tab-btn-conduits').click();
+    const conduitsHeight = await page.locator('#raised-conduits-skeleton').evaluate(el => el.getBoundingClientRect().height);
     expect(conduitsHeight).toBeGreaterThanOrEqual(200);
   });
 
@@ -1092,9 +1105,12 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     block429 = false;
     // Switch cycle via the cycle switcher
     await page.locator('#cycle-switcher').selectOption({ index: 1 });
-    // Conduits card eventually visible on new cycle
-    await expect(page.locator('#conduits-card')).toBeVisible({ timeout: 12000 });
+    // Active (Committees default) panel renders on new cycle, slow error clears
+    await expect(page.locator('#committee-donors-card')).toBeVisible({ timeout: 12000 });
     await expect(page.locator('#raised-slow-error')).toBeHidden();
+    // Switching to Conduits panel reveals the populated conduits card
+    await page.locator('#raised-tab-btn-conduits').click();
+    await expect(page.locator('#conduits-card')).toBeVisible();
   });
 
   test('Raised donut skeleton: visible before Raised tab visit, hidden once donut renders', async ({ page }) => {
@@ -1119,7 +1135,7 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
 // ── T12.5/skeleton arc regression locks (2026-05-06) ─────────────────────────
 
 test.describe('committee.html — title-always-visible during loading', () => {
-  test('Raised section titles visible at the same time as their skeletons', async ({ page }) => {
+  test('Raised section title visible at the same time as the active panel skeleton', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.route('**/api/fec/schedules/schedule_a/?**', async (route) => {
@@ -1132,16 +1148,19 @@ test.describe('committee.html — title-always-visible during loading', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
-    // Slow-tier skeletons visible
+    // Active panel (Committees default) skeleton visible
     await expect(page.locator('#raised-comm-skeleton')).toBeVisible();
+    // Section title (single source) visible alongside — title-always-visible
+    // pattern, now at section level rather than per-card.
+    await expect(page.locator('#raised-tab-section-title')).toBeVisible();
+    await expect(page.locator('#raised-tab-section-title')).toContainText(/Top Contributors by type/);
+    // Switch tabs — section title persists, other panels' skeletons reveal
+    await page.locator('#raised-tab-btn-conduits').click();
     await expect(page.locator('#raised-conduits-skeleton')).toBeVisible();
-    // Section titles ALSO visible at the same time
-    await expect(page.locator('#committee-donors-card .donors-head')).toBeVisible();
-    await expect(page.locator('#committee-donors-card .donors-head')).toContainText(/Top Committee Contributors/);
-    await expect(page.locator('#conduits-card .donors-head')).toBeVisible();
-    await expect(page.locator('#conduits-card .donors-head')).toContainText(/Top Conduit Sources/);
-    await expect(page.locator('#individual-donors-card .donors-head')).toBeVisible();
-    await expect(page.locator('#individual-donors-card .donors-head')).toContainText(/Top Individual Contributors/);
+    await expect(page.locator('#raised-tab-section-title')).toBeVisible();
+    await page.locator('#raised-tab-btn-individuals').click();
+    await expect(page.locator('#raised-indiv-skeleton')).toBeVisible();
+    await expect(page.locator('#raised-tab-section-title')).toBeVisible();
     // Raised breakdown title (above the donut) also visible
     await expect(page.locator('.raised-cell-title').first()).toContainText('Raised breakdown');
   });
@@ -1164,5 +1183,123 @@ test.describe('committee.html — committee-row consolidation regression', () =>
     await expect(firstRow.locator('.committee-card-meta')).toBeVisible();
     // Deprecated class must be gone everywhere
     await expect(page.locator('.committee-result-row')).toHaveCount(0);
+  });
+});
+
+// ── Tab section: WAI-ARIA tabs for top contributors ──────────────────────────
+
+test.describe('committee.html — tab section (top contributors)', () => {
+  // Raised tab content is display:none until user clicks Raised — every test
+  // here clicks Raised before asserting on the tab section markup. Conduit
+  // committee + cycle-range tests have their own setup and don't use this hook.
+  async function gotoRaised(page) {
+    await setupDetail(page);
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+  }
+
+  test('tablist renders with three tabs and correct ARIA roles on a non-conduit committee', async ({ page }) => {
+    await gotoRaised(page);
+    await expect(page.locator('#raised-tab-section [role="tablist"]')).toHaveCount(1);
+    await expect(page.locator('#raised-tab-section [role="tab"]')).toHaveCount(3);
+    // Default active = Committees
+    await expect(page.locator('#raised-tab-btn-committees')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#raised-tab-btn-conduits')).toHaveAttribute('aria-selected', 'false');
+    await expect(page.locator('#raised-tab-btn-individuals')).toHaveAttribute('aria-selected', 'false');
+    // Default panel visible; others hidden
+    await expect(page.locator('#raised-tab-panel-committees')).toBeVisible();
+    await expect(page.locator('#raised-tab-panel-conduits')).toHaveAttribute('hidden', '');
+    await expect(page.locator('#raised-tab-panel-individuals')).toHaveAttribute('hidden', '');
+  });
+
+  test('clicking a tab switches active panel and aria-selected state', async ({ page }) => {
+    await gotoRaised(page);
+    await page.locator('#raised-tab-btn-individuals').click();
+    await expect(page.locator('#raised-tab-btn-individuals')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#raised-tab-btn-committees')).toHaveAttribute('aria-selected', 'false');
+    await expect(page.locator('#raised-tab-panel-individuals')).toBeVisible();
+    await expect(page.locator('#raised-tab-panel-committees')).toHaveAttribute('hidden', '');
+  });
+
+  test('keyboard arrow navigation cycles between tabs', async ({ page }) => {
+    await gotoRaised(page);
+    await page.locator('#raised-tab-btn-committees').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#raised-tab-btn-conduits')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#raised-tab-btn-individuals')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowRight'); // wrap to first
+    await expect(page.locator('#raised-tab-btn-committees')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('End');
+    await expect(page.locator('#raised-tab-btn-individuals')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Home');
+    await expect(page.locator('#raised-tab-btn-committees')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('Conduits tab is removed on a conduit committee (topCommitteesIsConduit)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Mock Schedule A is_individual=false to return a count > 500000 — that's
+    // the conduit detection threshold in fetchRaisedSlowData (committee.html).
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({
+            results: [],
+            pagination: { count: 11000000, pages: 110000, last_indexes: {} }
+          })
+        });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    // Wait for slow-tier resolve to remove the Conduits tab
+    await page.waitForFunction(
+      () => !document.getElementById('raised-tab-btn-conduits'),
+      { timeout: 15000 }
+    );
+    // Two tabs remain: Committees + Individuals
+    await expect(page.locator('#raised-tab-section [role="tab"]')).toHaveCount(2);
+    await expect(page.locator('#raised-tab-btn-committees')).toBeVisible();
+    await expect(page.locator('#raised-tab-btn-individuals')).toBeVisible();
+    // The conduit panel is also gone
+    await expect(page.locator('#raised-tab-panel-conduits')).toHaveCount(0);
+  });
+
+  test('section title carries the cycle range', async ({ page }) => {
+    await gotoRaised(page);
+    await expect(page.locator('#raised-tab-section-title')).toHaveText(
+      /Top Contributors by type · 20\d\d–20\d\d/, { timeout: 15000 }
+    );
+  });
+
+  test('slow-tier indicators hide when active tab is Individuals (KV-fed, not slow-tier-fed)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Slow-tier 429 → error UI normally visible on Committees/Conduits tabs
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    // On default Committees tab — error visible
+    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    // Switch to Individuals → error hides (Individuals is independent of slow tier)
+    await page.locator('#raised-tab-btn-individuals').click();
+    await expect(page.locator('#raised-slow-error')).toBeHidden();
+    await expect(page.locator('#raised-still-loading')).toBeHidden();
+    // Switch back to Committees → error re-appears
+    await page.locator('#raised-tab-btn-committees').click();
+    await expect(page.locator('#raised-slow-error')).toBeVisible();
   });
 });

@@ -227,51 +227,67 @@
           </div>
         </div>
         <div id="raised-slow-tier">
-          <div class="donors-card" id="committee-donors-card">
-            <div class="donors-head">Top Committee Contributors</div>
-            <div class="skeleton tab-skeleton skeleton-table" id="raised-comm-skeleton"></div>
-            <div id="committee-donors-content" style="display:none">
-              <table class="donors-table">
-                <thead><tr>
-                  <th style="width:2rem">#</th>
-                  <th>Committee</th>
-                  <th>Type</th>
-                  <th class="r">Total</th>
-                </tr></thead>
-                <tbody id="committee-donors-tbody"></tbody>
-              </table>
+          <section class="tab-section" id="raised-tab-section">
+            <div class="tab-section-header">
+              <h3 class="tab-section-title" id="raised-tab-section-title">Top Contributors by type</h3>
+              <div class="tab-section-tablist button-group" role="tablist" aria-label="Top contributors by type">
+                <button class="button-group-btn" role="tab" id="raised-tab-btn-committees"
+                        aria-controls="raised-tab-panel-committees" aria-selected="true" tabindex="0">Committees</button>
+                <button class="button-group-btn" role="tab" id="raised-tab-btn-conduits"
+                        aria-controls="raised-tab-panel-conduits" aria-selected="false" tabindex="-1">Conduits</button>
+                <button class="button-group-btn" role="tab" id="raised-tab-btn-individuals"
+                        aria-controls="raised-tab-panel-individuals" aria-selected="false" tabindex="-1">Individuals</button>
+              </div>
             </div>
-          </div>
-          <div class="donors-card" id="conduits-card">
-            <div class="donors-head">Top Conduit Sources</div>
-            <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
-            <div id="conduits-content" style="display:none">
-              <table class="donors-table">
-                <thead><tr>
-                  <th style="width:2rem">#</th>
-                  <th>Source</th>
-                  <th>Type</th>
-                  <th class="r">Total</th>
-                </tr></thead>
-                <tbody id="conduits-tbody"></tbody>
-              </table>
+            <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-committees" aria-labelledby="raised-tab-btn-committees">
+              <div class="donors-card" id="committee-donors-card">
+                <div class="skeleton tab-skeleton skeleton-table" id="raised-comm-skeleton"></div>
+                <div id="committee-donors-content" style="display:none">
+                  <table class="donors-table">
+                    <thead><tr>
+                      <th style="width:2rem">#</th>
+                      <th>Committee</th>
+                      <th>Type</th>
+                      <th class="r">Total</th>
+                    </tr></thead>
+                    <tbody id="committee-donors-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="donors-card" id="individual-donors-card">
-            <div class="donors-head">Top Individual Contributors</div>
-            <div class="skeleton tab-skeleton skeleton-table" id="raised-indiv-skeleton"></div>
-            <div id="individual-donors-content" style="display:none">
-              <table class="donors-table">
-                <thead><tr>
-                  <th style="width:2rem">#</th>
-                  <th>Contributor</th>
-                  <th>Location</th>
-                  <th class="r">Amount</th>
-                </tr></thead>
-                <tbody id="individual-donors-tbody"></tbody>
-              </table>
+            <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-conduits" aria-labelledby="raised-tab-btn-conduits" hidden>
+              <div class="donors-card" id="conduits-card">
+                <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+                <div id="conduits-content" style="display:none">
+                  <table class="donors-table">
+                    <thead><tr>
+                      <th style="width:2rem">#</th>
+                      <th>Source</th>
+                      <th>Type</th>
+                      <th class="r">Total</th>
+                    </tr></thead>
+                    <tbody id="conduits-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
+            <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-individuals" aria-labelledby="raised-tab-btn-individuals" hidden>
+              <div class="donors-card" id="individual-donors-card">
+                <div class="skeleton tab-skeleton skeleton-table" id="raised-indiv-skeleton"></div>
+                <div id="individual-donors-content" style="display:none">
+                  <table class="donors-table">
+                    <thead><tr>
+                      <th style="width:2rem">#</th>
+                      <th>Contributor</th>
+                      <th>Location</th>
+                      <th class="r">Amount</th>
+                    </tr></thead>
+                    <tbody id="individual-donors-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
           <div class="tab-still-loading" id="raised-still-loading" style="display:none">
             This is taking longer than usual — large committees can take 30+ seconds…
           </div>
@@ -419,6 +435,8 @@ var compactThreshold    = 0;     // scrollY at which compact mode engages; set i
 var compactHeaderInited = false; // compact scroll listener registered once at init
 var cycleFetchToken     = null;  // claimed in renderStats; checked in renderRaisedIfReady/renderSpentIfReady
 var view                = null;  // initViewSwitcher instance — created in init() before first switchTo
+var raisedTabSection    = null;  // initTabSection instance for #raised-tab-section — created in init()
+var raisedSlowStillLoading = false; // 10s timer fired and slow tier hasn't resolved/errored — used by applyIndicatorVisibility
 
 var FIPS_TO_ABBR = {
   '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
@@ -640,6 +658,15 @@ async function init() {
     initCompactHeader();
     compactHeaderInited = true;
 
+    // Tab section for top contributors (Raised tab) — wires WAI-ARIA tabs.
+    // Slow-tier indicators (#raised-still-loading, #raised-slow-error) are
+    // gated on active tab via applyIndicatorVisibility — hidden when the
+    // active tab is Individuals (KV-fed, not slow-tier-fed).
+    raisedTabSection = initTabSection(document.getElementById('raised-tab-section'));
+    if (raisedTabSection) {
+      document.getElementById('raised-tab-section').addEventListener('tab-section:change', applyIndicatorVisibility);
+    }
+
     view = initViewSwitcher({
       indexElements: [
         { id: 'career-strip', display: 'block' },
@@ -783,14 +810,40 @@ function kickoffRaisedFastFetch(token) {
   return fastP;
 }
 
+// Indicator visibility for slow-tier surfaces. Tabbed component routes all
+// changes to #raised-still-loading and #raised-slow-error through here so
+// (a) state changes (10s timer fires, fetch resolves, fetch errors) and
+// (b) tab switches both trigger the same single visibility-decision path.
+// Hidden entirely when active tab is Individuals (KV-fed, independent of
+// the slow-tier fetch).
+function applyIndicatorVisibility() {
+  var stillLoadingEl = document.getElementById('raised-still-loading');
+  var errorEl        = document.getElementById('raised-slow-error');
+  if (!stillLoadingEl || !errorEl) return;
+  var active = raisedTabSection ? raisedTabSection.getActive() : null;
+  if (active && active.panelId === 'raised-tab-panel-individuals') {
+    stillLoadingEl.style.display = 'none';
+    errorEl.style.display = 'none';
+    return;
+  }
+  if (raisedSlowError) {
+    stillLoadingEl.style.display = 'none';
+    showTabError(errorEl, raisedSlowError, '⚠ Could not load top contributors.');
+  } else if (raisedSlowStillLoading) {
+    stillLoadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+  } else {
+    stillLoadingEl.style.display = 'none';
+    errorEl.style.display = 'none';
+  }
+}
+
 function kickoffRaisedSlowFetch(token) {
-  // 10s "still loading" timer fires globally regardless of which tab the user is on;
-  // visibility is gated by parent #tab-raised display.
   raisedStillLoadingTimer = setTimeout(function() {
     if (!view.isCurrentToken(token)) return;
     if (raisedSlowRendered) return;
-    var el = document.getElementById('raised-still-loading');
-    if (el) el.style.display = 'block';
+    raisedSlowStillLoading = true;
+    applyIndicatorVisibility();
   }, 10000);
   // Slow tier needs fast tier's KV state to decide whether to paginate Schedule A indiv.
   // Pass the in-flight fast promise; slow function awaits it internally.
@@ -799,12 +852,14 @@ function kickoffRaisedSlowFetch(token) {
     .then(function(d) {
       clearTimeout(raisedStillLoadingTimer);
       if (!view.isCurrentToken(token)) return;
+      raisedSlowStillLoading = false;
       raisedSlowData = d;
       renderRaisedIfReady();
     })
     .catch(function(err) {
       clearTimeout(raisedStillLoadingTimer);
       if (!view.isCurrentToken(token)) return;
+      raisedSlowStillLoading = false;
       raisedSlowError = err;
       console.warn('fetchRaisedSlowData failed:', err.message);
       renderRaisedIfReady();
@@ -847,9 +902,12 @@ function retryRaisedFast() {
 }
 function retryRaisedSlow() {
   raisedSlowData = null; raisedSlowError = null; raisedSlowRendered = false;
-  document.getElementById('raised-slow-error').style.display = 'none';
+  raisedSlowStillLoading = false;
+  applyIndicatorVisibility();
   document.getElementById('raised-comm-skeleton').style.display = 'block';
-  document.getElementById('raised-conduits-skeleton').style.display = 'block';
+  // Conduit committees: conduits panel was removed on prior render, skeleton is gone
+  var rcSkel = document.getElementById('raised-conduits-skeleton');
+  if (rcSkel) rcSkel.style.display = 'block';
   document.getElementById('raised-indiv-skeleton').style.display = 'block';
   // Slow needs an in-flight fast promise; use whatever's currently set
   var token = view.claimToken();
@@ -944,12 +1002,15 @@ function renderStats(cycleOrAll) {
   document.getElementById('raised-fast-skeleton').style.display = 'block';
   document.getElementById('raised-fast-error').style.display = 'none';
   document.getElementById('raised-comm-skeleton').style.display = 'block';
-  document.getElementById('raised-conduits-skeleton').style.display = 'block';
+  // Conduit committees: conduits panel was removed in a prior render — skeleton + content gone
+  var rcSkelReset = document.getElementById('raised-conduits-skeleton');
+  if (rcSkelReset) rcSkelReset.style.display = 'block';
   document.getElementById('raised-indiv-skeleton').style.display = 'block';
-  document.getElementById('raised-still-loading').style.display = 'none';
-  document.getElementById('raised-slow-error').style.display = 'none';
+  raisedSlowStillLoading = false;
+  applyIndicatorVisibility();
   document.getElementById('committee-donors-content').style.display = 'none';
-  document.getElementById('conduits-content').style.display = 'none';
+  var rcContentReset = document.getElementById('conduits-content');
+  if (rcContentReset) rcContentReset.style.display = 'none';
   document.getElementById('individual-donors-content').style.display = 'none';
   document.getElementById('raised-data-note').style.display = 'none';
 
@@ -1499,22 +1560,18 @@ function renderRaisedIfReady() {
   // Slow tier — top conduits, KV-miss fallback for top committees + top individuals
   if (raisedSlowError && !raisedSlowRendered) {
     document.getElementById('raised-comm-skeleton').style.display = 'none';
-    document.getElementById('raised-conduits-skeleton').style.display = 'none';
+    var slowConduitsSkel = document.getElementById('raised-conduits-skeleton');
+    if (slowConduitsSkel) slowConduitsSkel.style.display = 'none';
     document.getElementById('raised-indiv-skeleton').style.display = 'none';
-    document.getElementById('raised-still-loading').style.display = 'none';
-    showTabError(
-      document.getElementById('raised-slow-error'),
-      raisedSlowError,
-      '⚠ Could not load top contributors.'
-    );
+    applyIndicatorVisibility();
     raisedSlowRendered = true;
   } else if (raisedSlowData && !raisedSlowRendered) {
     var d = raisedSlowData;
     document.getElementById('raised-comm-skeleton').style.display = 'none';
-    document.getElementById('raised-conduits-skeleton').style.display = 'none';
+    var slowConduitsSkel2 = document.getElementById('raised-conduits-skeleton');
+    if (slowConduitsSkel2) slowConduitsSkel2.style.display = 'none';
     document.getElementById('raised-indiv-skeleton').style.display = 'none';
-    document.getElementById('raised-still-loading').style.display = 'none';
-    document.getElementById('raised-slow-error').style.display = 'none';
+    applyIndicatorVisibility();
 
     // Top Individual Contributors — only render here if KV missed (otherwise fast tier handled it)
     if (!raisedFastRendered || !(raisedFastData && raisedFastData.topIndividualsKV)) {
@@ -1543,8 +1600,11 @@ function renderRaisedIfReady() {
 
     // Top Conduit Sources
     if (d.topCommitteesIsConduit) {
-      // Hide the card on conduit committees — semantically meaningless
-      document.getElementById('conduits-card').style.display = 'none';
+      // Conduits tab is structurally meaningless on a conduit committee —
+      // remove the tab button + panel from the DOM entirely. The helper
+      // falls back to the first remaining tab if the user happened to be
+      // focused on Conduits during the loading window.
+      if (raisedTabSection) raisedTabSection.removeTab('raised-tab-btn-conduits');
     } else {
       document.getElementById('conduits-content').style.display = 'block';
       if (d.topConduitsTooLarge) {
@@ -1555,14 +1615,10 @@ function renderRaisedIfReady() {
       }
     }
 
-    // Cycle labels + data note
+    // Cycle label — single source of truth on the tab section title.
     var cycleLabel = (currentCycleScope - 1) + '–' + currentCycleScope;
-    var indivCard = document.getElementById('individual-donors-card');
-    var commCard  = document.getElementById('committee-donors-card');
-    var condCard  = document.getElementById('conduits-card');
-    if (indivCard) indivCard.querySelector('.donors-head').textContent = 'Top Individual Contributors · ' + cycleLabel;
-    if (commCard)  commCard.querySelector('.donors-head').textContent  = 'Top Committee Contributors · ' + cycleLabel;
-    if (condCard)  condCard.querySelector('.donors-head').textContent  = 'Top Conduit Sources · ' + cycleLabel;
+    document.getElementById('raised-tab-section-title')
+      .textContent = 'Top Contributors by type · ' + cycleLabel;
 
     var note = 'Raised breakdown from FEC totals endpoint. ' +
       'Geography reflects itemized individual contributions by state (Schedule A). ' +

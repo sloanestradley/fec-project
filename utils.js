@@ -610,3 +610,131 @@ function initViewSwitcher(config) {
     isCurrentToken: function(id) { return id === tokenCounter; }
   };
 }
+
+// ── Tab section helper ──────────────────────────────────────────────────────
+// Wires WAI-ARIA tabs behavior on a `.tab-section` root: click + keyboard
+// activation (←/→ wrap, Home/End, Enter/Space), aria-selected + roving
+// tabindex, panel [hidden] toggling. Emits `tab-section:change` CustomEvent
+// on the root with detail.{activePanelId, activeTabId, previousPanelId} so
+// consumers can react (e.g. committee.html toggles slow-tier indicator
+// visibility based on which tab is active).
+//
+// Returns { activate, getActive, removeTab } — removeTab is used on
+// committee.html when topCommitteesIsConduit fires post-fetch.
+function initTabSection(rootEl) {
+  if (!rootEl) return null;
+  var tablistEl = rootEl.querySelector('[role="tablist"]');
+  if (!tablistEl) return null;
+
+  function getTabs() {
+    return Array.prototype.slice.call(tablistEl.querySelectorAll('[role="tab"]'));
+  }
+  function getPanel(tab) {
+    var id = tab.getAttribute('aria-controls');
+    return id ? document.getElementById(id) : null;
+  }
+  function findActiveTab() {
+    var tabs = getTabs();
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].getAttribute('aria-selected') === 'true') return tabs[i];
+    }
+    return null;
+  }
+  function applyState(activeTab) {
+    getTabs().forEach(function(t) {
+      var isActive = (t === activeTab);
+      t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      t.setAttribute('tabindex', isActive ? '0' : '-1');
+      t.classList.toggle('active', isActive);
+      var panel = getPanel(t);
+      if (panel) {
+        if (isActive) panel.removeAttribute('hidden');
+        else panel.setAttribute('hidden', '');
+      }
+    });
+  }
+  function activate(tabOrId) {
+    var target = tabOrId;
+    if (typeof tabOrId === 'string') {
+      target = getTabs().filter(function(t) {
+        return t.id === tabOrId || t.getAttribute('aria-controls') === tabOrId;
+      })[0];
+    }
+    if (!target) return;
+    var prev = findActiveTab();
+    if (prev === target) return;
+    applyState(target);
+    rootEl.dispatchEvent(new CustomEvent('tab-section:change', {
+      detail: {
+        activePanelId: target.getAttribute('aria-controls'),
+        activeTabId: target.id,
+        previousPanelId: prev ? prev.getAttribute('aria-controls') : null
+      },
+      bubbles: false
+    }));
+  }
+
+  // Initial state — honor pre-marked aria-selected="true" in markup, else first tab
+  var tabs = getTabs();
+  if (tabs.length === 0) return null;
+  var initial = findActiveTab() || tabs[0];
+  applyState(initial);
+
+  // Click activation
+  tablistEl.addEventListener('click', function(e) {
+    var btn = e.target.closest('[role="tab"]');
+    if (btn && tablistEl.contains(btn)) {
+      activate(btn);
+      btn.focus();
+    }
+  });
+
+  // Keyboard nav — arrows wrap, Home/End jump, Enter/Space activates focused
+  tablistEl.addEventListener('keydown', function(e) {
+    var current = getTabs();
+    var idx = current.indexOf(document.activeElement);
+    if (idx === -1) return;
+    var next = null;
+    switch (e.key) {
+      case 'ArrowLeft':  next = current[(idx - 1 + current.length) % current.length]; break;
+      case 'ArrowRight': next = current[(idx + 1) % current.length]; break;
+      case 'Home':       next = current[0]; break;
+      case 'End':        next = current[current.length - 1]; break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        activate(current[idx]);
+        return;
+      default: return;
+    }
+    if (next) {
+      e.preventDefault();
+      activate(next);
+      next.focus();
+    }
+  });
+
+  return {
+    activate: activate,
+    getActive: function() {
+      var t = findActiveTab();
+      return t ? { tabId: t.id, panelId: t.getAttribute('aria-controls') } : null;
+    },
+    // Removes a tab + its panel from the DOM. If the removed tab was active,
+    // activates the first remaining tab. Used by committee.html when
+    // topCommitteesIsConduit fires (Conduits tab is structurally meaningless
+    // on a conduit committee).
+    removeTab: function(tabId) {
+      var tab = getTabs().filter(function(t) { return t.id === tabId; })[0];
+      if (!tab) return;
+      var panel = getPanel(tab);
+      var wasActive = (tab.getAttribute('aria-selected') === 'true');
+      if (tab.parentNode) tab.parentNode.removeChild(tab);
+      if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+      if (wasActive) {
+        var remaining = getTabs();
+        if (remaining.length) activate(remaining[0]);
+      }
+    }
+  };
+}
