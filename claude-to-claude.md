@@ -4895,3 +4895,51 @@ Tightened the commit/push loop so visual changes are committed locally first and
 - **Option A naming alignment deferred.** Full rename of `.committee-row` → `.committee-card` and `.committee-name` → `.committee-card-name` (for parity with the `.candidate-card` family) was scoped at ~30 touch points and skipped. If a broader CSS audit pass happens, that's the natural moment to bundle it with related cleanups (e.g. `id="committee-name"` → `id="committee-page-title"` on the page H1, `committeeRowHTML` → `committeeCardHTML`).
 
 - **One-off Playwright probe pattern is starting to feel canonical.** Two probes this session arc (dccc-dom-probe last session, t12-5-verification this session). Both followed the same shape: write spec hitting production with route mocks → capture DOM + screenshots → delete after review. If this becomes a recurring tool, worth giving it a name or template — currently just inline-comments-from-memory each time.
+
+---
+2026-05-06 evening — T13: Top Contributors arc (tab section + whole-row link + contributor_id fix + col widths)
+
+## Process log draft
+Title: When the link revealed the bug we'd been carrying
+
+Started this session with two cleanup tickets — first tabbing the three Top Contributors tables into a single section, then making the rows clickable so each contributor opens its own committee profile. The second ticket exposed a years-old silent bug: the codebase had been reading a field on the FEC response that doesn't exist, falling back to a name-based dedup that worked well enough that nobody noticed. Fixed in passing while shipping the surface improvements; the lesson is bigger than the fix.
+
+Changelog:
+– Tab section component: new .tab-section pattern with full WAI-ARIA tabs (role=tablist/tab/tabpanel, aria-selected, ←/→ arrow nav, Home/End, Enter/Space, focus-visible outline). Composes the existing .button-group internally for the tablist visual treatment. Helper initTabSection(rootEl) in utils.js, returns {activate, getActive, removeTab} and emits a tab-section:change CustomEvent so consumers can react. Applied to candidate.html (2 tabs: Committees, Conduits) and committee.html (3 tabs: Committees, Conduits, Individuals). Single section title "Top Contributors by type · YYYY–YYYY" replaces three per-card heads. Slow-tier indicator visibility on committee.html is gated on active tab — hidden when Individuals is active because Individuals is KV-fed, not slow-tier-fed. Conduit committees: Conduits tab is removed in-DOM via tabSection.removeTab() when topCommitteesIsConduit fires.
+– Whole-row link pattern lifted from committee.html Spent → Contributions to all four contributor tables (Top Committee Contributors + Top Conduit Sources on candidate.html, plus Top Individual Contributors on committee.html). Class rename: .contributions-* → .donors-link-* to align with the .donors-* family they modify. Native <a> semantics preserved (middle-click, keyboard focus, screen reader). Explicit :focus-visible outline kept through rename. Component status promoted committee-only → stable.
+– Bug fix: FEC /schedules/schedule_a/ returns the giver's FEC ID as contributor_id, NOT contributor_committee_id. The codebase had been reading the wrong field as a dedup key for years — silently falling through to a name-uppercased fallback. Fixed in all four accumulator sites; mock data updated to match.
+– Column header copy: "Source" → "Committee (Conduit)" and "Contributor" → "Individual" — clearer labels distinguish what each column actually contains.
+– Column-width standardization: table-layout:fixed + scoped widths so column structure stays locked across all three tabs. Switching tabs no longer bounces column boundaries.
+– 529 → 544 Playwright tests (+15).
+
+Field notes:
+The bug surfaced through the link feature in a way that was almost too clean. With dedup keys, "read but never required" fields can hide behind fallback paths for years — the dedup falls through to name-uppercased, the name-based dedup mostly works, and nobody notices. The moment a feature actually depends on the field's value rather than its existence, the silence becomes a 100% null rate. Sloane's "I'm not seeing it working" report kicked off a three-step console-snippet diagnostic that located the wrong field name in three pastes. The render function source was right. The accumulator source was right. The data was wrong. Verifying upstream via a curl through the proxy showed the correct field name in 30 seconds. CLAUDE.md already had a rule for this exact class of bug ("when adding a new endpoint, fetch one live response and verify field names against the mock") — I broke the rule by treating "the existing dedup uses this field name" as evidence the field exists. It didn't. The fix is fifteen lines; the rule has been reaffirmed in writing.
+
+Stack tags: WAI-ARIA tabs, table-layout:fixed
+
+## How Sloane steered the work
+**"Investigation only, no code changes" framing on every cleanup**
+Each of the three cleanup threads this session — tab section, whole-row link, column widths — opened with a scoped diagnostic ask: review the existing pattern, recommend, wait. That framing forced clear thinking before any keys hit the file. Three implementation prompts followed three investigations; each implementation went tight because the design space had been compressed first.
+
+**Six clean decisions on the tab section**
+Full WAI-ARIA, en-dash for cycle range, Conduits tab not rendered (rather than hidden) on conduit committees, ephemeral active-tab state (no URL persistence), no Amplitude event yet, always-render-all-tabs. Each decision was a "pick one" that prevented scope drift. The implementation prompt that followed had nothing to relitigate.
+
+**"Class rename: YES; Focus-visible: INCLUDE"**
+Two-word answers on a system-design call that could have spawned a long discussion. The rename was the right call — the existing names had become inaccurate as the pattern outgrew its first call site, and waiting to rename later only adds debt. Decisive, brief, on-target.
+
+**Catching that the link feature wasn't working in production**
+"I'm not seeing it working on my local host. How can I quickly verify what I'm looking at is the updated code?" — that question is what kicked off the diagnostic chain that found the contributor_id bug. Without that report, the link feature would have shipped non-functional and we'd be looking at it on the deploy now. The instinct to verify rather than assume completion is load-bearing on a project where tests pass against a mock.
+
+**Pushing back on overflow-wrap:anywhere**
+"Why add overflow-wrap:anywhere on .dn? I don't need the wrapping to happen mid-word unless it's going to have some technical benefit. I'm not seeing it as better UX." Right call — the technical concern (single-word names exceeding column width) doesn't apply to real FEC committee names, which are always multi-word phrases. Saved a small UX regression for an edge case that doesn't exist.
+
+The through-line: Sloane runs a tight investigation-then-implement loop, makes "pick one" decisions fast on system-design calls, and catches the cases where "tests pass" doesn't mean "it works." The bug surfaced today is exactly the kind that hides behind tests-pass-with-mocks on data-shape mismatches.
+
+## What to bring to Claude Chat
+- Tab-error placement UX (still parked from earlier session). The slow-tier error UI sits below all three tabs as a section-level component. With the new tab structure, the asymmetry is more visible: error fires for slow-tier failures but its position is fixed regardless of which tab is active. Worth a UX think — does the error want to be inside the affected tabs only? Or is section-level placement the right "this surface had a fetch problem" signal?
+
+- Three-component error-message family (state-msg, error-prompt, tab-error) is still architecturally drifting. The 2026-05-06 visual-closer-family treatment helped but the three components persist. A consolidation pass would simplify the system; the question is whether to do it now or wait for a fourth use case to clarify the shape.
+
+- Pre-existing dedup-key behavior. The fix preserved the existing dedup logic (name-fallback). With committee_id now correctly preserved, the dedup keys themselves still read d.contributor_id || nameUppercase — same as before. There's a marginal correctness improvement available: dedup by committee_id when present, which would correctly merge same-committee rows that use multiple aliased names. Banked as architectural cleanup; rare in practice for top-10 contributor tables.
+
+- KV pipeline extension to top-conduits + top-committees (banked from T11.5/T12). Now that the link feature lives on these surfaces, the case for caching them becomes stronger — KV-cached + linked is the ideal end state. This is the Phase 4-shaped lift that would also unlock real lazy-fetch on the Raised tab.
