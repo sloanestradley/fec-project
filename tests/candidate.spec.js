@@ -1078,3 +1078,125 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await expect(page.locator('#spent-error')).toBeHidden();
   });
 });
+
+// ── T12.5: 429-aware error UI + init-stage failure bridging ──────────────────
+
+test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
+  // Init-stage 429 — mock 429 on /candidate/{id}/totals/ (loadCycle's eager init
+  // sequence). Without bridging, kickoffs never fire and skeletons hold forever.
+  test('init-stage 429 → tab-error rate-limit copy on Raised + Spent', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // /committees/?cycle= is the eager-init fetch in loadCycle that surfaces to the
+    // outer catch (per-cycle /totals/ calls have inner .catch that swallow errors
+    // silently). 429 here triggers the T12.5 bridging.
+    await page.route('**/api/fec/candidate/H2WA03217/committees/**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('cycle')) {
+        route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    // Click Raised — error UI should render with rate-limit copy
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/rate limit reached/i);
+    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeHidden();
+    // Skeletons should be hidden — not stuck
+    await expect(page.locator('#raised-donors-skeleton')).toBeHidden();
+    await expect(page.locator('#raised-conduits-skeleton')).toBeHidden();
+    // Spent tab — same rate-limit copy
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Spent' }).click();
+    await expect(page.locator('#spent-error')).toBeVisible();
+    await expect(page.locator('#spent-error .tab-error-msg')).toHaveText(/rate limit reached/i);
+    await expect(page.locator('#spent-error .tab-retry-btn')).toBeHidden();
+  });
+
+  test('init-stage non-429 (500) → tab-error init-failure copy on Raised + Spent', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/candidate/H2WA03217/committees/**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('cycle')) {
+        route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    // Init-failure copy is distinct from rate-limit copy
+    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/Couldn['’]t load this page/i);
+    await expect(page.locator('#raised-slow-error .tab-error-msg')).not.toHaveText(/rate limit/i);
+    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeHidden();
+  });
+
+  test('tab-fetch 429 → rate-limit copy with retry button hidden', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/rate limit reached/i);
+    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeHidden();
+  });
+
+  test('tab-fetch non-429 (regression) → existing copy + retry button visible', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        route.abort('failed');
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    // Existing T12 copy unchanged
+    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/Could not load top contributors/);
+    await expect(page.locator('#raised-slow-error .tab-error-msg')).not.toHaveText(/rate limit/i);
+    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeVisible();
+  });
+
+  test('cycle switch after 429 clears error and renders new cycle', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    let block429 = true;
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (block429 && url.searchParams.get('is_individual') === 'false') {
+        route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    // Lift the block, switch cycle — cycle change resets error states + re-fires fetches
+    block429 = false;
+    await page.locator('#cycle-switcher').selectOption({ index: 1 });
+    // Error UI clears, donor card eventually visible
+    await expect(page.locator('#donors-card')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#raised-slow-error')).toBeHidden();
+  });
+});

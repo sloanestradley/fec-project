@@ -57,6 +57,21 @@ function apiFetch(path, params) {
   });
 }
 
+// ── Tab-error UI helpers (T12.5) ─────────────────────────────────────────────
+// Detects FEC API rate-limit errors thrown by apiFetch (which surfaces non-2xx
+// status as `'FEC ' + status + ' — ' + path`). Used by tab-error rendering on
+// candidate.html and committee.html to swap copy + hide the retry button.
+function is429(err) {
+  return !!(err && err.message && /\bFEC 429\b/.test(err.message));
+}
+
+// Shared copy strings for the tab-error UI variants. 429 vs init-stage non-429
+// vs everything else. Defined once here so future copy edits don't drift across
+// files. Each per-tier render error branch falls through to its own
+// retry-button copy when neither variant matches.
+var TAB_ERROR_RATE_LIMIT_MSG  = '⚠ FEC API rate limit reached. Please wait a minute, then reload the page.';
+var TAB_ERROR_INIT_FAILURE_MSG = "⚠ Couldn't load this page. Please reload to try again.";
+
 // ── Formatting ───────────────────────────────────────────────────────────────
 
 // Compact dollar format: $3.5M, $450K, $950

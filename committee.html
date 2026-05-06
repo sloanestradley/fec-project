@@ -1382,6 +1382,28 @@ function renderTopConduits(conduits) {
   }).join('');
 }
 
+// T12.5 — tab-error UI helper. Three variants: rate-limit (429), init-stage non-429,
+// and the existing T12 retry-button shape for tab-fetch failures. The copy strings live
+// in utils.js so edits don't drift between candidate.html and committee.html. Init-stage
+// bridging is candidate-only — committee.html init failure surfaces a page-level
+// state-msg.error before tabs reveal, so the initStage branch here is dormant but
+// preserved for symmetry with candidate.html's helper.
+function showTabError(errorEl, err, defaultMsg) {
+  var msgEl = errorEl.querySelector('.tab-error-msg');
+  var btnEl = errorEl.querySelector('.tab-retry-btn');
+  if (is429(err)) {
+    msgEl.textContent = TAB_ERROR_RATE_LIMIT_MSG;
+    if (btnEl) btnEl.style.display = 'none';
+  } else if (err && err.initStage) {
+    msgEl.textContent = TAB_ERROR_INIT_FAILURE_MSG;
+    if (btnEl) btnEl.style.display = 'none';
+  } else {
+    msgEl.textContent = defaultMsg;
+    if (btnEl) btnEl.style.display = '';
+  }
+  errorEl.style.display = 'flex';
+}
+
 // ── Raised tab: orchestrate render ──────────────────
 // T12 progressive rendering. Idempotent — safe to call multiple times. Donut renders
 // synchronously from breakdown (already in memory). Fast tier (choropleth) and slow tier
@@ -1410,7 +1432,11 @@ function renderRaisedIfReady() {
   // Fast tier — choropleth + KV-resolved top individuals + KV-resolved top committees
   if (raisedFastError && !raisedFastRendered) {
     document.getElementById('raised-fast-skeleton').style.display = 'none';
-    document.getElementById('raised-fast-error').style.display = 'flex';
+    showTabError(
+      document.getElementById('raised-fast-error'),
+      raisedFastError,
+      '⚠ Could not load contribution geography.'
+    );
     raisedFastRendered = true;
   } else if (raisedFastData && !raisedFastRendered) {
     document.getElementById('raised-fast-skeleton').style.display = 'none';
@@ -1438,7 +1464,11 @@ function renderRaisedIfReady() {
     document.getElementById('raised-conduits-skeleton').style.display = 'none';
     document.getElementById('raised-indiv-skeleton').style.display = 'none';
     document.getElementById('raised-still-loading').style.display = 'none';
-    document.getElementById('raised-slow-error').style.display = 'flex';
+    showTabError(
+      document.getElementById('raised-slow-error'),
+      raisedSlowError,
+      '⚠ Could not load top contributors.'
+    );
     raisedSlowRendered = true;
   } else if (raisedSlowData && !raisedSlowRendered) {
     var d = raisedSlowData;
@@ -1839,7 +1869,11 @@ function renderSpentIfReady() {
   if (spentError) {
     document.getElementById('spent-skeleton-wrap').style.display = 'none';
     document.getElementById('spent-content').style.display = 'none';
-    document.getElementById('spent-error').style.display = 'flex';
+    showTabError(
+      document.getElementById('spent-error'),
+      spentError,
+      '⚠ Could not load spending data.'
+    );
     spentRendered = true;
     document.querySelector('.main').style.minHeight = '';
     return;

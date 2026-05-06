@@ -998,3 +998,102 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await expect(page.locator('#spent-error')).toBeHidden();
   });
 });
+
+// ── T12.5: 429-aware error UI + init-stage failure handling ──────────────────
+//
+// committee.html init failures are handled at the page level (state-msg.error)
+// rather than via tab-error bridging — when /committee/{id}/ or /totals/ fails,
+// the committee header never reveals, so tab-error UI is never the right surface.
+// The init-stage tests below confirm that decision (no bridging) hasn't drifted.
+
+test.describe('committee.html — 429-aware error UI (T12.5)', () => {
+  test('init-stage 429 on /committee/{id}/totals/ → page-level state-msg, tabs not revealed', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    // state-msg with error class shows the failure inline
+    const stateMsg = page.locator('#state-msg.error');
+    await expect(stateMsg).toBeVisible({ timeout: 12000 });
+    await expect(stateMsg).toHaveText(/Could not load committee/);
+    // committee header stays hidden — no tab-error UI involved
+    await expect(page.locator('#committee-header')).toBeHidden();
+  });
+
+  test('init-stage non-429 on /committee/{id}/totals/ → page-level state-msg', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    const stateMsg = page.locator('#state-msg.error');
+    await expect(stateMsg).toBeVisible({ timeout: 12000 });
+    await expect(stateMsg).toHaveText(/Could not load committee/);
+  });
+
+  test('tab-fetch 429 → rate-limit copy with retry button hidden', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/rate limit reached/i);
+    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeHidden();
+  });
+
+  test('tab-fetch non-429 (regression) → existing copy + retry button visible', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        route.abort('failed');
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/Could not load top contributors/);
+    await expect(page.locator('#raised-slow-error .tab-error-msg')).not.toHaveText(/rate limit/i);
+    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeVisible();
+  });
+
+  test('cycle switch after tab-fetch 429 clears error and renders new cycle', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    let block429 = true;
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (block429 && url.searchParams.get('is_individual') === 'false') {
+        route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+      } else {
+        route.fallback();
+      }
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    block429 = false;
+    // Switch cycle via the cycle switcher
+    await page.locator('#cycle-switcher').selectOption({ index: 1 });
+    // Conduits card eventually visible on new cycle
+    await expect(page.locator('#conduits-card')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#raised-slow-error')).toBeHidden();
+  });
+});
