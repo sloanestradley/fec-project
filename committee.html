@@ -1166,12 +1166,12 @@ async function fetchRaisedSlowData(cycleOrAll, fastDataPromise) {
     var seenConduits = {};
     commRows.forEach(function(d) {
       if (d.memo_code !== 'X') return;
-      var ckey = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
+      var ckey = d.contributor_id || ((d.contributor_name || '').trim().toUpperCase());
       if (!ckey) return;
       if (!seenConduits[ckey]) seenConduits[ckey] = {
         name: d.contributor_name || '—',
         entity_type: d.entity_type || '',
-        committee_id: d.contributor_committee_id || null,
+        committee_id: d.contributor_id || null,
         total: 0
       };
       seenConduits[ckey].total += (d.contribution_receipt_amount || 0);
@@ -1191,12 +1191,12 @@ async function fetchRaisedSlowData(cycleOrAll, fastDataPromise) {
     commRows.forEach(function(d) {
       if (d.memo_code === 'X') return;
       var amt = d.contribution_receipt_amount || 0;
-      var key = d.contributor_committee_id || ((d.contributor_name || '').trim().toUpperCase());
+      var key = d.contributor_id || ((d.contributor_name || '').trim().toUpperCase());
       if (!key) return;
       if (!seenComm[key]) seenComm[key] = {
         name: d.contributor_name || '—',
         entity_type: d.entity_type || '',
-        committee_id: d.contributor_committee_id || null,
+        committee_id: d.contributor_id || null,
         total: 0
       };
       seenComm[key].total += amt;

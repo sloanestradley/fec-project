@@ -896,23 +896,23 @@ async function fetchRaisedSlowData(committeeId, subCycles) {
   allRows.forEach(function(d) {
     var amt = d.contribution_receipt_amount || 0;
     if (d.memo_code === 'X') {
-      var ckey = d.contributor_committee_id || (d.contributor_name || '').trim().toUpperCase();
+      var ckey = d.contributor_id || (d.contributor_name || '').trim().toUpperCase();
       if (!ckey) return;
       if (!seenConduits[ckey]) seenConduits[ckey] = {
         name: d.contributor_name || '—',
         entity_type: d.entity_type || '',
-        committee_id: d.contributor_committee_id || null,
+        committee_id: d.contributor_id || null,
         total: 0
       };
       seenConduits[ckey].total += amt;
       return;
     }
-    var key = d.contributor_committee_id || (d.contributor_name || '').trim().toUpperCase();
+    var key = d.contributor_id || (d.contributor_name || '').trim().toUpperCase();
     if (!key) return;
     if (!seen[key]) seen[key] = {
       name: d.contributor_name || '—',
       entity_type: d.entity_type || '',
-      committee_id: d.contributor_committee_id || null,
+      committee_id: d.contributor_id || null,
       total: 0
     };
     seen[key].total += amt;
