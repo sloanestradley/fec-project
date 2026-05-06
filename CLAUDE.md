@@ -72,14 +72,15 @@ Helper signatures:
 
 `apiFetch` itself does NOT auto-retry on 429. That's banked future polish (would honor `Retry-After` header from the proxy, retry up to 2 times with backoff, then surface to UI). For now, the user is expected to wait + reload per the rate-limit copy.
 
-**Whole-row link pattern (`.contributions-row`):** Used on the committee.html Spent → "Contributions to Candidates & Committees" table. Anchor in the first cell expands via absolute `::before` pseudo-element to cover the entire row. Native `<a>` semantics preserved: middle-click opens new tab, keyboard focus + Tab navigation, screen reader announces it as a link. CSS:
+**Whole-row link pattern (`.donors-link-row`):** Used on (1) committee.html Spent → "Contributions to Candidates & Committees" table; (2) Top Committee Contributors and Top Conduit Sources tables on candidate.html and committee.html Raised tab. Anchor in the link cell expands via absolute `::before` pseudo-element to cover the entire row. Native `<a>` semantics preserved: middle-click opens new tab, keyboard focus + Tab navigation, screen reader announces it as a link. Explicit `:focus-visible` outline (2px `--accent`, `outline-offset:-2px`) for keyboard users. CSS:
 ```css
-tr.contributions-row { position:relative; cursor:pointer; }
-.contributions-link-cell { position:relative; }
-.contributions-row-link { color:inherit; text-decoration:none; display:block; }
-.contributions-row-link::before { content:''; position:absolute; inset:0; z-index:1; }
+tr.donors-link-row { position:relative; cursor:pointer; }
+.donors-link-cell { position:relative; }
+.donors-link-anchor { color:inherit; text-decoration:none; display:block; }
+.donors-link-anchor:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.donors-link-anchor::before { content:''; position:absolute; inset:0; z-index:1; }
 ```
-Rows without a `recipient_committee_id` render plain (no `.contributions-row` class, no link, no hover). Existing `.donors-table tr:hover td` rule provides the hover affordance — no new hover CSS needed.
+Rows without a committee_id render plain (no `.donors-link-row` class, no link, no hover) — covers unregistered organizations and empty-state messages. Existing `.donors-table tr:hover td` rule provides the hover affordance — no new hover CSS needed. **Class names previously prefixed `.contributions-*`** — renamed 2026-05-06 to align with the `.donors-*` family they modify and to reflect broader usage beyond committee.html Spent. The link cell can be any column position (column 1 in Spent contributions; column 2 in Raised contributors after the rank column) — the `::before` overlay covers the whole row regardless. **Data plumbing:** for the Raised-tab tables, the upstream Schedule A walk's `contributor_committee_id` is preserved as `committee_id` on the accumulator object in `fetchRaisedSlowData` (candidate.html + committee.html); the KV path on committee.html (top_committees) already carries `committee_id` on its row shape.
 
 **Shared committee-row helper (`committeeRowHTML(c, opts)` in utils.js):** Single source of truth for the committee row markup rendered on candidate.html committees modal, /committees browse, and /search results. Returns `<a class="committee-row">` with `<div class="committee-name">` + `<div class="committee-card-meta">` (committee-type tag + status-dot filing-frequency tag). `opts: {fromPage, resultPosition, query, trackEvent}`. All three callers fire the same `'Committee Result Clicked'` Amplitude event by default; `from_page` distinguishes context (`candidate-modal` / `committees` / `search`). To change the row shape, edit the helper once. The previous `.committee-result-row` (search-only flex variant) and `.committee-name-link` (modal-only inner anchor) classes were consolidated away on 2026-05-05 in commit `ea81ff4` — both are dead and no longer in CSS.
 

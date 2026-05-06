@@ -901,6 +901,7 @@ async function fetchRaisedSlowData(committeeId, subCycles) {
       if (!seenConduits[ckey]) seenConduits[ckey] = {
         name: d.contributor_name || '—',
         entity_type: d.entity_type || '',
+        committee_id: d.contributor_committee_id || null,
         total: 0
       };
       seenConduits[ckey].total += amt;
@@ -911,6 +912,7 @@ async function fetchRaisedSlowData(committeeId, subCycles) {
     if (!seen[key]) seen[key] = {
       name: d.contributor_name || '—',
       entity_type: d.entity_type || '',
+      committee_id: d.contributor_committee_id || null,
       total: 0
     };
     seen[key].total += amt;
@@ -1101,6 +1103,15 @@ function renderTopDonors(donors) {
       ? d.name.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
       : '—';
     var label = ENTITY_TYPE_LABELS[d.entity_type] || 'Committee';
+    // Whole-row link when committee_id is present; plain row otherwise.
+    if (d.committee_id) {
+      return '<tr class="donors-link-row">' +
+        '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
+        '<td class="donors-link-cell"><a class="donors-link-anchor" href="/committee/' + d.committee_id + '"><div class="dn">' + name + '</div></a></td>' +
+        '<td style="font-size:0.625rem;color:var(--muted)">' + label + '</td>' +
+        '<td class="da">' + fmtFull(d.total) + '</td>' +
+      '</tr>';
+    }
     return '<tr>' +
       '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
       '<td><div class="dn">' + name + '</div></td>' +
@@ -1126,6 +1137,15 @@ function renderTopConduits(conduits) {
       ? d.name.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
       : '—';
     var label = ENTITY_TYPE_LABELS[d.entity_type] || 'Committee';
+    // Whole-row link when committee_id is present (e.g. ActBlue → /committee/C00401224).
+    if (d.committee_id) {
+      return '<tr class="donors-link-row">' +
+        '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
+        '<td class="donors-link-cell"><a class="donors-link-anchor" href="/committee/' + d.committee_id + '"><div class="dn">' + name + '</div></a></td>' +
+        '<td style="font-size:0.625rem;color:var(--muted)">' + label + '</td>' +
+        '<td class="da">' + fmtFull(d.total) + '</td>' +
+      '</tr>';
+    }
     return '<tr>' +
       '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
       '<td><div class="dn">' + name + '</div></td>' +

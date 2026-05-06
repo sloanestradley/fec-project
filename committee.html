@@ -1171,6 +1171,7 @@ async function fetchRaisedSlowData(cycleOrAll, fastDataPromise) {
       if (!seenConduits[ckey]) seenConduits[ckey] = {
         name: d.contributor_name || '—',
         entity_type: d.entity_type || '',
+        committee_id: d.contributor_committee_id || null,
         total: 0
       };
       seenConduits[ckey].total += (d.contribution_receipt_amount || 0);
@@ -1195,6 +1196,7 @@ async function fetchRaisedSlowData(cycleOrAll, fastDataPromise) {
       if (!seenComm[key]) seenComm[key] = {
         name: d.contributor_name || '—',
         entity_type: d.entity_type || '',
+        committee_id: d.contributor_committee_id || null,
         total: 0
       };
       seenComm[key].total += amt;
@@ -1444,6 +1446,17 @@ function renderCommitteeDonors(donors) {
       ? d.name.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
       : '—';
     var label = ENTITY_TYPE_LABELS[d.entity_type] || 'Committee';
+    // Whole-row link when committee_id is present. Both data paths (KV-bulk
+    // and live-API fallback) carry committee_id; rare unregistered contributors
+    // fall through to the plain-row branch.
+    if (d.committee_id) {
+      return '<tr class="donors-link-row">' +
+        '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
+        '<td class="donors-link-cell"><a class="donors-link-anchor" href="/committee/' + d.committee_id + '"><div class="dn">' + name + '</div></a></td>' +
+        '<td style="font-size:0.625rem;color:var(--muted)">' + label + '</td>' +
+        '<td class="da">' + fmtFull(d.total) + '</td>' +
+      '</tr>';
+    }
     return '<tr>' +
       '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
       '<td><div class="dn">' + name + '</div></td>' +
@@ -1465,6 +1478,15 @@ function renderTopConduits(conduits) {
       ? d.name.toLowerCase().replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); })
       : '—';
     var label = ENTITY_TYPE_LABELS[d.entity_type] || 'Committee';
+    // Whole-row link when committee_id is present (e.g. ActBlue → /committee/C00401224).
+    if (d.committee_id) {
+      return '<tr class="donors-link-row">' +
+        '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
+        '<td class="donors-link-cell"><a class="donors-link-anchor" href="/committee/' + d.committee_id + '"><div class="dn">' + name + '</div></a></td>' +
+        '<td style="font-size:0.625rem;color:var(--muted)">' + label + '</td>' +
+        '<td class="da">' + fmtFull(d.total) + '</td>' +
+      '</tr>';
+    }
     return '<tr>' +
       '<td style="color:var(--muted);font-size:0.625rem">' + (i+1) + '</td>' +
       '<td><div class="dn">' + name + '</div></td>' +
@@ -1911,8 +1933,8 @@ function renderContributions(contributions) {
     // while making the entire row clickable. Rows without a recipient_committee_id
     // render plain (no link, no hover state).
     if (c.recipient_committee_id) {
-      return '<tr class="contributions-row">' +
-        '<td class="contributions-link-cell"><a class="contributions-row-link" href="/committee/' + c.recipient_committee_id + '"><div class="dn">' + name + '</div></a></td>' +
+      return '<tr class="donors-link-row">' +
+        '<td class="donors-link-cell"><a class="donors-link-anchor" href="/committee/' + c.recipient_committee_id + '"><div class="dn">' + name + '</div></a></td>' +
         '<td style="font-size:0.625rem;color:var(--muted)">' + candidateInfo + '</td>' +
         '<td class="da">' + fmtFull(c.total) + '</td>' +
       '</tr>';

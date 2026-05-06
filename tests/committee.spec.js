@@ -562,6 +562,23 @@ test.describe('committee.html — Raised tab sections', () => {
     const text = await title.textContent();
     expect(text).not.toContain('Most recent cycle');
   });
+
+  test('top committee contributor rows are whole-row links to /committee/{id}', async ({ page }) => {
+    // KV-bulk path carries committee_id directly; live-API fallback now also
+    // preserves committee_id from the contributor_committee_id field.
+    const linkRow = page.locator('#committee-donors-tbody tr.donors-link-row').first();
+    await expect(linkRow).toBeAttached();
+    const anchor = linkRow.locator('a.donors-link-anchor');
+    await expect(anchor).toHaveAttribute('href', /^\/committee\/C\d{8}$/);
+  });
+
+  test('top conduit source rows are whole-row links when committee_id is present', async ({ page }) => {
+    await page.locator('#raised-tab-btn-conduits').click();
+    const linkRow = page.locator('#conduits-tbody tr.donors-link-row').first();
+    await expect(linkRow).toBeAttached();
+    const anchor = linkRow.locator('a.donors-link-anchor');
+    await expect(anchor).toHaveAttribute('href', /^\/committee\/C\d{8}$/);
+  });
 });
 
 // ── Raised tab: unavailable-state copy ───────────────────────────────────────
@@ -635,6 +652,15 @@ test.describe('committee.html — Spent tab sections', () => {
   test('contributions-tbody has at least one row', async ({ page }) => {
     const rows = page.locator('#contributions-tbody tr');
     await expect(rows).not.toHaveCount(0);
+  });
+
+  test('contributions rows with recipient_committee_id render as whole-row links', async ({ page }) => {
+    // Mock includes Friend for Congress (C00123456) — should render as .donors-link-row
+    // with /committee/{id} href on .donors-link-anchor.
+    const linkRow = page.locator('#contributions-tbody tr.donors-link-row').first();
+    await expect(linkRow).toBeAttached();
+    const anchor = linkRow.locator('a.donors-link-anchor');
+    await expect(anchor).toHaveAttribute('href', /^\/committee\/C\d{8}$/);
   });
 
   test('vendors header shows cycle range (no "All time" label)', async ({ page }) => {

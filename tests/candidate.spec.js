@@ -364,6 +364,24 @@ test.describe('candidate.html — Raised tab sections', () => {
   test('raised breakdown cell title reads "Raised breakdown"', async ({ page }) => {
     await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
   });
+
+  test('top committee contributor rows are whole-row links to /committee/{id}', async ({ page }) => {
+    // Mock data carries contributor_committee_id → row should render as .donors-link-row
+    // with .donors-link-anchor pointing at /committee/{id}.
+    const linkRow = page.locator('#donors-tbody tr.donors-link-row').first();
+    await expect(linkRow).toBeAttached();
+    const anchor = linkRow.locator('a.donors-link-anchor');
+    await expect(anchor).toHaveAttribute('href', /^\/committee\/C\d{8}$/);
+  });
+
+  test('top conduit source rows are whole-row links when committee_id is present', async ({ page }) => {
+    await page.locator('#raised-tab-btn-conduits').click();
+    // ActBlue row in mock carries contributor_committee_id — should render as link
+    const linkRow = page.locator('#conduits-tbody tr.donors-link-row').first();
+    await expect(linkRow).toBeAttached();
+    const anchor = linkRow.locator('a.donors-link-anchor');
+    await expect(anchor).toHaveAttribute('href', /^\/committee\/C\d{8}$/);
+  });
 });
 
 // ── Committees modal ──────────────────────────────────────────────────────────

@@ -322,18 +322,20 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .donors-table .ds { font-size:0.625rem; color:var(--muted); margin-top:var(--space-2); /* micro: sub-label sits flush beneath donor name */ }
 .donors-table .da { font-family:'Oswald',sans-serif; font-size:0.875rem; font-weight:600;
   text-transform:uppercase; text-align:right; color:var(--text); }
-/* Whole-row link pattern (committee.html Spent → Contributions table). The anchor
-   in the first cell carries native link semantics; an absolute-positioned ::before
-   pseudo expands across the full row so the entire row is clickable. Middle-click,
-   keyboard focus, and screen-reader announcement all work as a regular link.
-   The .contributions-row-link itself drops the default underline + blue color so
-   the recipient name reads as plain prose. */
-tr.contributions-row { position:relative; cursor:pointer; }
-.contributions-link-cell { position:relative; }
-.contributions-row-link { color:inherit; text-decoration:none; display:block; }
-.contributions-row-link:hover, .contributions-row-link:focus { text-decoration:none; }
-.contributions-row-link:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
-.contributions-row-link::before { content:''; position:absolute; inset:0; z-index:1; }
+/* Whole-row link pattern. The anchor in the first cell carries native link
+   semantics; an absolute-positioned ::before pseudo expands across the full row
+   so the entire row is clickable. Middle-click, keyboard focus, and screen-reader
+   announcement all work as a regular link. The .donors-link-anchor itself drops
+   the default underline + blue color so the row reads as plain prose. Used on
+   committee.html Spent → Contributions table, and on Top Committee Contributors
+   + Top Conduit Sources tables on candidate.html and committee.html Raised tab.
+   Class names are aligned with the .donors-* family they modify. */
+tr.donors-link-row { position:relative; cursor:pointer; }
+.donors-link-cell { position:relative; }
+.donors-link-anchor { color:inherit; text-decoration:none; display:block; }
+.donors-link-anchor:hover, .donors-link-anchor:focus { text-decoration:none; }
+.donors-link-anchor:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.donors-link-anchor::before { content:''; position:absolute; inset:0; z-index:1; }
 
 /* ── G: Spend purpose bars ── */
 .spend-bar-item { margin-bottom:var(--space-16); }
