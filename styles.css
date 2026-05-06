@@ -686,6 +686,17 @@ tr.donors-link-row { position:relative; cursor:pointer; }
 /* Inside a tab panel, the .donors-card spacing collapses — the .tab-section
    header already provides the section-level top spacing. */
 .tab-section-panel .donors-card { padding-top:0; margin-bottom:0; }
+/* Lock column widths across tab-switched contributor tables so cols 1/3/4
+   don't bounce between Committees / Conduits / Individuals. Col 2 (name)
+   auto-fills the remainder. table-layout:fixed honors declared widths
+   strictly; long names wrap at word boundaries inside the name column. */
+.tab-section-panel .donors-table { table-layout:fixed; }
+.tab-section-panel .donors-table th:nth-child(1),
+.tab-section-panel .donors-table td:nth-child(1) { width:3rem; }
+.tab-section-panel .donors-table th:nth-child(3),
+.tab-section-panel .donors-table td:nth-child(3) { width:9.5rem; }
+.tab-section-panel .donors-table th:nth-child(4),
+.tab-section-panel .donors-table td:nth-child(4) { width:7rem; }
 
 .results-area { padding:var(--space-32) var(--page-gutter); }
 .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
