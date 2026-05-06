@@ -4754,3 +4754,89 @@ The through-line: you steer for code AND processes that age well. The code insti
 - **Race.html in-place transition adoption when it eventually scales.** initViewSwitcher() in utils.js is now the standard mechanism — race.html should adopt the helper rather than re-implementing transitions inline. The full regression-parity test set to mirror per page (path-segment URL, trailing slash, no-ID friendly, non-existent year, invalid tab, scroll-clamp via index padding) is documented in candidate.spec.js + committee.spec.js as the canonical reference. Race's race-surface (no pun intended) needs identification when that lands — candidate's lives in loadCycle (await-based), committee's lives in renderXIfReady (Schedule A/B fetches), race's will depend on its own data flow shape.
 - **Manual browser verification still outstanding for committee.html.** Playwright is comprehensively green (496/496) but I haven't loaded /committee/C00806174 or /committee/C00010603 in a real browser this session. The dev server is running on port 8788 — would be worth a 5-minute eyeball before next session, especially the long-history DCCC case for archive-divider behavior under in-place transitions and the Marie case for the compact-continuity flow. (The verification fixes this session resolved everything Playwright could test; residual visual-feel checks are the remaining gap.)
 - **Workflow shift: rituals after verification.** This session is the concrete instance that produced the rule. Saved as a feedback memory. Worth surfacing if future sessions get into a similar pattern of bundling rituals with implementation — the rule is now load-bearing for keeping process logs trustworthy.
+
+---
+2026-05-05
+
+## Process log draft
+
+**The rate-limit arc, retold honestly**
+
+What started as "T11: defer the committees-modal eager fetches" became a multi-week, nine-commit arc that touched almost every loading state on candidate.html and committee.html. The shape of the work changed mid-flight twice — once because a small investigation surfaced a load-bearing design constraint we hadn't seen, and once because of a UX call that prioritized cross-page consistency over a smaller diff. Both pivots produced cleaner outcomes than the original plans described. That's the lesson worth banking: diagnostic-first ticket discipline catches design holes early enough that the rescope is cheap.
+
+T11 was the easy half — the committees modal already had a `committeesLoaded` flag and a modal-open call site, so deferring the fetches was mostly deletion: drop the eager call from `init()`, drop the button-label count overwrite, race-guard the flag on entry. Two API calls saved per cycle load for every visit, including users who never open the modal. The button reads `Committees →` now — the count was the price of eager-fetch, and we agreed losing the count was worth instant button rendering.
+
+T11.5 was meant to be a small follow-up — gate the `/schedules/schedule_a/?is_individual=false` fetch on committee.html for committees that aren't conduits. Diagnostic-first investigation killed it: a sample of 11 committees showed every type with non-trivial memo data, no clean static gate at zero-threshold. Worth banking: server-side `memo_code=X` filter is silently ignored by FEC (added to CLAUDE.md alongside the existing schedule_a/by_state and schedule_b/entity_type silent-ignore notes). T11.5 closed without shipping; the strategy doc preserves the analysis.
+
+T12 was the big rescope. Original plan: defer Raised/Spent fetches from cycle-load eager to tab-click lazy — same pattern as T11 but for two more surfaces. Latency investigation found Schedule A non-individual page 1 takes 5–25s on principal CCs (cold cache; FEC load balancers serve from independent caches). Pelosi's first hit was 24.6s, second was 0.13s — variance is real. Lazy fetch would expose those seconds as a visible skeleton from click time; eager fetch hides them behind Summary-tab attention. Same total wait, different perceived UX. We rescoped to loading-state polish only and deferred lazy fetch until the KV pipeline extends to top-committees + top-conduits.
+
+What that polish became: split fetchRaisedData into fast-tier (by_state + KV reads) and slow-tier (Schedule A non-indiv pagination), each rendering independently when its fetch resolves. Donut renders synchronously from totals. Per-tier skeleton + per-tier error UI with retry button. 10s "still loading" augmentation. Then T12.5 added 429-aware copy (no retry button — clicking retry would just re-hit the limit window) and bridged init-stage failures so skeletons don't hold forever when the eager init sequence throws. Then a donut-skeleton fix because the donut cell was empty during cycle switch. Then the title-always-visible refactor because section titles felt awkward sitting only after data loaded. Then the contributions-section polish (data note below the table, whole-row clickable). Then the committee-row consolidation — single shared helper across modal/browse/search, three pages now render the same shape. Then a one-line CSS fix for section-title spacing in the modal.
+
+Each commit was scoped tight, but the arc kept finding more polish opportunities. The throughline: every UX surface this session touched got a "what would the cleanest version look like?" pass, and we kept saying yes.
+
+Changelog:
+- T11 (`b10c9b5`) — defer candidate.html committees-modal eager fetches; trigger reads `Committees →` (no count); race-guard `committeesLoaded` on entry to fetchAndRenderCommittees
+- T11.5 close (`af2dfef`) — investigation deferred to T12; CLAUDE.md memo_code silent-ignore note; strategy/t11-5-conduit-gate.md banks the analysis
+- T12 (`f496351`) — rescoped from lazy fetch to loading-state polish after latency investigation surfaced 5–25s Schedule A non-indiv waits; fetchRaisedData split fast + slow; donut renders synchronously; per-tier skeleton + error UI with retry; 10s still-loading augmentation; Spent inner try/catch removed so errors propagate
+- T12.5 (`ef377d0`) — 429-aware tab-error UI (`is429` detector, no-retry copy); init-stage failure bridging on candidate.html (`err.initStage` flag, three render branches) so skeletons don't hold forever
+- Donut skeleton (`ba1eee8`) — Raised tab donut shows skeleton during cycle switch
+- Skeleton refactor (`506480a`) — title-always-visible pattern across all chart/table cells; per-section skeletons on Spent tab; `border-bottom` removed from `.donors-head`
+- Contributions polish (`c1add5a`) — data note moved below table; whole-row link via absolute `::before` overlay
+- Committee-row consolidation (`ea81ff4`) — shared `committeeRowHTML(c, opts)` helper across candidate modal, /committees browse, /search results; removed `.committee-result-row`, `.committee-result-name`, `.committee-name-link` CSS
+- Modal section-title spacing (`d8ff951`) — adjacent sibling combinator, one CSS line, no markup change
+
+Test count: 496 → 524 (+28 net).
+
+Field notes:
+
+The most interesting moment in the arc was the T12 rescope. The investigation produced a finding (Schedule A non-indiv = 5–25s) that didn't match what the implementation plan assumed (sub-second fetches, lazy-load is a clean win). The shape of the right answer changed because of data we didn't have until we measured. That's diagnostic-first ticket discipline doing its job — the rescope cost half a session, but shipping lazy fetch with a 25s visible skeleton would have cost a regression bug, a rollback, and Sloane's confidence in the diagnostic process.
+
+The Pelosi 24s outlier was the second instructive moment. Run 1: 25.5s. Run 2: 0.13s. Run 3: 0.26s. FEC load balancers serve from independent caches; the same query can hit a cold or warm instance unpredictably. Mean latency isn't enough — you have to think about variance. Production has many users; the marginal user is sometimes the cold-cache user. The "still loading…" augmentation at 10s exists specifically for that user.
+
+The committee-row consolidation was the cleanest single commit of the session — three callers, one shared helper, ~30 lines removed across files. The cross-page test of "would I notice if this row was rendered by a different page?" failed: the search results, browse rows, and modal rows all looked identical but were three different inline markup paths. Consolidating cost ~45 minutes; the "now editing in one place reflects everywhere" property compounds for the rest of the project's life.
+
+The skeleton-titles-always-visible pattern is the kind of polish call that's hard to articulate in advance but obvious in retrospect. The donut and map already had titles outside their skeletons; the donor tables didn't. Once that asymmetry was named, the fix was straightforward — every cell now has the same shape: title outside, skeleton inside content area, swap on data resolve. The pattern reads as "of course it works this way" — which is the test of a good design pattern, not how clever it is, but how forgettable.
+
+The 429 handling is honest now in a way it wasn't before. Pre-T12.5, a 429 surfaced as a generic "Could not load X" with a retry button that would just re-hit the limit. The new copy ("FEC API rate limit reached. Please wait a minute, then reload the page.") sets correct expectations and removes the affordance that would just frustrate the user. The init-stage variant ("Couldn't load this page. Please reload to try again.") preserves the same shape but acknowledges retry won't help — the kickoff context wasn't populated, only a full reload can recover.
+
+Stack tags: progressive rendering split (fetchRaisedFastData + fetchRaisedSlowData), per-tier skeletons + error UI, `is429` + `TAB_ERROR_*` constants in utils.js, init-stage failure bridging via `err.initStage`, `committeeRowHTML(c, opts)` shared helper, whole-row link via absolute `::before` overlay, adjacent-sibling combinator for section-title spacing, donut skeleton swap pattern
+
+## How Sloane steered the work
+
+**"Investigate before scoping" — applied repeatedly.**
+
+Every ticket in this arc was diagnostic-first. The T11 prompt asked for concerns and a plan before code. T11.5 was investigation-only. T12 had a latency measurement step that rewrote its own plan. T12.5 had an existing-pattern survey before the implementation shape was decided. The pattern produced two rescopes (T11.5 → defer, T12 → rescope from lazy to polish) and prevented at least two regressions (the no-safe-static-gate finding, and the click-Raised-wait-25s UX hole). The discipline cost ~30–40 minutes of investigation per ticket and saved meaningfully more in implementation+rollback time.
+
+**The T12 rescope itself.**
+
+The latency investigation produced a finding ("5–25s on principal CCs"). The investigation findings didn't dictate the rescope — Sloane did. My instinct after surfacing the latency was "that's bad but technically the same wait time either way, ship lazy fetch with a substantive skeleton." Sloane's instinct was "no — eager-fetch is hiding the wait behind Summary attention; lazy-fetch surfaces it as a visible skeleton; that's a regression in perceived UX even if total wait is the same." The rescope to "loading-state polish only, lazy deferred until KV extends" was Sloane's call and it was right. The skeleton I would have shipped would have been correct in metrics and wrong in feel.
+
+**"Test on a smaller committee" — the local KV finding.**
+
+When I reported "all three Raised tables show 'Unable to show due to high transaction volume' on Marie locally, this might be a regression," Sloane asked the right diagnostic question: is local KV populated? It wasn't (per CLAUDE.md design — local dev uses an empty wrangler-simulated KV). Pre-T12-and-pre-existing behavior on Marie locally has always been all-three-empty when KV is empty AND Marie's volume exceeds pagination thresholds. The "test on a smaller committee" pivot — Timber PAC has 15 rows, fits within thresholds, exercises the API fallback path cleanly — let me verify the bug wasn't a regression without spinning up KV writes. Sloane caught the diagnostic shape; I would have spent an hour bisecting commits before reaching the right question.
+
+**"Make titles always visible" — the polish push.**
+
+After the donut skeleton fix, I'd shipped "donut + map title outside, donor table titles inside the skeleton-replaced cards." Sloane noticed the inconsistency: section titles in some cells render immediately, in others only after data loads. The push was for one consistent pattern across all surfaces. The refactor was 500+ lines of mostly mechanical churn (per-section skeleton/content pairs across both pages, both tabs), but the result is a pattern that future surfaces will inherit "for free" — the next loading-state cell on this site doesn't need a design conversation. Worth the cost.
+
+**"Cross-page consolidation" — the committee-row call.**
+
+After the modal restructure made it use the same `.committee-row` class as `/committees` browse, I scoped the next change as "modal-only polish." Sloane pushed for the cross-page consolidation: search.html still had `.committee-result-row` (a flex variant) doing the same thing. The full consolidation — single shared `committeeRowHTML(c, opts)` helper, three callers, one CSS class, two dead rules removed — was about 45 minutes of additional work but eliminated a class of "I edited the modal but didn't notice the search.html version drifted" bugs that would otherwise compound for the rest of the project's life.
+
+**"Adjacent sibling combinator" — minimum-CSS instinct.**
+
+When section titles in the modal were sitting flush against the last row, my first instinct was to wrap each group in a div. Sloane asked for the cleanest method and gave me space to think. The adjacent sibling combinator (`.modal-body .committee-row + .section-title { margin-top: var(--space-24) }`) was the right answer: no markup change, no global side effects, one CSS line. The "wrap in a div" would have worked but was the more invasive shape. Naming the question as "what's the cleanest" rather than "implement the spacing" let me find the better answer.
+
+**Through-line:** Sloane consistently steers for the version of the work that ages well. Diagnostic before code. Rescope when findings change the right answer. Cross-page consolidation when the cost is one helper. Minimum-CSS instinct when the obvious answer is the right one. The arc shipped better outcomes than my initial implementation plans described — every time, that's because Sloane named the higher-quality target before I committed to the local optimum.
+
+## What to bring to Claude Chat
+
+- **The rate-limit arc closes here, but the underlying constraint persists.** Schedule A non-individual fetches are 5–25s on principal CCs. The KV pipeline currently covers top-individuals and top-committees but not top-conduits. Extending KV to conduits would unblock real lazy-fetch (T12 deferred), eliminate the slow tier on Raised, and let us collapse the per-tier skeleton / 10s-still-loading scaffolding back to a simpler shape. Worth a Phase 4 conversation: is conduit pre-computation a small bolt-on to the existing pipeline, or does it need its own architecture (memo rows are different from the pas2 source)? The strategy/t12-loading-state-rescope.md doc names this dependency.
+
+- **Auto-retry-with-backoff in apiFetch is banked.** The Pages Function already passes through `Retry-After`. Adding 1–2 retries with backoff (cap ~5s) would make the typical transient 429 invisible to the user. T12.5 explicitly deferred it — worth a small dedicated session if 429s become noisy in real traffic.
+
+- **Server-side proxy caching at functions/api/fec/[[path]].js.** Phase 4 architectural lift — would collapse all visitor traffic into one cold fetch per TTL period. Already noted for races.html in CLAUDE.md's architectural debt section; same shape would cover candidate.html + committee.html. Probably the single highest-leverage Phase 4 infrastructure move.
+
+- **Process: this session ran 9 commits + 7 docs files updated in one ritual close.** Per-commit rituals would have produced repetitive log entries; the one-shot consolidated approach worked well here. Worth remembering when the next multi-week arc lands — the audit-then-execute shape is reusable.
+
+- **The committee-row consolidation is the kind of cross-page pattern audit that's hard to schedule and easy to lose.** The .committee-result-row / .committee-result-name / .committee-name-link rules had been "well, search.html is shipped, leave it alone" technical debt for months. Sloane's push to consolidate during this session was the right move. Worth a periodic sweep — maybe once a quarter — looking for class-name parallels across pages that could be unified into shared helpers.
