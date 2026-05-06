@@ -1096,4 +1096,22 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#conduits-card')).toBeVisible({ timeout: 12000 });
     await expect(page.locator('#raised-slow-error')).toBeHidden();
   });
+
+  test('Raised donut skeleton: visible before Raised tab visit, hidden once donut renders', async ({ page }) => {
+    await setupDetail(page);
+    // User lands on Summary initially; Raised tab content not yet rendered.
+    // Skeleton element is in the DOM with display:block from renderStats's reset
+    // (it's hidden visually only because parent #tab-raised is display:none).
+    const skel = page.locator('#raised-donut-skeleton');
+    await expect(skel).toBeAttached();
+    // Click Raised → renderRaisedIfReady runs → donut renders synchronously from
+    // ALL_TOTALS-derived breakdown → skeleton swaps to content
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
+    await page.waitForFunction(
+      () => document.getElementById('raised-donut-content').style.display === 'block',
+      { timeout: 8000 }
+    );
+    await expect(skel).toBeHidden();
+    await expect(page.locator('#raised-donut-content')).toBeVisible();
+  });
 });

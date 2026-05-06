@@ -197,15 +197,18 @@
         <div class="raised-grid">
           <div class="raised-cell">
             <div class="raised-cell-title">Raised breakdown</div>
-            <div class="donut-wrap">
-              <div class="donut-chart-wrap">
-                <canvas id="chart-donut"></canvas>
-                <div class="donut-center">
-                  <div class="donut-center-val" id="donut-center-val">—</div>
-                  <div class="donut-center-lbl">Total Raised</div>
+            <div class="skeleton tab-skeleton skeleton-donut" id="raised-donut-skeleton"></div>
+            <div id="raised-donut-content" style="display:none">
+              <div class="donut-wrap">
+                <div class="donut-chart-wrap">
+                  <canvas id="chart-donut"></canvas>
+                  <div class="donut-center">
+                    <div class="donut-center-val" id="donut-center-val">—</div>
+                    <div class="donut-center-lbl">Total Raised</div>
+                  </div>
                 </div>
+                <div class="donut-legend" id="donut-legend"></div>
               </div>
-              <div class="donut-legend" id="donut-legend"></div>
             </div>
           </div>
           <div class="raised-cell">
@@ -912,6 +915,8 @@ function renderStats(cycleOrAll) {
   raisedDonutRendered = false;
   if (raisedStillLoadingTimer) { clearTimeout(raisedStillLoadingTimer); raisedStillLoadingTimer = null; }
   if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
+  document.getElementById('raised-donut-skeleton').style.display = 'block';
+  document.getElementById('raised-donut-content').style.display = 'none';
   var mapEl = document.getElementById('map-container');
   if (mapEl) { mapEl.innerHTML = ''; mapEl.style.display = 'none'; }
   var mapLegEl = document.getElementById('map-legend');
@@ -1413,9 +1418,11 @@ function renderRaisedIfReady() {
   // Render only when user is on Raised tab — Chart.js needs a visible canvas
   var curTab = document.querySelector('.tab.active');
   if (!curTab || curTab.getAttribute('href') !== '#raised') return;
-  if (!currentTotalsRecord && !raisedDonutRendered) return; // no totals yet — too early
 
-  // Donut — synchronous from current totals record
+  // Donut — synchronous from current totals record. Skeleton holds during the
+  // (essentially zero-width) window between renderStats's reset and the assignment
+  // of currentTotalsRecord. On any tier error, hide the skeleton without showing
+  // content so the cell collapses cleanly next to the surfaced error UI.
   if (!raisedDonutRendered && currentTotalsRecord) {
     var rec = currentTotalsRecord;
     var breakdown = {};
@@ -1425,7 +1432,12 @@ function renderRaisedIfReady() {
      'other_receipts','loans_made_by_candidate','all_other_loans','federal_funds',
      'offsets_to_operating_expenditures','offsets_to_fundraising_expenditures',
      'offsets_to_legal_accounting'].forEach(function(k){ breakdown[k] = rec[k] || 0; });
+    document.getElementById('raised-donut-skeleton').style.display = 'none';
+    document.getElementById('raised-donut-content').style.display = 'block';
     renderContributorDonut(breakdown, rec.receipts || 0);
+    raisedDonutRendered = true;
+  } else if (!raisedDonutRendered && (raisedFastError || raisedSlowError)) {
+    document.getElementById('raised-donut-skeleton').style.display = 'none';
     raisedDonutRendered = true;
   }
 

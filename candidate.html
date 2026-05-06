@@ -219,15 +219,18 @@
         <div class="raised-grid">
           <div class="raised-cell">
             <div class="raised-cell-title">Raised breakdown</div>
-            <div class="donut-wrap">
-              <div class="donut-chart-wrap">
-                <canvas id="chart-donut"></canvas>
-                <div class="donut-center">
-                  <div class="donut-center-val" id="donut-center-val">—</div>
-                  <div class="donut-center-lbl">Total Raised</div>
+            <div class="skeleton tab-skeleton skeleton-donut" id="raised-donut-skeleton"></div>
+            <div id="raised-donut-content" style="display:none">
+              <div class="donut-wrap">
+                <div class="donut-chart-wrap">
+                  <canvas id="chart-donut"></canvas>
+                  <div class="donut-center">
+                    <div class="donut-center-val" id="donut-center-val">—</div>
+                    <div class="donut-center-lbl">Total Raised</div>
+                  </div>
                 </div>
+                <div class="donut-legend" id="donut-legend"></div>
               </div>
-              <div class="donut-legend" id="donut-legend"></div>
             </div>
           </div>
           <div class="raised-cell">
@@ -1150,9 +1153,18 @@ function renderRaisedIfReady() {
   var curTab = document.querySelector('.tab.active');
   if (!curTab || curTab.getAttribute('href') !== '#raised') return;
 
-  // Donut — synchronous from totals already in memory
+  // Donut — synchronous from totals once they land. Skeleton holds during the
+  // window between cycle reset and currentTotalsBreakdown being set (init still
+  // running, deep-link to #raised before loadCycle resolves). On init-stage error,
+  // hide the skeleton without showing content — donut won't render and the
+  // adjacent tab-error UI carries the messaging.
   if (!raisedDonutRendered && currentTotalsBreakdown) {
+    document.getElementById('raised-donut-skeleton').style.display = 'none';
+    document.getElementById('raised-donut-content').style.display = 'block';
     renderContributorDonut(currentTotalsBreakdown, currentTotalRaised);
+    raisedDonutRendered = true;
+  } else if (!raisedDonutRendered && (raisedFastError || raisedSlowError)) {
+    document.getElementById('raised-donut-skeleton').style.display = 'none';
     raisedDonutRendered = true;
   }
 
@@ -1554,6 +1566,8 @@ async function loadCycle(cycle) {
   raisedDonutRendered = false;
   if (raisedStillLoadingTimer) { clearTimeout(raisedStillLoadingTimer); raisedStillLoadingTimer = null; }
   if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
+  document.getElementById('raised-donut-skeleton').style.display = 'block';
+  document.getElementById('raised-donut-content').style.display = 'none';
   document.getElementById('map-container').innerHTML = '';
   document.getElementById('map-container').style.display = 'none';
   document.getElementById('map-legend').style.display = 'none';
@@ -1834,11 +1848,9 @@ async function loadCycle(cycle) {
     raisedFastError = err;
     raisedSlowError = err;
     spentError      = err;
-    // Mark donut as "rendered" so the minHeight floor in renderRaisedIfReady
-    // clears once both tier errors are surfaced — donut won't render (no totals
-    // data on init failure), but treating it as settled keeps the page from
-    // stuck-tall for the rest of the session.
-    raisedDonutRendered = true;
+    // Donut skeleton is hidden by renderRaisedIfReady's init-stage-error branch
+    // (donut won't render without totals data; skeleton would otherwise pulse
+    // forever next to the tab-error UI).
     renderRaisedIfReady();
     renderSpentIfReady();
   }

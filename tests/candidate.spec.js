@@ -1199,4 +1199,19 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#donors-card')).toBeVisible({ timeout: 12000 });
     await expect(page.locator('#raised-slow-error')).toBeHidden();
   });
+
+  test('Raised donut skeleton: present in DOM, hidden once donut renders', async ({ page }) => {
+    await setup(page);
+    // Skeleton element is in DOM (was display:block in loadCycle reset; hidden visually
+    // only because parent #tab-raised is display:none on Summary)
+    await expect(page.locator('#raised-donut-skeleton')).toBeAttached();
+    // Click Raised → renderRaisedIfReady runs → donut renders synchronously from
+    // currentTotalsBreakdown (set during loadCycle, in memory at click time) → skeleton hides
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+    await page.waitForFunction(
+      () => document.getElementById('raised-donut-content').style.display === 'block',
+      { timeout: 8000 }
+    );
+    await expect(page.locator('#raised-donut-skeleton')).toBeHidden();
+  });
 });
