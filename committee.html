@@ -31,8 +31,9 @@
        natural top edge handles the rhythm. */
     #summary-strip { opacity:0; transition:opacity 0.3s ease; }
     #summary-strip.visible { opacity:1; }
-    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); margin-bottom:0; }
-    /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells */
+    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+    /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells.
+       margin-bottom is shared with #summary-strip in styles.css (T21 follow-up). */
     #career-strip { opacity:0; transition:opacity 0.3s ease; }
     #career-strip.visible { opacity:1; }
     #career-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
@@ -121,7 +122,6 @@
         <div class="stat-card">
           <div class="stat-label">Coverage Through</div>
           <div class="stat-value" id="stat-coverage" style="font-size:1.25rem;padding-top:0.4rem">—</div>
-          <div class="stat-sub">Most recent report</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Cash on Hand</div>
