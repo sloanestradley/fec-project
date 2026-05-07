@@ -272,10 +272,11 @@ test.describe('committee.html — index view landing state', () => {
     await expect(page.locator('#cstat-first-filed')).toHaveText('2020');
   });
 
-  test('Last Activity cell shows year + sub-date from last_file_date', async ({ page }) => {
-    await expect(page.locator('#cstat-last-activity')).toHaveText('2026');
-    const sub = await page.locator('#cstat-last-activity-sub').textContent();
-    expect(sub?.trim().length).toBeGreaterThan(0);
+  test('Last Activity cell shows fmtDate-formatted last_file_date in stat-value', async ({ page }) => {
+    // Mock fixture: last_file_date = '2026-04-15' → fmtDate → 'Apr 15, 2026'
+    await expect(page.locator('#cstat-last-activity')).toHaveText('Apr 15, 2026');
+    // No sub element on this card anymore
+    await expect(page.locator('#cstat-last-activity-sub')).toHaveCount(0);
   });
 
   test('Lifetime Raised matches summed receipts across all COMMITTEE_TOTALS rows', async ({ page }) => {

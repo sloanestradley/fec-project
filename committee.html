@@ -160,7 +160,6 @@
         <div class="stat-card">
           <div class="stat-label">Last Activity</div>
           <div class="stat-value" id="cstat-last-activity">—</div>
-          <div class="stat-sub"  id="cstat-last-activity-sub"></div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Lifetime Raised</div>
@@ -489,8 +488,7 @@ function renderCareerStrip(firstFiledYear, lastFileDate, allTotals) {
   var lifetimeSpent  = allTotals.reduce(function(s, r){ return s + (r.disbursements || 0); }, 0);
   document.getElementById('cstat-first-filed').textContent = firstFiledYear || '—';
   if (lastFileDate) {
-    document.getElementById('cstat-last-activity').textContent = String(lastFileDate).slice(0, 4);
-    document.getElementById('cstat-last-activity-sub').textContent = fmtDate(lastFileDate);
+    document.getElementById('cstat-last-activity').textContent = fmtDate(lastFileDate);
   }
   document.getElementById('cstat-career-raised').textContent = lifetimeRaised ? fmt(lifetimeRaised) : '—';
   document.getElementById('cstat-career-spent').textContent  = lifetimeSpent  ? fmt(lifetimeSpent)  : '—';
