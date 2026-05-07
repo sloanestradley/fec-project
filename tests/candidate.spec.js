@@ -263,6 +263,28 @@ test.describe('candidate.html — health banner', () => {
     const firstLabel = page.locator('#summary-strip .stats-grid .stat-card').first().locator('.stat-label');
     await expect(firstLabel).toHaveText('Raised-to-Spent Ratio');
   });
+
+  test('#summary-strip precedes #tabs-bar in the DOM (T21 contract)', async ({ page }) => {
+    await setupWithContent(page);
+    const stripBeforeTabs = await page.evaluate(() => {
+      const strip = document.querySelector('#summary-strip');
+      const tabs = document.querySelector('#tabs-bar');
+      if (!strip || !tabs) return false;
+      return !!(strip.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(stripBeforeTabs).toBe(true);
+  });
+
+  test('inside #summary-strip, .stats-grid precedes #banner (T21 banner inversion)', async ({ page }) => {
+    await setupWithContent(page);
+    const statsBeforeBanner = await page.evaluate(() => {
+      const stats = document.querySelector('#summary-strip .stats-grid');
+      const banner = document.querySelector('#summary-strip #banner');
+      if (!stats || !banner) return false;
+      return !!(stats.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(statsBeforeBanner).toBe(true);
+  });
 });
 
 // ── Chart ─────────────────────────────────────────────────────────────────────

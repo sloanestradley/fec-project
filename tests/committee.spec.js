@@ -152,6 +152,16 @@ test.describe('committee.html — detail view', () => {
     await expect(firstLabel).toHaveText('Coverage Through');
   });
 
+  test('#summary-strip precedes #tabs-bar in the DOM (T21 contract)', async ({ page }) => {
+    const stripBeforeTabs = await page.evaluate(() => {
+      const strip = document.querySelector('#summary-strip');
+      const tabs = document.querySelector('#tabs-bar');
+      if (!strip || !tabs) return false;
+      return !!(strip.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(stripBeforeTabs).toBe(true);
+  });
+
   test('cycle switcher is present inside .tabs-bar', async ({ page }) => {
     await expect(page.locator('.tabs-bar #cycle-switcher')).toBeAttached();
   });

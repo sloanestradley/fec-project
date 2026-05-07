@@ -24,18 +24,25 @@
     #race-context-bar { padding:var(--space-16) var(--page-gutter);
       opacity:0; transition:opacity 0.4s ease; min-height:var(--space-32); }
     #race-context-bar.visible { opacity:1; }
-    /* Summary strip — persistent banner + stats across tabs.
-       Strip is full-width inside .main-inner so the navy borders on .banner
-       and .stats-grid extend edge-to-edge; horizontal gutter padding is
-       applied to the bordered children so their content stays flush with
-       the rest of the page's gutter-aligned content. */
+    /* Summary strip — persistent cycle stats + health banner. Lives in its own
+       .main-inner between #profile-header and #tabs-bar so it scrolls away
+       under the sticky tabs-bar as users move into tab content. Strip is
+       full-width inside .main-inner so the navy borders on .stats-grid extend
+       edge-to-edge; horizontal gutter padding is applied to bordered children
+       so their content stays flush with the rest of the page's gutter-aligned
+       content. Inside the strip on candidate.html: stats-grid first, banner
+       below — banner is de-emphasised against the marquee stats. */
     #summary-strip { opacity:0; transition:opacity 0.3s ease; }
     #summary-strip.visible { opacity:1; }
-    #summary-strip .banner { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
-    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
-    /* Remove .profile-content top padding on candidate.html since #summary-strip
-       now provides the top vertical rhythm; stats-grid margin-bottom handles the gap. */
-    .profile-content { padding-top:0; }
+    /* Banner inversion: stats-grid above, banner below. Strip out the
+       border-top + padding-top that had given .banner its own top edge above
+       the stats-grid; the stats-grid's border-bottom now serves as the divider.
+       margin-bottom is dropped because the banner is now the last element in
+       the strip; tabs-bar's natural top edge handles the rhythm to it. */
+    #summary-strip .banner { padding:0 var(--page-gutter); margin-bottom:0; border-top:none; }
+    /* Tighten stats-grid → banner gap inside the strip. .stats-grid's
+       component-default 32px section-gap is too much for an in-strip divider. */
+    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); margin-bottom:var(--space-16); }
     /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells */
     #career-strip { opacity:0; transition:opacity 0.3s ease; }
     #career-strip.visible { opacity:1; }
@@ -118,6 +125,40 @@
     </div>
     <div class="meta-row" id="meta-row"></div>
   </div>
+  <div class="main-inner">
+    <!-- Persistent across all tabs: cycle stats + health banner -->
+    <div id="summary-strip" style="display:none">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Raised-to-Spent Ratio</div>
+          <div class="stat-value" id="stat-ratio">—</div>
+          <div class="stat-sub"   id="stat-ratio-sub">Raised ÷ Spent</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cash on Hand</div>
+          <div class="stat-value" id="stat-coh">—</div>
+          <div class="stat-sub" id="stat-coh-sub">End of last report</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Raised</div>
+          <div class="stat-value" id="stat-raised">—</div>
+          <div class="stat-sub">Cycle total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Spent</div>
+          <div class="stat-value" id="stat-spent">—</div>
+          <div class="stat-sub">Cycle total</div>
+        </div>
+      </div>
+
+      <div class="banner" id="banner">
+        <div class="health-signal" id="health-signal"></div>
+        <div class="banner-label"  id="banner-label">—</div>
+        <div class="banner-desc"   id="banner-desc">—</div>
+        <div class="banner-note"   id="banner-note"></div>
+      </div>
+    </div>
+  </div>
   <div class="tabs-bar" id="tabs-bar" style="display:none">
     <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
     <a class="tab"        href="#raised"  onclick="showTab('raised',event)">Raised</a>
@@ -153,39 +194,6 @@
     <div id="cycle-index" style="display:none" role="list" aria-label="Election cycles"></div>
 
     <div id="race-context-bar" style="display:none"><span id="race-context"></span></div>
-
-    <!-- Persistent across all tabs: health banner + cycle stats -->
-    <div id="summary-strip" style="display:none">
-      <div class="banner" id="banner">
-        <div class="health-signal" id="health-signal"></div>
-        <div class="banner-label"  id="banner-label">—</div>
-        <div class="banner-desc"   id="banner-desc">—</div>
-        <div class="banner-note"   id="banner-note"></div>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Raised-to-Spent Ratio</div>
-          <div class="stat-value" id="stat-ratio">—</div>
-          <div class="stat-sub"   id="stat-ratio-sub">Raised ÷ Spent</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Cash on Hand</div>
-          <div class="stat-value" id="stat-coh">—</div>
-          <div class="stat-sub" id="stat-coh-sub">End of last report</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Total Raised</div>
-          <div class="stat-value" id="stat-raised">—</div>
-          <div class="stat-sub">Cycle total</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Total Spent</div>
-          <div class="stat-value" id="stat-spent">—</div>
-          <div class="stat-sub">Cycle total</div>
-        </div>
-      </div>
-    </div>
 
     <div class="profile-content" id="content" style="display:none">
 

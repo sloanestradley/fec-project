@@ -21,16 +21,17 @@
       color:var(--muted); margin-left:var(--space-4); }
     /* Content area */
 
-    /* Summary strip — persistent stats across tabs. Strip is full-width
-       inside .main-inner so the navy borders on .stats-grid extend
-       edge-to-edge; horizontal gutter padding is applied to .stats-grid
-       so its content stays flush with the rest of the page's content. */
+    /* Summary strip — persistent cycle stats across tabs. Lives in its own
+       .main-inner between #committee-header and #tabs-bar so it scrolls away
+       under the sticky tabs-bar as users move into tab content. Strip is
+       full-width inside .main-inner so the navy borders on .stats-grid extend
+       edge-to-edge; horizontal gutter padding is applied to .stats-grid so its
+       content stays flush with the rest of the page's gutter-aligned content.
+       margin-bottom on .stats-grid is dropped inside the strip — tabs-bar's
+       natural top edge handles the rhythm. */
     #summary-strip { opacity:0; transition:opacity 0.3s ease; }
     #summary-strip.visible { opacity:1; }
-    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
-    /* Remove .profile-content top padding on committee.html since #summary-strip
-       now provides the top vertical rhythm; stats-grid margin-bottom handles the gap. */
-    .profile-content { padding-top:0; }
+    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); margin-bottom:0; }
     /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells */
     #career-strip { opacity:0; transition:opacity 0.3s ease; }
     #career-strip.visible { opacity:1; }
@@ -113,6 +114,33 @@
     </div>
     <div class="meta-row" id="meta-row"></div>
   </div>
+  <div class="main-inner">
+    <!-- Persistent across all tabs: cycle stats -->
+    <div id="summary-strip" style="display:none">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Coverage Through</div>
+          <div class="stat-value" id="stat-coverage" style="font-size:1.25rem;padding-top:0.4rem">—</div>
+          <div class="stat-sub">Most recent report</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cash on Hand</div>
+          <div class="stat-value" id="stat-coh">—</div>
+          <div class="stat-sub" id="stat-coh-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Raised</div>
+          <div class="stat-value" id="stat-raised">—</div>
+          <div class="stat-sub" id="stat-raised-sub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Spent</div>
+          <div class="stat-value" id="stat-spent">—</div>
+          <div class="stat-sub" id="stat-spent-sub"></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- Tabs bar — revealed after load -->
   <div class="tabs-bar" id="tabs-bar" style="display:none">
     <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
@@ -147,32 +175,6 @@
     </div>
 
     <div id="cycle-index" style="display:none" role="list" aria-label="Committee filing cycles"></div>
-
-    <!-- Persistent across all tabs: cycle stats -->
-    <div id="summary-strip" style="display:none">
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Coverage Through</div>
-          <div class="stat-value" id="stat-coverage" style="font-size:1.25rem;padding-top:0.4rem">—</div>
-          <div class="stat-sub">Most recent report</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Cash on Hand</div>
-          <div class="stat-value" id="stat-coh">—</div>
-          <div class="stat-sub" id="stat-coh-sub"></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Total Raised</div>
-          <div class="stat-value" id="stat-raised">—</div>
-          <div class="stat-sub" id="stat-raised-sub"></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Total Spent</div>
-          <div class="stat-value" id="stat-spent">—</div>
-          <div class="stat-sub" id="stat-spent-sub"></div>
-        </div>
-      </div>
-    </div>
 
     <!-- Committee content — revealed after load -->
     <div class="profile-content" id="committee-content" style="display:none">
