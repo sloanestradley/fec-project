@@ -20,10 +20,12 @@
     .candidate-race-label { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--color-red-700); }
     .candidate-race-label a { color:inherit; text-decoration:none; }
     .candidate-race-label a:hover { text-decoration:underline; }
-    /* Race context bar */
-    #race-context-bar { padding:var(--space-16) var(--page-gutter);
-      opacity:0; transition:opacity 0.4s ease; min-height:var(--space-32); }
-    #race-context-bar.visible { opacity:1; }
+    /* Race context bar — bottom-most child of #summary-strip (T21 follow-up).
+       Inherits the reveal cascade from #summary-strip; min-height reserves
+       vertical space during the loading skeleton so the page doesn't shift
+       when /elections/ resolves. */
+    #race-context-bar { padding:var(--space-16) var(--page-gutter); border-bottom:1px solid #05234f;
+      min-height:var(--space-32); }
     /* Summary strip — persistent cycle stats + health banner. Lives in its own
        .main-inner between #profile-header and #tabs-bar so it scrolls away
        under the sticky tabs-bar as users move into tab content. Strip is
@@ -34,16 +36,9 @@
        below — banner is de-emphasised against the marquee stats. */
     #summary-strip { opacity:0; transition:opacity 0.3s ease; }
     #summary-strip.visible { opacity:1; }
-    /* Banner inversion: stats-grid above, banner below. Strip out the
-       border-top + padding-top that had given .banner its own top edge above
-       the stats-grid; the stats-grid's border-bottom now serves as the divider.
-       margin-bottom is dropped because the banner is now the last element in
-       the strip; tabs-bar's natural top edge handles the rhythm to it. */
-    #summary-strip .banner { padding:0 var(--page-gutter); margin-bottom:0; border-top:none; }
-    /* Tighten stats-grid → banner gap inside the strip. .stats-grid's
-       component-default 32px section-gap is too much for an in-strip divider. */
-    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); margin-bottom:var(--space-16); }
-    /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells */
+    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+    /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells.
+       margin-bottom is shared with #summary-strip in styles.css (T21 follow-up). */
     #career-strip { opacity:0; transition:opacity 0.3s ease; }
     #career-strip.visible { opacity:1; }
     #career-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
@@ -157,6 +152,8 @@
         <div class="banner-desc"   id="banner-desc">—</div>
         <div class="banner-note"   id="banner-note"></div>
       </div>
+
+      <div id="race-context-bar"><span id="race-context"></span></div>
     </div>
   </div>
   <div class="tabs-bar" id="tabs-bar" style="display:none">
@@ -192,8 +189,6 @@
     </div>
 
     <div id="cycle-index" style="display:none" role="list" aria-label="Election cycles"></div>
-
-    <div id="race-context-bar" style="display:none"><span id="race-context"></span></div>
 
     <div class="profile-content" id="content" style="display:none">
 
@@ -2173,7 +2168,6 @@ async function init() {
       ],
       detailElements: [
         { id: 'tabs-bar',         display: 'flex'  },
-        { id: 'race-context-bar', display: 'block' },
         { id: 'summary-strip',    display: 'block' },
         { id: 'content',          display: 'block' }
       ],

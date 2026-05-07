@@ -285,6 +285,17 @@ test.describe('candidate.html — health banner', () => {
     });
     expect(statsBeforeBanner).toBe(true);
   });
+
+  test('#race-context-bar is a descendant of #summary-strip (T21 follow-up)', async ({ page }) => {
+    await setupWithContent(page);
+    const isDescendant = await page.evaluate(() => {
+      const strip = document.querySelector('#summary-strip');
+      const bar = document.querySelector('#race-context-bar');
+      if (!strip || !bar) return false;
+      return strip.contains(bar);
+    });
+    expect(isDescendant).toBe(true);
+  });
 });
 
 // ── Chart ─────────────────────────────────────────────────────────────────────
