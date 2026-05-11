@@ -215,7 +215,7 @@ test.describe('candidate.html — stats row', () => {
     expect(text).toMatch(/\$[\d,.]+/);
   });
 
-  test('Raised-to-Spent Ratio shows a value', async ({ page }) => {
+  test('Raised:Spent ratio shows a value', async ({ page }) => {
     await setupWithContent(page);
     const ratio = page.locator('#stat-ratio');
     await expect(ratio).not.toHaveText('—');
@@ -258,10 +258,10 @@ test.describe('candidate.html — health banner', () => {
     await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
   });
 
-  test('first stat card is Raised-to-Spent Ratio', async ({ page }) => {
+  test('first stat card is Raised:Spent ratio', async ({ page }) => {
     await setupWithContent(page);
     const firstLabel = page.locator('#summary-strip .stats-grid .stat-card').first().locator('.stat-label');
-    await expect(firstLabel).toHaveText('Raised-to-Spent Ratio');
+    await expect(firstLabel).toHaveText('Raised:Spent ratio');
   });
 
   test('#summary-strip precedes #tabs-bar in the DOM (T21 contract)', async ({ page }) => {
