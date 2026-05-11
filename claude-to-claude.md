@@ -4943,3 +4943,66 @@ The through-line: Sloane runs a tight investigation-then-implement loop, makes "
 - Pre-existing dedup-key behavior. The fix preserved the existing dedup logic (name-fallback). With committee_id now correctly preserved, the dedup keys themselves still read d.contributor_id || nameUppercase — same as before. There's a marginal correctness improvement available: dedup by committee_id when present, which would correctly merge same-committee rows that use multiple aliased names. Banked as architectural cleanup; rare in practice for top-10 contributor tables.
 
 - KV pipeline extension to top-conduits + top-committees (banked from T11.5/T12). Now that the link feature lives on these surfaces, the case for caching them becomes stronger — KV-cached + linked is the ideal end state. This is the Phase 4-shaped lift that would also unlock real lazy-fetch on the Raised tab.
+
+---
+2026-05-11
+
+## Process log draft
+
+**Subtracting until the page agreed with itself**
+
+The session opened with a deliberate structural move — lift #summary-strip from below the tabs bar to above it, mirroring the cycle-index landing state's geometry. Three commits closed T21 proper: the move itself, the race-context-bar nest-inside, and the tabs-bar 1600px cap. After that landed, the rest of the session was a long visual-QA tail. Every push triggered a fresh-eye review on the live site, and the next prompt would be a small surgical edit: banner padding, stats-grid margin-bottom factoring, "Most recent report" misread, "Total" prefix that overloaded the cycle-vs-career distinction, "Raised-to-Spent Ratio" shortened to fit a mobile line, and finally the meta-prose retired as duplicative against the cycle-index card.
+
+The cumulative effect is more focused than any single edit suggested. The header zone — page-header → summary-strip → tabs-bar → race-context-bar (nested in summary-strip) → content — now reads as one continuous structural block with the same language at cycle-index and cycle-detail. Five separate copy decisions all subtracted weight: shorter labels, no redundant subs, no duplicative prose, no full-viewport border line. The page got less crowded as more was removed.
+
+Changelog:
+- T21 (4883b1b): #summary-strip relocated to its own .main-inner between #profile-header and #tabs-bar on candidate + committee. Banner inverted on candidate (stats-grid first, banner below). 32px margin-bottom on the strip wrapper, matching #career-strip via shared rule.
+- T21 (cont, 10fd800): #race-context-bar moved inside #summary-strip as bottom-most child; inline display:none removed; reveal cascades through the parent.
+- T21 (cont, 4acc3dd): .tabs-bar capped at max-width:1600px with margin:auto centering; max() padding trick dropped (sticky profile-header is now the last consumer).
+- Stats card cleanups: "Most recent report" stat-sub removed on Coverage Through; inline font-size override removed on stat-coverage (Coverage Through now matches the other cards). Last Activity reshape on both pages: fmtDate in value, no sub. "Total" prefix dropped from cycle-detail Raised/Spent labels. "Cycle total" stat-subs removed on Raised/Spent (both pages). "Raised-to-Spent Ratio" shortened to "Raised:Spent ratio" — confirmed not wrapping on mobile.
+- Meta-prose retired entirely: First filed YYYY / Active since YYYY span gone from both profile headers; .meta-prose CSS utility deleted (no remaining consumers).
+- CSS factoring follow-ups: .stats-grid no longer owns its own margin-bottom; #career-strip and #summary-strip share a single rule. .banner global rule collapsed to its in-strip-effective values (no in-page override). border-bottom 1px navy added to .banner and #race-context-bar to give the strip a single coherent bottom edge.
+- Sitewide doc audit at session end: CLAUDE.md (4 paragraphs), design-system.html (4 spots), test-cases.md (7 checklist items), TESTING.md (4 inventory fragments) all swept for stale references to retired copy and structure.
+
+Field notes:
+The deploy-then-iterate rhythm did most of the work this session. Each landed commit triggered a real-browser look on Sloane's side, and the next prompt was always a narrower edit than the prior. The investigation prompts at the start of T21 were thorough; the post-ship prompts were terse. That cadence is the right shape for design-system polish — you can't reason about navy-hairline density or banner padding from a plan, you have to ship and look.
+
+The biggest pattern worth banking: every time an override accumulated (#summary-strip .banner overriding global .banner, #summary-strip .stats-grid overriding .stats-grid's margin-bottom), Sloane's instinct was to look one level up. The override → collapse cycle landed three times: stats-grid margin-bottom moved up to the strip wrappers as a shared rule; the .banner global was collapsed to its in-strip-effective values; the .meta-prose utility was deleted along with its consumers. The codebase got smaller in the directions that matter.
+
+Stack tags: in-place CSS overrides → shared-rule factoring · @media-free responsive copy (shorten label, not stack the cell) · single-source-of-truth audits at session boundaries · the live-deploy-and-eyeball verification primitive · max-width:1600px with margin:auto as the canonical content cap, retiring the max() padding trick for .tabs-bar
+
+## How Sloane steered the work
+
+**"Investigate before scoping" — applied verbatim on T21 both times.**
+
+T21 opened with a diagnostic-only prompt before implementation, and the continuation (race-context-bar + tabs-bar cap) followed the same shape. Both ticket pairs hit the same beats: investigation surfaced the structural decisions (Option A wrapper vs. Option B max-width), the implementation prompt locked them in, the build was clean. The investigation step cost ~30 min each time and produced commits that needed zero rework. That discipline is now banked across three multi-step tickets this session — worth treating as the default cadence for any T-prefixed work going forward.
+
+**Override → lift, three times in a row.**
+
+When the banner padding override felt off, you didn't tweak the override — you collapsed the global .banner rule to its in-strip-effective values and eliminated the override entirely. When stats-grid margin-bottom needed different values in two contexts, you didn't add a second scoped override — you moved the rule up to the strip wrappers and made it a single shared rule. When .meta-prose's only purpose was holding a duplicative line, you didn't restyle it — you removed the consumers and deleted the utility. Three instances of the same instinct: when an override accumulates, the rule wants to live somewhere else. The codebase ends up smaller than where it started.
+
+**"This sounds like it could be confused with career or lifetime stats anyway."**
+
+You named the copy problem with "Total Raised" / "Total Spent" before you asked for the change — not "shorten these," but "the 'Total' word is doing wrong work." That diagnosis is what made the change land cleanly: it wasn't a style preference, it was a semantic fix. Same pattern with the "Most recent report" → cleanest path was "drop it" once you'd diagnosed that the label was a misread waiting to happen.
+
+**"I want to see how this looks on my mobile phone."**
+
+The "Raised:Spent ratio" shortening was the most visible iteration-through-verification beat. The change shipped specifically as a mobile-wrap experiment — push, look, refine. The deploy chain enabled the cadence; your instinct to verify on real devices (not just DevTools simulation) drove the verification cost from "trust the simulation" to "trust the real device." Two different things.
+
+**Audit at the session boundary.**
+
+The closing audit — "do an assessment of all outstanding documentation, tests, design-system updates" — wasn't a routine ritual. It was a deliberate steering move at a natural pause point. The audit surfaced 13+ stale references across 4 files that wouldn't have been visible until the next session opened and someone hit a contradiction. Catching them at the boundary, while the context was still fresh, is the right cost-benefit. Worth treating as a pattern: when a multi-thread session ends, audit before you walk away.
+
+The through-line: you steer toward smaller. Smaller surface area, smaller copy, smaller rule footprint, fewer overrides. Every decision this session subtracted something. That's a strong product-design instinct showing up at the code level — and it produces a codebase that's actually trustworthy.
+
+## What to bring to Claude Chat
+
+- The broader stats-grid updates Sloane mentioned. Banked in passing during the "Total" prefix conversation: "I have some updates coming for the grid for both pages both views that will clarify the stats." Next session may reshape the cards further. Worth flagging whatever the design intent is so the upcoming changes inherit the same coherence the current cleanup gave the row.
+
+- Stat-card vertical asymmetry on committee.html cycle detail. Three of four cards now have no stat-sub (Coverage Through, Raised, Spent); only COH does. The 4-col grid with default `align-items:stretch` makes the sub-less cards stretch to match the tallest, so they have empty space below content. Accepted as fine for now. The upcoming stats-grid pass may naturally resolve it (consistent sub presence/absence). If it doesn't, `align-items:start` on .stats-grid is the obvious next-step decision — produces ragged-bottom row that sizes to each card's content.
+
+- Donut-center "Total Raised" / "Total Spent" labels. Intentionally untouched in this session's "Total" prefix removal — donut center is a different surface (inside chart context, where the framing is meaningful). Worth a future consistency conversation: do we eventually fold these to match the stat-label shape, or is the donut-center context legitimately different enough to keep the prefix?
+
+- >1600px viewport visual check on the tabs-bar cap. Mobile wrap is verified; standard desktop doesn't trigger the cap. The actual visual change shows only at ultrawide viewports (the navy 2px border ends at 1600px instead of running edge-to-edge). Worth a single check on a wide monitor or DevTools at viewport >1600px before the next session, while the context is fresh.
+
+- The "override → lift" pattern, captured. Three instances in one session is enough to call it. Worth a memory or a CLAUDE.md note: when an override accumulates around a shared rule, the rule wants to live somewhere else. Default to lifting before adding the second override.
