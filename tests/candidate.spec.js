@@ -190,7 +190,7 @@ test.describe('candidate.html — profile header', () => {
 // ── Stats row ────────────────────────────────────────────────────────────────
 
 test.describe('candidate.html — stats row', () => {
-  test('Total Raised shows a dollar amount (not $0 or placeholder)', async ({ page }) => {
+  test('Raised shows a dollar amount (not $0 or placeholder)', async ({ page }) => {
     await setupWithContent(page);
     const raised = page.locator('#stat-raised');
     await expect(raised).not.toHaveText('—');
@@ -199,7 +199,7 @@ test.describe('candidate.html — stats row', () => {
     expect(text).not.toBe('$0');
   });
 
-  test('Total Spent shows a dollar amount', async ({ page }) => {
+  test('Spent shows a dollar amount', async ({ page }) => {
     await setupWithContent(page);
     const spent = page.locator('#stat-spent');
     await expect(spent).not.toHaveText('—');
