@@ -110,6 +110,13 @@
   <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
   <!-- Committee header — revealed after load -->
   <div class="committee-header page-header page-header-reveal" id="committee-header" style="display:none">
+    <div class="back-affordance-slot" id="back-affordance-slot">
+      <button class="back-affordance-btn" id="back-affordance-btn" type="button" aria-label="Back to all cycles">
+        <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
+          <path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
     <div class="profile-header-row">
       <div class="page-title" id="committee-name">—</div>
     </div>
@@ -676,6 +683,7 @@ async function init() {
         { id: 'committee-content', display: 'block' }
       ],
       mainEl: document.querySelector('.main'),
+      headerEl: document.getElementById('committee-header'),
       fetchIndexData: fetchIndexData,
       renderIndex: function(data) {
         var totalsMap = {};
@@ -717,6 +725,21 @@ async function init() {
       var cy    = parseInt(parts[0]);
       var isDet = ALL_CYCLES.indexOf(cy) !== -1;
       view.switchTo(isDet, cy);
+    });
+
+    // T15 — back-affordance click handler. In-session (user has seen index
+    // this session): history.back() returns to prior index URL and the
+    // hashchange listener calls switchTo(false, NaN), restoring indexScrollY.
+    // Fresh-load (user landed directly on detail URL): replaceState syncs URL
+    // to bare entity path (no phantom history entry), then switchTo(false, NaN)
+    // performs the in-place transition.
+    document.getElementById('back-affordance-btn').addEventListener('click', function() {
+      if (view.wasIndexShown()) {
+        history.back();
+      } else {
+        history.replaceState('', '', location.pathname);
+        view.switchTo(false, NaN);
+      }
     });
 
     await view.switchTo(isDetailView, hashCycle);

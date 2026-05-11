@@ -512,6 +512,8 @@ function initComboDropdown(config) {
 //   indexElements          — [{id, display}] elements to show on index entry
 //   detailElements         — [{id, display}] elements to show on detail entry
 //   mainEl                 — HTMLElement for minHeight scroll-clamp guard
+//   headerEl               — HTMLElement; helper toggles `.detail-view` on it
+//                            so CSS can scope back-affordance visibility (T15)
 //   fetchIndexData         — () => Promise<any>   page handles caching
 //   renderIndex            — (data) => void       sync DOM render
 //   loadCycle              — (cycle) => Promise   page's existing loader
@@ -520,11 +522,15 @@ function initComboDropdown(config) {
 //   trackPageViewed        — (viewName) => void   'detail' | 'index'
 //   onIndexError           — (err) => void        page's error UI
 //
-// Returns: { switchTo(isDetailView, hashCycle), claimToken(), isCurrentToken(id) }
+// Returns: { switchTo, claimToken, isCurrentToken, wasIndexShown }
+//   wasIndexShown — true once switchTo has entered the index branch this
+//   session. Used by the T15 back-affordance click handler to choose between
+//   history.back() (in-session) and replaceState + direct switchTo (fresh-load).
 function initViewSwitcher(config) {
   var indexElements         = config.indexElements;
   var detailElements        = config.detailElements;
   var mainEl                = config.mainEl;
+  var headerEl              = config.headerEl;
   var fetchIndexData        = config.fetchIndexData;
   var renderIndex           = config.renderIndex;
   var loadCycle             = config.loadCycle;
@@ -535,6 +541,7 @@ function initViewSwitcher(config) {
 
   var tokenCounter = 0;
   var indexScrollY = 0;
+  var indexShown   = false;
 
   function show(spec)  { var el = document.getElementById(spec.id); el.style.display = spec.display; return el; }
   function hide(spec)  { var el = document.getElementById(spec.id); el.classList.remove('visible'); el.style.display = 'none'; }
@@ -542,6 +549,7 @@ function initViewSwitcher(config) {
 
   async function switchTo(isDetailView, hashCycle) {
     if (isDetailView) {
+      if (headerEl) headerEl.classList.add('detail-view');
       // Capture scroll BEFORE hiding index — restored on back-navigation
       indexScrollY = window.scrollY;
       indexElements.forEach(hide);
@@ -585,6 +593,11 @@ function initViewSwitcher(config) {
       restoreTab(tabHash);
 
     } else {
+      // Set BEFORE the await — records intent so a failed initial-index fetch
+      // doesn't make a subsequent back-affordance click read this session as
+      // fresh-load (would otherwise redundantly replaceState + re-fetch).
+      indexShown = true;
+      if (headerEl) headerEl.classList.remove('detail-view');
       detailElements.forEach(hide);
       trackPageViewed('index');
 
@@ -607,7 +620,8 @@ function initViewSwitcher(config) {
   return {
     switchTo: switchTo,
     claimToken: function() { return ++tokenCounter; },
-    isCurrentToken: function(id) { return id === tokenCounter; }
+    isCurrentToken: function(id) { return id === tokenCounter; },
+    wasIndexShown: function() { return indexShown; }
   };
 }
 

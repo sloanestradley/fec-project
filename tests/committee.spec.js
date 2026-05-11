@@ -78,6 +78,28 @@ test.describe('committee.html — detail view', () => {
     await expect(page.locator('#committee-header > #meta-row')).toHaveCount(1);
   });
 
+  test('back-affordance slot is inside committee header (T15)', async ({ page }) => {
+    await expect(page.locator('#committee-header #back-affordance-slot')).toBeAttached();
+  });
+
+  test('back-affordance button is visible on cycle detail view (T15)', async ({ page }) => {
+    await expect(page.locator('#committee-header')).toHaveClass(/detail-view/);
+    await expect(page.locator('#back-affordance-btn')).toBeVisible();
+  });
+
+  test('back-affordance button has correct aria-label (T15)', async ({ page }) => {
+    const btn = page.locator('#back-affordance-btn');
+    await expect(btn).toHaveAttribute('aria-label', 'Back to all cycles');
+  });
+
+  test('back-affordance click on fresh-load detail returns to cycle index (T15)', async ({ page }) => {
+    // setupDetail() lands directly on detail URL via hash — wasIndexShown() === false
+    await page.locator('#back-affordance-btn').click();
+    await expect(page.locator('#cycle-index')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#committee-content')).toBeHidden();
+    expect(new URL(page.url()).hash).toBe('');
+  });
+
   test('stats grid shows financial figures (not $0)', async ({ page }) => {
     await page.waitForSelector('.profile-content.visible', { timeout: 10000 });
     // Scope to #summary-strip; #career-strip also has a .stats-grid (hidden in detail view).
@@ -242,6 +264,12 @@ test.describe('committee.html — index view landing state', () => {
     await expect(page.locator('#summary-strip')).toBeHidden();
     await expect(page.locator('#tabs-bar')).toBeHidden();
     await expect(page.locator('#committee-content')).toBeHidden();
+  });
+
+  test('back-affordance button is hidden on cycle index view (T15)', async ({ page }) => {
+    await expect(page.locator('#committee-header')).not.toHaveClass(/detail-view/);
+    await expect(page.locator('#back-affordance-slot')).toBeAttached();
+    await expect(page.locator('#back-affordance-btn')).toBeHidden();
   });
 
   test('#cycles hash also renders index view (NaN routing)', async ({ page }) => {

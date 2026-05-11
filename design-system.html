@@ -113,6 +113,10 @@
     /* Override reveal animation in demos — demos don't run JS to add .visible */
     .ds-component-demo .page-header-reveal { opacity:1; transition:none; }
     .ds-component-demo .tabs-bar { padding:0; opacity:1; transition:none; }
+    /* T15 — back-affordance default is display:none (only shown when parent has
+       .detail-view); demo wrappers don't carry the page header IDs that scope
+       the visibility rule, so force display:flex inside demos. */
+    .ds-component-demo .back-affordance-btn { display:flex; }
 
     /* Stats — demo: suppress margin-bottom so demo panel doesn't add section spacing */
     .stats-grid { margin-bottom:0; }
@@ -509,7 +513,7 @@
         </div>
         <div class="ds-type-row">
           <span class="ds-section-title" style="margin-bottom:0;padding-bottom:0;border-bottom:none">Committee Ecosystem</span>
-          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .candidate-race-label · .chart-title · .donors-head · .raised-cell-title</span>
+          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .chart-title · .donors-head · .raised-cell-title</span>
         </div>
         <div class="ds-type-row">
           <span class="tab" style="padding:0;border-bottom:none;margin-bottom:0;cursor:default">Summary</span>
@@ -517,7 +521,7 @@
         </div>
         <div class="ds-type-row">
           <span style="font-family:'Oswald',sans-serif;font-size:0.875rem;font-weight:600;text-transform:uppercase">$1.2M</span>
-          <span class="ds-type-meta"><strong>subheading</strong><br>Oswald 600 · 0.875rem · uppercase<br>.donors-table .da</span>
+          <span class="ds-type-meta"><strong>subheading</strong><br>Oswald 600 · 0.875rem · uppercase<br>.donors-table .da · .candidate-race-label</span>
         </div>
         <div class="ds-type-row">
           <span class="stat-label" style="margin-bottom:0">Coverage Through</span>
@@ -692,10 +696,14 @@
           <span class="ds-component-name">Candidate Header</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">extends .page-header · .candidate-race-label · .profile-header-row · .page-title · .cycle-select · .committees-link · .meta-row</div>
+        <div class="ds-component-classes">extends .page-header · .back-affordance-slot · .profile-header-row · .page-title · .cycle-select · .committees-link · .meta-row · .candidate-race-label</div>
         <div class="ds-component-demo">
-          <div class="profile-header page-header" style="padding:2rem">
-            <div style="font-family:'Oswald',sans-serif;font-size:1.25rem;font-weight:400;text-transform:uppercase;color:var(--color-red-700)"><a href="#" style="color:inherit;text-decoration:none">US House: Washington's 3rd District</a></div>
+          <div class="profile-header page-header detail-view" style="padding:2rem">
+            <div class="back-affordance-slot">
+              <button class="back-affordance-btn" type="button" aria-label="Back to all cycles" style="display:flex">
+                <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
             <div class="profile-header-row">
               <div class="page-title">Marie Gluesenkamp Perez</div>
               <div style="margin-left:auto">
@@ -703,13 +711,38 @@
               </div>
             </div>
             <div class="meta-row" style="margin-top:var(--space-4)">
+              <span class="candidate-race-label"><a href="#">US House: Washington's 3rd District</a></span>
               <span class="tag tag-dem">Democrat</span>
               <span class="tag tag-neutral">Incumbent</span>
               <span class="tag tag-neutral fec-id-tag">FEC ID · H2WA03217</span>
             </div>
           </div>
         </div>
-        <div class="ds-component-notes"><code>.profile-header-row</code> now contains only the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> moved out to sit as a sibling below, holding party + incumbent + FEC ID tags. The previous <code>Active since / First filed YYYY</code> prose span (and its <code>.meta-prose</code> utility class) was removed in T21 — duplicative against the cycle-index card, which already shows First Filed and Last Activity. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic.</div>
+        <div class="ds-component-notes">T15 (2026-05-11) relocated the race label from a dedicated slot above the title into the meta-row as the first element, downsized to subheading-style (Oswald 600 0.875rem uppercase, red-700) to sit naturally next to the 0.625rem tags. The slot above the title is now the back-affordance slot — visible only on cycle detail views (the demo shows the detail-view state via the <code>.detail-view</code> class on the wrapper). On cycle index views, the slot reserves vertical space but the button is hidden. The previous <code>.compact-sep</code> "/" separator was removed entirely. <code>.profile-header-row</code> contains the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> sits as a sibling below. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic.</div>
+      </div>
+
+      <!-- 6b. Back affordance -->
+      <div class="ds-component" id="comp-back-affordance" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Back Affordance</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.back-affordance-slot · .back-affordance-btn — icon-only chevron button (left-pointing SVG). 48×48 desktop, 40×40 mobile (≤860px) in expanded state; 32×32 in compact state on both desktop and mobile. aria-label="Back to all cycles". Visual treatment borrows from .tab-retry-btn: transparent bg, border-strong border, surface2 hover, accent focus-visible outline + 2px offset, 2px border-radius. Slot reserves vertical space on cycle index expanded (preserves rhythm with detail view); collapses entirely in compact-index state.</div>
+        <div class="ds-component-demo">
+          <div style="display:flex;gap:2rem;align-items:center;flex-wrap:wrap">
+            <div class="back-affordance-slot">
+              <button class="back-affordance-btn" type="button" aria-label="Back to all cycles" style="display:flex">
+                <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="back-affordance-slot">
+              <button class="back-affordance-btn" type="button" aria-label="Back to all cycles" style="display:flex;width:32px;height:32px">
+                <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 20 20"><path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="ds-component-notes">Click handler branches on <code>view.wasIndexShown()</code>: in-session case uses <code>history.back()</code>, fresh-load case uses <code>history.replaceState</code> + <code>view.switchTo(false, NaN)</code>. Helper-managed: <code>initViewSwitcher</code> toggles <code>.detail-view</code> on the page-header to scope button visibility via CSS. Live on candidate.html and committee.html as of T15 (2026-05-11).</div>
       </div>
 
       <!-- 7. Health banner (interactive) -->

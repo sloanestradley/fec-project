@@ -511,10 +511,32 @@ tr.donors-link-row { position:relative; cursor:pointer; }
   font-size:1.25rem; font-weight:400; letter-spacing:0;
   margin-bottom:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-/* Candidate compact: [race label] / [name] */
-#profile-header .compact-sep { display:none; color:var(--muted); padding:0 var(--space-8); flex-shrink:0; }
-#profile-header.compact .candidate-race-label { font-size:1.25rem; margin-bottom:0; flex-shrink:0; white-space:nowrap; }
-#profile-header.compact .compact-sep { display:block; font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; }
+/* T15 — back-affordance slot.
+   Expanded state: slot is a block child above .profile-header-row. Button is
+   shown only when the header has .detail-view (toggled by initViewSwitcher).
+   Slot reserves vertical space matching the button height in expanded index
+   state so the page title sits at the same y-position as in detail view.
+   Compact state: slot becomes first flex sibling, inline with title; in
+   index view the slot collapses entirely (title flush left). */
+.back-affordance-slot { display:flex; align-items:center; min-height:48px; }
+.back-affordance-btn {
+  width:48px; height:48px; padding:0; display:none;
+  align-items:center; justify-content:center;
+  background:transparent; border:1px solid var(--border-strong); color:var(--subtle);
+  border-radius:2px; cursor:pointer; flex-shrink:0; }
+.back-affordance-btn:hover { background:var(--surface2); }
+.back-affordance-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+#profile-header.detail-view .back-affordance-btn,
+#committee-header.detail-view .back-affordance-btn { display:flex; }
+
+/* Candidate + committee compact: back-affordance inline with title (chevron first, then title) */
+#profile-header.compact .back-affordance-slot,
+#committee-header.compact .back-affordance-slot { min-height:0; flex-shrink:0; }
+#profile-header.compact.detail-view .back-affordance-btn,
+#committee-header.compact.detail-view .back-affordance-btn {
+  width:32px; height:32px; margin-right:var(--space-8); }
+#profile-header.compact:not(.detail-view) .back-affordance-slot,
+#committee-header.compact:not(.detail-view) .back-affordance-slot { display:none; }
 #profile-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; gap:0; }
 #profile-header.compact .meta-row { display:none; }
 #profile-header.compact #committees-trigger { display:none !important; }
@@ -791,6 +813,11 @@ div.cycle-row {
   .candidate-card { grid-template-columns:1fr; }
   .candidate-card-meta,
   .committee-card-meta { justify-content:flex-start; width:100%; }
+
+  /* T15 — back-affordance shrinks on mobile (still above WCAG AA 24×24 floor) */
+  .back-affordance-slot { min-height:40px; }
+  .back-affordance-btn { width:40px; height:40px; }
+  /* Compact-state size stays 32×32 on mobile (overrides the desktop compact rule above for parity) */
 
   .cycle-index-header,
   a.cycle-row,

@@ -16,8 +16,12 @@
   <!-- Amplitude Analytics -->
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
-    /* Profile header */
-    .candidate-race-label { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--color-red-700); }
+    /* Meta-row race link (T15) — race label relocated from above the title to
+       first child of #meta-row. Subheading-style at 0.875rem sits naturally
+       next to the 0.625rem .tag elements; no underline by default, hover
+       reveals (matches today's no-underline meta-row treatment). */
+    .candidate-race-label { font-family:'Oswald',sans-serif; font-size:0.875rem; font-weight:600;
+      text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--color-red-700); }
     .candidate-race-label a { color:inherit; text-decoration:none; }
     .candidate-race-label a:hover { text-decoration:underline; }
     /* Race context bar — bottom-most child of #summary-strip (T21 follow-up).
@@ -110,8 +114,13 @@
   </div><!-- /main-inner -->
   <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
   <div class="page-header page-header-reveal" id="profile-header" style="display:none">
-    <div class="candidate-race-label" id="race-label"></div>
-    <span class="compact-sep" aria-hidden="true"> / </span>
+    <div class="back-affordance-slot" id="back-affordance-slot">
+      <button class="back-affordance-btn" id="back-affordance-btn" type="button" aria-label="Back to all cycles">
+        <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
+          <path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
     <div class="profile-header-row" id="profile-header-row">
       <div class="page-title" id="candidate-name">—</div>
       <div id="committees-trigger" style="display:none;margin-left:auto;align-self:center">
@@ -2086,13 +2095,6 @@ async function init() {
     document.getElementById('candidate-name').textContent = displayName;
     document.title = displayName + ' — FECLedger';
 
-    // Meta row — party + FEC ID (cycle-independent). Incumbent tag (cycle-dependent)
-    // is inserted later by loadCycle() BEFORE the FEC ID tag, giving order:
-    // party → incumbent → FEC ID.
-    document.getElementById('meta-row').innerHTML =
-      '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>'
-      + '<span class="tag tag-neutral fec-id-tag">FEC ID · '+CANDIDATE_ID+'</span>';
-
     // Cycle switcher: default to most recent active cycle, or hash override
     var now = new Date().getFullYear();
     var hashParts = window.location.hash.replace(/^#/,'').split('#');
@@ -2104,16 +2106,20 @@ async function init() {
     activeCycle = defaultCycle;
     CAND_NAME = displayName;
 
-    // Race label above candidate name
-    (function() {
-      var labelEl = document.getElementById('race-label');
-      if (!labelEl) return;
-      var distParam = (CAND_OFFICE === 'H' && CAND_DIST && CAND_DIST !== '00')
-        ? '&district=' + encodeURIComponent(CAND_DIST) : '';
-      var href = '/race?state=' + encodeURIComponent(CAND_STATE)
-        + distParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + activeCycle;
-      labelEl.innerHTML = '<a href="' + href + '">' + formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST) + '</a>';
-    })();
+    // Meta row — race link (T15, relocated from above title) + party + FEC ID
+    // (cycle-independent). Incumbent tag (cycle-dependent) is inserted later by
+    // loadCycle() BEFORE the FEC ID tag, giving order:
+    // race → party → incumbent → FEC ID.
+    // Note: race href includes &year=activeCycle but is not updated on cycle
+    // switch — pre-existing behavior, banked for T16 consideration.
+    var raceDistParam = (CAND_OFFICE === 'H' && CAND_DIST && CAND_DIST !== '00')
+      ? '&district=' + encodeURIComponent(CAND_DIST) : '';
+    var raceHref = '/race?state=' + encodeURIComponent(CAND_STATE)
+      + raceDistParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + activeCycle;
+    document.getElementById('meta-row').innerHTML =
+      '<span class="candidate-race-label"><a href="'+raceHref+'">'+formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST)+'</a></span>'
+      + '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>'
+      + '<span class="tag tag-neutral fec-id-tag">FEC ID · '+CANDIDATE_ID+'</span>';
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
     // populated unconditionally so detail-view transitions don't need to re-initialize the switcher
@@ -2165,6 +2171,7 @@ async function init() {
         { id: 'content',          display: 'block' }
       ],
       mainEl: document.querySelector('.main'),
+      headerEl: document.getElementById('profile-header'),
       fetchIndexData: fetchIndexData,
       renderIndex: function(data) { renderIndexFromData(data.hist, data.allTotals); },
       loadCycle: loadCycle,
@@ -2197,6 +2204,21 @@ async function init() {
       var cy    = parseInt(parts[0]);
       var isDet = ALL_CYCLES.indexOf(cy) !== -1;
       view.switchTo(isDet, cy);
+    });
+
+    // T15 — back-affordance click handler. In-session (user has seen index
+    // this session): history.back() returns to prior index URL and the
+    // hashchange listener calls switchTo(false, NaN), restoring indexScrollY.
+    // Fresh-load (user landed directly on detail URL): replaceState syncs URL
+    // to bare entity path (no phantom history entry), then switchTo(false, NaN)
+    // performs the in-place transition.
+    document.getElementById('back-affordance-btn').addEventListener('click', function() {
+      if (view.wasIndexShown()) {
+        history.back();
+      } else {
+        history.replaceState('', '', location.pathname);
+        view.switchTo(false, NaN);
+      }
     });
 
     await view.switchTo(isDetailView, hashCycle);

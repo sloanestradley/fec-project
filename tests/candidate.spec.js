@@ -48,20 +48,20 @@ test.describe('candidate.html — profile header', () => {
     await expect(tags).not.toHaveCount(0);
   });
 
-  test('#race-label is present in the profile header', async ({ page }) => {
+  test('race label is present in meta-row (T15 — relocated from above title)', async ({ page }) => {
     await setup(page);
-    await expect(page.locator('#race-label')).toBeAttached();
+    await expect(page.locator('#meta-row .candidate-race-label')).toBeAttached();
   });
 
-  test('#race-label contains a link to the race page', async ({ page }) => {
+  test('race label contains a link to the race page', async ({ page }) => {
     await setup(page);
-    const link = page.locator('#race-label a');
+    const link = page.locator('#meta-row .candidate-race-label a');
     await expect(link).toBeAttached();
     const href = await link.getAttribute('href');
     expect(href).toMatch(/\/race\?state=/);
   });
 
-  test('meta-row has no .tag-neutral race tag (race tag removed on redesign branch)', async ({ page }) => {
+  test('meta-row has no .tag-neutral race tag (race element uses .candidate-race-label, not .tag-neutral)', async ({ page }) => {
     await setup(page);
     // incumbent tag and fec-id tag use .tag-neutral too — check there's no other .tag-neutral (e.g. a re-introduced race tag)
     await expect(page.locator('#meta-row .tag-neutral:not(.incumbent-tag):not(.fec-id-tag)')).toHaveCount(0);
@@ -80,16 +80,17 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#profile-header > #meta-row')).toHaveCount(1);
   });
 
-  test('meta-row children render in canonical order: party → incumbent → FEC ID', async ({ page }) => {
+  test('meta-row children render in canonical order: race → party → incumbent → FEC ID', async ({ page }) => {
     await setup(page);
-    // MGP is the incumbent in the mock fixture; all three children should be present.
+    // MGP is the incumbent in the mock fixture; all four children should be present (T15 added race as first).
     const roles = await page.locator('#meta-row > *').evaluateAll(nodes => nodes.map(n => {
+      if (n.classList.contains('candidate-race-label')) return 'race';
       if (n.classList.contains('tag-dem') || n.classList.contains('tag-rep') || n.classList.contains('tag-ind')) return 'party';
       if (n.classList.contains('incumbent-tag')) return 'incumbent';
       if (n.classList.contains('fec-id-tag')) return 'fec-id';
       return 'other:' + n.className;
     }));
-    expect(roles).toEqual(['party', 'incumbent', 'fec-id']);
+    expect(roles).toEqual(['race', 'party', 'incumbent', 'fec-id']);
   });
 
   test('race-context element is present in meta-row', async ({ page }) => {
@@ -109,10 +110,44 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#profile-header-sentinel')).toBeAttached();
   });
 
-  test('compact sep is inside profile header and hidden in full mode', async ({ page }) => {
+  test('back-affordance slot is inside profile header (T15)', async ({ page }) => {
     await setup(page);
-    await expect(page.locator('#profile-header .compact-sep')).toBeAttached();
+    await expect(page.locator('#profile-header #back-affordance-slot')).toBeAttached();
     await expect(page.locator('#profile-header')).not.toHaveClass(/compact/);
+  });
+
+  test('back-affordance button is visible on cycle detail view (T15)', async ({ page }) => {
+    await setup(page); // setup uses #2024#summary URL — detail view
+    await expect(page.locator('#profile-header')).toHaveClass(/detail-view/);
+    await expect(page.locator('#back-affordance-btn')).toBeVisible();
+  });
+
+  test('back-affordance button has correct aria-label (T15)', async ({ page }) => {
+    await setup(page);
+    const btn = page.locator('#back-affordance-btn');
+    await expect(btn).toHaveAttribute('aria-label', 'Back to all cycles');
+  });
+
+  test('back-affordance click on fresh-load detail returns to cycle index (T15)', async ({ page }) => {
+    // setup() lands directly on detail URL via hash — wasIndexShown() === false
+    await setup(page);
+    await expect(page.locator('#content')).toBeVisible();
+    await page.locator('#back-affordance-btn').click();
+    // After click: URL hash cleared, cycle index visible, detail content hidden
+    await expect(page.locator('#cycle-index')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#content')).toBeHidden();
+    expect(new URL(page.url()).hash).toBe('');
+  });
+
+  test('back-affordance slot is hidden in compact + cycle-index state (T15)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217'); // bare URL → index view
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await expect(page.locator('#profile-header')).not.toHaveClass(/detail-view/);
+    // In expanded index, slot is present (button hidden) — slot reserves height
+    await expect(page.locator('#back-affordance-slot')).toBeAttached();
+    await expect(page.locator('#back-affordance-btn')).toBeHidden();
   });
 
   test('scrolling down adds .compact to profile header', async ({ page }) => {
