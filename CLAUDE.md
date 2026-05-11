@@ -690,6 +690,21 @@ Read CLAUDE.md, project-brief.md, ia.md, and claude-to-claude.md, then: (1) chec
 - `pipeline/README.md` — if this session touched the bulk-data pipeline (ingest, precompute, R2 keys, feature flags, runtime characteristics), update the files-processed table, R2 bucket layout tree, feature-flag section, and architecture table. This doc is the canonical pipeline reference and drifts fastest when only CLAUDE.md is updated.
 - `strategy/*.md` — if a strategy doc scoped this session's work and the work is now complete, add an `**EXECUTED <date> (commit <sha>)**` banner at the top so future sessions don't treat it as active scope. Keep the doc as a historical reference — the diagnosis and verification discipline written in these docs are often better than what lands in CLAUDE.md.
 
+**Closing stale-reference sweep (multi-commit sessions with copy or structure changes):** After applying the per-commit doc updates above, run one final search-based audit before outputting the ritual blocks. Don't wait to be asked. Per-commit doc updates handle local edits; this final sweep catches cross-file drift that accumulated across the session.
+
+Scope by what changed:
+- ALWAYS sweep: `CLAUDE.md`, `design-system.html`, `test-cases.md`, `TESTING.md`, AND inline code comments in any `.html`/`.js`/`.css` file that lost a class, ID, or copy string this session.
+- ALSO sweep `ia.md` if URL patterns, navigation, or page status changed (e.g. scaffold → live).
+- ALSO sweep `project-brief.md` if domain terms, definitions, or scope decisions changed.
+- ALSO sweep `pipeline/README.md` if pipeline code changed.
+- ALSO sweep `strategy/*.md` for execution-status banners when a planning doc was completed.
+
+How to search: (1) grep for retired strings — old label copy, deleted class names, removed element IDs. (2) Grep for stale structural phrases — "sibling of X", "spans full viewport", "between X and Y", "lives inside Y". (3) Grep for the NEW term too — confirm it's described consistently everywhere it should be, not just absent in the old places. (4) For `design-system.html` component cards affected by this session's component changes, open the cards and visually compare the demo HTML against the production markup. Text search won't catch markup-shape drift without a text mismatch.
+
+Output a file-by-file punch list with specific spots and proposed edits. Confirm boundaries with Sloane (e.g. intentional scope exclusions like donut-center "Total Raised" / "Total Spent" kept while stat-labels were updated). Execute as one or two consolidated docs commits.
+
+Trigger: session produced 3+ commits AND any of them changed copy, removed/moved elements, or refactored shared rules. Skip on doc-only or data-pipeline-only sessions where the user-facing surface hasn't changed. The 2026-05-11 T21 closing audit surfaced 13+ stale references across the 4 default-sweep files PLUS one inline JS comment caught only on post-deploy verification — that miss motivated adding inline comments + design-system demo-parity to the default scope.
+
 Before running /compact or ending a session, output all four of the following — each in its own fenced code block so they're easy to copy individually. Sloane will bring these to Claude Chat.
 
 ---
