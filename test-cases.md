@@ -118,14 +118,13 @@
 - [ ] Race label is an `<a>` linking to the race page (`/race?state=WA&district=03&office=H&year=...`)
 - [ ] Candidate name displays
 - [ ] Meta-row appears BELOW the name row (as a sibling of `.profile-header-row`, not a child) with ~4px gap above
-- [ ] Meta-row contains, in order: party tag → incumbent tag (when candidate is the incumbent for the active cycle) → `FEC ID · {candidate_id}` neutral tag → `First filed YYYY` inline prose (IBM Plex Serif 0.875rem)
-- [ ] No visible separator dot/bullet between the FEC ID tag and the "First filed" prose — the tag's own border provides the visual separator
+- [ ] Meta-row contains, in order: party tag → incumbent tag (when candidate is the incumbent for the active cycle) → `FEC ID · {candidate_id}` neutral tag
 - [ ] "Committees →" trigger renders as a navy-filled button (navy-950 bg, var(--bg) text, 34px height, mono uppercase label) pinned to the right of the name row
 - [ ] Committees trigger hover shows subtle opacity dim (not underline)
 - [ ] At narrow viewports (≤860px), meta-row wraps cleanly without overflow; title row still fits title + trigger side-by-side
 - [ ] Meta-row animates in with the header reveal on page load (fades in with the name)
 - [ ] ✅ `#race-context` element present in DOM (now in `#race-context-bar`, not meta-row)
-- [ ] Race context bar appears as a persistent strip between the tab bar and content (visible on all tabs)
+- [ ] Race context bar renders as the bottom-most child of `#summary-strip` (above the tabs bar, visible on all tabs as part of the header zone)
 - [ ] Skeleton pulse appears in the race context bar while `/elections/` fetch is in-flight
 - [ ] Race context sentence resolves to filled `.tag-context` pill in the bar
 - [ ] Active cycle → sentence uses "is" (e.g. "Smith is the incumbent…")
@@ -163,7 +162,7 @@
 - [ ] ✅ Cycle switcher renders as a `<select>` with options populated from candidate's `election_years`
 - [ ] Select is positioned as the last element in the tab bar (after all tabs), pushed right via margin-left:auto
 - [ ] No border on the select; tab bar's bottom border provides visual structure
-- [ ] Tabs-bar bottom border spans full viewport width (check at >1600px viewport); tab text aligns with page content below
+- [ ] Tabs-bar bottom border ends at the 1600px content column edge (check at >1600px viewport — border should NOT extend to the viewport edge); tab text aligns with page content below
 - [ ] Default to current active cycle (or most recent if no active cycle)
 - [ ] Selecting a different cycle re-fetches data and updates the view; select value stays in sync
 - [ ] `Cycle Switched` Amplitude event fires on select change (not on init)
@@ -171,11 +170,11 @@
 - [ ] `localhost:8080/candidate.html?id=H2WA03217#2022#raised` pre-selects 2022 cycle and Raised tab on load
 
 ### Stats row
-- [ ] Card order (left to right): Raised-to-Spent Ratio → Cash on Hand → Total Raised → Total Spent
-- [ ] Raised-to-Spent Ratio shows a value (first card)
+- [ ] Card order (left to right): Raised:Spent ratio → Cash on Hand → Raised → Spent
+- [ ] Raised:Spent ratio shows a value (first card)
 - [ ] Cash on Hand shows a formatted dollar amount
-- [ ] Total Raised shows a formatted dollar amount (not $0, not blank)
-- [ ] Total Spent shows a formatted dollar amount
+- [ ] Raised shows a formatted dollar amount (not $0, not blank)
+- [ ] Spent shows a formatted dollar amount
 
 ### Health banner
 - [ ] Active cycle: green/amber/red signal visible with descriptive text
@@ -316,8 +315,6 @@
 - [ ] Designation tag visible (Principal / Authorized / Joint Fundraising / etc.)
 - [ ] Active or Terminated status tag visible
 - [ ] `FEC ID · {committee_id}` neutral tag appears in the meta-row
-- [ ] For an active committee (filing_frequency ≠ 'T' and ≠ 'A'): `Active since YYYY` inline prose renders after the FEC ID tag (IBM Plex Serif 0.875rem)
-- [ ] For a terminated committee (filing_frequency = 'T' or 'A'): `Active since` prose is OMITTED entirely — only the tags + FEC ID tag are present in the meta-row (verify by navigating to a terminated committee via committees.html with "Show terminated" toggle on)
 - [ ] At narrow viewports (≤860px), meta-row wraps cleanly without overflow
 
 ### Back-link
@@ -349,7 +346,7 @@
 - [ ] ✅ Cycle switcher is present inside .tabs-bar (last child, after all tabs)
 - [ ] ✅ Cycle switcher contains numeric-only options — no `value="all"`, no "All time" text
 - [ ] ✅ Cycle switcher value matches the URL hash cycle on detail view load
-- [ ] Tabs-bar bottom border spans full viewport width (check at >1600px viewport); tab text aligns with page content below
+- [ ] Tabs-bar bottom border ends at the 1600px content column edge (check at >1600px viewport — border should NOT extend to the viewport edge); tab text aligns with page content below
 - [ ] Selecting a cycle re-renders stats for that cycle
 - [ ] Selecting 2026 (no totals record) shows `—` in all stat fields
 - [ ] Amplitude `Cycle Switched` fires with `{ cycle, committee_id }` — no `committee_name` property
@@ -358,12 +355,12 @@
 
 ### Stats grid (detail view)
 - [ ] ✅ Stats grid shows financial figures (not $0 or blank)
-- [ ] Card order (left to right): Coverage Through → Cash on Hand → Total Raised → Total Spent
+- [ ] Card order (left to right): Coverage Through → Cash on Hand → Raised → Spent
 - [ ] Coverage date shows a real date (first card)
 - [ ] Cash on Hand shows a formatted dollar amount
-- [ ] Total Raised shows a formatted dollar amount for the selected cycle
-- [ ] Total Spent shows a formatted dollar amount
-- [ ] Raised and Spent sub-labels show "{startYear}–{endYear} cycle" — never "All cycles"
+- [ ] Raised shows a formatted dollar amount for the selected cycle
+- [ ] Spent shows a formatted dollar amount
+- [ ] Coverage Through, Raised, and Spent cards render label + value only (no stat-sub element on these three cards)
 - [ ] Overspend note visible when disbursements > receipts on the selected cycle
 - [ ] "Financial Summary" section title is NOT present above the stats grid (removed in summary-strip refactor)
 
