@@ -436,12 +436,6 @@ test.describe('committee.html — All-time removal regressions', () => {
     await expect(page.locator('#summary-strip')).toBeHidden();
   });
 
-  test('renderStats does not produce "All cycles" copy on detail view', async ({ page }) => {
-    await setupDetail(page);
-    await expect(page.locator('#stat-raised-sub')).not.toHaveText('All cycles');
-    await expect(page.locator('#stat-spent-sub')).not.toHaveText('All cycles');
-  });
-
   test('data note does not contain "All-cycle aggregate" copy', async ({ page }) => {
     await setupDetail(page);
     const note = await page.locator('#committee-meta-note').textContent();

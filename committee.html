@@ -131,12 +131,10 @@
         <div class="stat-card">
           <div class="stat-label">Raised</div>
           <div class="stat-value" id="stat-raised">—</div>
-          <div class="stat-sub" id="stat-raised-sub"></div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Spent</div>
           <div class="stat-value" id="stat-spent">—</div>
-          <div class="stat-sub" id="stat-spent-sub"></div>
         </div>
       </div>
     </div>
@@ -956,8 +954,6 @@ function renderStats(cycleOrAll) {
   var coh           = rec ? rec.last_cash_on_hand_end_period : null;
   var coverageDate  = rec ? rec.coverage_end_date : null;
   var startYear     = cycleOrAll - 1;
-  document.getElementById('stat-raised-sub').textContent = startYear + '–' + cycleOrAll + ' cycle';
-  document.getElementById('stat-spent-sub').textContent  = startYear + '–' + cycleOrAll + ' cycle';
 
   document.getElementById('stat-raised').textContent   = receipts != null ? fmt(receipts) : '—';
   document.getElementById('stat-spent').textContent    = disbursements != null ? fmt(disbursements) : '—';
