@@ -747,12 +747,6 @@ function renderHeader(c) {
     metaHtml += ' <span class="tag tag-neutral">' + c.state + '</span>';
   }
   metaHtml += ' <span class="tag tag-neutral fec-id-tag">FEC ID · ' + COMMITTEE_ID + '</span>';
-  // "Active since YYYY" — omit entirely for terminated (T) and administratively-terminated (A)
-  var isActive = c.filing_frequency !== 'T' && c.filing_frequency !== 'A';
-  if (isActive && c.first_file_date) {
-    var activeYear = String(c.first_file_date).slice(0, 4);
-    metaHtml += ' <span class="meta-prose">Active since ' + activeYear + '</span>';
-  }
   document.getElementById('meta-row').innerHTML = metaHtml;
 
   // Page title

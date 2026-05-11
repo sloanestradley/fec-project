@@ -2086,14 +2086,12 @@ async function init() {
     document.getElementById('candidate-name').textContent = displayName;
     document.title = displayName + ' — FECLedger';
 
-    // Meta row — party + FEC ID + first-filed prose (cycle-independent). Incumbent tag (cycle-dependent)
+    // Meta row — party + FEC ID (cycle-independent). Incumbent tag (cycle-dependent)
     // is inserted later by loadCycle() BEFORE the FEC ID tag, giving order:
-    // party → incumbent → FEC ID → First filed.
-    var firstFiledYear = cand.first_file_date ? String(cand.first_file_date).slice(0,4) : '';
+    // party → incumbent → FEC ID.
     document.getElementById('meta-row').innerHTML =
       '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>'
-      + '<span class="tag tag-neutral fec-id-tag">FEC ID · '+CANDIDATE_ID+'</span>'
-      + (firstFiledYear ? '<span class="meta-prose">First filed '+firstFiledYear+'</span>' : '');
+      + '<span class="tag tag-neutral fec-id-tag">FEC ID · '+CANDIDATE_ID+'</span>';
 
     // Cycle switcher: default to most recent active cycle, or hash override
     var now = new Date().getFullYear();

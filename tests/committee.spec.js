@@ -73,12 +73,6 @@ test.describe('committee.html — detail view', () => {
     await expect(fec).toHaveText(/FEC ID · C00775668/);
   });
 
-  test('Active since prose renders with year for active committee', async ({ page }) => {
-    const prose = page.locator('#meta-row .meta-prose');
-    await expect(prose).toBeVisible();
-    await expect(prose).toHaveText(/Active since 2020/);
-  });
-
   test('meta-row is a sibling of .profile-header-row, not a child', async ({ page }) => {
     await expect(page.locator('.profile-header-row #meta-row')).toHaveCount(0);
     await expect(page.locator('#committee-header > #meta-row')).toHaveCount(1);
@@ -481,10 +475,6 @@ test.describe('committee.html — terminated committee', () => {
     });
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
-  });
-
-  test('Active since prose is omitted when filing_frequency is T', async ({ page }) => {
-    await expect(page.locator('#meta-row .meta-prose')).toHaveCount(0);
   });
 
   test('FEC ID tag still renders on terminated committee', async ({ page }) => {

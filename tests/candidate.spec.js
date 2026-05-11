@@ -74,30 +74,22 @@ test.describe('candidate.html — profile header', () => {
     await expect(fec).toHaveText(/FEC ID · H2WA03217/);
   });
 
-  test('First filed prose span renders with year', async ({ page }) => {
-    await setup(page);
-    const prose = page.locator('#meta-row .meta-prose');
-    await expect(prose).toBeVisible();
-    await expect(prose).toHaveText(/First filed 2022/);
-  });
-
   test('meta-row is a sibling of .profile-header-row, not a child', async ({ page }) => {
     await setup(page);
     await expect(page.locator('.profile-header-row #meta-row')).toHaveCount(0);
     await expect(page.locator('#profile-header > #meta-row')).toHaveCount(1);
   });
 
-  test('meta-row children render in canonical order: party → incumbent → FEC ID → First filed', async ({ page }) => {
+  test('meta-row children render in canonical order: party → incumbent → FEC ID', async ({ page }) => {
     await setup(page);
-    // MGP is the incumbent in the mock fixture; all four children should be present.
+    // MGP is the incumbent in the mock fixture; all three children should be present.
     const roles = await page.locator('#meta-row > *').evaluateAll(nodes => nodes.map(n => {
       if (n.classList.contains('tag-dem') || n.classList.contains('tag-rep') || n.classList.contains('tag-ind')) return 'party';
       if (n.classList.contains('incumbent-tag')) return 'incumbent';
       if (n.classList.contains('fec-id-tag')) return 'fec-id';
-      if (n.classList.contains('meta-prose')) return 'first-filed';
       return 'other:' + n.className;
     }));
-    expect(roles).toEqual(['party', 'incumbent', 'fec-id', 'first-filed']);
+    expect(roles).toEqual(['party', 'incumbent', 'fec-id']);
   });
 
   test('race-context element is present in meta-row', async ({ page }) => {

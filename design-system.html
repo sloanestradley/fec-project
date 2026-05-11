@@ -537,7 +537,7 @@
         </div>
         <div class="ds-type-row">
           <span class="tag-context"><span class="tag-context-text">Smith is the incumbent with 2 challengers.</span> <a href="#" style="color:var(--subtle);white-space:nowrap">View race →</a></span>
-          <span class="ds-type-meta"><strong>prose</strong><br>Plex Serif 400 · 0.875rem<br>.tag-context · .banner-label · .banner-desc · .meta-prose — sentence-format editorial content</span>
+          <span class="ds-type-meta"><strong>prose</strong><br>Plex Serif 400 · 0.875rem<br>.tag-context · .banner-label · .banner-desc — sentence-format editorial content</span>
         </div>
       </div>
 
@@ -692,7 +692,7 @@
           <span class="ds-component-name">Candidate Header</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">extends .page-header · .candidate-race-label · .profile-header-row · .page-title · .cycle-select · .committees-link · .meta-row · .meta-prose</div>
+        <div class="ds-component-classes">extends .page-header · .candidate-race-label · .profile-header-row · .page-title · .cycle-select · .committees-link · .meta-row</div>
         <div class="ds-component-demo">
           <div class="profile-header page-header" style="padding:2rem">
             <div style="font-family:'Oswald',sans-serif;font-size:1.25rem;font-weight:400;text-transform:uppercase;color:var(--color-red-700)"><a href="#" style="color:inherit;text-decoration:none">US House: Washington's 3rd District</a></div>
@@ -706,11 +706,10 @@
               <span class="tag tag-dem">Democrat</span>
               <span class="tag tag-neutral">Incumbent</span>
               <span class="tag tag-neutral fec-id-tag">FEC ID · H2WA03217</span>
-              <span class="meta-prose">First filed 2022</span>
             </div>
           </div>
         </div>
-        <div class="ds-component-notes"><code>.profile-header-row</code> now contains only the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> moved out to sit as a sibling below, gaining an FEC ID tag and an <code>Active since / First filed YYYY</code> prose span styled via <code>.meta-prose</code>. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic.</div>
+        <div class="ds-component-notes"><code>.profile-header-row</code> now contains only the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> moved out to sit as a sibling below, holding party + incumbent + FEC ID tags. The previous <code>Active since / First filed YYYY</code> prose span (and its <code>.meta-prose</code> utility class) was removed in T21 — duplicative against the cycle-index card, which already shows First Filed and Last Activity. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic.</div>
       </div>
 
       <!-- 7. Health banner (interactive) -->
