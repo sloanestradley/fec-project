@@ -501,10 +501,15 @@ tr.donors-link-row { position:relative; cursor:pointer; }
   padding-left:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
   padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter))); }
 
-/* Compact mode — slim one-line strip, triggered by scroll listener */
+/* Compact mode — slim one-line strip, triggered by scroll listener.
+   min-height stabilizes compact header height across all profile pages and view
+   states. Value = back-affordance button (32) + padding (8+8). Shorter content
+   (cycle-index without back affordance, race.html) centers via align-items;
+   tabs-bar pin position stays consistent. Measurement-based — initCompactHeader's
+   offsetHeight read picks up the min-height value automatically. */
 #profile-header.compact, #committee-header.compact, #race-header.compact {
   flex-direction:row; align-items:center;
-  padding-top:var(--space-8); padding-bottom:var(--space-8); }
+  padding-top:var(--space-8); padding-bottom:var(--space-8); min-height:48px; }
 #profile-header.compact .page-title,
 #committee-header.compact .page-title,
 #race-header.compact .page-title {
