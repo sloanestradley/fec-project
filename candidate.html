@@ -16,12 +16,10 @@
   <!-- Amplitude Analytics -->
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
-    /* Meta-row race link (T15) — race label relocated from above the title to
-       first child of #meta-row. Subheading-style at 0.875rem sits naturally
-       next to the 0.625rem .tag elements; no underline by default, hover
-       reveals (matches today's no-underline meta-row treatment). */
-    .candidate-race-label { font-family:'Oswald',sans-serif; font-size:0.875rem; font-weight:600;
-      text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--color-red-700); }
+    /* Race link — relocated to #meta-row in T15. Styling unchanged from the
+       prior above-title slot pending explicit direction on a meta-row context
+       variant; visual mismatch against the 0.625rem tags is acknowledged. */
+    .candidate-race-label { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--color-red-700); }
     .candidate-race-label a { color:inherit; text-decoration:none; }
     .candidate-race-label a:hover { text-decoration:underline; }
     /* Race context bar — bottom-most child of #summary-strip (T21 follow-up).
