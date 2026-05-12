@@ -5006,3 +5006,76 @@ The through-line: you steer toward smaller. Smaller surface area, smaller copy, 
 - >1600px viewport visual check on the tabs-bar cap. Mobile wrap is verified; standard desktop doesn't trigger the cap. The actual visual change shows only at ultrawide viewports (the navy 2px border ends at 1600px instead of running edge-to-edge). Worth a single check on a wide monitor or DevTools at viewport >1600px before the next session, while the context is fresh.
 
 - The "override → lift" pattern, captured. Three instances in one session is enough to call it. Worth a memory or a CLAUDE.md note: when an override accumulates around a shared rule, the rule wants to live somewhere else. Default to lifting before adding the second override.
+
+---
+2026-05-11 evening — T15 back-affordance arc
+
+## Process log draft
+
+**Adding a back affordance that everyone could find**
+
+The session was a single arc: T15 — adding an explicit "Back to all cycles" affordance to the cycle detail views on candidate.html and committee.html. Browser back already worked; T15 made the back path visible inside the page chrome. The bigger insight came late: I'd been thinking about the affordance as entity-scoped (always returns to this entity's cycle index), and the right answer was browser-scoped (returns to wherever the user came from). That re-frame came from the implementation work itself; the diagnostic-first investigation prompt forced me to think through cross-entity flows before any code shipped, and the answer changed the architecture.
+
+Six commits. The arc began with a thorough investigation prompt that mapped masthead structure on both pages, the compact-header transition mechanism, the scroll-restoration plumbing the new affordance needed to plug into, and the click-handler shape. Implementation followed cleanly: initViewSwitcher got a headerEl config + .detail-view class toggle, plus a wasIndexShown() accessor for the in-session vs fresh-load branch. The chevron lives in a new .back-affordance-slot above the title in expanded state, inline with the title in compact (32×32 — the original 48×48 was going to make compact too tall, decided shrink). The race label relocated from above the title to first child of #meta-row, freeing the slot for the back affordance.
+
+The race-label restyle was a quiet mistake. The original investigation correctly recommended a meta-row context variant (subheading-style, 0.875rem) because at 1.25rem next to 0.625rem tags it reads as broken. I shipped the variant during T15, then we discovered the source of that recommendation was a Claude Chat prompt Sloane hadn't fully read. Reverted; the visual mismatch is now intentionally visible in production so Sloane can make the call after seeing it. Bank: when a restyle decision comes from elsewhere, confirm it was read and intended before treating it as load-bearing.
+
+Compact-header stabilization came after Sloane noticed the strip height varied depending on whether the back affordance was visible. Three options (fixed CSS min-height, CSS variable + JS reads, dynamic recompute); I initially recommended the variable approach for "single source of truth" feel, then walked it back on consideration: the static read is *less* robust to future change than the measurement-based approach. Option A — one CSS line — shipped. Tabs-bar pins ~8px lower on cycle-index and race.html now; consistent across all profile pages.
+
+Closed the session with two strategy doc updates banking T15 follow-up: browser-scoped semantics decision + the T23 (entity cycle-index navigation affordance) dependency. The strategy doc was expanded with file:line pointers, before/after code shapes, the wasIndexShown() removal mechanics, a scroll-restoration note, and a seven-scenario verification checklist — so a future pick-up has full context without reconstructing it from memory.
+
+Changelog:
+- T15 main (ba2815d) — .back-affordance-slot + .back-affordance-btn in profile-page headers; helper extension with headerEl config + wasIndexShown() accessor; race label relocated from above-title to first child of #meta-row; .compact-sep removed entirely
+- T15 race-label restyle revert (b6bf7c5) — restored original Oswald 400 1.25rem on .candidate-race-label; relocation kept; visual mismatch intentionally visible
+- T15 compact-height follow-up (e97e2fd) — min-height:48px on combined .compact headers; tabs-bar pins consistently across all profile pages
+- Strategy doc initial (493d36e) — strategy/t15-back-affordance-semantics.md banks the browser-scoped decision and T23 dependency
+- Strategy doc expansion (bbc589a) — file:line pointers, code shapes, scroll-restoration note, seven-scenario verification checklist
+- Header polish (0411a7f) — .page-title gets margin-top:var(--space-8) (compact zeroed); .back-affordance-btn border-radius 2px → 99px (pill)
+
+Test count: 544 → 553 (+9 net).
+
+Field notes:
+
+The diagnostic-first prompt structure paid off again. The investigation surfaced that document.referrer + same-origin check is the cleanest cross-page detection signal — better than any sessionStorage scheme I would have reached for first. It also surfaced that the proposed browser-scoped semantics depend on T23 (the entity cycle-index navigation affordance), so the work bundles together. Without T23, fresh-load users would lose the in-product path to the entity cycle index — a real UX regression. Banking the dependency in the strategy doc means the implementation pass has the right scope from the start.
+
+The compact-header height stabilization is a small change with a notable lesson on robustness. My initial instinct was to abstract via a CSS variable (--compact-header-h) so JS could read it and stay in sync. Sloane asked the right diagnostic question — "are there drawbacks beyond commit size?" — and re-thinking it surfaced that the CSS-variable approach is *less* robust than the simpler fixed-min-height approach. The measurement (offsetHeight) self-corrects to whatever the rendered height actually is; the static read assumes the variable matches reality. Single-source-of-truth feel is real, but it's not the same as "more robust." The simpler answer was right.
+
+The race-label restyle revert is the second instance of "the recommendation came from elsewhere" causing a small regression. The first was an earlier session where a Claude Chat-sourced suggestion led to over-scoping. Both surfaced via Sloane catching the cost mid-flight. Future sessions should treat "is this the user's explicit direction?" as a real gate before implementing visual changes — not just "did someone (somewhere) recommend it?"
+
+Strategy doc expansion was the most useful end-of-arc work. The first version of strategy/t15-back-affordance-semantics.md captured the investigation findings and decisions, but lacked the implementation context a future pickup would need (current code shape, file:line pointers, verification checklist). Sloane's "anything you'd change?" prompt forced me to audit it cold — what would a future session need without me? Result: code shape, scroll-restoration note, file:line pointers, seven-scenario verification checklist. Banking pattern worth reusing on any strategy doc that gates work on a dependency: write it self-contained, with execution context, not just investigation findings.
+
+Stack tags: initViewSwitcher extension via headerEl config + .detail-view class toggle + wasIndexShown() accessor; document.referrer same-origin parsing for browser-scoped semantics (banked); pill border-radius (99px) for circular icon-only buttons; CSS min-height on .compact headers for height stabilization across view states; the override → lift pattern surfaced again.
+
+## How Sloane steered the work
+
+**"Investigate before scoping" — applied across the full arc.**
+T15 opened with a diagnostic-only investigation prompt that mapped DOM structure on both pages, the compact-header transition mechanism, the scroll-restoration plumbing, and the .tab-retry-btn audit. The follow-up (browser-scoped semantics decision) was also diagnostic-first. Both produced clean implementations with zero rework on the core paths. The investigation cost ~30 min each; the implementation cost ~30 min each. Cheap discipline.
+
+**The compact-state button size call.**
+My implementation prompt said 48×48 desktop / 40×40 mobile but didn't address compact state. I flagged it as a concern + recommended Option 1 (keep button size in compact, accept taller compact header). You read both my framing and the counter-argument and chose Option 3 (shrink to 32×32 in compact). Your reasoning was specific: "compact header staying close to today's ~36px height matters — going to 64px desktop / 56px mobile would be a meaningful steal of vertical content real estate." That's a product judgment about vertical real estate that I would have under-weighted; 32×32 is exactly right and still recognizable as a button.
+
+**Catching the .candidate-race-label restyle as unauthorized.**
+"Remind me, did we make a decision to restyle .candidate-race-label?" That question caught a real process gap. The restyle came from a Claude Chat prompt you hadn't fully read — but I'd treated it as authorized because it appeared in the implementation prompt. The revert was the right call. The lesson for me: when a restyle decision arrives from elsewhere, treat "did the user explicitly read and intend this?" as a gate, not an assumption.
+
+**Pushing back on the CSS variable approach for compact height.**
+When you asked "any drawbacks to Option B aside from commit size?" the answer surfaced that Option B (CSS variable + JS reads) is *less* robust than Option A (fixed min-height + measurement). The static read assumes the variable matches reality; the measurement self-corrects. My initial instinct was wrong; the simpler answer was right. Your question shaped that diagnostic — without it I would have shipped Option B for "single source of truth" feel.
+
+**"Anything you'd change to make sure full context is provided?"**
+That question on the strategy doc forced an audit cold. The first version captured findings + decisions but missed implementation context. The expansion added before/after code shapes, file:line pointers, the wasIndexShown removal mechanics, the scroll-restoration note, and a seven-scenario verification checklist. Result: a strategy doc a future session can pick up with no other context. Pattern worth reusing on any strategy doc that gates work on a dependency.
+
+**The header polish iteration — tight loop, narrow scope.**
+After T15's main commits, you iterated quickly on .page-title margin (add top, then remove bottom) and .back-affordance-btn styling (initially full restyle: no border, surface2 bg, accent-dim hover, pill radius — then revert all but the pill radius). Each iteration was a tight CSS edit, you reviewed the result, and the next prompt was narrower than the prior. Same cadence as the T21 visual-QA tail — deploy-then-eyeball is the right shape for design-system polish.
+
+**Through-line:** you're steering for the version of the work that ages well — and you keep catching the moments where I'm about to ship a less-robust version because the wrong abstraction feels cleaner. The diagnostic questions you ask before agreeing to a direction are doing real work; the answer to "drawbacks beyond X?" or "did we decide X?" is sometimes what stops the wrong default from shipping.
+
+## What to bring to Claude Chat
+
+- **Race-label-in-meta-row visual mismatch — decision pending.** Currently shipping at original Oswald 400 1.25rem, which reads as oversized next to the 0.625rem tags. Three options on the table: (a) downscale to subheading-style (Oswald 600 0.875rem) for visual coherence — what was inadvertently shipped and reverted; (b) different visual treatment entirely (no-border tag-context style? different weight?); (c) leave at current size if the visual asymmetry actually helps signal the race element as primary among the meta-row children. Worth a UX think; the current state is intentionally visible in production for evaluation.
+
+- **T15 follow-up: browser-scoped semantics + T23 (entity cycle-index navigation affordance).** Decision banked in strategy/t15-back-affordance-semantics.md. Implementation paused until T23 lands because shipping browser-scoped without T23 creates a real UX regression for fresh-load users (no in-product path to entity cycle index). T23 is its own investigation — placement of the cycle-index affordance (in the header zone? meta-row? separate icon?), what affordance does it use, naming. Worth scoping T23's investigation as the next ticket; once that's clear, T15 follow-up rolls in.
+
+- **Race-page back affordance — banked for a future T-RacePage ticket.** T15 only added back affordances to candidate.html + committee.html. Race.html is a cycle-anchored single-view page (no index/detail split), so the affordance would need a different shape — possibly "Back to races" or context-aware "Back to {origin}." Worth a real product call on what the race-page back affordance means before scoping.
+
+- **Process pattern worth banking: the "did we decide X?" gate.** The race-label restyle revert was the second instance this project where a Claude Chat-sourced recommendation slipped into implementation without explicit confirmation. Worth a real ritual moment: before treating a recommendation as authorized, confirm Sloane read it and intended it. The diagnostic question Sloane asked ("did we make a decision to restyle X?") is what caught it — formalizing that as a checkpoint for any visual-change implementation prompt would prevent the third instance.
+
+- **Strategy doc pattern worth reusing.** strategy/t15-back-affordance-semantics.md was significantly improved by the "audit cold — what would a future pickup need?" pass that added code shapes, file:line pointers, scroll-restoration note, and verification checklist. Pattern: any strategy doc that gates work on a dependency should be written self-contained, with execution context, not just investigation findings. Future strategy docs should default to this shape.
