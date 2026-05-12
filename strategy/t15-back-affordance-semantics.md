@@ -111,3 +111,106 @@ When T23 unblocks this:
   - ~2-3 new tests per page.
 
 Total: ~30 LOC change + test updates. Smaller footprint than T15 itself.
+
+---
+
+## Code shape
+
+### Today's click handler (candidate.html lines 2213-2220; identical shape at committee.html lines 736-743)
+
+```js
+document.getElementById('back-affordance-btn').addEventListener('click', function() {
+  if (view.wasIndexShown()) {
+    history.back();
+  } else {
+    history.replaceState('', '', location.pathname);
+    view.switchTo(false, NaN);
+  }
+});
+```
+
+### Proposed replacement
+
+```js
+document.getElementById('back-affordance-btn').addEventListener('click', function() {
+  var sameOriginReferrer = document.referrer
+    && new URL(document.referrer, location.origin).origin === location.origin;
+  if (sameOriginReferrer && history.length > 1) {
+    history.back();
+  } else {
+    history.replaceState('', '', location.pathname);
+    view.switchTo(false, NaN);
+  }
+});
+```
+
+### aria-label change
+
+`candidate.html:116` and `committee.html:114`:
+```html
+<button class="back-affordance-btn" id="back-affordance-btn" type="button" aria-label="Back to all cycles">
+```
+→
+```html
+<button class="back-affordance-btn" id="back-affordance-btn" type="button" aria-label="Back">
+```
+
+### `wasIndexShown()` removal mechanics
+
+If removing (mild preference per decisions above):
+
+- `utils.js:544` — delete `var indexShown   = false;`
+- `utils.js:599` — delete the `indexShown = true;` line at start of `switchTo`'s else branch (keep the comment-block intent or rewrite to reflect new state)
+- `utils.js:624` — delete `wasIndexShown: function() { return indexShown; }` from the return object
+- `utils.js:525-528` — update the JSDoc-style return-description comment block to drop `wasIndexShown` and the explanation paragraph beneath it
+
+If retaining (belt-and-suspenders): keep all of the above; treat `wasIndexShown()` as a secondary signal, OR'd with `sameOriginReferrer` in the click handler. Today's tests would still pass.
+
+## Scroll-restoration note
+
+For in-entity back (cycle detail → cycle index on the same entity), the existing `indexScrollY` mechanism in `initViewSwitcher` continues to handle scroll restoration — same path as today. `history.back()` fires hashchange → listener calls `view.switchTo(false, NaN)` → helper's else branch scrolls to `indexScrollY`.
+
+For cross-entity back (race → candidate → back to race, or candidate → committee → back to candidate), `history.back()` triggers a full page navigation. Each page's scroll behavior is governed by its own document's `history.scrollRestoration` setting. Candidate/committee set `'manual'` (so their own popstate doesn't auto-restore). Race.html and the browse pages don't set the property, so they get browser-default behavior — auto-restore — which is what users expect when returning to a list/race overview. No additional scroll-restoration logic needed.
+
+## Verification checklist (manual browser)
+
+Run before declaring the implementation done. Setup: `npm run dev`, open http://127.0.0.1:8788/.
+
+1. **Cross-entity: race → candidate → back to race.** Visit `/race?state=WA&office=H&district=03&year=2026` → click a candidate card → on candidate detail, click back affordance. Expect: race page with the same filters.
+
+2. **Cross-entity: candidate → committees modal → committee → back to candidate.** Visit `/candidate/H2WA03217#2024#summary` → click "Committees →" → click a committee row in the modal → on committee detail, click back affordance. Expect: candidate detail page.
+
+3. **Cross-entity: committee → assoc-candidate → back to committee.** Visit a committee with an associated candidate (e.g. `/committee/C00806174#2024#summary`) → click the associated-candidate card → on candidate detail, click back affordance. Expect: committee detail page.
+
+4. **In-entity, no regression: cycle index → cycle detail → back to cycle index.** Visit `/candidate/H2WA03217` (bare URL → index) → click a cycle row → on cycle detail, click back affordance. Expect: cycle index, scroll position restored to where the cycle row was clicked.
+
+5. **Fresh-load fallback: paste detail URL in new tab → back affordance lands on cycle index.** Open a new tab, paste `/candidate/H2WA03217#2024#summary`, click back affordance. Expect: cycle index for the entity, top of page (history.length === 1 + no internal referrer → fallback fires).
+
+6. **Multi-tab open fallback: middle-click from race to candidate → back lands on cycle index.** Visit race page, middle-click a candidate (new tab opens to detail), click back affordance in the new tab. Expect: cycle index (history.length === 1 even though referrer is same-origin → fallback fires).
+
+7. **aria-label.** DevTools accessibility tree on cycle detail confirms the button announces as "Back" (not "Back to all cycles").
+
+## Reference
+
+- **T15 implementation commit:** `ba2815d` — initial back-affordance ship (entity-scoped).
+- **T15 revert commit:** `b6bf7c5` — reverted the `.candidate-race-label` restyle (kept the meta-row relocation).
+- **T15 compact-height follow-up:** `e97e2fd` — `min-height:48px` on combined `.compact` headers.
+- **This doc:** `493d36e` (initial bank) — captures decisions for the eventual implementation pass.
+
+**File:line pointers (current state, post-T15):**
+
+| Surface | File | Line(s) |
+|---|---|---|
+| Click handler (candidate) | `candidate.html` | 2213-2220 |
+| Click handler (committee) | `committee.html` | 736-743 |
+| `aria-label` markup (candidate) | `candidate.html` | 116 |
+| `aria-label` markup (committee) | `committee.html` | 114 |
+| `initViewSwitcher` return-block JSDoc | `utils.js` | 525-528 |
+| `indexShown` declaration | `utils.js` | 544 |
+| `indexShown = true` set | `utils.js` | 599 |
+| `wasIndexShown()` accessor | `utils.js` | 624 |
+| Back-affordance tests (candidate) | `tests/candidate.spec.js` | 113-150 |
+| Back-affordance tests (committee, detail) | `tests/committee.spec.js` | 81-104 |
+| Back-affordance test (committee, index) | `tests/committee.spec.js` | 269-273 |
+
+Line numbers may drift before this is picked up — use the symbol/string anchors (`back-affordance-btn`, `wasIndexShown`, `indexShown`) to re-locate if so.
