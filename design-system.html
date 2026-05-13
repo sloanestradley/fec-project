@@ -264,10 +264,15 @@
             <tr><td><span class="ds-token-dot" style="background:#625b52"></span>warm-ink-3</td><td class="ds-token-hex">#625b52</td><td>Tertiary text</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#2c5282"></span>blue-mid</td><td class="ds-token-hex">#2c5282</td><td>Accent / interactive</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#1e3a5f"></span>navy-deep</td><td class="ds-token-hex">#1e3a5f</td><td>Democrat</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#CDE1F9;border:1px solid #D7D1C7"></span>blue-light</td><td class="ds-token-hex">#CDE1F9</td><td>Democrat tag tint</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#a83228"></span>red-deep</td><td class="ds-token-hex">#a83228</td><td>Republican / error</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#F7DBD6;border:1px solid #D7D1C7"></span>red-light</td><td class="ds-token-hex">#F7DBD6</td><td>Republican tag tint</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#5a4a7a"></span>purple-deep</td><td class="ds-token-hex">#5a4a7a</td><td>Independent</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#E4D7FF;border:1px solid #D7D1C7"></span>purple-light</td><td class="ds-token-hex">#E4D7FF</td><td>Independent tag tint</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#1e6644"></span>green-deep</td><td class="ds-token-hex">#1e6644</td><td>Success</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#8a5f10"></span>amber-deep</td><td class="ds-token-hex">#8a5f10</td><td>Warning</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#A55F03"></span>yellow-deep</td><td class="ds-token-hex">#A55F03</td><td>Incumbent tag text (distinct from amber-deep)</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#FBE7C3;border:1px solid #D7D1C7"></span>yellow-light</td><td class="ds-token-hex">#FBE7C3</td><td>Incumbent tag tint</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#05234f"></span>navy-950</td><td class="ds-token-hex">#05234f</td><td>Nav logo "Ledger", tabs-bar border, tab text, cycle select text</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#a83228"></span>red-700</td><td class="ds-token-hex">#a83228</td><td>Nav logo "FEC", active tab indicator — also backs --rep and --red</td></tr>
             <tr><td colspan="3" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Chart primitives (still referenced by --chart-* tokens, unchanged from previous palette):</td></tr>
@@ -291,12 +296,17 @@
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--text)"></span>--text</td><td>warm-ink</td><td class="ds-token-hex">#1a1510</td><td>Primary text</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--subtle)"></span>--subtle</td><td>warm-ink-2</td><td class="ds-token-hex">#46403a</td><td>Secondary text</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--muted)"></span>--muted</td><td>warm-ink-3</td><td class="ds-token-hex">#625b52</td><td>Tertiary / label text</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--dem)"></span>--dem</td><td>navy-deep</td><td class="ds-token-hex">#1e3a5f</td><td>Democrat party color</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--rep)"></span>--rep ⚠</td><td>red-deep</td><td class="ds-token-hex">#a83228</td><td>Republican party color</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--ind)"></span>--ind</td><td>purple-deep</td><td class="ds-token-hex">#5a4a7a</td><td>Independent party color</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--dem)"></span>--dem</td><td>navy-deep</td><td class="ds-token-hex">#1e3a5f</td><td>Democrat party color (tag text)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--dem50);border:1px solid var(--border)"></span>--dem50</td><td>blue-light</td><td class="ds-token-hex">#CDE1F9</td><td>Democrat tag background tint</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--rep)"></span>--rep ⚠</td><td>red-deep</td><td class="ds-token-hex">#a83228</td><td>Republican party color (tag text)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--rep50);border:1px solid var(--border)"></span>--rep50</td><td>red-light</td><td class="ds-token-hex">#F7DBD6</td><td>Republican tag background tint</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--ind)"></span>--ind</td><td>purple-deep</td><td class="ds-token-hex">#5a4a7a</td><td>Independent party color (tag text)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--ind50);border:1px solid var(--border)"></span>--ind50</td><td>purple-light</td><td class="ds-token-hex">#E4D7FF</td><td>Independent tag background tint</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--green)"></span>--green</td><td>green-deep</td><td class="ds-token-hex">#1e6644</td><td>Success / financially healthy</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--filing-active)"></span>--filing-active</td><td>green-500</td><td class="ds-token-hex">#3dbf7a</td><td>Active filing status dot</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--amber)"></span>--amber</td><td>amber-deep</td><td class="ds-token-hex">#8a5f10</td><td>Warning / watch</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--inc)"></span>--inc</td><td>yellow-deep</td><td class="ds-token-hex">#A55F03</td><td>Incumbent tag text (distinct from --amber)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--inc50);border:1px solid var(--border)"></span>--inc50</td><td>yellow-light</td><td class="ds-token-hex">#FBE7C3</td><td>Incumbent tag background tint</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--red)"></span>--red ⚠</td><td>red-deep</td><td class="ds-token-hex">#a83228</td><td>Error / stressed campaign</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--filing-terminated)"></span>--filing-terminated</td><td>warm-rule-dark</td><td class="ds-token-hex">#a8a099</td><td>Terminated filing status dot</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--accent)"></span>--accent</td><td>blue-mid</td><td class="ds-token-hex">#2c5282</td><td>Interactive accent, active indicators</td></tr>
@@ -407,7 +417,7 @@
       </div>
 
       <div class="ds-swatch-group">
-        <div class="ds-swatch-group-label">Partisan</div>
+        <div class="ds-swatch-group-label">Partisan — deep (tag text)</div>
         <div class="ds-swatch-grid">
           <div class="ds-swatch" data-token="--dem" data-hex="#1e3a5f">
             <div class="ds-swatch-color" style="background:var(--dem)"></div>
@@ -426,6 +436,30 @@
             <div class="ds-swatch-token">--ind</div>
             <div class="ds-swatch-hex">#5a4a7a</div>
             <div class="ds-swatch-desc">Independent</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-swatch-group">
+        <div class="ds-swatch-group-label">Partisan — light tint (tag background)</div>
+        <div class="ds-swatch-grid">
+          <div class="ds-swatch" data-token="--dem50" data-hex="#CDE1F9">
+            <div class="ds-swatch-color" style="background:var(--dem50)"></div>
+            <div class="ds-swatch-token">--dem50</div>
+            <div class="ds-swatch-hex">#CDE1F9</div>
+            <div class="ds-swatch-desc">Democrat tag bg</div>
+          </div>
+          <div class="ds-swatch" data-token="--rep50" data-hex="#F7DBD6">
+            <div class="ds-swatch-color" style="background:var(--rep50)"></div>
+            <div class="ds-swatch-token">--rep50</div>
+            <div class="ds-swatch-hex">#F7DBD6</div>
+            <div class="ds-swatch-desc">Republican tag bg</div>
+          </div>
+          <div class="ds-swatch" data-token="--ind50" data-hex="#E4D7FF">
+            <div class="ds-swatch-color" style="background:var(--ind50)"></div>
+            <div class="ds-swatch-token">--ind50</div>
+            <div class="ds-swatch-hex">#E4D7FF</div>
+            <div class="ds-swatch-desc">Independent tag bg</div>
           </div>
         </div>
       </div>
@@ -450,6 +484,18 @@
             <div class="ds-swatch-token">--red</div>
             <div class="ds-swatch-hex">#a83228</div>
             <div class="ds-swatch-desc">Error / stressed</div>
+          </div>
+          <div class="ds-swatch" data-token="--inc" data-hex="#A55F03">
+            <div class="ds-swatch-color" style="background:var(--inc)"></div>
+            <div class="ds-swatch-token">--inc</div>
+            <div class="ds-swatch-hex">#A55F03</div>
+            <div class="ds-swatch-desc">Incumbent tag text</div>
+          </div>
+          <div class="ds-swatch" data-token="--inc50" data-hex="#FBE7C3">
+            <div class="ds-swatch-color" style="background:var(--inc50)"></div>
+            <div class="ds-swatch-token">--inc50</div>
+            <div class="ds-swatch-hex">#FBE7C3</div>
+            <div class="ds-swatch-desc">Incumbent tag bg</div>
           </div>
         </div>
       </div>

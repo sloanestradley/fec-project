@@ -47,10 +47,13 @@
   --accent-dim: rgba(44,82,130,0.1);
   --overlay-bg: rgba(26,21,16,0.65);
 
-  /* Partisan / data */
-  --dem: #1e3a5f;
-  --rep: #a83228;
-  --ind: #5a4a7a;
+  /* Partisan / data — deep color + light tint pair per party */
+  --dem:   #1e3a5f;
+  --dem50: #CDE1F9;  /* light blue tint — filled tag bg */
+  --rep:   #a83228;
+  --rep50: #F7DBD6;  /* light red tint — filled tag bg */
+  --ind:   #5a4a7a;
+  --ind50: #E4D7FF;  /* light purple tint — filled tag bg */
 
   /* Status */
   --green:     #1e6644;
@@ -58,6 +61,8 @@
   --amber:     #8a5f10;
   --red:       #a83228;
   --filing-terminated: #a8a099;
+  --inc:       #A55F03; /* yellow-deep — incumbent tag text; distinct from --amber (#8a5f10) */
+  --inc50:     #FBE7C3; /* yellow-light tint — incumbent tag bg */
 
   /* Brand primitives */
   --color-navy-950: #05234f; /* nav logo "Ledger", future brand accent */
