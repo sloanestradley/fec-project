@@ -324,7 +324,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .donors-head { padding-bottom:var(--space-16);
   font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--text); }
 .donors-table { width:100%; border-collapse:collapse; }
-.donors-table th { padding:var(--space-8) var(--space-16); font-family:'IBM Plex Mono',monospace; font-size:0.625rem; text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--muted); text-align:left; border-bottom:1px solid var(--border); }
+.donors-table th { padding:var(--space-8) var(--space-16); font-family:'IBM Plex Mono',monospace; font-size:0.625rem; font-weight:400; text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--muted); text-align:left; border-bottom:1px solid var(--border); }
 .donors-table th.r { text-align:right; }
 /* Structural only — padding, border, vertical alignment. Typography is owned
    by the per-cell classes (.dn, .da, .ds, .table-cell-sm). Don't re-add
