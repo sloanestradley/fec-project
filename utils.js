@@ -225,6 +225,46 @@ function committeeTypeLabel(t) {
   return map[t] || ('Type ' + t);
 }
 
+// Shared candidate card markup. Single source of truth for the canonical 3-tag
+// shape rendered on candidates.html and search.html (race tag + party tag +
+// latest-cycle tag, in that order). Whole-card link semantics (the <a> is the
+// card itself), hover/border/spacing via .candidate-card + .candidate-card-meta
+// CSS. race.html uses .candidate-card directly with a structural variant (tags
+// inline in name + .candidate-card-stats below) and does NOT use this helper.
+//
+// opts:
+//   fromPage       — string, used for ?from= URL param + amplitude from_page
+//   resultPosition — int, position in list (logged in amplitude)
+//   query          — optional string, logged in amplitude (search context)
+//   includeName    — bool, defaults to true; include candidate_name in amplitude
+//                    payload (set false to omit)
+//   trackEvent     — defaults to 'Candidate Result Clicked' (aggregates across
+//                    callers in dashboards; from_page distinguishes context)
+function candidateCardHTML(c, opts) {
+  opts = opts || {};
+  var fromPage = opts.fromPage || 'candidate-card';
+  var name     = formatCandidateName(c.name);
+  var pcls     = partyClass(c.party || c.party_full);
+  var plbl     = partyLabel(c.party || c.party_full);
+  var ptt      = partyTooltip(c.party, c.party_full);
+  var office   = formatRaceName(c.office, c.state, c.district);
+  var latestCycle = c.election_years && c.election_years.length
+    ? Math.max.apply(null, c.election_years) : '';
+  var trackProps = { candidate_id: c.candidate_id, from_page: fromPage };
+  if (opts.includeName !== false) trackProps.candidate_name = name;
+  if (opts.resultPosition != null) trackProps.result_position = opts.resultPosition;
+  if (opts.query) trackProps.query = opts.query;
+  var trackName = opts.trackEvent || 'Candidate Result Clicked';
+  return '<a class="candidate-card" href="/candidate/' + c.candidate_id + '?from=' + encodeURIComponent(fromPage) + '"'
+    + ' onclick="amplitude.track(' + JSON.stringify(trackName) + ',' + JSON.stringify(trackProps) + ')">'
+    + '<div class="candidate-card-name">' + name + '</div>'
+    + '<div class="candidate-card-meta">'
+    + (office ? '<span class="tag tag-neutral">' + office + '</span>' : '')
+    + '<span class="tag ' + pcls + '" title="' + ptt + '">' + plbl + '</span>'
+    + (latestCycle ? '<span class="tag tag-neutral">' + latestCycle + '</span>' : '')
+    + '</div></a>';
+}
+
 // Shared committee row markup. Single source of truth for the row shape rendered
 // on candidates' committee modal, /committees browse, and /search results. All
 // callers get the same hover/border/spacing via .committee-row + .committee-card-meta

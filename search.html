@@ -205,26 +205,11 @@ function renderCandidateGroup(candidates, total, query) {
     return;
   }
   list.innerHTML = candidates.map(function(c, i) {
-    var name  = formatCandidateName(c.name);
-    var pcls  = partyClass(c.party || c.party_full);
-    var plbl  = partyLabel(c.party || c.party_full);
-    var office = formatRaceName(c.office, c.state, c.district);
-    var latestCycle = c.election_years && c.election_years.length
-      ? Math.max.apply(null, c.election_years) : '';
-    return '<a class="candidate-card" href="/candidate/' + c.candidate_id + '?from=search"'
-      + ' onclick="amplitude.track(\'Candidate Result Clicked\',{'
-      + 'candidate_id:' + JSON.stringify(c.candidate_id) + ','
-      + 'candidate_name:' + JSON.stringify(name) + ','
-      + 'query:' + JSON.stringify(query) + ','
-      + 'result_position:' + i + ','
-      + 'from_page:\'search\'})">'
-      + '<div class="candidate-card-name">' + name + '</div>'
-      + '<div class="candidate-card-meta">'
-      + (office ? '<span class="tag tag-neutral">' + office + '</span>' : '')
-      + '<span class="tag ' + pcls + '" title="' + partyTooltip(c.party, c.party_full) + '">' + plbl + '</span>'
-      + (latestCycle ? '<span class="tag tag-neutral">' + latestCycle + '</span>' : '')
-      + '</div>'
-      + '</a>';
+    return candidateCardHTML(c, {
+      fromPage: 'search',
+      resultPosition: i,
+      query: query
+    });
   }).join('');
 
   var n = total;
