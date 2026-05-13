@@ -529,11 +529,11 @@
         </div>
         <div class="ds-type-row">
           <span class="legend-item" style="gap:0">Final coverage: Mar 31, 2024</span>
-          <span class="ds-type-meta"><strong>caption</strong><br>Plex Mono 400 · 0.625rem · var(--muted)<br>.legend-item · .banner-note · .tab-still-loading (italic variant) · .typeahead-row-id · .typeahead-row-right · .filter-chip · .feed-office · .feed-money · .feed-date · .feed-fec · .designation-label</span>
+          <span class="ds-type-meta"><strong>caption</strong><br>Plex Mono 400 · 0.625rem · var(--muted)<br>.legend-item · .banner-note · .typeahead-row-id · .typeahead-row-right · .filter-chip · .feed-office · .feed-money · .feed-date · .feed-fec · .designation-label · .table-cell-sm</span>
         </div>
         <div class="ds-type-row">
           <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem">Navigate to Candidates</span>
-          <span class="ds-type-meta"><strong>body</strong><br>Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .nav-item · .committees-link · .retry-btn · .tab-error-msg</span>
+          <span class="ds-type-meta"><strong>body</strong><br>Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .nav-item · .committees-link · .retry-btn · .tab-error-msg · .section-state-msg</span>
         </div>
         <div class="ds-type-row">
           <span class="candidate-card-name" style="margin-bottom:0">Marie Gluesenkamp Perez</span>
@@ -1682,16 +1682,16 @@
           <span class="ds-component-name">Tab Skeleton</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.skeleton.tab-skeleton.skeleton-donut · .skeleton-map · .skeleton-table · .skeleton-bars · .tab-still-loading</div>
+        <div class="ds-component-classes">.skeleton.tab-skeleton.skeleton-donut · .skeleton-map · .skeleton-table · .skeleton-bars · .section-state-msg (paired)</div>
         <div class="ds-component-demo ds-demo-col" style="padding:1rem 1.5rem;gap:0.75rem;max-width:560px">
           <div class="skeleton tab-skeleton skeleton-donut"></div>
           <div class="skeleton tab-skeleton skeleton-map"></div>
           <div class="skeleton tab-skeleton skeleton-table"></div>
           <div class="skeleton tab-skeleton skeleton-bars"></div>
-          <div class="tab-still-loading">This is taking longer than usual — large committees can take 30+ seconds…</div>
+          <div class="section-state-msg">This is taking longer than usual — large committees can take 30+ seconds…</div>
         </div>
         <div class="ds-component-notes">
-          Block-level skeleton variants for chart/table cells inside tab content (Raised + Spent on candidate.html and committee.html). Sized to approximate resolved content height so layout stays stable through the loading window. Used with the title-always-visible pattern: titles render immediately, only the chart canvas / table body area swaps between skeleton and content. <code>.tab-still-loading</code> is the 10s "wait, it's still working" augmentation under slow-tier skeletons (Mono 10px italic, muted, centered).
+          Block-level skeleton variants for chart/table cells inside tab content (Raised + Spent on candidate.html and committee.html). Sized to approximate resolved content height so layout stays stable through the loading window. Used with the title-always-visible pattern: titles render immediately, only the chart canvas / table body area swaps between skeleton and content. The trailing <code>.section-state-msg</code> demo shown above the closing slot is the 10s "wait, it's still working" augmentation under slow-tier skeletons — body type, muted, centered. See the body specimen for the full consumer list of <code>.section-state-msg</code>.
         </div>
       </div>
 
