@@ -1777,7 +1777,7 @@ async function loadCycle(cycle) {
       var viewRaceLink = '<a href="' + raceHref + '">View race \u2192</a>';
 
       if (!electionsData.length) {
-        raceCtx.innerHTML = '<span class="tag-context"><span class="tag-context-text"></span>' + viewRaceLink + '</span>';
+        raceCtx.innerHTML = '<span class="race-context-line"><span class="race-context-line-text"></span>' + viewRaceLink + '</span>';
         return;
       }
 
@@ -1803,7 +1803,7 @@ async function loadCycle(cycle) {
         }
       }
 
-      raceCtx.innerHTML = '<span class="tag-context"><span class="tag-context-text">' + sentence + '</span>' + viewRaceLink + '</span>';
+      raceCtx.innerHTML = '<span class="race-context-line"><span class="race-context-line-text">' + sentence + '</span>' + viewRaceLink + '</span>';
     })();
 
     // ── Incumbent tag ──────────────────────────────────────────────

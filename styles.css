@@ -269,7 +269,13 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .tag-rep { color:var(--rep); border-color:var(--rep); background:transparent; }
 .tag-ind { color:var(--ind); border-color:var(--ind); background:transparent; }
 .tag-neutral { color:var(--subtle); border-color:var(--border-strong); background:transparent; }
-.tag-context {
+/* Editorial prose row used for sentence-format context lines. Despite the
+   "context" suffix this is NOT a .tag variant — it shares zero declarations
+   with .tag. Plex Serif 0.875rem, flex with wrap, no border/background/
+   padding. Currently used on candidate.html inside #race-context-bar.
+   Renamed from .tag-context (2026-05-13) — the old name implied a tag
+   relationship that didn't exist. */
+.race-context-line {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -280,9 +286,9 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   font-size: 0.875rem;
   color: var(--subtle);
 }
-.tag-context-text { flex: 1; min-width: 0; }
-.tag-context a { color: var(--subtle); text-decoration: underline; text-underline-offset: 2px; margin-left: auto; white-space: nowrap; }
-.tag-context a:hover { color: var(--text); }
+.race-context-line-text { flex: 1; min-width: 0; }
+.race-context-line a { color: var(--subtle); text-decoration: underline; text-underline-offset: 2px; margin-left: auto; white-space: nowrap; }
+.race-context-line a:hover { color: var(--text); }
 
 /* ── C: Health banner ── */
 /* Single live consumer (candidate.html, inside #summary-strip below the

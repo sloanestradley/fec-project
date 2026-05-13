@@ -98,11 +98,11 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#race-context')).toBeAttached();
   });
 
-  test('race-context renders tag-context with text span and view-race link', async ({ page }) => {
+  test('race-context renders race-context-line with text span and view-race link', async ({ page }) => {
     await setup(page);
-    await expect(page.locator('#race-context .tag-context')).toBeAttached();
-    await expect(page.locator('#race-context .tag-context .tag-context-text')).toBeAttached();
-    await expect(page.locator('#race-context .tag-context a')).toBeAttached();
+    await expect(page.locator('#race-context .race-context-line')).toBeAttached();
+    await expect(page.locator('#race-context .race-context-line .race-context-line-text')).toBeAttached();
+    await expect(page.locator('#race-context .race-context-line a')).toBeAttached();
   });
 
   test('profile header sentinel exists for compact observer', async ({ page }) => {

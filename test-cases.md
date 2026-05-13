@@ -129,7 +129,7 @@
 - [ ] ✅ `#race-context` element present in DOM (now in `#race-context-bar`, not meta-row)
 - [ ] Race context bar renders as the bottom-most child of `#summary-strip` (above the tabs bar, visible on all tabs as part of the header zone)
 - [ ] Skeleton pulse appears in the race context bar while `/elections/` fetch is in-flight
-- [ ] Race context sentence resolves to filled `.tag-context` pill in the bar
+- [ ] Race context sentence resolves to `.race-context-line` in the bar
 - [ ] Active cycle → sentence uses "is" (e.g. "Smith is the incumbent…")
 - [ ] Past cycle → sentence uses "was"
 - [ ] Incumbent with N challengers → "…the incumbent with N challenger/challengers." (plural conditional)
@@ -138,7 +138,7 @@
 - [ ] No `/elections/` data → "View race →" link only, no broken UI
 - [ ] "View race →" link goes to the correct race URL for the active cycle; updates on cycle switch
 - [ ] Senate candidate: race link has no `-00` district segment; sentence renders correctly
-- [ ] `.tag-context` text wraps at narrow viewports (no overflow); "View race →" link stays inline with last line
+- [ ] `.race-context-line` text wraps at narrow viewports (no overflow); "View race →" link stays inline with last line
 - [ ] Space between sentence period and "View race →" link is visible (non-breaking space)
 - [ ] ✅ Incumbent tag `.incumbent-tag` appears in `#meta-row` after party tag when candidate is the incumbent (automated)
 - [ ] Incumbent tag absent when candidate is a challenger or open-seat candidate
