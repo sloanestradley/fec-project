@@ -592,7 +592,7 @@
           <span class="ds-component-name">Tags</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.tag · .tag-dem · .tag-rep · .tag-ind · .tag-neutral</div>
+        <div class="ds-component-classes">.tag · .tag-dem · .tag-rep · .tag-ind · .tag-neutral · with nested .status-dot</div>
         <div class="ds-component-demo">
           <div class="ds-demo-row">
             <span class="tag tag-dem">Democrat</span>
@@ -602,8 +602,12 @@
             <span class="tag tag-neutral">Incumbent</span>
             <span class="tag tag-neutral fec-id-tag">FEC ID · H2WA03217</span>
           </div>
+          <div class="ds-demo-row" style="margin-top:var(--space-8)">
+            <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Quarterly</span>
+            <span class="tag tag-neutral"><span class="status-dot dot-terminated"></span>Terminated</span>
+          </div>
         </div>
-        <div class="ds-component-notes"><code>.tag-neutral</code> is the slot for any non-partisan, neutral-hierarchy labels — seat/race labels, incumbent markers, FEC IDs, state codes. Inline middle-dot (<code>·</code>) is the convention for "label · value" pairings inside a single tag. No new variants needed for this pattern.</div>
+        <div class="ds-component-notes"><code>.tag-neutral</code> is the slot for any non-partisan, neutral-hierarchy labels — seat/race labels, incumbent markers, FEC IDs, state codes. Inline middle-dot (<code>·</code>) is the convention for "label · value" pairings inside a single tag. <strong>Status-dot composition:</strong> nest a <code>&lt;span class="status-dot dot-active|dot-terminated"&gt;</code> as the first child of a <code>.tag-neutral</code> to prefix a 6×6 colored dot. Used on every committee-row site-wide (candidate modal, /committees browse, /search results, committee.html header) — see <a href="#comp-committee-rows">comp-committee-rows</a> for the row-level composition.</div>
       </div>
 
       <!-- 2. Health signal -->
