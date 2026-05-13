@@ -234,7 +234,7 @@ Nav tokens:
 
 **Typography tokens (CSS vars in `styles.css :root`):**
 - Line-height: `--lh-expanded: 1.75` (prose/notes), `--lh-normal: 1.5` (body default), `--lh-tight: 1` (display/numeric)
-- Letter-spacing: `--ls-tight: -0.125rem` (display titles, fixed rem), `--ls-expanded: 0.1em` (small uppercase labels, proportional em)
+- Letter-spacing: `--ls-tight: -0.125rem` (display titles, fixed rem), `--ls-expanded: 0.05em` (small uppercase labels, proportional em — single canonical value across every label-style rule; lowered from 0.1em on 2026-05-13)
 
 Font families: Oswald 400/600 (display/headings), IBM Plex Sans 400/600 (body/nav), IBM Plex Serif 400/600 (editorial prose), IBM Plex Mono 400/600 (labels/data). Redesign branch only; main uses Barlow Condensed + DM Sans.
 
