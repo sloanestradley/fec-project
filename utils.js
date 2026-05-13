@@ -260,8 +260,8 @@ function candidateCardHTML(c, opts) {
     + '<div class="candidate-card-name">' + name + '</div>'
     + '<div class="candidate-card-meta">'
     + (office ? '<span class="tag tag-neutral">' + office + '</span>' : '')
-    + '<span class="tag ' + pcls + '" title="' + ptt + '">' + plbl + '</span>'
     + (latestCycle ? '<span class="tag tag-neutral">' + latestCycle + '</span>' : '')
+    + '<span class="tag ' + pcls + '" title="' + ptt + '">' + plbl + '</span>'
     + '</div></a>';
 }
 
