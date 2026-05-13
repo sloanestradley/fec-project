@@ -326,15 +326,17 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .donors-table { width:100%; border-collapse:collapse; }
 .donors-table th { padding:var(--space-8) var(--space-16); font-family:'IBM Plex Mono',monospace; font-size:0.625rem; font-weight:400; text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--muted); text-align:left; border-bottom:1px solid var(--border); }
 .donors-table th.r { text-align:right; }
-/* Structural only — padding, border, vertical alignment. Typography is owned
-   by the per-cell classes (.dn, .da, .ds, .table-cell-sm). Don't re-add
-   font-size or color here — it creates cascade collisions with utility
-   classes that want to set their own type. */
-.donors-table td { padding:var(--space-8) var(--space-16);
+/* Provides 0.75rem default font-size for content cells (.dn donor names,
+   colspan empty-state messages, anything without a more specific class).
+   Color is intentionally NOT set here — every cell that renders has a
+   class that owns its color. Override classes (e.g. td.table-cell-sm)
+   need to match or beat 0,0,1,1 specificity to win the font-size
+   cascade. */
+.donors-table td { padding:var(--space-8) var(--space-16); font-size:0.75rem;
   border-bottom:1px solid var(--border); vertical-align:middle; }
 .donors-table tr:last-child td { border-bottom:none; }
 .donors-table tr:hover td { background:var(--surface2); }
-.donors-table .dn { font-size:0.75rem; color:var(--text); }
+.donors-table .dn { color:var(--text); }
 .donors-table .ds { font-size:0.625rem; color:var(--muted); margin-top:var(--space-2); /* micro: sub-label sits flush beneath donor name */ }
 .donors-table .da { font-family:'Oswald',sans-serif; font-size:0.875rem; font-weight:600;
   text-transform:uppercase; text-align:right; color:var(--text); }
@@ -356,9 +358,10 @@ tr.donors-link-row { position:relative; cursor:pointer; }
 /* Caption-style table cell utility — Plex Mono 0.625rem muted, padding
    inherits from the table-cell context (typically .donors-table td).
    Use for secondary metadata cells (rank numbers, sub-labels) where the
-   primary content style (.donors-table td default: 0.75rem Plex Sans subtle)
-   would over-emphasize. Generic, unscoped — usable on any <td>. */
-.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
+   primary content style (.donors-table td default: 0.75rem Plex Sans)
+   would over-emphasize. Selector qualifies on <td> so the specificity
+   matches .donors-table td (0,0,1,1) and wins on later definition order. */
+td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
 
 /* ── G: Spend purpose bars ── */
 .spend-bar-item { margin-bottom:var(--space-16); }
