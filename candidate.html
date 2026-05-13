@@ -1810,7 +1810,7 @@ async function loadCycle(cycle) {
     (function() {
       var metaRow = document.getElementById('meta-row');
       if (!metaRow) return;
-      var existing = metaRow.querySelector('.incumbent-tag');
+      var existing = metaRow.querySelector('.tag-inc');
       if (existing) existing.remove();
       var isIncumbent = electionsData.some(function(c) {
         return c.candidate_id === CANDIDATE_ID &&
@@ -1818,7 +1818,7 @@ async function loadCycle(cycle) {
       });
       if (isIncumbent) {
         var tag = document.createElement('span');
-        tag.className = 'tag tag-neutral incumbent-tag';
+        tag.className = 'tag tag-inc';
         tag.textContent = 'Incumbent';
         // Insert before the FEC ID tag so the meta-row reads
         // party → incumbent → FEC ID.

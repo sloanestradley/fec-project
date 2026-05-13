@@ -63,8 +63,8 @@ test.describe('candidate.html — profile header', () => {
 
   test('meta-row has no .tag-neutral race tag (race element uses .candidate-race-label, not .tag-neutral)', async ({ page }) => {
     await setup(page);
-    // incumbent tag and fec-id tag use .tag-neutral too — check there's no other .tag-neutral (e.g. a re-introduced race tag)
-    await expect(page.locator('#meta-row .tag-neutral:not(.incumbent-tag):not(.fec-id-tag)')).toHaveCount(0);
+    // After the .tag-inc migration (2026-05-13), incumbent tag is .tag-inc — only .fec-id-tag still uses .tag-neutral
+    await expect(page.locator('#meta-row .tag-neutral:not(.fec-id-tag)')).toHaveCount(0);
   });
 
   test('FEC ID tag renders with candidate ID text', async ({ page }) => {
@@ -86,7 +86,7 @@ test.describe('candidate.html — profile header', () => {
     const roles = await page.locator('#meta-row > *').evaluateAll(nodes => nodes.map(n => {
       if (n.classList.contains('candidate-race-label')) return 'race';
       if (n.classList.contains('tag-dem') || n.classList.contains('tag-rep') || n.classList.contains('tag-ind')) return 'party';
-      if (n.classList.contains('incumbent-tag')) return 'incumbent';
+      if (n.classList.contains('tag-inc')) return 'incumbent';
       if (n.classList.contains('fec-id-tag')) return 'fec-id';
       return 'other:' + n.className;
     }));
@@ -188,7 +188,7 @@ test.describe('candidate.html — profile header', () => {
 
   test('incumbent tag shown for incumbent candidate', async ({ page }) => {
     await setup(page);
-    const tag = page.locator('#meta-row .incumbent-tag');
+    const tag = page.locator('#meta-row .tag-inc');
     await expect(tag).toBeVisible({ timeout: 5000 });
     await expect(tag).toHaveText('Incumbent');
   });

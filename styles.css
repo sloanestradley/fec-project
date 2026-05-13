@@ -267,13 +267,19 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .tab.active { color:var(--color-navy-950); border-bottom-color:var(--color-red-700); }
 
 /* ── B: Tags ── */
-.tag { display:inline-flex; align-items:center; padding:var(--space-4) var(--space-8);
+/* Filled-on-light pattern: deep text color on a tinted background, no border,
+   square corners softened to 2px radius. .tag-neutral inherits text color from
+   the parent (typically body's --text). Each partisan/incumbent variant pairs
+   a deep color (text) with a light tint (background) defined as --xxx + --xxx50
+   in :root. See "Partisan tag tokens" note in CLAUDE.md. */
+.tag { display:inline-flex; align-items:center; padding:0 var(--space-4);
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem; text-transform:uppercase;
-  letter-spacing:var(--ls-expanded); border:1px solid; white-space:nowrap; }
-.tag-dem { color:var(--dem); border-color:var(--dem); background:transparent; }
-.tag-rep { color:var(--rep); border-color:var(--rep); background:transparent; }
-.tag-ind { color:var(--ind); border-color:var(--ind); background:transparent; }
-.tag-neutral { color:var(--subtle); border-color:var(--border-strong); background:transparent; }
+  letter-spacing:var(--ls-expanded); border-radius:2px; white-space:nowrap; }
+.tag-dem     { color:var(--dem); background:var(--dem50); }
+.tag-rep     { color:var(--rep); background:var(--rep50); }
+.tag-ind     { color:var(--ind); background:var(--ind50); }
+.tag-neutral { background:var(--surface2); }
+.tag-inc     { color:var(--inc); background:var(--inc50); }
 /* Editorial prose row used for sentence-format context lines. Despite the
    "context" suffix this is NOT a .tag variant — it shares zero declarations
    with .tag. Plex Serif 0.875rem, flex with wrap, no border/background/

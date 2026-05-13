@@ -176,8 +176,8 @@ test.describe('race.html', () => {
   });
 
   test('incumbent candidate card shows Incumbent tag', async ({ page }) => {
-    // Mock fixture has incumbent_challenge_full: 'Incumbent' — tag should render
-    const incumbentTag = page.locator('.candidate-card .tag-neutral').first();
+    // Mock fixture has incumbent_challenge_full: 'Incumbent' — .tag-inc should render (.tag-neutral after 2026-05-13 restyle)
+    const incumbentTag = page.locator('.candidate-card .tag-inc');
     await expect(incumbentTag).toBeVisible();
     const text = await incumbentTag.textContent();
     expect(text?.trim()).toBe('Incumbent');

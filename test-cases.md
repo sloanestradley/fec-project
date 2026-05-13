@@ -140,7 +140,7 @@
 - [ ] Senate candidate: race link has no `-00` district segment; sentence renders correctly
 - [ ] `.race-context-line` text wraps at narrow viewports (no overflow); "View race →" link stays inline with last line
 - [ ] Space between sentence period and "View race →" link is visible (non-breaking space)
-- [ ] ✅ Incumbent tag `.incumbent-tag` appears in `#meta-row` after party tag when candidate is the incumbent (automated)
+- [ ] ✅ Incumbent tag `.tag-inc` appears in `#meta-row` after party tag when candidate is the incumbent (automated)
 - [ ] Incumbent tag absent when candidate is a challenger or open-seat candidate
 - [ ] Incumbent tag clears and re-evaluates correctly on cycle switch (tag may appear in one cycle but not another)
 - [ ] "Committees (N) →" trigger shows a count immediately on load (not blank while loading)
