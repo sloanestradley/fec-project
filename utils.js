@@ -204,7 +204,7 @@ function filingFrequencyLabel(code) {
 }
 
 function filingFrequencyDotClass(code) {
-  return (code === 'T' || code === 'A') ? 'dot-gray' : 'dot-active';
+  return (code === 'T' || code === 'A') ? 'dot-terminated' : 'dot-active';
 }
 
 function committeeTypeLabel(t) {

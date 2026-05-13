@@ -647,10 +647,9 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   display:inline-block; width:6px; height:6px; border-radius:50%;
   vertical-align:middle; margin-right:var(--space-4); flex-shrink:0; }
 .typeahead-status-dot.dot-active, .status-dot.dot-active { background:var(--filing-active); }
-.typeahead-status-dot.dot-terminated { background:var(--filing-terminated); }
+.typeahead-status-dot.dot-terminated, .status-dot.dot-terminated { background:var(--filing-terminated); }
 .status-dot { display:inline-block; width:6px; height:6px; border-radius:50%;
   flex-shrink:0; margin-right:var(--space-4); vertical-align:middle; }
-.dot-gray { background:var(--filing-terminated); }
 .typeahead-empty {
   font-size:0.75rem; color:var(--muted); padding:var(--space-8) var(--space-16);
   border-bottom:1px solid var(--border); font-style:italic; }
