@@ -610,35 +610,6 @@
         <div class="ds-component-notes"><code>.tag-neutral</code> is the slot for any non-partisan, neutral-hierarchy labels — seat/race labels, incumbent markers, FEC IDs, state codes. Inline middle-dot (<code>·</code>) is the convention for "label · value" pairings inside a single tag. <strong>Status-dot composition:</strong> nest a <code>&lt;span class="status-dot dot-active|dot-terminated"&gt;</code> as the first child of a <code>.tag-neutral</code> to prefix a 6×6 colored dot. Used on every committee-row site-wide (candidate modal, /committees browse, /search results, committee.html header) — see <a href="#comp-committee-rows">comp-committee-rows</a> for the row-level composition.</div>
       </div>
 
-      <!-- 2. Health signal -->
-      <div class="ds-component" id="comp-health-signal" data-status="stable">
-        <div class="ds-component-header">
-          <span class="ds-component-name">Health Signal</span>
-          <span class="ds-status stable">stable</span>
-        </div>
-        <div class="ds-component-classes">.health-signal · .health-signal.green · .health-signal.amber · .health-signal.red · .health-signal.grey</div>
-        <div class="ds-component-demo">
-          <div class="ds-demo-row">
-            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
-              <div class="health-signal green"></div>
-              <span style="font-size:0.625rem;color:var(--muted)">green</span>
-            </div>
-            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
-              <div class="health-signal amber"></div>
-              <span style="font-size:0.625rem;color:var(--muted)">amber</span>
-            </div>
-            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
-              <div class="health-signal red"></div>
-              <span style="font-size:0.625rem;color:var(--muted)">red</span>
-            </div>
-            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
-              <div class="health-signal grey"></div>
-              <span style="font-size:0.625rem;color:var(--muted)">grey</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- 4. Nav item -->
       <div class="ds-component" id="comp-nav-item" data-status="stable">
         <div class="ds-component-header">
@@ -769,6 +740,35 @@
             <div class="banner-label" id="demo-health-label">Financially Healthy</div>
             <div class="banner-desc" id="demo-health-desc">Raised-to-spent ratio of 3.84x with positive cash on hand.</div>
             <div class="banner-note" id="demo-health-note">Best-guess assessment · Thresholds to be validated with domain expert</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7b. Health signal (used inside Health Banner) -->
+      <div class="ds-component" id="comp-health-signal" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Health Signal</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.health-signal · .health-signal.green · .health-signal.amber · .health-signal.red · .health-signal.grey — the colored circle inside <a href="#comp-banner">comp-banner</a>.</div>
+        <div class="ds-component-demo">
+          <div class="ds-demo-row">
+            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
+              <div class="health-signal green"></div>
+              <span style="font-size:0.625rem;color:var(--muted)">green</span>
+            </div>
+            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
+              <div class="health-signal amber"></div>
+              <span style="font-size:0.625rem;color:var(--muted)">amber</span>
+            </div>
+            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
+              <div class="health-signal red"></div>
+              <span style="font-size:0.625rem;color:var(--muted)">red</span>
+            </div>
+            <div class="ds-demo-col" style="align-items:center;gap:0.35rem">
+              <div class="health-signal grey"></div>
+              <span style="font-size:0.625rem;color:var(--muted)">grey</span>
+            </div>
           </div>
         </div>
       </div>
