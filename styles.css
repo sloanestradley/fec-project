@@ -495,7 +495,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    semantics (it's a race, not a candidate). Comma-grouped to share the base
    rules; only the markup contract differs. */
 .candidate-card, .race-card { display:grid; grid-template-columns:1fr auto; align-items:center;
-  gap:var(--space-8) var(--space-16); text-decoration:none;
+  gap:var(--space-8) var(--space-16); text-decoration:none; color:inherit;
   border-bottom:1px solid var(--border);
   padding:var(--space-16) var(--space-8); transition:background 0.15s; }
 .candidate-card:hover, .race-card:hover { background:var(--surface2); }
