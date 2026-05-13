@@ -537,7 +537,7 @@
         </div>
         <div class="ds-type-row">
           <span class="candidate-card-name" style="margin-bottom:0">Marie Gluesenkamp Perez</span>
-          <span class="ds-type-meta"><strong>body-emphasis</strong><br>Plex Sans 500 · 0.875rem<br>.candidate-card-name · .committee-name · .modal-tab-btn</span>
+          <span class="ds-type-meta"><strong>body-emphasis</strong><br>Plex Sans 500 · 0.875rem<br>.candidate-card-name · .race-card-name · .committee-name · .modal-tab-btn</span>
         </div>
         <div class="ds-type-row">
           <span class="tag-context"><span class="tag-context-text">Smith is the incumbent with 2 challengers.</span> <a href="#" style="color:var(--subtle);white-space:nowrap">View race →</a></span>
@@ -1035,7 +1035,7 @@
           <span class="ds-component-name">candidate-card</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.candidate-card · .candidate-card-name · .candidate-card-meta · .candidate-card-stats · .candidate-card-stat · .candidate-card-stat-lbl · .candidate-card-stat-val — grid: 1fr auto (name left, meta right). .candidate-card-meta comma-grouped with .committee-card-meta (shared flex rules). .candidate-card-stats uses grid-column:1/-1 to span full width. Used on candidates.html, search.html, race.html</div>
+        <div class="ds-component-classes">.candidate-card · .candidate-card-name · .candidate-card-meta · .candidate-card-stats · .candidate-card-stat · .candidate-card-stat-lbl · .candidate-card-stat-val — grid: 1fr auto (name left, meta right). .candidate-card-meta comma-grouped with .committee-card-meta (shared flex rules). .candidate-card-stats uses grid-column:1/-1 to span full width. <strong>Two structural variants:</strong> (1) canonical 3-tag shape on candidates.html + search.html — rendered via <code>candidateCardHTML(c, opts)</code> in utils.js (race tag + party tag + latest-cycle tag inside .candidate-card-meta); (2) stats variant on race.html only — tags live inline inside .candidate-card-name (not a -meta div), with the .candidate-card-stats grid spanning full width below. races.html uses the sibling .race-card class (see comp-race-card).</div>
         <div class="ds-component-demo">
           <a class="candidate-card" href="#">
             <div class="candidate-card-name">Maria Cantwell</div>
@@ -1065,6 +1065,31 @@
                 <span class="candidate-card-stat-lbl">Cash on Hand</span>
                 <span class="candidate-card-stat-val">$312K</span>
               </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- race-card -->
+      <div class="ds-component" id="comp-race-card" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">race-card</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.race-card · .race-card-name — races.html browse row. Shares visual treatment with .candidate-card (comma-grouped in styles.css: same grid, padding, border, hover) but is structurally a race row, not a candidate card. Paired with .race-row-meta (races.html-local, inline rule) for the count + total-raised line. Use .race-card for race-level browse surfaces; use .candidate-card for candidate-level surfaces.</div>
+        <div class="ds-component-demo">
+          <a class="race-card" href="#">
+            <div class="race-card-name">House · WA-03</div>
+            <div style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
+              <span>3 candidates</span>
+              <span>Total raised: $7.6M</span>
+            </div>
+          </a>
+          <a class="race-card" href="#">
+            <div class="race-card-name">Senate · WA</div>
+            <div style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
+              <span>2 candidates</span>
+              <span>Total raised: $14.2M</span>
             </div>
           </a>
         </div>
