@@ -194,6 +194,7 @@ Run before declaring the implementation done. Setup: `npm run dev`, open http://
 
 - **T15 implementation commit:** `ba2815d` — initial back-affordance ship (entity-scoped).
 - **T15 revert commit:** `b6bf7c5` — reverted the `.candidate-race-label` restyle (kept the meta-row relocation).
+- **`.candidate-race-label` retired** (commit `36dd48f`, 2026-05-14) — replaced with a short-form `.tag.tag-neutral` race tag in the meta-row, resolving the banked visual mismatch. Independent of T15 back-affordance work; flagged here so the strategy doc stays consistent with current production.
 - **T15 compact-height follow-up:** `e97e2fd` — `min-height:48px` on combined `.compact` headers.
 - **This doc:** `493d36e` (initial bank) — captures decisions for the eventual implementation pass.
 

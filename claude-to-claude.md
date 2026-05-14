@@ -5157,3 +5157,65 @@ The blue/red/amber/purple light values went through three rounds of refinement b
 
 - **Race-page back affordance + T23 (entity cycle-index navigation affordance).** Both banked from T15. Race.html is cycle-anchored single-view (no index/detail split), so its "Back to..." semantics differ from candidate/committee profile pages. T23 is the dependency for shipping the browser-scoped back-semantics that the T15 strategy doc banked. Worth scoping T23's investigation as the next major ticket.
 
+
+---
+2026-05-14 — Typography refactor → race-context-line label → banner restructure → profile-header meta-row simplification
+
+## Process log draft
+
+**Subtracting the surface area until the design system held its own weight**
+
+The session opened with what looked like a simple type-system audit — find every consumer of `subheading` — and ended six commits later with two retired classes, a flattened profile header, a new prose weight, and the canonical "Plex" → "IBM Plex" font-naming sweep across the docs. Each task surfaced the next. The subheading audit revealed a single consumer (`.donors-table .da`) which made the rename to `body-mono` (IBM Plex Mono 700) clean. Adding `prose-emphasis` for an upcoming use case revealed it needed real estate in the race-context-bar. Adding that label revealed the banner above wanted the same treatment. And refactoring the banner made it impossible to keep the old `.candidate-race-label` — a big red Oswald label that had been visually fighting with the meta-row tags since T15 — so it got retired and replaced with a small race tag matching every other race tag on the site.
+
+The cumulative effect is a profile header that reads as a uniform strip of small label-type tags instead of a hierarchy of competing visual elements. Same content, less shouting. The long-form race label still exists — it just lives once, in the race-context-bar where it has the editorial space to make sense, instead of twice across surfaces fighting for the same eye.
+
+Changelog:
+- Typography: retire `subheading` (single consumer → `.donors-table .da` → `body-mono`, IBM Plex Mono 700 0.75rem uppercase). Drop `body-emphasis` weight 500 → 400 (formalizes what was already rendering since 500 was never imported). Add `prose-emphasis` (IBM Plex Serif 700 · 0.875rem). Add `;700` to Plex Mono + Plex Serif font imports across 10 HTML files. Fix `.entry-title` weight regression in design-system demo. Prefix every "Plex" reference with "IBM" in CLAUDE.md, styles.css comments, and design-system specimen labels. Correct type-style count to 11.
+- Race-context-line: new `.race-context-line-label` (prose-emphasis) as the first child. Content from `formatRaceLabelLong()`. Renders independently of `/elections/`. Remove `width:fit-content` so the row spans the bar's full width and `margin-left:auto` reliably right-aligns the link. `align-items:flex-start` so label + link top-align with text's first line when text wraps. Mobile stacking via `flex-basis:100%` on the label.
+- Banner: `.banner-label` promoted to prose-emphasis. New `.banner-heading` wrapper groups signal + label with 8px internal gap (distinct from outer banner's 16px column-gap). Banner `gap:var(--space-4) var(--space-16)`. Mobile 3-row stacking with `padding-top` on note.
+- Profile-header meta-row: retire `.candidate-race-label` (big Oswald uppercase red label). Replace with short-form `.tag.tag-neutral` matching candidate-card race tags. New order on both candidate.html and committee.html: **FEC ID → race → party → incumbent**. Resolves the T15 visual mismatch.
+- Docs polish: `.ds-type-meta` overflow fix (drop nowrap, add max-width:1200px so long consumer lists wrap right-aligned instead of running off viewport).
+- 4 commits, all pushed (`ccb9b6e..36dd48f`). 552/552 Track 1 passing (-1 net: deleted "race label contains a link" test).
+
+Field notes:
+The "Plex" → "IBM Plex" sweep was tiny in scope and surprisingly clarifying. The shorthand had crept into docs for convenience but obscured that the font is IBM Plex — saying it correctly in the specimen makes the design system feel less casual. Small fix; banked discipline.
+
+The `body-emphasis` simplification deserves a longer note. The investigation surfaced that `font-weight:500` was never being loaded — Plex Sans imports `wght@400;600` only — and per the CSS Fonts spec, weight 500 with only 400 and 600 available resolves to 400. So `.candidate-card-name`, `.race-card-name`, `.committee-name`, `.modal-tab-btn`, plus two latent drifters (`.cycle-row-label`, `.map-tt-name`) had all been rendering at 400 in production for who knows how long. Declaring the weight 400 didn't change a single pixel — but the codebase now tells the truth about what's rendering. That kind of "no-op simplification" is rare and worth taking when it lines up.
+
+The biggest pattern this session was the override → lift instinct showing up four times across the arc. When the banner-label was prose, the override at `.banner-label` declared a heading-style. When prose-emphasis arrived, that override could collapse into a type-style mapping. Same with `.candidate-race-label` — eight lines of inline CSS overriding the meta-row's typographic register, retired entirely once the simplification landed. The codebase ended smaller in the directions that mattered.
+
+Stack tags: CSS Fonts spec weight-matching rule (500 → 400 when only 400/600 imported); align-self / align-items per-child overrides for flex cross-axis; flex-basis:100% as the canonical mobile-stacking primitive; the override → lift discipline applied at the rule level
+
+## How Sloane steered the work
+
+**"Investigate before scoping" — applied seven times across the arc.**
+Every meaningful change this session opened with a diagnostic-only investigation prompt: the subheading audit, the body-emphasis simplification, the race-context-line label addition, the banner refactor, the profile-header meta-row simplification. Each investigation surfaced concerns that affected scope decisions (latent drifters in the body-emphasis case; the visual-mismatch resolution in the meta-row case; the empty-elections branch in the race-context-line label case). The pattern is so well-established now that it's the default cadence — and the resulting implementations need zero rework.
+
+**Catching the test-count drift and the "Plex" naming inconsistency.**
+"Can you recheck your work on the number of styles? We didn't really add body-mono (we updated subheading). So, I believe the count is at 11 now." That correction was exactly right — body-mono replaced subheading rather than adding to it. Without that catch, the type-style count in styles.css comment + CLAUDE.md would have been wrong for the next reader. Same pattern with the IBM Plex naming: "can we also update so the documentation indicates the true font names" — a small inconsistency that had been hiding in plain sight, named explicitly and swept in one pass.
+
+**The "FEC ID first" order call.**
+My recommendation was to keep race first (matching browse-card canonical order). Sloane went different: FEC ID first — the canonical identifier should lead. Looking at the resulting profile header, it does read better: the unique identifier opens the strip, then the contextual tags follow. That's a product judgment about what's actually load-bearing in a profile context — the FEC ID is the thing you'd copy/quote, so giving it the lead position is right. I would have undervalued that.
+
+**"We lost the link floating right with this change" — diagnostic instinct on a layout regression.**
+After the align-self changes landed, Sloane caught immediately that the link was no longer at the right edge. The fix turned out to be removing `width:fit-content` (a design decision banked from the early `.tag-context` days, no longer apt). That diagnostic surfaced a deeper design question — "does the line hug content or span the bar?" — and the answer changed the layout in a way that made every subsequent decision cleaner.
+
+**"Note any other gaps, concerns, or things to clarify before starting" — applied verbatim on the meta-row simplification.**
+This was the explicit form of the investigate-before-scoping discipline, and it produced three concrete decisions (no link, FEC ID first, formatRaceName) in one round trip. The implementation prompt that followed had zero ambiguity and zero rework. The session was full of these compressed decision rounds — they're cheap and they compound.
+
+**Sequencing the deploy across separate commits with intent.**
+The session produced four commits with deliberate scope boundaries: typography refactor → race-context-line label → banner refactor → meta-row simplification. Each commit is a coherent unit that could be reverted or referenced independently. The git log reads like a planning document. Same instinct that produced the strategy docs — work that ages well needs structure, not just code.
+
+**The through-line:** you're steering for the version of the work that ages well. Every diagnostic question, every "let me think about that," every "actually let's also include X" — they aim at the version of the system that's easier to read six months from now. The session subtracted more than it added.
+
+## What to bring to Claude Chat
+
+- **Strategic changes to candidate and committee pages** — banked explicitly. The session set the table by simplifying the profile header (FEC ID-first meta-row, race tag instead of label) and surfacing the long-form race label in the race-context-bar's prose-emphasis position. What comes next is a bigger conversation: how should the stats-grid, banner, and Raised/Spent tab content evolve now that the header zone has been simplified? Worth scoping in Chat before the next implementation session.
+
+- **Plex Sans 600 + Plex Serif 600 imports are now unused.** Banked observation. The body-emphasis simplification dropped the last Plex Sans 600 consumer; no Plex Serif 600 consumers exist either. A future cleanup pass could trim the Google Fonts URL across all 10 HTML files. Tiny diff, no behavior change.
+
+- **Banner-heading mobile padding decision.** Currently `.banner-note` gets `padding-top:var(--space-8)` only at mobile (because the 4px row-gap is too tight beside the small caption). Worth eyeballing on a real mobile device before deciding whether that mobile-only rule is the right shape long-term or whether the row-gap itself should be different.
+
+- **Race tag short-form vs long-form on candidate cards.** The meta-row simplification put a short-form race tag ("House • WA-03") in the candidate profile header, and the long form ("US House: Washington's 3rd District") in the race-context-bar. Candidate cards on candidates.html and search.html only have room for the short form — no race-context-bar context — which means a user browsing the list sees less detail than one on the profile page. That asymmetry might be fine (different surfaces, different read-time budgets) or worth a deliberate decision. Worth a UX think.
+
+- **Future strategy doc** for the candidate + committee page evolution. Given the next conversation will scope strategic changes, worth using a strategy doc to bank the investigation findings + decisions before implementing — same pattern as the T15 / T11.5 / T12 docs that this project has been good about producing. The next session can pick up from the strategy doc instead of reconstructing context.
