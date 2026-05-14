@@ -61,8 +61,8 @@
   --amber:     #8a5f10;
   --red:       #a83228;
   --filing-terminated: #a8a099;
-  --inc:       #A55F03; /* yellow-deep — incumbent tag text; distinct from --amber (#8a5f10) */
-  --inc50:     #FBE7C3; /* yellow-light tint — incumbent tag bg */
+  --inc:       #8a5f10; /* amber-deep — incumbent tag text. Same value as --amber, kept separate for semantic clarity (parallel to --red/--rep). */
+  --inc50:     #FBE7C3; /* amber-light tint — incumbent tag bg */
 
   /* Brand primitives */
   --color-navy-950: #05234f; /* nav logo "Ledger", future brand accent */

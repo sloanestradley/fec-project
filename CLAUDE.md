@@ -163,9 +163,9 @@ Documented non-token exceptions: `margin-bottom:-1px` in `.tab` (border-offset t
 
 **Page gutter pattern:** All content sections use `var(--page-gutter)` for horizontal padding — resolves to `var(--space-48)` (48px) on desktop, `var(--space-16)` (16px) on mobile (≤860px). Mobile value is overridden in `:root` inside `@media (max-width:860px)`. When adding a new page or content section, use `padding: <vertical> var(--page-gutter)`. Component-internal padding (buttons, cards, modals) uses `--space-*` tokens directly, not `--page-gutter`.
 
-**Known intentional overlap:** `--red` and `--rep` both resolve to `#d94a4a`. `--rep` = Republican partisan color; `--red` = status color (stressed/error). Do not merge them. If the status system ever diverges from the partisan palette, split them at that point. Separately, `--inc` (#A55F03 yellow-deep) and `--amber` (#8a5f10 olive amber) are both warm but distinct in hue and role — `--inc` is the incumbent-tag text color, `--amber` is the watch/warning status color. Do not merge them.
+**Known intentional overlap:** `--red` and `--rep` both resolve to `#a83228`. `--rep` = Republican partisan color; `--red` = status color (stressed/error). Do not merge them. If the status system ever diverges from the partisan palette, split them at that point. Same pattern for `--inc` and `--amber`: both resolve to `#8a5f10` (amber-deep). `--inc` is the incumbent-tag text color; `--amber` is the watch/warning status color. Kept separate so a future change to either semantic role doesn't ripple into the other.
 
-**Partisan tag tokens:** Each party has a deep/tint pair — `--dem` (#1e3a5f) + `--dem50` (#CDE1F9), `--rep` (#a83228) + `--rep50` (#F7DBD6), `--ind` (#5a4a7a) + `--ind50` (#E4D7FF). Deep is tag text; light tint is tag background. The `50` suffix marks "lightest tint" — it does NOT imply a numbered scale (no `--dem100`, `--dem500`, etc.); only two values per party. Same convention for `--inc` (#A55F03) + `--inc50` (#FBE7C3) on the incumbent tag.
+**Partisan tag tokens:** Each party has a deep/tint pair — `--dem` (#1e3a5f) + `--dem50` (#CDE1F9), `--rep` (#a83228) + `--rep50` (#F7DBD6), `--ind` (#5a4a7a) + `--ind50` (#E4D7FF). Deep is tag text; light tint is tag background. The `50` suffix marks "lightest tint" — it does NOT imply a numbered scale (no `--dem100`, `--dem500`, etc.); only two values per party. Same convention for `--inc` (#8a5f10, amber-deep) + `--inc50` (#FBE7C3, amber-light) on the incumbent tag.
 
 ### Component status lifecycle
 
@@ -205,10 +205,10 @@ Light "broadsheet" theme. Key CSS variables:
 --ind50: #E4D7FF     (Independent — tag background tint)
 --green: #1e6644     (healthy)
 --filing-active: #3dbf7a (active filing status dot)
---amber: #8a5f10     (watch / warning — distinct from --inc, see overlap note)
+--amber: #8a5f10     (watch / warning — same value as --inc, intentionally kept separate)
 --red: #a83228       (stressed — resolves via --color-red-700; same value as --rep, intentionally kept separate)
---inc: #A55F03       (incumbent tag text — yellow-deep)
---inc50: #FBE7C3     (incumbent tag background tint)
+--inc: #8a5f10       (incumbent tag text — amber-deep; same value as --amber, see overlap note)
+--inc50: #FBE7C3     (incumbent tag background tint — amber-light)
 --filing-terminated: #a8a099 (terminated filing status dot)
 --accent: #2c5282    (interactive accent, active indicators)
 --accent-dim: rgba(44,82,130,0.1)  (accent tint)
