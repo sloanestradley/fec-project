@@ -49,9 +49,9 @@
 
   /* Partisan / data — deep color + light tint pair per party */
   --dem:   #1e3a5f;
-  --dem50: #CDE1F9;  /* light blue tint — filled tag bg */
+  --dem50: #E6EBEF;  /* light blue tint — filled tag bg */
   --rep:   #a83228;
-  --rep50: #F7DBD6;  /* light red tint — filled tag bg */
+  --rep50: #F5E2E0;  /* light red tint — filled tag bg */
   --ind:   #5a4a7a;
   --ind50: #E4D7FF;  /* light purple tint — filled tag bg */
 
@@ -62,7 +62,7 @@
   --red:       #a83228;
   --filing-terminated: #a8a099;
   --inc:       #8a5f10; /* amber-deep — incumbent tag text. Same value as --amber, kept separate for semantic clarity (parallel to --red/--rep). */
-  --inc50:     #FBE7C3; /* amber-light tint — incumbent tag bg */
+  --inc50:     #F6E9CE; /* amber-light tint — incumbent tag bg */
 
   /* Brand primitives */
   --color-navy-950: #05234f; /* nav logo "Ledger", future brand accent */
