@@ -136,7 +136,7 @@ Rows without a committee_id render plain (no `.donors-link-row` class, no link, 
 - **Tier 2 — Semantic tokens:** CSS vars in `styles.css :root`. Named by meaning, not appearance (`--bg`, `--surface`, `--dem`, `--green`). New tokens always go here first. Add to `styles.css :root` and document in `design-system.html`.
 - **Tier 3 — Component tokens:** Not yet built. Would be things like `--tag-dem-bg`. Document as `planned` in `design-system.html` before building.
 
-**Rgba semantic token refactor — deferred:** Several semantic tokens in `:root` (`--chart-raised`, `--chart-spent`, `--chart-overlay-*`, etc.) are expressed as raw `rgba()` values rather than `color-mix()` derivations from primitives. This is a known cleanup item. Blocked on a decision about whether blue-500 (`#4a90d9`), red-500 (`#d94a4a`), and chart-amber (`rgba(232,160,32,...)`) should be promoted to `:root` as explicit primitive tokens. Do not refactor piecemeal — address as a single pass when unblocked.
+**Rgba semantic token refactor — deferred:** Several semantic tokens in `:root` (`--chart-raised`, `--chart-spent`, `--chart-overlay-*`, etc.) are expressed as raw `rgba()` values rather than `color-mix()` derivations from primitives. This is a known cleanup item. Blocked on a decision about whether blue-500 (`#4A90D9`), red-500 (`#D94A4A`), and chart-amber (`rgba(232,160,32,...)`) should be promoted to `:root` as explicit primitive tokens. Do not refactor piecemeal — address as a single pass when unblocked.
 
 **Spacing token system (8px grid):** All padding, margin, and gap declarations in `styles.css` AND inline `<style>` blocks use `--space-*` tokens exclusively. Do not write raw rem spacing values in either location — map to the nearest token using the table below. The only permitted raw values are sub-floor fine-tunes (below 0.1rem) and values above the scale ceiling (above 4rem), both must be documented with an inline comment.
 
@@ -163,9 +163,9 @@ Documented non-token exceptions: `margin-bottom:-1px` in `.tab` (border-offset t
 
 **Page gutter pattern:** All content sections use `var(--page-gutter)` for horizontal padding — resolves to `var(--space-48)` (48px) on desktop, `var(--space-16)` (16px) on mobile (≤860px). Mobile value is overridden in `:root` inside `@media (max-width:860px)`. When adding a new page or content section, use `padding: <vertical> var(--page-gutter)`. Component-internal padding (buttons, cards, modals) uses `--space-*` tokens directly, not `--page-gutter`.
 
-**Known intentional overlap:** `--red` and `--rep` both resolve to `#a83228`. `--rep` = Republican partisan color; `--red` = status color (stressed/error). Do not merge them. If the status system ever diverges from the partisan palette, split them at that point. Same pattern for `--inc` and `--amber`: both resolve to `#8a5f10` (amber-deep). `--inc` is the incumbent-tag text color; `--amber` is the watch/warning status color. Kept separate so a future change to either semantic role doesn't ripple into the other.
+**Known intentional overlap:** `--red` and `--rep` both resolve to `#A83228`. `--rep` = Republican partisan color; `--red` = status color (stressed/error). Do not merge them. If the status system ever diverges from the partisan palette, split them at that point. Same pattern for `--inc` and `--amber`: both resolve to `#8A5F10` (amber-deep). `--inc` is the incumbent-tag text color; `--amber` is the watch/warning status color. Kept separate so a future change to either semantic role doesn't ripple into the other.
 
-**Partisan tag tokens:** Each party has a deep/tint pair — `--dem` (#1e3a5f) + `--dem50` (#E6EBEF), `--rep` (#a83228) + `--rep50` (#F5E2E0), `--ind` (#5a4a7a) + `--ind50` (#EDE7FA). Deep is tag text; light tint is tag background. The `50` suffix marks "lightest tint" — it does NOT imply a numbered scale (no `--dem100`, `--dem500`, etc.); only two values per party. Same convention for `--inc` (#8a5f10, amber-deep) + `--inc50` (#F6E9CE, amber-light) on the incumbent tag.
+**Partisan tag tokens:** Each party has a deep/tint pair — `--dem` (#1E3A5F) + `--dem50` (#E6EBEF), `--rep` (#A83228) + `--rep50` (#F5E2E0), `--ind` (#5A4A7A) + `--ind50` (#EDE7FA). Deep is tag text; light tint is tag background. The `50` suffix marks "lightest tint" — it does NOT imply a numbered scale (no `--dem100`, `--dem500`, etc.); only two values per party. Same convention for `--inc` (#8A5F10, amber-deep) + `--inc50` (#F6E9CE, amber-light) on the incumbent tag.
 
 ### Component status lifecycle
 
@@ -186,31 +186,31 @@ Every color swatch has `data-token` and `data-hex` attributes. Every component c
 Light "broadsheet" theme. Key CSS variables:
 
 ```
---color-navy-950: #05234f  (brand primitive — backs logo "Ledger", banner bg, future brand accent)
---color-red-700:  #a83228  (brand primitive — backs logo "FEC", also backs --rep and --red)
+--color-navy-950: #05234F  (brand primitive — backs logo "Ledger", banner bg, future brand accent)
+--color-red-700:  #A83228  (brand primitive — backs logo "FEC", also backs --rep and --red)
 
 --bg: #F8F5EC        (page background + nav)
---surface: #ffffff   (cards, panels)
---surface2: #eee9e1  (chart interiors, inset elements)
+--surface: #FFFFFF   (cards, panels)
+--surface2: #EEE9E1  (chart interiors, inset elements)
 --border: #D7D1C7
---border-strong: #a8a099  (strong borders, nav dots default)
---text: #1a1510
---muted: #625b52
---subtle: #46403a
---dem: #1e3a5f       (Democrat — tag text)
+--border-strong: #A8A099  (strong borders, nav dots default)
+--text: #1A1510
+--muted: #625B52
+--subtle: #46403A
+--dem: #1E3A5F       (Democrat — tag text)
 --dem50: #E6EBEF     (Democrat — tag background tint)
---rep: #a83228       (Republican — tag text; resolves via --color-red-700)
+--rep: #A83228       (Republican — tag text; resolves via --color-red-700)
 --rep50: #F5E2E0     (Republican — tag background tint)
---ind: #5a4a7a       (Independent — tag text)
+--ind: #5A4A7A       (Independent — tag text)
 --ind50: #EDE7FA     (Independent — tag background tint)
---green: #1e6644     (healthy)
---filing-active: #3dbf7a (active filing status dot)
---amber: #8a5f10     (watch / warning — same value as --inc, intentionally kept separate)
---red: #a83228       (stressed — resolves via --color-red-700; same value as --rep, intentionally kept separate)
---inc: #8a5f10       (incumbent tag text — amber-deep; same value as --amber, see overlap note)
+--green: #1E6644     (healthy)
+--filing-active: #3DBF7A (active filing status dot)
+--amber: #8A5F10     (watch / warning — same value as --inc, intentionally kept separate)
+--red: #A83228       (stressed — resolves via --color-red-700; same value as --rep, intentionally kept separate)
+--inc: #8A5F10       (incumbent tag text — amber-deep; same value as --amber, see overlap note)
 --inc50: #F6E9CE     (incumbent tag background tint — amber-light)
---filing-terminated: #a8a099 (terminated filing status dot)
---accent: #2c5282    (interactive accent, active indicators)
+--filing-terminated: #A8A099 (terminated filing status dot)
+--accent: #2C5282    (interactive accent, active indicators)
 --accent-dim: rgba(44,82,130,0.1)  (accent tint)
 --overlay-bg: rgba(26,21,16,0.65)  (modal and drawer overlay scrim)
 
@@ -221,7 +221,7 @@ Layout tokens (reference --space-* scale):
 --banner-h: 32px                 (in-flow global banner height; banner scrolls away naturally before nav sticks)
 
 Nav tokens:
---nav-active-bg: #d4cdc3  (nav active state background — currently unused, reserved)
+--nav-active-bg: #D4CDC3  (nav active state background — currently unused, reserved)
 ```
 
 **Typography — named type styles:** All text must use one of these 10 canonical styles. Do not introduce new font-family/font-size/font-weight combinations — map to the closest existing style. The styles are documented in `styles.css :root` (comment block) and rendered as live specimens in `design-system.html`.
@@ -356,8 +356,8 @@ The candidate page (`candidate.html`) is the main work in progress. It accepts a
 - Tab navigation: Summary, Raised, Spent
 - **Summary strip (`#summary-strip`):** persistent strip rendering top-line cycle framing — visible on all three tabs (Summary/Raised/Spent) so users never lose sight of it when drilling in. **As of T21 (2026-05-07), lives in its own `.main-inner` wrapper between `#profile-header` and `#tabs-bar`** rather than below the tabs bar — communicates shared structure with the cycle-index landing state, where the stats grid also sits above. Three `.main-inner` wrappers per page after the move: one for the loading state, one for the summary strip, one for the rest of the cycle-detail / cycle-index content. Because `#summary-strip` is no longer sticky and `#tabs-bar` IS sticky (top:var(--header-h), then top:headerH+compactHeaderH in compact mode), the strip scrolls naturally between the compact header and the sticky tabs-bar — eventually disappearing under tabs-bar as users scroll into tab content. **candidate.html** contains `.stats-grid` first then `#banner` (the T21 inversion — banner is intentionally de-emphasised below the marquee stats). **committee.html** contains `.stats-grid` only (no banner). Reveal JS toggles `#summary-strip` visibility in the same RAF block as `#race-context-bar` and `#content`. The `.profile-content { padding-top:0 }` override that previously removed the cycle-detail top padding (because the in-content summary-strip provided rhythm) was removed in T21 — the default 32px top padding is now correct since `.profile-content` no longer carries the strip.
 - Stats row (order matters): Raised:Spent ratio → Cash on Hand → Raised → Spent. On committee.html the order is Coverage Through → COH → Raised → Spent. Cards are referenced by ID (`#stat-ratio`, `#stat-coh`, etc.) so rendering logic is DOM-order-independent.
-- **Edge-to-edge border pattern:** `#summary-strip` has no horizontal padding — it's full-width inside its `.main-inner` wrapper. Horizontal `var(--page-gutter)` padding is applied to the bordered children (`.banner`, `.stats-grid`) instead. Because `border-top`/`border-bottom` draw on the border box, the navy rules extend edge-to-edge within the 1600px max-width while stat card / banner content stays gutter-aligned with the rest of the page. Scoped via `#summary-strip .banner` and `#summary-strip .stats-grid` selectors in each page's inline `<style>` block. T21 follow-up moved `margin-bottom` ownership off `.stats-grid` (no longer carries it as a component default) onto the strip wrappers — both `#career-strip` and `#summary-strip` share a single rule in styles.css: `#career-strip, #summary-strip { margin-bottom:var(--section-gap) }`. Same rhythm in cycle-index and cycle-detail so the structural language reads the same in both views. T21 also collapsed the global `.banner` rule (single live consumer is candidate.html) to its in-strip-effective values directly: `padding:var(--space-16) var(--page-gutter); border-bottom:1px solid #05234f`, no border-top, no margin-bottom. The stats-grid's `border-bottom` above the inverted banner serves as the divider between stats and banner; the banner's own `border-bottom` provides the strip's bottom edge against the tabs-bar. design-system.html demo carries a `.ds-component-demo .banner { padding-left:0; padding-right:0 }` reset so the demo sits flush in the constrained card.
-- **Mobile stat-card borders** (`@media ≤860px` in `styles.css`): stats-grid switches to `repeat(2,1fr)` 2×2 layout with `.stat-card:nth-child(even) { border-right:none }` (removes stray right border on card 2) and `.stat-card:nth-child(-n+2) { border-bottom:1px solid #05234f }` (divider between top and bottom rows). Rules assume exactly 4 cards in the grid.
+- **Edge-to-edge border pattern:** `#summary-strip` has no horizontal padding — it's full-width inside its `.main-inner` wrapper. Horizontal `var(--page-gutter)` padding is applied to the bordered children (`.banner`, `.stats-grid`) instead. Because `border-top`/`border-bottom` draw on the border box, the navy rules extend edge-to-edge within the 1600px max-width while stat card / banner content stays gutter-aligned with the rest of the page. Scoped via `#summary-strip .banner` and `#summary-strip .stats-grid` selectors in each page's inline `<style>` block. T21 follow-up moved `margin-bottom` ownership off `.stats-grid` (no longer carries it as a component default) onto the strip wrappers — both `#career-strip` and `#summary-strip` share a single rule in styles.css: `#career-strip, #summary-strip { margin-bottom:var(--section-gap) }`. Same rhythm in cycle-index and cycle-detail so the structural language reads the same in both views. T21 also collapsed the global `.banner` rule (single live consumer is candidate.html) to its in-strip-effective values directly: `padding:var(--space-16) var(--page-gutter); border-bottom:1px solid #05234F`, no border-top, no margin-bottom. The stats-grid's `border-bottom` above the inverted banner serves as the divider between stats and banner; the banner's own `border-bottom` provides the strip's bottom edge against the tabs-bar. design-system.html demo carries a `.ds-component-demo .banner { padding-left:0; padding-right:0 }` reset so the demo sits flush in the constrained card.
+- **Mobile stat-card borders** (`@media ≤860px` in `styles.css`): stats-grid switches to `repeat(2,1fr)` 2×2 layout with `.stat-card:nth-child(even) { border-right:none }` (removes stray right border on card 2) and `.stat-card:nth-child(-n+2) { border-bottom:1px solid #05234F }` (divider between top and bottom rows). Rules assume exactly 4 cards in the grid.
 - Cycle-aware banner (`.banner` inside `#summary-strip`): health signal (green/amber/red) for active cycles; "Cycle Complete" summary for closed cycles. Single live consumer is candidate.html — the global `.banner` rule was collapsed to its production-effective values in T21 (`padding:var(--space-16) var(--page-gutter)`, no border, no margin-bottom; stats-grid's `border-bottom` above provides the divider). `.banner-label` and `.banner-desc` use prose type (IBM Plex Serif 0.875rem); `.banner-note` uses caption type (Plex Mono 0.625rem). Closed-cycle copy: desc is `"Cycle concluded with {X in outstanding debt | no outstanding debt reported.}"`, note holds `"Final coverage: {date}"` (empty string when no `covDate`). No-Data copy: desc is `"No filings this cycle."`, note is empty. `.banner` is `candidate-only` in the design system — committee.html and race.html have no banner.
 - Associated committees modal: "Committees →" trigger in profile header opens a modal with Active and History tabs. **Lazy fetch (T11, 2026-04-29)** — fetches fire on first modal open, not on cycle load. Cached for the session via the existing `committeesLoaded` flag. Trigger reads "Committees →" with no count (count was the eager-fetch dependency). See "Committee modal architecture" section below for full detail.
 - **Raised tab — fetch is split into fast tier + slow tier (T12, 2026-05-05).** `fetchRaisedFastData(committeeId, subCycles)` returns `{byState}` from `/schedules/schedule_a/by_state/` — sub-second typical, feeds the choropleth. `fetchRaisedSlowData(committeeId, subCycles)` paginates `/schedules/schedule_a/?is_individual=false` to exhaustion across all sub-cycles via `Promise.all` (House: 1 call per sub-cycle; Senate: 3; Presidential: 2) — 5–25s on principal CCs typical. The single fetch's rows feed both Top Committee Contributors (non-memo) and Top Conduit Sources (`memo_code === 'X'`). Each tier renders independently when its fetch resolves; the donut chart renders synchronously from totals data already in memory (no fetch). Per-tier skeleton + per-tier error UI with retry button via `showTabError` helper; rate-limit (429) and init-stage errors swap to a no-retry "reload to recover" copy. 10s "still loading" augmentation under the slow-tier skeleton. See `kickoffRaisedFastFetch` / `kickoffRaisedSlowFetch` in candidate.html.

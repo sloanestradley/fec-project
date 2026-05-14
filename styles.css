@@ -5,18 +5,18 @@
 :root {
   /* Surfaces */
   --bg:           #F8F5EC;
-  --surface:      #ffffff;
-  --surface2:     #eee9e1;
+  --surface:      #FFFFFF;
+  --surface2:     #EEE9E1;
   --border:       #D7D1C7;
-  --border-strong:#a8a099;
+  --border-strong:#A8A099;
 
   /* Nav */
-  --nav-active-bg:  #d4cdc3;
+  --nav-active-bg:  #D4CDC3;
 
   /* Typography — color */
-  --text:    #1a1510;
-  --muted:   #625b52;
-  --subtle:  #46403a;
+  --text:    #1A1510;
+  --muted:   #625B52;
+  --subtle:  #46403A;
 
   /* Typography — line height */
   --lh-expanded: 1.75;   /* prose / notes: .data-note, .callout, log entries */
@@ -43,30 +43,30 @@
    */
 
   /* Accent */
-  --accent:     #2c5282;
+  --accent:     #2C5282;
   --accent-dim: rgba(44,82,130,0.1);
   --overlay-bg: rgba(26,21,16,0.65);
 
   /* Partisan / data — deep color + light tint pair per party */
-  --dem:   #1e3a5f;
+  --dem:   #1E3A5F;
   --dem50: #E6EBEF;  /* light blue tint — filled tag bg */
-  --rep:   #a83228;
+  --rep:   #A83228;
   --rep50: #F5E2E0;  /* light red tint — filled tag bg */
-  --ind:   #5a4a7a;
+  --ind:   #5A4A7A;
   --ind50: #EDE7FA;  /* light purple tint — filled tag bg */
 
   /* Status */
-  --green:     #1e6644;
-  --filing-active: #3dbf7a;
-  --amber:     #8a5f10;
-  --red:       #a83228;
-  --filing-terminated: #a8a099;
-  --inc:       #8a5f10; /* amber-deep — incumbent tag text. Same value as --amber, kept separate for semantic clarity (parallel to --red/--rep). */
+  --green:     #1E6644;
+  --filing-active: #3DBF7A;
+  --amber:     #8A5F10;
+  --red:       #A83228;
+  --filing-terminated: #A8A099;
+  --inc:       #8A5F10; /* amber-deep — incumbent tag text. Same value as --amber, kept separate for semantic clarity (parallel to --red/--rep). */
   --inc50:     #F6E9CE; /* amber-light tint — incumbent tag bg */
 
   /* Brand primitives */
-  --color-navy-950: #05234f; /* nav logo "Ledger", future brand accent */
-  --color-red-700:  #a83228; /* nav logo "FEC"; also backs --rep and --red */
+  --color-navy-950: #05234F; /* nav logo "Ledger", future brand accent */
+  --color-red-700:  #A83228; /* nav logo "FEC"; also backs --rep and --red */
 
   /* Spacing — 8px grid */
   --space-2:  2px;     /* micro: fine-tuning only — leave inline comment at every call site */
@@ -307,7 +307,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
    stats-grid's navy bottom border, so this rule no longer carries its own
    border-top or bottom margin — vertical rhythm comes from the strip context.
    Horizontal gutter padding aligns banner content with the rest of the page. */
-.banner { padding:var(--space-16) var(--page-gutter); border-bottom:1px solid #05234f;
+.banner { padding:var(--space-16) var(--page-gutter); border-bottom:1px solid #05234F;
   display:flex; align-items:center; gap:var(--space-16); flex-wrap:wrap; }
 .health-signal { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 .health-signal.green { background:var(--green); }
@@ -464,9 +464,9 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    the component. Both wrappers carry the same section-gap rhythm so the
    structural language reads the same in cycle-index and cycle-detail. */
 .stats-grid { display:grid; grid-template-columns:repeat(4,1fr);
-  gap:0; border-top:1px solid #05234f; border-bottom:1px solid #05234f; }
+  gap:0; border-top:1px solid #05234F; border-bottom:1px solid #05234F; }
 #career-strip, #summary-strip { margin-bottom:var(--section-gap); }
-.stat-card { padding:var(--space-16) var(--space-24); border-right:1px solid #05234f; }
+.stat-card { padding:var(--space-16) var(--space-24); border-right:1px solid #05234F; }
 .stat-card:last-child { border-right:none; }
 .stat-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
   color:var(--muted); margin-bottom:var(--space-4); }
@@ -872,7 +872,7 @@ div.cycle-row {
   .stats-grid { grid-template-columns:repeat(2,1fr); }
   /* 2-column grid: right border only between columns, bottom border between rows */
   .stats-grid .stat-card:nth-child(even) { border-right:none; }
-  .stats-grid .stat-card:nth-child(-n+2) { border-bottom:1px solid #05234f; }
+  .stats-grid .stat-card:nth-child(-n+2) { border-bottom:1px solid #05234F; }
   .tab-section-header { flex-direction:column; align-items:flex-start; }
   .typeahead-dropdown { max-width:100%; }
   .state-combo .form-input { display:none; }
