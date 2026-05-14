@@ -5079,3 +5079,81 @@ After T15's main commits, you iterated quickly on .page-title margin (add top, t
 - **Process pattern worth banking: the "did we decide X?" gate.** The race-label restyle revert was the second instance this project where a Claude Chat-sourced recommendation slipped into implementation without explicit confirmation. Worth a real ritual moment: before treating a recommendation as authorized, confirm Sloane read it and intended it. The diagnostic question Sloane asked ("did we make a decision to restyle X?") is what caught it — formalizing that as a checkpoint for any visual-change implementation prompt would prevent the third instance.
 
 - **Strategy doc pattern worth reusing.** strategy/t15-back-affordance-semantics.md was significantly improved by the "audit cold — what would a future pickup need?" pass that added code shapes, file:line pointers, scroll-restoration note, and verification checklist. Pattern: any strategy doc that gates work on a dependency should be written self-contained, with execution context, not just investigation findings. Future strategy docs should default to this shape.
+
+---
+2026-05-13 — Design-system audit arc culminating in tag restyle
+
+## Process log draft
+
+**Auditing my way into a tag restyle**
+
+The session opened with what looked like a small cleanup ask — audit .candidate-card and .committee-row, identify low-hanging fruit. By the end, 26 commits later, I'd extracted a candidateCardHTML helper, split races.html off into its own .race-card class, run two more audits (caption type-style, label letter-spacing), corrected three regressions of my own making, consolidated two pairs of duplicate tokens (.dot-gray/.dot-terminated, --inc/yellow-deep onto amber-deep), renamed a misleadingly-named component (.tag-context → .race-context-line), and shipped the tag-component restyle to filled-on-light with a new .tag-inc variant retiring the old .incumbent-tag identifier class. The audits kept revealing more audits. Each cleanup created its own follow-up. The tag restyle at the end was almost an afterthought — the audits had cleared so much undergrowth that the actual restyle landed in two clean commits.
+
+The two genuine learning moments for me were both about declaring things "dead code" too quickly. Once with .table-cell-sm — I lifted inline overrides to a Mono caption class without flagging that the cells had been rendering Plex Sans (inheriting from body, since no inline font-family was ever set) and would shift to Mono after my class. Sloane caught the visible UX impact and asked why. The second time with .donors-table td — I argued that .dn was the only consumer of the font-size default and lifted it onto .dn, exposing a regression where 11 unclassed colspan empty-state cells silently relied on the same default. Both times the "lift before override" instinct was right in shape but executed on incomplete consumer enumeration. The second mistake produced a real visible regression that Sloane caught immediately ("No committee contribution data available." rendering at 14px instead of 12px) — and a memory got banked: feedback_enumerate_consumers_before_dead_code.md. Don't declare "no class consumes it" without also tracing unclassed elements that inherit through context.
+
+Changelog:
+– 26 commits, all pushed. Branch closed at f189c19.
+– Audit findings turned into commits: .candidate-card / .committee-row consolidation (candidateCardHTML helper, .race-card class split, party-tag-last reorder); caption text-style sweep (color uniformity, lift inline 0.625rem to .table-cell-sm + .section-state-msg, italic removal, banked feedback_no_italic_without_instruction memory); label letter-spacing sweep (--ls-expanded value 0.1em → 0.05em, applied uniformly to all 25 label-shape rules including 12 that had been drifting without any letter-spacing); donors-table cascade fix (specificity bump + lifted typography); .dot-gray → .dot-terminated consolidation; .tag-context → .race-context-line rename
+– Race page: office section titles removed entirely, freeing the page from a name/style drift hazard
+– Health Signal demo reordered directly under Health Banner in the design system
+– Tag restyle (major): two-commit landing (tokens first, restyle second). 5 new primitives + 5 semantic tokens (--dem50/--rep50/--ind50/--inc/--inc50); filled-on-light tag treatment with 2px corner radius and 0 vertical padding; .tag-inc variant replacing .incumbent-tag entirely; .feed-report-col .tag override removed (canonical padding everywhere); 4 follow-ups: candidate-card color:inherit fix (latent UA-blue bug exposed by removing .tag-neutral's explicit color); --inc consolidated onto amber-deep (drop yellow-deep primitive entirely, mirror --red/--rep overlap pattern); mobile meta-row gap tightened to 4px row × 8px column; tag tint values refined three times across the QA loop (CDE1F9→E6EBEF, F7DBD6→F5E2E0, FBE7C3→F6E9CE, E4D7FF→EDE7FA)
+– Hex code casing normalized to uppercase across design-system.html, styles.css, CLAUDE.md
+– 553/553 Playwright passing throughout
+
+Field notes:
+Two regressions of my own making this session — both from declaring something "dead code" without tracing every consumer. First the .table-cell-sm caption-style choice (I'd argued the inline cells were "outside the type system" without acknowledging that switching from inherited Plex Sans to explicit Plex Mono was a visible family change). Second the .donors-table td font-size strip (I argued .dn was the only consumer; the 11 unclassed colspan empty-state cells weren't on my map). The corrective in the second case was a 3-rule cascade restore that brought back the structural default while keeping .table-cell-sm working via specificity bump.
+
+The label letter-spacing sweep was the most architecturally satisfying piece. The original --ls-expanded was 0.1em — comfortable for very airy labels but too loose for compact pills. Sloane named the right move quickly: don't add a parallel --ls-expanded-sm token; just lower --ls-expanded's value and let every consumer flow through. The result: every uppercased small-text label on the site tightens consistently, every drift-A rule that had been missing letter-spacing gets it explicitly, no new tokens to maintain. One char-level change in :root cascaded across 25 rules.
+
+The tag restyle itself was almost the easy part. The tokens-first commit isolated the color decision from the rule change. The restyle commit was contained — one CSS rule rewrite, four JS/HTML migration touches (.incumbent-tag → .tag-inc), four test-selector updates, doc updates. The hard parts were the follow-up regressions: .candidate-card's missing color:inherit had been latent for the entire codebase's history, masked by .tag-neutral's color:var(--subtle) declaration. Sloane spotted it on the first browser QA pass — UA blue on neutral tags. One-line fix, but a real lesson about what "redundant" color declarations are actually doing structurally.
+
+The dot-gray/dot-terminated consolidation and the --inc/amber-deep consolidation both followed the same pattern: two tokens doing one job in different contexts, with subtly different rule shapes. Both were small commits with the right answer being a comma-grouped rule and one canonical name. The --inc consolidation in particular was Sloane's call after I'd already added --inc as a distinct yellow-deep — she came back and said "let's just use amber-deep, parallel to --red/--rep." Cleaner answer, smaller palette, one fewer primitive to maintain.
+
+Stack tags: CSS specificity arithmetic; cascade trap diagnosis (anchor color inheritance); token consolidation as a "lift before override" pattern; hex code casing normalization across three doc surfaces
+
+## How Sloane steered the work
+
+**"Investigate before scoping" — applied across every multi-step ticket.**
+Every multi-step task this session opened with a diagnostic-only prompt before any code shipped. The .table-cell-sm / .section-state-msg arc, the label letter-spacing sweep, the .dot-gray consolidation, the tag restyle — all started with an audit/scope conversation that surfaced risks, gaps, and explicit decisions before the implementation prompt. The cost is ~20-30 minutes of investigation per ticket; the payoff is implementation work that doesn't need rework. By the end of the session this discipline felt automatic, not aspirational.
+
+**Catching the .candidate-card-meta UA blue text within minutes of the tag restyle landing.**
+First browser QA pass on the new filled tags showed neutral tag text rendering in user-agent link blue. Sloane spotted it immediately and reported. The fix was one line — `color:inherit` on .candidate-card / .race-card — but it surfaced a latent inheritance bug that the previous .tag-neutral color:var(--subtle) had been masking for the entire codebase's history. Her browser-eye caught what no Playwright assertion would have.
+
+**Pushing back on the --ls-expanded-sm new token.**
+I'd proposed adding a parallel --ls-expanded-sm token at 0.05em alongside the existing --ls-expanded at 0.1em. Sloane immediately asked "if this is the only thing the variable touches, why don't we just utilize that and reduce the spacing instead of creating a new variable?" — and that was the right call. One char-level change in :root cascaded across 25 rules. The token I'd proposed would have been dead weight; the existing token already had the right name and consumers. Saved the system one unnecessary primitive.
+
+**Catching the 14px empty-state regression.**
+I'd argued .donors-table td's font-size:0.75rem was effectively dead code with one consumer (.dn) and lifted it onto .dn directly. Sloane's "messages in the table, such as 'No committee contribution data available.' are now appearing in 14px size instead of 12px" report was the corrective. The 11 unclassed colspan cells across candidate.html and committee.html had been silently relying on the same default — I missed them in my "consumer enumeration." The fix was a clean restore + .table-cell-sm specificity bump, but the lesson was bigger: I'd over-called dead code without tracing every cell type. Banked as a memory.
+
+**"Let's just use amber-deep for --inc."**
+After I'd already added --inc as a distinct yellow-deep token (#A55F03), Sloane came back and proposed consolidating onto amber-deep (#8A5F10) — mirroring the existing --red/--rep overlap pattern. Cleaner, fewer primitives, and the contrast on the incumbent tag actually improved (from a borderline 4.05:1 to a clean 4.65:1). Spotted a system-coherence move that I'd missed.
+
+**The "Investigate before scoping" rule applied to the rename.**
+When the .tag-context → .race-context-line rename came up, Sloane explicitly said "do an analysis of impact before starting." That diagnostic step caught the #race-context ID collision before any code shipped — would have created markup like `<span id="race-context"><span class="race-context">` if I'd just plowed through. The impact analysis surfaced three viable paths; she picked the one with the cleanest naming.
+
+**"Add a `.tag-inc` and apply to every instance of the incumbent tag" — and asked for honest thoughts.**
+The tag-restyle proposal you shared was deliberately incomplete — Sloane wanted me to identify gaps. I came back with 12 concerns (text color decisions, contrast risk, .tag-inc vs .incumbent-tag relationship, token naming, padding implications, status-dot composition, etc.). You answered all of them in one tight reply and we executed cleanly. The proposal-first / honest-thoughts-second pattern saved a lot of rework.
+
+**"Update all to var(--muted)" — but with a question on scope.**
+On the caption color drift fix, I asked whether you meant strict (touch inheriting cases too) or loose (just the two var(--subtle) outliers). You picked loose. The strict interpretation would have made .feed-money render lighter — a primary content cell going muted, which would have read as wrong. Catching the scope question explicitly meant we didn't make that mistake.
+
+**Strategic deferrals throughout.**
+Multiple times this session you deferred specific decisions: contrast verification ("second round, after this work is in place"), the tag-context status taxonomy (banked from earlier session), the Status swatch group internal split (banked when you noticed swatches are semantic tokens, not primitives), the race-label meta-row visual variant (from T15). Each deferral kept the active ticket scope tight and the design system's accumulation rate manageable.
+
+**Browser QA caught the iteration loop on tag tints.**
+The blue/red/amber/purple light values went through three rounds of refinement based on browser QA, not pre-decision. First values landed in the tokens commit (CDE1F9, F7DBD6, FBE7C3, E4D7FF). Then real-browser eyeball led to E6EBEF, F5E2E0, F6E9CE (three values softened). Then you remembered purple-light needed updating too — EDE7FA. Three commits to settle, but the iteration was driven by what actually rendered, not what looked right in isolation.
+
+**The through-line:** you steer toward the version of the system that ages well. Every diagnostic question you asked ("are there drawbacks beyond X?", "what would a future reader see?", "is this dead code or load-bearing?") aimed at the version of the work that wouldn't need re-explaining six months from now. The audits, the rename, the consolidations, the token refinements — all moved the design system toward greater internal coherence rather than greater feature scope. That's a hard discipline to keep when each individual decision could be deferred or skipped; you didn't skip.
+
+## What to bring to Claude Chat
+
+- **Contrast verification on the four new tag tint pairs.** Sloane explicitly deferred AA verification on --dem/--dem50, --rep/--rep50, --ind/--ind50, --inc/--inc50. Worth a real WCAG contrast check (e.g. WebAIM contrast checker) before considering the restyle "done." Rough estimates suggest --dem ✓, --rep ≈5:1, --ind possibly tight, --inc ≈4.65:1 (passing after the amber-deep consolidation). Could darken --ind text or accept any failures as known.
+
+- **The "second round of color adjustments" you mentioned.** You said specifically you wanted to test other color tweaks after the current tag work landed. Worth scoping what those are — additional partisan refinements, deep-color adjustments, surface palette tweaks. The current palette is now stable enough to test variations against without disrupting the system.
+
+- **Status swatch group internal split.** When I flagged the inconsistency between Partisan ("— deep" / "— light tint" sub-labels) and Status (single group with mixed deep + light --inc50), you initially said "nevermind, swatches are semantic tokens." That's true, but the asymmetry in the design-system Color section is still there. Worth deciding: keep the asymmetry, or split Status into "Status — deep" + "Status — light tint" with --inc50 as the lone tint? Single-member subgroup looks lonely but mirrors Partisan.
+
+- **The `.candidate-race-label` meta-row visual variant decision** (banked from T15). Still rendering at 1.25rem Oswald next to 0.625rem tags. The visual mismatch is intentionally visible in production for evaluation. Could go subheading-style (0.875rem Oswald 600), keep as-is, or introduce a new meta-row-context variant. Pairs with the broader question: is there a "race link" component that should be elevated from inline-styled span to a documented part of the meta-row?
+
+- **Race-page back affordance + T23 (entity cycle-index navigation affordance).** Both banked from T15. Race.html is cycle-anchored single-view (no index/detail split), so its "Back to..." semantics differ from candidate/committee profile pages. T23 is the dependency for shipping the browser-scoped back-semantics that the T15 strategy doc banked. Worth scoping T23's investigation as the next major ticket.
+
