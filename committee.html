@@ -23,20 +23,16 @@
 
     /* Summary strip — persistent cycle stats across tabs. Lives in its own
        .main-inner between #committee-header and #tabs-bar so it scrolls away
-       under the sticky tabs-bar as users move into tab content. Strip is
-       full-width inside .main-inner so the navy borders on .stats-grid extend
-       edge-to-edge; horizontal gutter padding is applied to .stats-grid so its
-       content stays flush with the rest of the page's gutter-aligned content.
-       margin-bottom on .stats-grid is dropped inside the strip — tabs-bar's
-       natural top edge handles the rhythm. */
+       under the sticky tabs-bar as users move into tab content. Gutter padding
+       lives on the strip itself (see styles.css) so .stats-grid's borders
+       end at the gutter-inset edge on desktop. Mobile reverts to per-child
+       gutter padding so borders go edge-to-edge. */
     #summary-strip { opacity:0; transition:opacity 0.3s ease; }
     #summary-strip.visible { opacity:1; }
-    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
-    /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells.
-       margin-bottom is shared with #summary-strip in styles.css (T21 follow-up). */
+    /* CareerStrip — index view only. margin-bottom and gutter padding are
+       shared with #summary-strip in styles.css. */
     #career-strip { opacity:0; transition:opacity 0.3s ease; }
     #career-strip.visible { opacity:1; }
-    #career-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
     /* Cycle index — index view only */
     #cycle-index { opacity:0; transition:opacity 0.3s ease; }
     #cycle-index.visible { opacity:1; }

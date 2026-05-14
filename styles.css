@@ -311,7 +311,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
    stats-grid's navy bottom border, so this rule no longer carries its own
    border-top or bottom margin — vertical rhythm comes from the strip context.
    Horizontal gutter padding aligns banner content with the rest of the page. */
-.banner { padding:var(--space-16) var(--page-gutter); border-bottom:1px solid #05234F;
+.banner { padding:var(--space-16); border-bottom:1px solid #05234F;
   display:flex; align-items:center; gap:var(--space-4) var(--space-16); flex-wrap:wrap; }
 /* Heading wrapper groups the health signal with the label so the dot sits flush
    beside the label with a tight 4px gap, while the outer .banner's 16px gap
@@ -476,15 +476,25 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    Mobile (≤860px): outer collapses to 1 column; first-half border-right
    becomes border-bottom. Inner half-grids retain their --cols (right-half
    stays multi-column on mobile per J.5 — typography is the scaling lever).
-   margin-bottom lives on the strip wrapper (#career-strip or #summary-strip),
-   not on .stats-grid itself — the rhythm is owned by the strip context, not
-   the component. Both wrappers carry the same section-gap rhythm so the
-   structural language reads the same in cycle-index and cycle-detail. */
+   margin-top:var(--space-16) gives breathing room above the navy top border
+   so it doesn't slide flush under the compact sticky header — added 2026-05-14
+   as a T14.5 polish. margin-bottom lives on the strip wrapper (#career-strip
+   or #summary-strip), not on .stats-grid itself — the rhythm is owned by
+   the strip context, not the component. Both wrappers carry the same
+   section-gap rhythm so the structural language reads the same in
+   cycle-index and cycle-detail. */
 .stats-grid { display:grid; grid-template-columns:1fr 1fr;
-  gap:0; border-top:1px solid #05234F; border-bottom:1px solid #05234F; }
+  gap:0; border-top:1px solid #05234F; border-bottom:1px solid #05234F;
+  margin-top:var(--space-16); }
 .stats-grid > .stats-grid-half:first-child { border-right:1px solid #05234F; }
 .stats-grid-half { display:grid; grid-template-columns:repeat(var(--cols, 2), 1fr); gap:0; }
-#career-strip, #summary-strip { margin-bottom:var(--section-gap); }
+/* Strips own the gutter inset on desktop: bordered children (.stats-grid,
+   .banner, #race-context-bar) live inside the inset and their borders
+   end at the gutter edge rather than running into the page margin.
+   Mobile (≤860px) reverts the lift — gutter padding moves back to the
+   bordered children and their borders go edge-to-edge. */
+#career-strip, #summary-strip { padding-left:var(--page-gutter); padding-right:var(--page-gutter);
+  margin-bottom:var(--section-gap); }
 .stat-card { padding:var(--space-16) var(--space-24); border-right:1px solid #05234F; }
 .stat-card:last-child { border-right:none; }
 .stat-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
@@ -558,7 +568,6 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .page-title { font-family:'Oswald',sans-serif;
   font-size:clamp(2rem,5vw,4.5rem); font-weight:600; line-height:var(--lh-tight);
   letter-spacing:var(--ls-tight); text-transform:uppercase;
-  margin-top:var(--space-8);
   color:var(--color-navy-950); }
 .profile-header-row .page-title { min-width:0; }
 
@@ -588,7 +597,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 #committee-header.compact .page-title,
 #race-header.compact .page-title {
   font-size:1.25rem; font-weight:400; letter-spacing:0;
-  margin-top:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* T14.5 retired the profile-header back-affordance — the back chevron now lives
    inside the Cycle card in the stats-grid (see .stat-card-cycle / .cycle-back-btn
@@ -892,6 +901,15 @@ div.cycle-row {
   .stats-grid { grid-template-columns:1fr; }
   .stats-grid > .stats-grid-half:first-child { border-right:none; border-bottom:1px solid #05234F; }
   .cycle-back-btn { width:32px; height:32px; }
+  /* Gutter-padding revert: on mobile the strips zero their horizontal padding
+     so the bordered children's borders go edge-to-edge of the viewport.
+     .stats-grid is intentionally left without horizontal padding on mobile —
+     cards extend edge-to-edge to buy back narrow-viewport horizontal space,
+     and the horizontal divider between the two stacked halves runs full-width.
+     .banner and #race-context-bar carry uniform 16px horizontal padding in
+     their base rules (internal breathing room from their own border edges),
+     so they don't need a mobile-specific override. */
+  #career-strip, #summary-strip { padding-left:0; padding-right:0; }
   .tab-section-header { flex-direction:column; align-items:flex-start; }
   .typeahead-dropdown { max-width:100%; }
   .state-combo .form-input { display:none; }

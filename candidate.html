@@ -22,25 +22,24 @@
     /* Race context bar — bottom-most child of #summary-strip (T21 follow-up).
        Inherits the reveal cascade from #summary-strip; min-height reserves
        vertical space during the loading skeleton so the page doesn't shift
-       when /elections/ resolves. */
-    #race-context-bar { padding:var(--space-16) var(--page-gutter); border-bottom:1px solid #05234f;
+       when /elections/ resolves. Horizontal gutter lives on #summary-strip
+       on desktop and is restored here at ≤860px (see styles.css). */
+    #race-context-bar { padding:var(--space-16); border-bottom:1px solid #05234f;
       min-height:var(--space-32); }
     /* Summary strip — persistent cycle stats + health banner. Lives in its own
        .main-inner between #profile-header and #tabs-bar so it scrolls away
-       under the sticky tabs-bar as users move into tab content. Strip is
-       full-width inside .main-inner so the navy borders on .stats-grid extend
-       edge-to-edge; horizontal gutter padding is applied to bordered children
-       so their content stays flush with the rest of the page's gutter-aligned
-       content. Inside the strip on candidate.html: stats-grid first, banner
-       below — banner is de-emphasised against the marquee stats. */
+       under the sticky tabs-bar as users move into tab content. Gutter
+       padding lives on the strip itself (see styles.css) so bordered children
+       (.stats-grid, .banner, #race-context-bar) end at the gutter-inset edge
+       on desktop. Mobile reverts to per-child gutter padding so borders go
+       edge-to-edge. Inside the strip on candidate.html: stats-grid first,
+       banner below — banner is de-emphasised against the marquee stats. */
     #summary-strip { opacity:0; transition:opacity 0.3s ease; }
     #summary-strip.visible { opacity:1; }
-    #summary-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
-    /* CareerStrip — index view only; edge-to-edge borders, gutter padding on cells.
-       margin-bottom is shared with #summary-strip in styles.css (T21 follow-up). */
+    /* CareerStrip — index view only. margin-bottom and gutter padding are
+       shared with #summary-strip in styles.css. */
     #career-strip { opacity:0; transition:opacity 0.3s ease; }
     #career-strip.visible { opacity:1; }
-    #career-strip .stats-grid { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
     /* Cycle index — index view only */
     #cycle-index { opacity:0; transition:opacity 0.3s ease; }
     #cycle-index.visible { opacity:1; }
@@ -1668,11 +1667,22 @@ async function loadCycle(cycle) {
       + '</span>';
   }
 
-  // Reset stats to em-dash while loading
+  // Reset stats to em-dash while loading. #stat-cycle is set synchronously
+  // below from the cycle param (no fetch needed) so the new cycle's range
+  // shows immediately on cycle-switch transitions — otherwise the prior
+  // cycle's range sits in the DOM during the await window. Sub-lines that
+  // can hold derived values from the previous cycle (#stat-coh-sub,
+  // #stat-ratio-sub) are reset to defaults so they don't carry stale data
+  // when the new cycle resolves to no-data or different state.
   ['stat-raised','stat-spent','stat-coh','stat-ratio'].forEach(function(id) {
     document.getElementById(id).textContent = '—';
   });
   document.getElementById('stat-ratio').style.color = '';
+  document.getElementById('stat-coh-sub').textContent = '';
+  var ratioSubReset = document.getElementById('stat-ratio-sub');
+  ratioSubReset.textContent = 'Raised ÷ Spent';
+  ratioSubReset.className = 'stat-sub';
+  document.getElementById('stat-cycle').textContent = (cycle - getCycleSpanYears() + 1) + '–' + cycle;
 
   try {
     // ── Step 1: committees + totals for all sub-cycles in parallel ──
@@ -1840,9 +1850,10 @@ async function loadCycle(cycle) {
     })();
 
     // ── Step 3: populate stats ──
-    // raised/spent/coh/debt/covDate already computed from allTotalsArr in Step 1
+    // raised/spent/coh/debt/covDate already computed from allTotalsArr in Step 1.
+    // #stat-cycle was set synchronously before the await (so the cycle range
+    // shows immediately on cycle-switch); no need to re-write it here.
     var cycleStartYear = cycle - getCycleSpanYears() + 1;
-    document.getElementById('stat-cycle').textContent = cycleStartYear + '–' + cycle;
     if (raised > 0 || spent > 0) {
       document.getElementById('stat-raised').textContent = fmt(raised);
       document.getElementById('stat-spent').textContent  = fmt(spent);

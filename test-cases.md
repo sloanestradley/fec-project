@@ -116,7 +116,7 @@
 ### Profile header
 - [ ] T14.5: the masthead back-affordance has retired (no chevron above the candidate name) — back path now lives inside the Cycle card in the stats-grid. Profile header is ~48px shorter (desktop) / ~40px (mobile) in expanded state.
 - [ ] Candidate name displays
-- [ ] `.page-title` has `margin-top:var(--space-8)` (only in expanded state; compact zeroes it)
+- [ ] `.page-title` has no margin-top (T14.5 follow-up retired the offset that previously accommodated the back-affordance slot)
 - [ ] Meta-row appears BELOW the name row (as a sibling of `.profile-header-row`, not a child) with ~4px gap above
 - [ ] Meta-row contains, in order: `FEC ID · {candidate_id}` neutral tag → **race tag** (`.tag.tag-neutral` rendered via `formatRaceName()`, short form e.g. "House • WA-03"; no link — race-context-bar handles navigation) → party tag → incumbent tag (when candidate is the incumbent for the active cycle)
 - [ ] "Committees →" trigger renders as a navy-filled button (navy-950 bg, var(--bg) text, 34px height, mono uppercase label) pinned to the right of the name row
@@ -323,7 +323,7 @@
 
 ### Profile header
 - [ ] T14.5: the masthead back-affordance has retired (no chevron above the committee name) — back path now lives inside the Cycle card in the stats-grid (see Cycle card section below)
-- [ ] Committee name displays; `.page-title` has `margin-top:var(--space-8)` (expanded only)
+- [ ] Committee name displays; `.page-title` has no margin-top
 - [ ] Meta-row appears BELOW the name (as a sibling of `.profile-header-row`, not a child) with ~4px gap above
 - [ ] Committee type tag visible
 - [ ] Designation tag visible (Principal / Authorized / Joint Fundraising / etc.)

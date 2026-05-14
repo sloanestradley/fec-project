@@ -113,8 +113,8 @@
     /* Override reveal animation in demos — demos don't run JS to add .visible */
     .ds-component-demo .page-header-reveal { opacity:1; transition:none; }
     .ds-component-demo .tabs-bar { padding:0; opacity:1; transition:none; }
-    /* Stats — demo: suppress margin-bottom so demo panel doesn't add section spacing */
-    .stats-grid { margin-bottom:0; }
+    /* Stats — demo: suppress margin-bottom + margin-top so demo panel doesn't add section spacing */
+    .stats-grid { margin-top:0; margin-bottom:0; }
 
     /* Banner — demo: drop production gutter so banner content sits flush in the
        constrained demo card (production aligns to .main-inner gutter). */
