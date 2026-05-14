@@ -290,14 +290,17 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .race-context-line {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-16);
-  width: fit-content;
+  align-items: flex-start;
+  gap: var(--space-4) var(--space-16);
   max-width: 100%;
   font-family: 'IBM Plex Serif', serif;
   font-size: 0.875rem;
   color: var(--subtle);
 }
+/* Parent's align-items:flex-start means when text wraps to multiple lines,
+   both the label and the link top-align with the text's first line.
+   margin-left:auto on the link pushes it to the right edge of the line. */
+.race-context-line-label { font-weight: 700; }
 .race-context-line-text { flex: 1; min-width: 0; }
 .race-context-line a { color: var(--subtle); text-decoration: underline; text-underline-offset: 2px; margin-left: auto; white-space: nowrap; }
 .race-context-line a:hover { color: var(--text); }
@@ -858,6 +861,10 @@ div.cycle-row {
   .candidate-card, .race-card { grid-template-columns:1fr; }
   .candidate-card-meta,
   .committee-card-meta { justify-content:flex-start; width:100%; }
+
+  /* Race context line — label takes its own row at mobile; text + link share the
+     row below with link right-aligned via the existing margin-left:auto. */
+  .race-context-line-label { flex-basis:100%; }
 
   /* T15 — back-affordance shrinks on mobile (still above WCAG AA 24×24 floor) */
   .back-affordance-slot { min-height:40px; }

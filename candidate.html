@@ -1650,10 +1650,15 @@ async function loadCycle(cycle) {
   var sw = document.getElementById('cycle-switcher');
   if (sw) sw.value = cycle;
 
-  // Show skeleton in race-context while /elections/ fetch is in-flight
+  // Show label + skeleton in race-context while /elections/ fetch is in-flight.
+  // Label is derived from candidate metadata (cycle-independent) and renders
+  // immediately so the bar's leading content is visible from first paint.
   var raceCtx = document.getElementById('race-context');
   if (raceCtx) {
-    raceCtx.innerHTML = '<span class="skeleton" style="width:80px;height:1.1rem"></span>';
+    raceCtx.innerHTML = '<span class="race-context-line">'
+      + '<span class="race-context-line-label">' + formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST) + '</span>'
+      + '<span class="skeleton" style="width:240px;height:1.1rem"></span>'
+      + '</span>';
   }
 
   // Reset stats to em-dash while loading
@@ -1776,8 +1781,10 @@ async function loadCycle(cycle) {
         + distParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + cycle;
       var viewRaceLink = '<a href="' + raceHref + '">View race \u2192</a>';
 
+      var labelHtml = '<span class="race-context-line-label">' + formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST) + '</span>';
+
       if (!electionsData.length) {
-        raceCtx.innerHTML = '<span class="race-context-line"><span class="race-context-line-text"></span>' + viewRaceLink + '</span>';
+        raceCtx.innerHTML = '<span class="race-context-line">' + labelHtml + '<span class="race-context-line-text"></span>' + viewRaceLink + '</span>';
         return;
       }
 
@@ -1803,7 +1810,7 @@ async function loadCycle(cycle) {
         }
       }
 
-      raceCtx.innerHTML = '<span class="race-context-line"><span class="race-context-line-text">' + sentence + '</span>' + viewRaceLink + '</span>';
+      raceCtx.innerHTML = '<span class="race-context-line">' + labelHtml + '<span class="race-context-line-text">' + sentence + '</span>' + viewRaceLink + '</span>';
     })();
 
     // ── Incumbent tag ──────────────────────────────────────────────

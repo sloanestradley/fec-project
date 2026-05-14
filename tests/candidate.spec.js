@@ -98,11 +98,15 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#race-context')).toBeAttached();
   });
 
-  test('race-context renders race-context-line with text span and view-race link', async ({ page }) => {
+  test('race-context renders race-context-line with label, text span, and view-race link', async ({ page }) => {
     await setup(page);
     await expect(page.locator('#race-context .race-context-line')).toBeAttached();
+    await expect(page.locator('#race-context .race-context-line .race-context-line-label')).toBeAttached();
     await expect(page.locator('#race-context .race-context-line .race-context-line-text')).toBeAttached();
     await expect(page.locator('#race-context .race-context-line a')).toBeAttached();
+    // Label content matches formatRaceLabelLong() output for the test candidate (House WA-03)
+    await expect(page.locator('#race-context .race-context-line-label')).toContainText('US House');
+    await expect(page.locator('#race-context .race-context-line-label')).toContainText('Washington');
   });
 
   test('profile header sentinel exists for compact observer', async ({ page }) => {

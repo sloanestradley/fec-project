@@ -128,8 +128,9 @@
 - [ ] Meta-row animates in with the header reveal on page load (fades in with the name)
 - [ ] ✅ `#race-context` element present in DOM (now in `#race-context-bar`, not meta-row)
 - [ ] Race context bar renders as the bottom-most child of `#summary-strip` (above the tabs bar, visible on all tabs as part of the header zone)
-- [ ] Skeleton pulse appears in the race context bar while `/elections/` fetch is in-flight
-- [ ] Race context sentence resolves to `.race-context-line` in the bar
+- [ ] `.race-context-line-label` renders the race label (e.g. "US House: Washington's 3rd District") from first paint — independent of `/elections/`; matches the profile header's `.candidate-race-label` text
+- [ ] Skeleton pulse appears beside the label in the race context bar while `/elections/` fetch is in-flight
+- [ ] Race context sentence resolves to `.race-context-line-text` (after the label) in the bar
 - [ ] Active cycle → sentence uses "is" (e.g. "Smith is the incumbent…")
 - [ ] Past cycle → sentence uses "was"
 - [ ] Incumbent with N challengers → "…the incumbent with N challenger/challengers." (plural conditional)
