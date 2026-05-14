@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Amplitude Analytics -->
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
@@ -75,8 +75,8 @@
     .ds-type-row { display:flex; align-items:baseline; justify-content:space-between;
       gap:var(--space-32); padding:var(--space-16) 0; border-bottom:1px solid var(--border); }
     .ds-type-row:last-child { border-bottom:none; }
-    .ds-type-meta { font-size:0.625rem; color:var(--muted); white-space:nowrap;
-      flex-shrink:0; font-family:'IBM Plex Mono',monospace; line-height:var(--lh-normal); text-align:right; }
+    .ds-type-meta { font-size:0.625rem; color:var(--muted); min-width:0; max-width:1200px;
+      font-family:'IBM Plex Mono',monospace; line-height:var(--lh-normal); text-align:right; }
 
     /* ── Spacing scale ── */
     .ds-spacing-row { display:flex; align-items:center; gap:var(--space-16); margin-bottom:var(--space-8); }
@@ -143,7 +143,7 @@
       background:var(--border); border:1.5px solid var(--muted); }
     .entry-date { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       color:var(--muted); margin-bottom:var(--space-4); }
-    .entry-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:600;
+    .entry-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;
       text-transform:uppercase; line-height:var(--lh-tight); margin-bottom:var(--space-8); }
     .entry-summary { font-size:0.75rem; color:var(--subtle); line-height:var(--lh-expanded);
       margin-bottom:0; max-width:560px; }
@@ -565,28 +565,32 @@
           <span class="ds-type-meta"><strong>tab</strong><br>Oswald 400 · 1.25rem<br>.tab · .cycle-select · .race-seat-class (Senate seat class in race.html tabs bar — muted color)</span>
         </div>
         <div class="ds-type-row">
-          <span style="font-family:'Oswald',sans-serif;font-size:0.875rem;font-weight:600;text-transform:uppercase">$1.2M</span>
-          <span class="ds-type-meta"><strong>subheading</strong><br>Oswald 600 · 0.875rem · uppercase<br>.donors-table .da</span>
-        </div>
-        <div class="ds-type-row">
           <span class="stat-label" style="margin-bottom:0">Coverage Through</span>
-          <span class="ds-type-meta"><strong>label</strong><br>Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .committees-link · .candidate-card-stat-lbl · .button-group-btn · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .typeahead-group-label · .typeahead-loading · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
+          <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .committees-link · .candidate-card-stat-lbl · .button-group-btn · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .typeahead-group-label · .typeahead-loading · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
         </div>
         <div class="ds-type-row">
           <span class="legend-item" style="gap:0">Final coverage: Mar 31, 2024</span>
-          <span class="ds-type-meta"><strong>caption</strong><br>Plex Mono 400 · 0.625rem · var(--muted)<br>.legend-item · .banner-note · .typeahead-row-id · .typeahead-row-right · .filter-chip · .feed-office · .feed-money · .feed-date · .feed-fec · .designation-label · .table-cell-sm</span>
+          <span class="ds-type-meta"><strong>caption</strong><br>IBM Plex Mono 400 · 0.625rem · var(--muted)<br>.legend-item · .banner-note · .typeahead-row-id · .typeahead-row-right · .filter-chip · .feed-office · .feed-money · .feed-date · .feed-fec · .designation-label · .table-cell-sm</span>
         </div>
         <div class="ds-type-row">
           <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem">Navigate to Candidates</span>
-          <span class="ds-type-meta"><strong>body</strong><br>Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .nav-item · .committees-link · .retry-btn · .tab-error-msg · .section-state-msg</span>
+          <span class="ds-type-meta"><strong>body</strong><br>IBM Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .nav-item · .committees-link · .retry-btn · .tab-error-msg · .section-state-msg · .map-tt-name</span>
         </div>
         <div class="ds-type-row">
           <span class="candidate-card-name" style="margin-bottom:0">Marie Gluesenkamp Perez</span>
-          <span class="ds-type-meta"><strong>body-emphasis</strong><br>Plex Sans 500 · 0.875rem<br>.candidate-card-name · .race-card-name · .committee-name · .modal-tab-btn</span>
+          <span class="ds-type-meta"><strong>body-emphasis</strong><br>IBM Plex Sans 400 · 0.875rem<br>.candidate-card-name · .race-card-name · .committee-name · .modal-tab-btn · .cycle-row-label</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.75rem;font-weight:700;text-transform:uppercase">$10,000</span>
+          <span class="ds-type-meta"><strong>body-mono</strong><br>IBM Plex Mono 700 · 0.75rem · uppercase<br>.donors-table .da</span>
         </div>
         <div class="ds-type-row">
           <span class="race-context-line"><span class="race-context-line-text">Smith is the incumbent with 2 challengers.</span> <a href="#" style="color:var(--subtle);white-space:nowrap">View race →</a></span>
-          <span class="ds-type-meta"><strong>prose</strong><br>Plex Serif 400 · 0.875rem<br>.race-context-line · .banner-label · .banner-desc — sentence-format editorial content</span>
+          <span class="ds-type-meta"><strong>prose</strong><br>IBM Plex Serif 400 · 0.875rem<br>.race-context-line · .banner-label · .banner-desc — sentence-format editorial content</span>
+        </div>
+        <div class="ds-type-row">
+          <span style="font-family:'IBM Plex Serif','Georgia',serif;font-size:0.875rem;font-weight:700">US House: Washington’s 3rd District</span>
+          <span class="ds-type-meta"><strong>prose-emphasis</strong><br>IBM Plex Serif 700 · 0.875rem<br>No current consumers — reserved for weighted editorial prose</span>
         </div>
       </div>
 
@@ -771,7 +775,7 @@
           <span class="ds-component-name">Health Banner</span>
           <span class="ds-status candidate-only">candidate-only</span>
         </div>
-        <div class="ds-component-classes">.banner · .health-signal · .banner-label · .banner-desc · .banner-note — flex row with vertical 16px padding and horizontal page-gutter padding (so banner content aligns with .main-inner-gutter content in the strip context). Navy #05234F border-bottom provides the strip's bottom edge against the tabs-bar; no border-top, no margin-bottom — strip context owns rhythm; the stats-grid's bottom border above provides the divider between stats and banner. Label and desc use prose type (Plex Serif 0.875rem); note uses caption (Plex Mono 0.625rem). Single live consumer: candidate.html, inside #summary-strip below the stats-grid (T21 inversion, 2026-05-07). #summary-strip itself sits between the profile header and the tabs bar, so the banner is part of the header zone that scrolls away under the sticky tabs as users move into tab content. Demo drops the horizontal gutter (.ds-component-demo override) so it sits flush in the constrained card. Click buttons to switch states.</div>
+        <div class="ds-component-classes">.banner · .health-signal · .banner-label · .banner-desc · .banner-note — flex row with vertical 16px padding and horizontal page-gutter padding (so banner content aligns with .main-inner-gutter content in the strip context). Navy #05234F border-bottom provides the strip's bottom edge against the tabs-bar; no border-top, no margin-bottom — strip context owns rhythm; the stats-grid's bottom border above provides the divider between stats and banner. Label and desc use prose type (IBM Plex Serif 0.875rem); note uses caption (IBM Plex Mono 0.625rem). Single live consumer: candidate.html, inside #summary-strip below the stats-grid (T21 inversion, 2026-05-07). #summary-strip itself sits between the profile header and the tabs bar, so the banner is part of the header zone that scrolls away under the sticky tabs as users move into tab content. Demo drops the horizontal gutter (.ds-component-demo override) so it sits flush in the constrained card. Click buttons to switch states.</div>
         <div class="ds-component-demo">
           <div class="ds-state-controls">
             <button class="ds-state-btn ds-health-btn active" data-state="healthy">Healthy</button>

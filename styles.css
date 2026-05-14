@@ -28,18 +28,19 @@
   --ls-expanded: 0.05em;   /* small uppercase labels — single canonical value across all label-style rules */
 
   /*
-   * Named type styles (10 canonical styles — all component classes reference one of these):
+   * Named type styles (11 canonical styles — all component classes reference one of these):
    *
-   *  display       Oswald      clamp(2–4.5rem)  600  uppercase  --ls-tight    --lh-tight
-   *  stat          Oswald      2rem             600  —          —             --lh-tight
-   *  heading       Oswald      1.25rem          400  uppercase  —             —
-   *  tab           Oswald      1.25rem          400  none       —             —
-   *  subheading    Oswald      0.875rem         600  uppercase  —             —
-   *  label         Plex Mono   0.625rem         400  uppercase  --ls-expanded —
-   *  caption       Plex Mono   0.625rem         400  none       —             —
-   *  body          Plex Sans   0.75rem          400  none       —             —
-   *  body-emphasis Plex Sans   0.875rem         500  none       —             —
-   *  prose         Plex Serif  0.875rem         400  none       —             —
+   *  display         Oswald          clamp(2–4.5rem)  600  uppercase  --ls-tight    --lh-tight
+   *  stat            Oswald          2rem             600  —          —             --lh-tight
+   *  heading         Oswald          1.25rem          400  uppercase  —             —
+   *  tab             Oswald          1.25rem          400  none       —             —
+   *  label           IBM Plex Mono   0.625rem         400  uppercase  --ls-expanded —
+   *  caption         IBM Plex Mono   0.625rem         400  none       —             —
+   *  body            IBM Plex Sans   0.75rem          400  none       —             —
+   *  body-emphasis   IBM Plex Sans   0.875rem         400  none       —             —
+   *  body-mono       IBM Plex Mono   0.75rem          700  uppercase  —             —
+   *  prose           IBM Plex Serif  0.875rem         400  none       —             —
+   *  prose-emphasis  IBM Plex Serif  0.875rem         700  none       —             —
    */
 
   /* Accent */
@@ -282,7 +283,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .tag-inc     { color:var(--inc); background:var(--inc50); }
 /* Editorial prose row used for sentence-format context lines. Despite the
    "context" suffix this is NOT a .tag variant — it shares zero declarations
-   with .tag. Plex Serif 0.875rem, flex with wrap, no border/background/
+   with .tag. IBM Plex Serif 0.875rem, flex with wrap, no border/background/
    padding. Currently used on candidate.html inside #race-context-bar.
    Renamed from .tag-context (2026-05-13) — the old name implied a tag
    relationship that didn't exist. */
@@ -334,7 +335,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   border-bottom:1px solid var(--border); transition:background 0.15s;
   text-decoration:none; color:inherit; }
 .committee-row:hover { background:var(--surface2); }
-.committee-name { font-size:0.875rem; font-weight:500; color:var(--text); }
+.committee-name { font-size:0.875rem; font-weight:400; color:var(--text); }
 
 /* ── F: Data table ── */
 .donors-card { padding-top:var(--space-24); margin-bottom:var(--section-gap); }
@@ -355,7 +356,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .donors-table tr:hover td { background:var(--surface2); }
 .donors-table .dn { color:var(--text); }
 .donors-table .ds { font-size:0.625rem; color:var(--muted); margin-top:var(--space-2); /* micro: sub-label sits flush beneath donor name */ }
-.donors-table .da { font-family:'Oswald',sans-serif; font-size:0.875rem; font-weight:600;
+.donors-table .da { font-family:'IBM Plex Mono',monospace; font-size:0.75rem; font-weight:700;
   text-transform:uppercase; text-align:right; color:var(--text); }
 /* Whole-row link pattern. The anchor in the first cell carries native link
    semantics; an absolute-positioned ::before pseudo expands across the full row
@@ -372,10 +373,10 @@ tr.donors-link-row { position:relative; cursor:pointer; }
 .donors-link-anchor:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
 .donors-link-anchor::before { content:''; position:absolute; inset:0; z-index:1; }
 
-/* Caption-style table cell utility — Plex Mono 0.625rem muted, padding
+/* Caption-style table cell utility — IBM Plex Mono 0.625rem muted, padding
    inherits from the table-cell context (typically .donors-table td).
    Use for secondary metadata cells (rank numbers, sub-labels) where the
-   primary content style (.donors-table td default: 0.75rem Plex Sans)
+   primary content style (.donors-table td default: 0.75rem IBM Plex Sans)
    would over-emphasize. Selector qualifies on <td> so the specificity
    matches .donors-table td (0,0,1,1) and wins on later definition order. */
 td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
@@ -426,7 +427,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   border-bottom:1px solid var(--border); flex-shrink:0; }
 .modal-tab-btn { background:none; border:none; border-bottom:2px solid transparent;
   padding:0 0 var(--space-4); font-family:'IBM Plex Sans',sans-serif; font-size:0.875rem;
-  font-weight:500; color:var(--muted);
+  font-weight:400; color:var(--muted);
   cursor:pointer; transition:color 0.15s, border-color 0.15s; }
 .modal-tab-btn.active { color:var(--text); border-bottom-color:var(--accent); }
 .modal-tab-btn:hover:not(.active) { color:var(--subtle); }
@@ -449,7 +450,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .map-tt { position:fixed; z-index:400; pointer-events:none; display:none;
   background:var(--surface2); border:1px solid var(--border);
   padding:var(--space-8); border-radius:2px; }
-.map-tt-name { font-size:0.75rem; color:var(--text); font-weight:500; }
+.map-tt-name { font-size:0.75rem; color:var(--text); font-weight:400; }
 .map-tt-val  { font-size:0.625rem; color:var(--muted); margin-top:var(--space-2); /* micro: tooltip value sits flush beneath state name */ }
 
 /* ── K1: Raised tab grid layout (candidate + committee) ── */
@@ -499,7 +500,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   border-bottom:1px solid var(--border);
   padding:var(--space-16) var(--space-8); transition:background 0.15s; }
 .candidate-card:hover, .race-card:hover { background:var(--surface2); }
-.candidate-card-name, .race-card-name { font-family:'IBM Plex Sans',sans-serif; font-weight:500; color:var(--text);
+.candidate-card-name, .race-card-name { font-family:'IBM Plex Sans',sans-serif; font-weight:400; color:var(--text);
   font-size:0.875rem; display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
 .candidate-card-meta,
 .committee-card-meta {
@@ -818,7 +819,7 @@ a.cycle-row {
   transition:background 0.15s;
 }
 a.cycle-row:hover { background:var(--surface2); }
-.cycle-row-label { font-family:'IBM Plex Sans',sans-serif; font-size:0.875rem; font-weight:500; }
+.cycle-row-label { font-family:'IBM Plex Sans',sans-serif; font-size:0.875rem; font-weight:400; }
 .cycle-row-stat { font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:var(--subtle); text-align:right; }
 .cycle-row-chevron { font-size:1rem; color:var(--muted); text-align:right; padding-left:var(--space-8); }
 div.cycle-row {
