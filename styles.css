@@ -312,14 +312,18 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
    border-top or bottom margin — vertical rhythm comes from the strip context.
    Horizontal gutter padding aligns banner content with the rest of the page. */
 .banner { padding:var(--space-16) var(--page-gutter); border-bottom:1px solid #05234F;
-  display:flex; align-items:center; gap:var(--space-16); flex-wrap:wrap; }
+  display:flex; align-items:center; gap:var(--space-4) var(--space-16); flex-wrap:wrap; }
+/* Heading wrapper groups the health signal with the label so the dot sits flush
+   beside the label with a tight 4px gap, while the outer .banner's 16px gap
+   provides breathing room before .banner-desc. */
+.banner-heading { display:flex; align-items:center; gap:var(--space-8); flex-shrink:0; }
 .health-signal { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 .health-signal.green { background:var(--green); }
 .health-signal.amber { background:var(--amber); }
 .health-signal.red { background:var(--red); }
 .health-signal.grey { background:var(--muted); }
-.banner-label { font-family:'IBM Plex Serif','Georgia',serif; font-size:0.875rem; font-weight:400;
-  color:var(--text); flex-shrink:0; }
+.banner-label { font-family:'IBM Plex Serif','Georgia',serif; font-size:0.875rem; font-weight:700;
+  color:var(--text); }
 .banner-desc { font-family:'IBM Plex Serif','Georgia',serif; font-size:0.875rem; color:var(--muted); flex:1; min-width:160px; }
 .banner-note { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
 
@@ -865,6 +869,12 @@ div.cycle-row {
   /* Race context line — label takes its own row at mobile; text + link share the
      row below with link right-aligned via the existing margin-left:auto. */
   .race-context-line-label { flex-basis:100%; }
+
+  /* Banner — heading group (signal + label) takes its own row; desc gets row 2;
+     note drops to its own row 3 so the small caption isn't crammed beside the
+     wrapping desc. Mirrors the race-context-line mobile stacking pattern. */
+  .banner-heading { flex-basis:100%; }
+  .banner-note { flex-basis:100%; padding-top:var(--space-8); }
 
   /* T15 — back-affordance shrinks on mobile (still above WCAG AA 24×24 floor) */
   .back-affordance-slot { min-height:40px; }
