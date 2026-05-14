@@ -110,13 +110,6 @@
   <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
   <!-- Committee header — revealed after load -->
   <div class="committee-header page-header page-header-reveal" id="committee-header" style="display:none">
-    <div class="back-affordance-slot" id="back-affordance-slot">
-      <button class="back-affordance-btn" id="back-affordance-btn" type="button" aria-label="Back to all cycles">
-        <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
-          <path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-    </div>
     <div class="profile-header-row">
       <div class="page-title" id="committee-name">—</div>
     </div>
@@ -125,23 +118,34 @@
   <div class="main-inner">
     <!-- Persistent across all tabs: cycle stats -->
     <div id="summary-strip" style="display:none">
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Coverage Through</div>
-          <div class="stat-value" id="stat-coverage">—</div>
+      <div class="stats-grid">
+        <div class="stats-grid-half" style="--cols:1">
+          <div class="stat-card stat-card-cycle">
+            <button class="cycle-back-btn" id="cycle-back-btn" type="button" aria-label="Back to all cycles">
+              <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
+                <path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="stat-card-body">
+              <div class="stat-label">Cycle</div>
+              <div class="stat-value" id="stat-cycle">—</div>
+            </div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Cash on Hand</div>
-          <div class="stat-value" id="stat-coh">—</div>
-          <div class="stat-sub" id="stat-coh-sub"></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Raised</div>
-          <div class="stat-value" id="stat-raised">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Spent</div>
-          <div class="stat-value" id="stat-spent">—</div>
+        <div class="stats-grid-half" style="--cols:3">
+          <div class="stat-card">
+            <div class="stat-label">Raised</div>
+            <div class="stat-value" id="stat-raised">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Spent</div>
+            <div class="stat-value" id="stat-spent">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cash on Hand</div>
+            <div class="stat-value" id="stat-coh">—</div>
+            <div class="stat-sub" id="stat-coh-sub"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -158,22 +162,22 @@
     <!-- Career overview — index view only (hidden in detail view) -->
     <div id="career-strip" style="display:none">
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">First Filed</div>
-          <div class="stat-value" id="cstat-first-filed">—</div>
+        <div class="stats-grid-half" style="--cols:1">
+          <div class="stat-card">
+            <div class="stat-label">History</div>
+            <div class="stat-value" id="cstat-history">—</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Last Activity</div>
-          <div class="stat-value" id="cstat-last-activity">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Lifetime Raised</div>
-          <div class="stat-value" id="cstat-career-raised">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Lifetime Spent</div>
-          <div class="stat-value" id="cstat-career-spent">—</div>
-          <div class="stat-sub"  id="cstat-career-spent-sub"></div>
+        <div class="stats-grid-half" style="--cols:2">
+          <div class="stat-card">
+            <div class="stat-label">Lifetime Raised</div>
+            <div class="stat-value" id="cstat-career-raised">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Lifetime Spent</div>
+            <div class="stat-value" id="cstat-career-spent">—</div>
+            <div class="stat-sub" id="cstat-career-spent-sub"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -485,16 +489,24 @@ function showTab(name, e) {
 }
 
 // ── Index view renderers ─────────────────────────────
-// Mirrors candidate.html's CareerStrip + cycle-index pattern. Field sources adapted:
-// First Filed/Last Activity come from /committee/{id}/ main metadata directly;
-// committees have no /history/ endpoint.
-function renderCareerStrip(firstFiledYear, lastFileDate, allTotals) {
+// History value combines first-filed year (from /committee/{id}/.first_file_date)
+// with the last-activity year (from /committee/{id}/.last_file_date). For a
+// committee that filed Form 1 but never filed a financial report, the two dates
+// often match — fall back to the single-year form "2020" rather than a
+// misleading "2020–2020" range.
+function renderHistoryStrip(firstFiledYear, lastFileDate, allTotals) {
   var lifetimeRaised = allTotals.reduce(function(s, r){ return s + (r.receipts || 0); }, 0);
   var lifetimeSpent  = allTotals.reduce(function(s, r){ return s + (r.disbursements || 0); }, 0);
-  document.getElementById('cstat-first-filed').textContent = firstFiledYear || '—';
-  if (lastFileDate) {
-    document.getElementById('cstat-last-activity').textContent = fmtDate(lastFileDate);
+  var endYear = lastFileDate ? String(lastFileDate).slice(0, 4) : null;
+  var historyText;
+  if (firstFiledYear && endYear && endYear !== firstFiledYear) {
+    historyText = firstFiledYear + '–' + endYear;
+  } else if (firstFiledYear) {
+    historyText = firstFiledYear;
+  } else {
+    historyText = '—';
   }
+  document.getElementById('cstat-history').textContent = historyText;
   document.getElementById('cstat-career-raised').textContent = lifetimeRaised ? fmt(lifetimeRaised) : '—';
   document.getElementById('cstat-career-spent').textContent  = lifetimeSpent  ? fmt(lifetimeSpent)  : '—';
   if (lifetimeRaised > 0) {
@@ -683,14 +695,13 @@ async function init() {
         { id: 'committee-content', display: 'block' }
       ],
       mainEl: document.querySelector('.main'),
-      headerEl: document.getElementById('committee-header'),
       fetchIndexData: fetchIndexData,
       renderIndex: function(data) {
         var totalsMap = {};
         (data.allTotalsRes.results || []).forEach(function(r) { totalsMap[r.cycle] = r; });
         var c = (data.metaRes.results || [])[0];
         var firstFiledYear = c && c.first_file_date ? String(c.first_file_date).slice(0, 4) : '';
-        renderCareerStrip(firstFiledYear, c && c.last_file_date, data.allTotalsRes.results || []);
+        renderHistoryStrip(firstFiledYear, c && c.last_file_date, data.allTotalsRes.results || []);
         renderCycleIndex(ALL_CYCLES, totalsMap);
       },
       loadCycle: function(cycle) { renderStats(cycle); return Promise.resolve(); },
@@ -727,19 +738,14 @@ async function init() {
       view.switchTo(isDet, cy);
     });
 
-    // T15 — back-affordance click handler. In-session (user has seen index
-    // this session): history.back() returns to prior index URL and the
-    // hashchange listener calls switchTo(false, NaN), restoring indexScrollY.
-    // Fresh-load (user landed directly on detail URL): replaceState syncs URL
-    // to bare entity path (no phantom history entry), then switchTo(false, NaN)
-    // performs the in-place transition.
-    document.getElementById('back-affordance-btn').addEventListener('click', function() {
-      if (view.wasIndexShown()) {
-        history.back();
-      } else {
-        history.replaceState('', '', location.pathname);
-        view.switchTo(false, NaN);
-      }
+    // T14.5 — cycle-card back chevron. Always strips the hash to the bare entity
+    // URL and switches in-place to index view. The helper's indexScrollY
+    // capture/restore covers both the in-session case (returns to previous
+    // scroll position on the cycle index) and the fresh-load case (scrollY=0,
+    // lands at top of cycle index). No conditional needed.
+    document.getElementById('cycle-back-btn').addEventListener('click', function() {
+      history.replaceState('', '', location.pathname);
+      view.switchTo(false, NaN);
     });
 
     await view.switchTo(isDetailView, hashCycle);
@@ -973,10 +979,10 @@ function renderStats(cycleOrAll) {
   var coverageDate  = rec ? rec.coverage_end_date : null;
   var startYear     = cycleOrAll - 1;
 
+  document.getElementById('stat-cycle').textContent    = startYear + '–' + cycleOrAll;
   document.getElementById('stat-raised').textContent   = receipts != null ? fmt(receipts) : '—';
   document.getElementById('stat-spent').textContent    = disbursements != null ? fmt(disbursements) : '—';
   document.getElementById('stat-coh').textContent      = coh != null ? fmt(coh) : '—';
-  document.getElementById('stat-coverage').textContent = coverageDate ? fmtDate(coverageDate) : '—';
   document.getElementById('stat-coh-sub').textContent  = coverageDate ? 'As of ' + fmtDate(coverageDate) : '';
 
   // Overspend note

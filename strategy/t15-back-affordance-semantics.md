@@ -1,5 +1,9 @@
 # T15 follow-up — Back affordance semantics: browser-scoped vs entity-scoped
 
+> **SUPERSEDED 2026-05-14 by T14.5.** The browser-scoped semantics direction was banked but never shipped. T14.5 moved the back affordance into the Cycle card inside the stats-grid — a single architectural surface that collapses both this ticket AND T23 (the entity cycle-index navigation affordance). The back path is now co-located with cycle context, both at the top of the page; clicking always navigates to *this entity's* cycle index (browser-back covers cross-entity flows). `wasIndexShown()`, the `indexShown` flag, `headerEl` config, and the `.detail-view` class toggle all retired with the masthead affordance.
+>
+> Historical investigation below is preserved for reasoning continuity. The browser-scoped semantics direction had real merit but required two tickets to close cleanly (this one + T23); T14.5 closes both in one by changing where the affordance lives rather than how it dispatches.
+>
 > **BANKED 2026-05-11.** Investigation complete; decision made (browser-scoped). Implementation waits for T23 (entity cycle-index navigation affordance). Shipping browser-scoped semantics without T23 creates a UX regression for fresh-load users — no way to reach the entity cycle index without knowing the `#cycles` hash. T23 investigation may also surface design considerations that affect this work, so both should be scoped together.
 
 ---

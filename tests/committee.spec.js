@@ -78,26 +78,27 @@ test.describe('committee.html — detail view', () => {
     await expect(page.locator('#committee-header > #meta-row')).toHaveCount(1);
   });
 
-  test('back-affordance slot is inside committee header (T15)', async ({ page }) => {
-    await expect(page.locator('#committee-header #back-affordance-slot')).toBeAttached();
+  test('Cycle card with back chevron renders on cycle-detail view (T14.5)', async ({ page }) => {
+    await expect(page.locator('#summary-strip .stat-card-cycle')).toBeVisible();
+    await expect(page.locator('#cycle-back-btn')).toBeVisible();
   });
 
-  test('back-affordance button is visible on cycle detail view (T15)', async ({ page }) => {
-    await expect(page.locator('#committee-header')).toHaveClass(/detail-view/);
-    await expect(page.locator('#back-affordance-btn')).toBeVisible();
-  });
-
-  test('back-affordance button has correct aria-label (T15)', async ({ page }) => {
-    const btn = page.locator('#back-affordance-btn');
+  test('Cycle card chevron has correct aria-label (T14.5)', async ({ page }) => {
+    const btn = page.locator('#cycle-back-btn');
     await expect(btn).toHaveAttribute('aria-label', 'Back to all cycles');
   });
 
-  test('back-affordance click on fresh-load detail returns to cycle index (T15)', async ({ page }) => {
-    // setupDetail() lands directly on detail URL via hash — wasIndexShown() === false
-    await page.locator('#back-affordance-btn').click();
+  test('Cycle card chevron click on fresh-load detail returns to cycle index (T14.5)', async ({ page }) => {
+    // setupDetail() lands directly on detail URL via hash — indexScrollY=0 fallback
+    await page.locator('#cycle-back-btn').click();
     await expect(page.locator('#cycle-index')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#committee-content')).toBeHidden();
     expect(new URL(page.url()).hash).toBe('');
+  });
+
+  test('#stat-cycle shows cycle year-range on detail view (T14.5)', async ({ page }) => {
+    const cycleText = await page.locator('#stat-cycle').textContent();
+    expect(cycleText?.trim()).toMatch(/^\d{4}[–\-]\d{4}$/);
   });
 
   test('stats grid shows financial figures (not $0)', async ({ page }) => {
@@ -163,9 +164,9 @@ test.describe('committee.html — detail view', () => {
     await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
   });
 
-  test('first stat card is Coverage Through', async ({ page }) => {
+  test('first stat card is Cycle (T14)', async ({ page }) => {
     const firstLabel = page.locator('#summary-strip .stats-grid .stat-card').first().locator('.stat-label');
-    await expect(firstLabel).toHaveText('Coverage Through');
+    await expect(firstLabel).toHaveText('Cycle');
   });
 
   test('#summary-strip precedes #tabs-bar in the DOM (T21 contract)', async ({ page }) => {
@@ -266,10 +267,9 @@ test.describe('committee.html — index view landing state', () => {
     await expect(page.locator('#committee-content')).toBeHidden();
   });
 
-  test('back-affordance button is hidden on cycle index view (T15)', async ({ page }) => {
-    await expect(page.locator('#committee-header')).not.toHaveClass(/detail-view/);
-    await expect(page.locator('#back-affordance-slot')).toBeAttached();
-    await expect(page.locator('#back-affordance-btn')).toBeHidden();
+  test('Cycle card is hidden on cycle index view (T14.5)', async ({ page }) => {
+    await expect(page.locator('#summary-strip')).toBeHidden();
+    await expect(page.locator('#cycle-back-btn')).toBeHidden();
   });
 
   test('#cycles hash also renders index view (NaN routing)', async ({ page }) => {
@@ -281,24 +281,17 @@ test.describe('committee.html — index view landing state', () => {
     await expect(page.locator('#summary-strip')).toBeHidden();
   });
 
-  test('CareerStrip has 4 cells with expected labels', async ({ page }) => {
+  test('CareerStrip has 3 cells with expected labels (T14)', async ({ page }) => {
     const labels = page.locator('#career-strip .stat-label');
-    await expect(labels).toHaveCount(4);
-    await expect(labels.nth(0)).toHaveText('First Filed');
-    await expect(labels.nth(1)).toHaveText('Last Activity');
-    await expect(labels.nth(2)).toHaveText('Lifetime Raised');
-    await expect(labels.nth(3)).toHaveText('Lifetime Spent');
+    await expect(labels).toHaveCount(3);
+    await expect(labels.nth(0)).toHaveText('History');
+    await expect(labels.nth(1)).toHaveText('Lifetime Raised');
+    await expect(labels.nth(2)).toHaveText('Lifetime Spent');
   });
 
-  test('First Filed cell shows year derived from first_file_date', async ({ page }) => {
-    await expect(page.locator('#cstat-first-filed')).toHaveText('2020');
-  });
-
-  test('Last Activity cell shows fmtDate-formatted last_file_date in stat-value', async ({ page }) => {
-    // Mock fixture: last_file_date = '2026-04-15' → fmtDate → 'Apr 15, 2026'
-    await expect(page.locator('#cstat-last-activity')).toHaveText('Apr 15, 2026');
-    // No sub element on this card anymore
-    await expect(page.locator('#cstat-last-activity-sub')).toHaveCount(0);
+  test('History cell shows year-range from first_file_date and last_file_date (T14)', async ({ page }) => {
+    // Mock fixture: first_file_date = '2020-04-24', last_file_date = '2026-04-15' → "2020–2026"
+    await expect(page.locator('#cstat-history')).toHaveText(/^2020[–\-]2026$/);
   });
 
   test('Lifetime Raised matches summed receipts across all COMMITTEE_TOTALS rows', async ({ page }) => {

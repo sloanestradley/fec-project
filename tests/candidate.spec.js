@@ -111,44 +111,41 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#profile-header-sentinel')).toBeAttached();
   });
 
-  test('back-affordance slot is inside profile header (T15)', async ({ page }) => {
-    await setup(page);
-    await expect(page.locator('#profile-header #back-affordance-slot')).toBeAttached();
-    await expect(page.locator('#profile-header')).not.toHaveClass(/compact/);
-  });
-
-  test('back-affordance button is visible on cycle detail view (T15)', async ({ page }) => {
+  test('Cycle card with back chevron renders on cycle-detail view (T14.5)', async ({ page }) => {
     await setup(page); // setup uses #2024#summary URL — detail view
-    await expect(page.locator('#profile-header')).toHaveClass(/detail-view/);
-    await expect(page.locator('#back-affordance-btn')).toBeVisible();
+    await expect(page.locator('#summary-strip .stat-card-cycle')).toBeVisible();
+    await expect(page.locator('#cycle-back-btn')).toBeVisible();
   });
 
-  test('back-affordance button has correct aria-label (T15)', async ({ page }) => {
+  test('Cycle card chevron has correct aria-label (T14.5)', async ({ page }) => {
     await setup(page);
-    const btn = page.locator('#back-affordance-btn');
+    const btn = page.locator('#cycle-back-btn');
     await expect(btn).toHaveAttribute('aria-label', 'Back to all cycles');
   });
 
-  test('back-affordance click on fresh-load detail returns to cycle index (T15)', async ({ page }) => {
-    // setup() lands directly on detail URL via hash — wasIndexShown() === false
+  test('Cycle card chevron click on fresh-load detail returns to cycle index (T14.5)', async ({ page }) => {
+    // setup() lands directly on detail URL via hash — indexScrollY=0 fallback
     await setup(page);
     await expect(page.locator('#content')).toBeVisible();
-    await page.locator('#back-affordance-btn').click();
-    // After click: URL hash cleared, cycle index visible, detail content hidden
+    await page.locator('#cycle-back-btn').click();
     await expect(page.locator('#cycle-index')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#content')).toBeHidden();
     expect(new URL(page.url()).hash).toBe('');
   });
 
-  test('back-affordance slot is hidden in compact + cycle-index state (T15)', async ({ page }) => {
+  test('#stat-cycle shows cycle year-range on detail view (T14.5)', async ({ page }) => {
+    await setupWithContent(page);
+    const cycleText = await page.locator('#stat-cycle').textContent();
+    expect(cycleText?.trim()).toMatch(/^\d{4}[–\-]\d{4}$/);
+  });
+
+  test('Cycle card is hidden in cycle-index state (T14.5)', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.goto('/candidate.html?id=H2WA03217'); // bare URL → index view
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#profile-header')).not.toHaveClass(/detail-view/);
-    // In expanded index, slot is present (button hidden) — slot reserves height
-    await expect(page.locator('#back-affordance-slot')).toBeAttached();
-    await expect(page.locator('#back-affordance-btn')).toBeHidden();
+    await expect(page.locator('#summary-strip')).toBeHidden();
+    await expect(page.locator('#cycle-back-btn')).toBeHidden();
   });
 
   test('scrolling down adds .compact to profile header', async ({ page }) => {
@@ -286,10 +283,10 @@ test.describe('candidate.html — health banner', () => {
     await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
   });
 
-  test('first stat card is Raised:Spent ratio', async ({ page }) => {
+  test('first stat card is Cycle (T14)', async ({ page }) => {
     await setupWithContent(page);
     const firstLabel = page.locator('#summary-strip .stats-grid .stat-card').first().locator('.stat-label');
-    await expect(firstLabel).toHaveText('Raised:Spent ratio');
+    await expect(firstLabel).toHaveText('Cycle');
   });
 
   test('#summary-strip precedes #tabs-bar in the DOM (T21 contract)', async ({ page }) => {
@@ -798,17 +795,17 @@ test.describe('candidate.html — landing state (index view)', () => {
     await expect(page.locator('#tabs-bar')).not.toBeVisible();
   });
 
-  test('CareerStrip renders four cells with expected labels', async ({ page }) => {
+  test('CareerStrip renders three cells with expected labels (T14)', async ({ page }) => {
     const labels = await page.locator('#career-strip .stat-label').allTextContents();
-    expect(labels).toContain('First Filed');
-    expect(labels).toContain('Last Activity');
+    expect(labels).toContain('History');
     expect(labels).toContain('Career Raised');
     expect(labels).toContain('Career Spent');
   });
 
-  test('CareerStrip First Filed cell shows a year', async ({ page }) => {
-    const val = await page.locator('#cstat-first-filed').textContent();
-    expect(val?.trim()).toMatch(/^\d{4}$/);
+  test('CareerStrip History cell shows a year or year-range (T14)', async ({ page }) => {
+    const val = await page.locator('#cstat-history').textContent();
+    // Either bare year ("2022") or year-range ("2022–2024")
+    expect(val?.trim()).toMatch(/^\d{4}([–\-]\d{4})?$/);
   });
 
   test('cycle index renders one row per cycle from /history/ fixture', async ({ page }) => {

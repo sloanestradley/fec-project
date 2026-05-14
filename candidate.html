@@ -109,13 +109,6 @@
   </div><!-- /main-inner -->
   <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
   <div class="page-header page-header-reveal" id="profile-header" style="display:none">
-    <div class="back-affordance-slot" id="back-affordance-slot">
-      <button class="back-affordance-btn" id="back-affordance-btn" type="button" aria-label="Back to all cycles">
-        <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
-          <path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-    </div>
     <div class="profile-header-row" id="profile-header-row">
       <div class="page-title" id="candidate-name">—</div>
       <div id="committees-trigger" style="display:none;margin-left:auto;align-self:center">
@@ -128,23 +121,38 @@
     <!-- Persistent across all tabs: cycle stats + health banner -->
     <div id="summary-strip" style="display:none">
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Raised:Spent ratio</div>
-          <div class="stat-value" id="stat-ratio">—</div>
-          <div class="stat-sub"   id="stat-ratio-sub">Raised ÷ Spent</div>
+        <div class="stats-grid-half" style="--cols:2">
+          <div class="stat-card stat-card-cycle">
+            <button class="cycle-back-btn" id="cycle-back-btn" type="button" aria-label="Back to all cycles">
+              <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
+                <path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="stat-card-body">
+              <div class="stat-label">Cycle</div>
+              <div class="stat-value" id="stat-cycle">—</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Raised:Spent ratio</div>
+            <div class="stat-value" id="stat-ratio">—</div>
+            <div class="stat-sub" id="stat-ratio-sub">Raised ÷ Spent</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Cash on Hand</div>
-          <div class="stat-value" id="stat-coh">—</div>
-          <div class="stat-sub" id="stat-coh-sub">End of last report</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Raised</div>
-          <div class="stat-value" id="stat-raised">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Spent</div>
-          <div class="stat-value" id="stat-spent">—</div>
+        <div class="stats-grid-half" style="--cols:3">
+          <div class="stat-card">
+            <div class="stat-label">Raised</div>
+            <div class="stat-value" id="stat-raised">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Spent</div>
+            <div class="stat-value" id="stat-spent">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cash on Hand</div>
+            <div class="stat-value" id="stat-coh">—</div>
+            <div class="stat-sub" id="stat-coh-sub"></div>
+          </div>
         </div>
       </div>
 
@@ -171,22 +179,22 @@
     <!-- Career overview — index view only (hidden in detail view) -->
     <div id="career-strip" style="display:none">
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">First Filed</div>
-          <div class="stat-value" id="cstat-first-filed">—</div>
+        <div class="stats-grid-half" style="--cols:1">
+          <div class="stat-card">
+            <div class="stat-label">History</div>
+            <div class="stat-value" id="cstat-history">—</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Last Activity</div>
-          <div class="stat-value" id="cstat-last-activity">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Career Raised</div>
-          <div class="stat-value" id="cstat-career-raised">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Career Spent</div>
-          <div class="stat-value" id="cstat-career-spent">—</div>
-          <div class="stat-sub"  id="cstat-career-spent-sub"></div>
+        <div class="stats-grid-half" style="--cols:2">
+          <div class="stat-card">
+            <div class="stat-label">Career Raised</div>
+            <div class="stat-value" id="cstat-career-raised">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Career Spent</div>
+            <div class="stat-value" id="cstat-career-spent">—</div>
+            <div class="stat-sub" id="cstat-career-spent-sub"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1834,6 +1842,7 @@ async function loadCycle(cycle) {
     // ── Step 3: populate stats ──
     // raised/spent/coh/debt/covDate already computed from allTotalsArr in Step 1
     var cycleStartYear = cycle - getCycleSpanYears() + 1;
+    document.getElementById('stat-cycle').textContent = cycleStartYear + '–' + cycle;
     if (raised > 0 || spent > 0) {
       document.getElementById('stat-raised').textContent = fmt(raised);
       document.getElementById('stat-spent').textContent  = fmt(spent);
@@ -1912,13 +1921,30 @@ async function loadCycle(cycle) {
 }
 
 // ── Index view renderers ─────────────────────────────
-function renderCareerStrip(firstFiledYear, lastFileDate, fullTotals) {
+// History value combines first-filed year (from /history/ first_file_date) with
+// the last-activity year (from latest /totals/ coverage_end_date — Option A per
+// T14 investigation). coverage_end_date is the strategist's "books reported
+// through" signal and is already in-hand from fetchIndexData (zero extra API
+// calls). For a candidate who filed F2 but never filed a quarterly,
+// fullTotals is empty → fall back to the single-year form "2025" rather than a
+// misleading "2025–2025" range.
+function renderHistoryStrip(firstFiledYear, fullTotals) {
   var careerRaised = fullTotals.reduce(function(s, r) { return s + (r.receipts || 0); }, 0);
   var careerSpent  = fullTotals.reduce(function(s, r) { return s + (r.disbursements || 0); }, 0);
-  document.getElementById('cstat-first-filed').textContent = firstFiledYear || '—';
-  if (lastFileDate) {
-    document.getElementById('cstat-last-activity').textContent = fmtDate(lastFileDate);
+  var lastCoverage = fullTotals.reduce(function(latest, r) {
+    var d = r.coverage_end_date;
+    return d && (!latest || d > latest) ? d : latest;
+  }, null);
+  var endYear = lastCoverage ? String(lastCoverage).slice(0, 4) : null;
+  var historyText;
+  if (firstFiledYear && endYear && endYear !== firstFiledYear) {
+    historyText = firstFiledYear + '–' + endYear;
+  } else if (firstFiledYear) {
+    historyText = firstFiledYear;
+  } else {
+    historyText = '—';
   }
+  document.getElementById('cstat-history').textContent = historyText;
   document.getElementById('cstat-career-raised').textContent = careerRaised ? fmt(careerRaised) : '—';
   document.getElementById('cstat-career-spent').textContent  = careerSpent  ? fmt(careerSpent)  : '—';
   if (careerRaised > 0) {
@@ -2039,9 +2065,8 @@ function renderIndexFromData(histJson, allTotalsJson) {
   });
   var idxFirstFiledYear = histData && histData.first_file_date
     ? String(histData.first_file_date).slice(0, 4)
-    : '—';
-  var lastFileDate = histData ? histData.last_file_date : null;
-  renderCareerStrip(idxFirstFiledYear, lastFileDate, fullTotals);
+    : null;
+  renderHistoryStrip(idxFirstFiledYear, fullTotals);
   renderCycleIndex(indexCycles, totalsMap, CAND_OFFICE);
 }
 
@@ -2164,7 +2189,6 @@ async function init() {
         { id: 'content',          display: 'block' }
       ],
       mainEl: document.querySelector('.main'),
-      headerEl: document.getElementById('profile-header'),
       fetchIndexData: fetchIndexData,
       renderIndex: function(data) { renderIndexFromData(data.hist, data.allTotals); },
       loadCycle: loadCycle,
@@ -2199,19 +2223,14 @@ async function init() {
       view.switchTo(isDet, cy);
     });
 
-    // T15 — back-affordance click handler. In-session (user has seen index
-    // this session): history.back() returns to prior index URL and the
-    // hashchange listener calls switchTo(false, NaN), restoring indexScrollY.
-    // Fresh-load (user landed directly on detail URL): replaceState syncs URL
-    // to bare entity path (no phantom history entry), then switchTo(false, NaN)
-    // performs the in-place transition.
-    document.getElementById('back-affordance-btn').addEventListener('click', function() {
-      if (view.wasIndexShown()) {
-        history.back();
-      } else {
-        history.replaceState('', '', location.pathname);
-        view.switchTo(false, NaN);
-      }
+    // T14.5 — cycle-card back chevron. Always strips the hash to the bare entity
+    // URL and switches in-place to index view. The helper's indexScrollY
+    // capture/restore covers both the in-session case (returns to previous
+    // scroll position on the cycle index) and the fresh-load case (scrollY=0,
+    // lands at top of cycle index). No conditional needed.
+    document.getElementById('cycle-back-btn').addEventListener('click', function() {
+      history.replaceState('', '', location.pathname);
+      view.switchTo(false, NaN);
     });
 
     await view.switchTo(isDetailView, hashCycle);

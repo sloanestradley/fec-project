@@ -61,14 +61,14 @@
 ### Index view (landing state)
 - [ ] ✅ Bare URL renders `#career-strip` and `#cycle-index`; `#tabs-bar` and `#summary-strip` are NOT visible (automated)
 - [ ] ✅ `#cycles` hash → also renders index view (automated)
-- [ ] ✅ CareerStrip shows four cells: First Filed / Last Activity / Career Raised / Career Spent (automated)
-- [ ] ✅ First Filed cell shows a 4-digit year (automated)
+- [ ] ✅ CareerStrip shows three cells (T14): History / Career Raised / Career Spent (automated)
+- [ ] ✅ History cell shows a year or year-range (`YYYY` or `YYYY–YYYY`) (automated)
 - [ ] ✅ `#committees-trigger` is visible in index view (automated)
 - [ ] ✅ `Page Viewed` fires with `view: 'index'` (automated)
 - [ ] ✅ Cycle rows have `href="#year#summary"` format (automated)
 - [ ] ✅ Cycle row labels contain a year range with en-dash (automated)
 - [ ] Career Raised and Career Spent show formatted dollar amounts (not "—")
-- [ ] Last Activity shows a year in the stat-value and full date in stat-sub
+- [ ] History cell year-range derives from first_file_date (start) and latest coverage_end_date in totals (end). Bare year for first-cycle candidates with no quarterly filings yet.
 - [ ] Career Spent sub-line shows "N% of raised" when data available
 - [ ] Cycle index column headers: Cycle / Raised / Spent / Cash on Hand
 - [ ] ✅ Clicking a cycle row loads detail view in-place — no page reload (`#profile-header` DOM node is the same object before and after; index elements hidden; tabs-bar visible) (automated)
@@ -85,7 +85,7 @@
 - [ ] Gillibrand: cycle rows grouped by election (e.g. "2019–2024" for a 6-year cycle), not by individual sub-cycle
 - [ ] Gillibrand: future cycle (2030) appears in cycle index if it has `/totals/` data
 - [ ] Mobile (≤860px): Spent column is hidden; cycle index shows 3 columns (Cycle / Raised / Cash on Hand)
-- [ ] Mobile (≤860px): CareerStrip wraps to 2×2 grid
+- [ ] Mobile (≤860px): CareerStrip's left half (History) and right half (Career Raised + Career Spent) stack vertically with a horizontal navy divider between them
 - [ ] "Committees →" trigger in index view opens the committees modal normally
 
 ### Archive threshold (House pre-2008)
@@ -114,11 +114,9 @@
 - [ ] No vertical jump or layout shift as the header fades in (opacity-only transition, no translateY)
 
 ### Profile header
-- [ ] Back-affordance slot (`#back-affordance-slot`) sits above the candidate name; chevron button (`#back-affordance-btn`) is visible on cycle detail view, hidden on cycle index (slot reserves vertical space in both cases so title position is stable)
-- [ ] Back chevron button is 48×48 desktop / 40×40 mobile (≤860px); circular pill border-radius; transparent background with 1px border-strong border; hover background = surface2; focus-visible outline = 2px accent
-- [ ] Back chevron aria-label reads "Back to all cycles" (DevTools accessibility tree)
+- [ ] T14.5: the masthead back-affordance has retired (no chevron above the candidate name) — back path now lives inside the Cycle card in the stats-grid. Profile header is ~48px shorter (desktop) / ~40px (mobile) in expanded state.
 - [ ] Candidate name displays
-- [ ] `.page-title` has `margin-top:var(--space-8)` providing breathing room from the back-affordance slot above (only in expanded state; compact zeroes both)
+- [ ] `.page-title` has `margin-top:var(--space-8)` (only in expanded state; compact zeroes it)
 - [ ] Meta-row appears BELOW the name row (as a sibling of `.profile-header-row`, not a child) with ~4px gap above
 - [ ] Meta-row contains, in order: `FEC ID · {candidate_id}` neutral tag → **race tag** (`.tag.tag-neutral` rendered via `formatRaceName()`, short form e.g. "House • WA-03"; no link — race-context-bar handles navigation) → party tag → incumbent tag (when candidate is the incumbent for the active cycle)
 - [ ] "Committees →" trigger renders as a navy-filled button (navy-950 bg, var(--bg) text, 34px height, mono uppercase label) pinned to the right of the name row
@@ -147,15 +145,12 @@
 
 ### Compact sticky header
 - [ ] ✅ `#profile-header-sentinel` is present in DOM (automated)
-- [ ] ✅ `#back-affordance-slot` is inside `#profile-header` (T15 replacement for `.compact-sep`) (automated)
 - [ ] ✅ Scrolling down 200px adds `.compact` class to `#profile-header` (automated)
 - [ ] ✅ Scrolling back to top removes `.compact` from `#profile-header` (automated)
 - [ ] ✅ `.main` `paddingBottom` is set (> 0, ≤ 80px) when compact is active (automated)
 - [ ] ✅ `.main` `paddingBottom` is cleared when compact disengages (automated)
-- [ ] In compact + detail-view: back chevron shrinks to 32×32 and sits inline before the title; `margin-right:var(--space-8)` separates the chevron from the title (no separator character)
-- [ ] In compact + cycle-index: back-affordance slot collapses entirely; title flush left
-- [ ] Compact header height stays ~48px regardless of view (cycle index or cycle detail) — `min-height:48px` on `.compact` keeps the strip consistent
-- [ ] Tabs-bar pins ~8px lower on cycle-index and race.html than pre-T15 follow-up (consistent with the min-height)
+- [ ] Compact header height stays ~48px on both cycle-index and cycle-detail views (uniform masthead post-T14.5)
+- [ ] T14.5 UX trade: back chevron is NOT reachable in compact-scroll state — only browser-back works once scrolled into tab content (architecturally intentional: back path co-located with cycle context in stats-grid)
 - [ ] Header compacts smoothly when scrolling down — no flash or bounce
 - [ ] Header un-compacts smoothly when scrolling back to top — no bounce or snap
 - [ ] After compacting, can still scroll back up to un-compact (not trapped in compact state)
@@ -165,11 +160,13 @@
 - [ ] Tabs bar `top` offset adjusts when compact engages (bar visually follows the shorter header)
 - [ ] Same behavior on committee.html and race.html (compact/un-compact cycle without bounce)
 
-### Back-affordance behavior (T15)
-- [ ] Cycle index → click cycle row → cycle detail → click back chevron: returns to cycle index, scroll position restored (in-session case via `history.back()`)
-- [ ] Paste detail URL in new tab (`/candidate/H2WA03217#2024#summary`) → click back chevron: navigates to cycle index for the entity, top of page, expanded header state (fresh-load case via `replaceState` + `view.switchTo(false, NaN)`)
-- [ ] Back chevron in compact state: clicking still returns to cycle index; same handler behavior as expanded state
-- [ ] Browser back button matches affordance behavior (entity-scoped semantics today; T23 + browser-scoped semantics banked in `strategy/t15-back-affordance-semantics.md`)
+### Cycle card back-chevron behavior (T14.5)
+- [ ] Cycle card (leftmost card in `#summary-strip` stats-grid on cycle-detail) shows `.cycle-back-btn` chevron-left button inline with the "Cycle" label + year-range value
+- [ ] Chevron button is 40×40 desktop / 32×32 mobile (≤860px); circular pill border-radius; transparent background with 1px border-strong border; hover background = surface2; focus-visible outline = 2px accent
+- [ ] Chevron aria-label reads "Back to all cycles"
+- [ ] Cycle index → click cycle row → cycle detail → click cycle-card chevron: returns to cycle index, scroll position restored (in-session via `indexScrollY` capture/restore)
+- [ ] Paste detail URL in new tab (`/candidate/H2WA03217#2024#summary`) → click cycle-card chevron: navigates to cycle index for the entity, top of page (fresh-load case — `indexScrollY` defaults to 0)
+- [ ] URL hash is cleared on chevron click (bare entity URL after)
 - [ ] Keyboard: Tab focuses the chevron; Enter / Space activates it; focus-visible outline visible
 
 ### Cycle switcher
@@ -183,12 +180,14 @@
 - [ ] URL anchor updates to `#YYYY#summary` on cycle change
 - [ ] `localhost:8080/candidate.html?id=H2WA03217#2022#raised` pre-selects 2022 cycle and Raised tab on load
 
-### Stats row
-- [ ] Card order (left to right): Raised:Spent ratio → Cash on Hand → Raised → Spent
-- [ ] Raised:Spent ratio shows a value (first card)
-- [ ] Cash on Hand shows a formatted dollar amount
+### Stats row (T14)
+- [ ] 5 cards on cycle-detail. Left half (2 cols): **Cycle** (with back chevron) | Raised:Spent ratio. Right half (3 cols): Raised | Spent | Cash on Hand.
+- [ ] Cycle card (first) shows label "Cycle" and value in year-range format (e.g. "2025–2026" with en-dash)
+- [ ] Raised:Spent ratio shows a value with sub-label
 - [ ] Raised shows a formatted dollar amount (not $0, not blank)
 - [ ] Spent shows a formatted dollar amount
+- [ ] Cash on Hand shows a formatted dollar amount with "As of {date}" sub-label
+- [ ] Mobile (≤860px): outer grid stacks (left half row 1, right half row 2) with a horizontal navy divider between; right half stays as a 3-col row of Raised | Spent | COH
 
 ### Health banner
 - [ ] Active cycle: green/amber/red signal visible with descriptive text
@@ -323,9 +322,7 @@
 - [ ] Header fades in on load (opacity transition via `.page-header-reveal`)
 
 ### Profile header
-- [ ] Back-affordance slot (`#back-affordance-slot`) sits above the committee name (T15 — new on committee.html); chevron button visible on cycle detail, hidden on cycle index (slot reserves vertical space in both cases)
-- [ ] Back chevron button is 48×48 desktop / 40×40 mobile (≤860px); circular pill border-radius; transparent background with 1px border-strong border; hover background = surface2; focus-visible outline = 2px accent
-- [ ] Back chevron aria-label reads "Back to all cycles"
+- [ ] T14.5: the masthead back-affordance has retired (no chevron above the committee name) — back path now lives inside the Cycle card in the stats-grid (see Cycle card section below)
 - [ ] Committee name displays; `.page-title` has `margin-top:var(--space-8)` (expanded only)
 - [ ] Meta-row appears BELOW the name (as a sibling of `.profile-header-row`, not a child) with ~4px gap above
 - [ ] Committee type tag visible
@@ -334,9 +331,6 @@
 - [ ] `FEC ID · {committee_id}` neutral tag appears in the meta-row
 - [ ] No race link in meta-row (correct — committee has no semantic parallel to candidate.html's race relocation)
 - [ ] At narrow viewports (≤860px), meta-row wraps cleanly without overflow
-- [ ] In compact state: chevron shrinks to 32×32 and sits inline before the title (no separator character)
-- [ ] In compact + cycle-index: back-affordance slot collapses entirely; title flush left
-- [ ] Click chevron on cycle detail → returns to cycle index (in-session) or replaces URL with bare path and renders cycle index (fresh-load)
 
 ### Back-link
 - [ ] Back-link to candidates.html (or to candidate if navigated via `?from=`) is present and functional
@@ -344,9 +338,8 @@
 ### Index view (bare URL `/committee/{id}`)
 - [ ] ✅ Bare URL renders `#career-strip` (CareerStrip) + `#cycle-index` (cycle table)
 - [ ] ✅ Detail-view elements (`#summary-strip`, `#tabs-bar`, `#committee-content`) are HIDDEN on index view
-- [ ] ✅ CareerStrip cells in order: First Filed → Last Activity → Lifetime Raised → Lifetime Spent
-- [ ] First Filed cell shows a year derived from `first_file_date`
-- [ ] Last Activity cell shows year (large) + full formatted date (sub-label) from `last_file_date`
+- [ ] ✅ CareerStrip has 3 cells (T14): History → Lifetime Raised → Lifetime Spent
+- [ ] History cell shows year-range from `first_file_date` to `last_file_date` (e.g. "2020–2026"); falls back to bare year when both dates produce the same year
 - [ ] Lifetime Raised = sum of `receipts` across all cycles in `/committee/{id}/totals/`
 - [ ] Lifetime Spent = sum of `disbursements`; sub-label shows `{N}% of raised`
 - [ ] Cycle index renders one row per cycle in `c.cycles`, sorted descending (newest first)
@@ -374,16 +367,26 @@
 - [ ] Amplitude `Tab Switched` fires on user tab click with `{ tab, committee_id }` — does NOT fire on hash-restore load
 - [ ] Amplitude `Page Viewed` fires with `view: 'detail'` on detail-view load
 
-### Stats grid (detail view)
+### Stats grid (detail view, T14)
 - [ ] ✅ Stats grid shows financial figures (not $0 or blank)
-- [ ] Card order (left to right): Coverage Through → Cash on Hand → Raised → Spent
-- [ ] Coverage date shows a real date (first card)
-- [ ] Cash on Hand shows a formatted dollar amount
+- [ ] 4 cards on cycle-detail. Left half (1 col): **Cycle** (with back chevron). Right half (3 cols): Raised | Spent | Cash on Hand.
+- [ ] Cycle card (first) shows label "Cycle" and value in year-range format (e.g. "2025–2026" with en-dash)
+- [ ] Cycle card chevron click navigates to cycle index for this committee (see Cycle card back-chevron behavior below)
 - [ ] Raised shows a formatted dollar amount for the selected cycle
 - [ ] Spent shows a formatted dollar amount
-- [ ] Coverage Through, Raised, and Spent cards render label + value only (no stat-sub element on these three cards)
+- [ ] Cash on Hand shows a formatted dollar amount with "As of {date}" sub-label (data freshness signal; replaces the retired `#stat-coverage` card)
+- [ ] Cycle and Raised/Spent cards render label + value only (no stat-sub element on these three cards)
 - [ ] Overspend note visible when disbursements > receipts on the selected cycle
+- [ ] Mobile (≤860px): outer grid stacks (Cycle row 1, Raised+Spent+COH row 2) with horizontal navy divider between; right half stays as 3-col row
 - [ ] "Financial Summary" section title is NOT present above the stats grid (removed in summary-strip refactor)
+
+### Cycle card back-chevron behavior (T14.5)
+- [ ] Cycle card chevron button is 40×40 desktop / 32×32 mobile (≤860px); circular pill border-radius; transparent background with 1px border-strong border; hover background = surface2; focus-visible outline = 2px accent
+- [ ] Chevron aria-label reads "Back to all cycles"
+- [ ] Cycle index → click cycle row → cycle detail → click cycle-card chevron: returns to cycle index, scroll position restored
+- [ ] Paste detail URL in new tab (`/committee/C00806174#2024#summary`) → click cycle-card chevron: navigates to cycle index for the entity, top of page
+- [ ] URL hash is cleared on chevron click (bare entity URL after)
+- [ ] Keyboard: Tab focuses the chevron; Enter / Space activates it; focus-visible outline visible
 
 ### Summary strip persistence (committee.html)
 - [ ] Stats grid visible on Summary tab

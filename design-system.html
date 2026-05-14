@@ -113,11 +113,6 @@
     /* Override reveal animation in demos — demos don't run JS to add .visible */
     .ds-component-demo .page-header-reveal { opacity:1; transition:none; }
     .ds-component-demo .tabs-bar { padding:0; opacity:1; transition:none; }
-    /* T15 — back-affordance default is display:none (only shown when parent has
-       .detail-view); demo wrappers don't carry the page header IDs that scope
-       the visibility rule, so force display:flex inside demos. */
-    .ds-component-demo .back-affordance-btn { display:flex; }
-
     /* Stats — demo: suppress margin-bottom so demo panel doesn't add section spacing */
     .stats-grid { margin-bottom:0; }
 
@@ -173,7 +168,6 @@
     /* Responsive */
     @media (max-width:860px) {
       .main { padding:var(--space-24) var(--page-gutter); }
-      .stats-grid { grid-template-columns:repeat(2,1fr); }
     }
   </style>
 </head>
@@ -565,7 +559,7 @@
           <span class="ds-type-meta"><strong>tab</strong><br>Oswald 400 · 1.25rem<br>.tab · .cycle-select · .race-seat-class (Senate seat class in race.html tabs bar — muted color)</span>
         </div>
         <div class="ds-type-row">
-          <span class="stat-label" style="margin-bottom:0">Coverage Through</span>
+          <span class="stat-label" style="margin-bottom:0">Cycle</span>
           <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .committees-link · .candidate-card-stat-lbl · .button-group-btn · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .typeahead-group-label · .typeahead-loading · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
         </div>
         <div class="ds-type-row">
@@ -720,14 +714,9 @@
           <span class="ds-component-name">Candidate Header</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">extends .page-header · .back-affordance-slot · .profile-header-row · .page-title · .cycle-select · .committees-link · .meta-row</div>
+        <div class="ds-component-classes">extends .page-header · .profile-header-row · .page-title · .cycle-select · .committees-link · .meta-row</div>
         <div class="ds-component-demo">
-          <div class="profile-header page-header detail-view" style="padding:2rem">
-            <div class="back-affordance-slot">
-              <button class="back-affordance-btn" type="button" aria-label="Back to all cycles" style="display:flex">
-                <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-            </div>
+          <div class="profile-header page-header" style="padding:2rem">
             <div class="profile-header-row">
               <div class="page-title">Marie Gluesenkamp Perez</div>
               <div style="margin-left:auto">
@@ -742,31 +731,7 @@
             </div>
           </div>
         </div>
-        <div class="ds-component-notes">The meta-row is a uniform strip of <code>.tag</code>-style elements below the page title. Canonical order: <strong>FEC ID → race → party → incumbent</strong>. Race is a <code>.tag.tag-neutral</code> rendered via <code>formatRaceName(office, state, district)</code> (short form, "House • WA-03") — the long form ("US House: Washington's 3rd District") lives in the race-context-bar's prose-emphasis label below. Incumbent (<code>.tag-inc</code>) is cycle-dependent and appended dynamically by <code>loadCycle()</code>. The back-affordance slot above the title is visible only on cycle detail views (the demo shows the detail-view state via the <code>.detail-view</code> class on the wrapper); on cycle index views, the slot reserves vertical space but the button is hidden. <code>.profile-header-row</code> contains the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> sits as a sibling below. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic.</div>
-      </div>
-
-      <!-- 6b. Back affordance -->
-      <div class="ds-component" id="comp-back-affordance" data-status="stable">
-        <div class="ds-component-header">
-          <span class="ds-component-name">Back Affordance</span>
-          <span class="ds-status stable">stable</span>
-        </div>
-        <div class="ds-component-classes">.back-affordance-slot · .back-affordance-btn — icon-only chevron button (left-pointing SVG). 48×48 desktop, 40×40 mobile (≤860px) in expanded state; 32×32 in compact state on both desktop and mobile. aria-label="Back to all cycles". Visual treatment borrows from .tab-retry-btn: transparent bg, border-strong border, surface2 hover, accent focus-visible outline + 2px offset; pill border-radius (99px). Slot reserves vertical space on cycle index expanded (preserves rhythm with detail view); collapses entirely in compact-index state.</div>
-        <div class="ds-component-demo">
-          <div style="display:flex;gap:2rem;align-items:center;flex-wrap:wrap">
-            <div class="back-affordance-slot">
-              <button class="back-affordance-btn" type="button" aria-label="Back to all cycles" style="display:flex">
-                <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-            </div>
-            <div class="back-affordance-slot">
-              <button class="back-affordance-btn" type="button" aria-label="Back to all cycles" style="display:flex;width:32px;height:32px">
-                <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 20 20"><path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="ds-component-notes">Click handler branches on <code>view.wasIndexShown()</code>: in-session case uses <code>history.back()</code>, fresh-load case uses <code>history.replaceState</code> + <code>view.switchTo(false, NaN)</code>. Helper-managed: <code>initViewSwitcher</code> toggles <code>.detail-view</code> on the page-header to scope button visibility via CSS. Live on candidate.html and committee.html as of T15 (2026-05-11).</div>
+        <div class="ds-component-notes">The meta-row is a uniform strip of <code>.tag</code>-style elements below the page title. Canonical order: <strong>FEC ID → race → party → incumbent</strong>. Race is a <code>.tag.tag-neutral</code> rendered via <code>formatRaceName(office, state, district)</code> (short form, "House • WA-03") — the long form ("US House: Washington's 3rd District") lives in the race-context-bar's prose-emphasis label below. Incumbent (<code>.tag-inc</code>) is cycle-dependent and appended dynamically by <code>loadCycle()</code>. <code>.profile-header-row</code> contains the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> sits as a sibling below. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic. <strong>T14.5 (2026-05-14) retired the <code>.back-affordance-slot</code> chevron</strong> that previously sat above <code>.profile-header-row</code> — the back path now lives inside the Cycle card in the stats-grid (see <a href="#comp-stats-grid">Stats Grid</a>).</div>
       </div>
 
       <!-- 7. Health banner (interactive) -->
@@ -943,31 +908,52 @@
           <span class="ds-component-name">Stats Grid</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.stats-grid · .stat-card · .stat-label · .stat-value · .stat-sub · .stat-sub.pos / .neg / .warn</div>
+        <div class="ds-component-classes">.stats-grid · .stats-grid-half · .stat-card · .stat-card-cycle · .stat-card-body · .cycle-back-btn · .stat-label · .stat-value · .stat-sub · .stat-sub.pos / .neg / .warn</div>
         <div class="ds-component-demo">
           <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-label">Raised:Spent ratio</div>
-              <div class="stat-value">1.08×</div>
-              <div class="stat-sub pos">Raised ÷ Spent</div>
+            <div class="stats-grid-half" style="--cols:2">
+              <div class="stat-card stat-card-cycle">
+                <button class="cycle-back-btn" type="button" aria-label="Back to all cycles">
+                  <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 4 L6.5 10 L12.5 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="stat-card-body">
+                  <div class="stat-label">Cycle</div>
+                  <div class="stat-value">2025–2026</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Raised:Spent ratio</div>
+                <div class="stat-value">1.08×</div>
+                <div class="stat-sub pos">Raised ÷ Spent</div>
+              </div>
             </div>
-            <div class="stat-card">
-              <div class="stat-label">Cash on Hand</div>
-              <div class="stat-value">$312K</div>
-              <div class="stat-sub">End of last report</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Raised</div>
-              <div class="stat-value">$4.1M</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Spent</div>
-              <div class="stat-value">$3.8M</div>
+            <div class="stats-grid-half" style="--cols:3">
+              <div class="stat-card">
+                <div class="stat-label">Raised</div>
+                <div class="stat-value">$4.1M</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Spent</div>
+                <div class="stat-value">$3.8M</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Cash on Hand</div>
+                <div class="stat-value">$312K</div>
+                <div class="stat-sub">As of Mar 31, 2026</div>
+              </div>
             </div>
           </div>
         </div>
         <div class="ds-component-notes">
-          4-column grid on desktop with navy <code>#05234F</code> top/bottom borders and vertical <code>border-right</code> dividers between cells (the <code>:last-child</code> has no right border). Responsive: at <code>≤860px</code> the grid collapses to 2×2 with <code>:nth-child(even) { border-right:none }</code> suppressing the stray outer border on the top-right card, and <code>:nth-child(-n+2) { border-bottom:1px solid #05234F }</code> adding the row divider between top and bottom rows. Card order differs by page — candidate.html uses Ratio / COH / Raised / Spent; committee.html uses Coverage / COH / Raised / Spent. On both profile pages in cycle-detail view, <code>.stats-grid</code> lives inside <code>#summary-strip</code>, which sits in its own <code>.main-inner</code> wrapper between <code>#profile-header</code> and <code>#tabs-bar</code> (T21, 2026-05-07) — visible on all three tabs and structurally parallel to the cycle-index landing state, where <code>.stats-grid</code> also sits above the rest of the page in <code>#career-strip</code>. Horizontal gutter padding is applied to <code>.stats-grid</code> inside the strip (via scoped selector) so the navy top/bottom borders extend edge-to-edge within the 1600px max-width while stat card content stays aligned with the page gutter. <code>.stats-grid</code> itself owns no <code>margin-bottom</code> — the strip wrappers do, via a single shared rule in styles.css: <code>#career-strip, #summary-strip { margin-bottom: var(--section-gap) }</code>. Same rhythm in cycle-index (above the cycle table) and cycle-detail (above the tabs bar) so the structural language reads the same in both views.
+          <strong>T14 structure (2026-05-14):</strong> outer 1fr 1fr grid wraps two <code>.stats-grid-half</code> nests; each half carries its own column count via inline <code>--cols</code>. The leftmost card establishes orientation (cycle range on detail views, history range on index views); the remaining cards are the actual stats. Navy <code>#05234F</code> top/bottom borders on the outer; left/right divider lives on the first half-wrapper via <code>:first-child { border-right }</code>. Inside each half, <code>.stat-card</code> carries column dividers via <code>border-right</code> with <code>:last-child:none</code> for the half's right edge.
+          <br><br>
+          <strong>Per-context shape:</strong> candidate cycle-index has 3 cards (History + Career Raised + Career Spent — 1+2 cols); candidate cycle-detail has 5 cards (Cycle + Ratio left, Raised + Spent + COH right — 2+3 cols, shown in demo above); committee cycle-index has 3 cards (History + Lifetime Raised + Lifetime Spent — 1+2 cols); committee cycle-detail has 4 cards (Cycle left, Raised + Spent + COH right — 1+3 cols).
+          <br><br>
+          <strong>Cycle card with inline back chevron (T14.5):</strong> <code>.stat-card-cycle</code> is a flex row that pairs <code>.cycle-back-btn</code> with the <code>.stat-card-body</code> column (label + value). Chevron is 40×40 desktop / 32×32 mobile, pill border-radius (99px), border-strong stroke, surface2 hover, accent focus-visible outline + 2px offset. Click handler always calls <code>history.replaceState('', '', location.pathname)</code> + <code>view.switchTo(false, NaN)</code> — no <code>wasIndexShown</code> conditional. The helper-internal <code>indexScrollY</code> capture/restore handles in-session and fresh-load uniformly.
+          <br><br>
+          <strong>Responsive (≤860px):</strong> outer grid collapses to 1 column; first half-wrapper's <code>border-right</code> becomes <code>border-bottom</code>. Inner half-grids retain their <code>--cols</code> — the right-half 3-col on candidate-detail stays 3-col on mobile (typography is the scaling lever, not the layout — at ≤480px <code>.stat-value</code> shrinks to 1.25rem).
+          <br><br>
+          <strong>Strip context:</strong> on both profile pages, <code>.stats-grid</code> lives inside <code>#summary-strip</code> (cycle-detail) or <code>#career-strip</code> (cycle-index). Horizontal gutter padding is applied to <code>.stats-grid</code> inside the strip (via scoped selector) so the navy top/bottom borders extend edge-to-edge within the 1600px max-width while stat card content stays aligned with the page gutter. <code>.stats-grid</code> itself owns no <code>margin-bottom</code> — the strip wrappers do, via a single shared rule in styles.css: <code>#career-strip, #summary-strip { margin-bottom: var(--section-gap) }</code>.
         </div>
       </div>
 
