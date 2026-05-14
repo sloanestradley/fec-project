@@ -135,7 +135,7 @@
           <div class="stat-card">
             <div class="stat-label">Raised:Spent ratio</div>
             <div class="stat-value" id="stat-ratio">—</div>
-            <div class="stat-sub" id="stat-ratio-sub">Raised ÷ Spent</div>
+            <div class="stat-sub" id="stat-ratio-sub"></div>
           </div>
         </div>
         <div class="stats-grid-half" style="--cols:3">
@@ -1680,7 +1680,7 @@ async function loadCycle(cycle) {
   document.getElementById('stat-ratio').style.color = '';
   document.getElementById('stat-coh-sub').textContent = '';
   var ratioSubReset = document.getElementById('stat-ratio-sub');
-  ratioSubReset.textContent = 'Raised ÷ Spent';
+  ratioSubReset.textContent = '';
   ratioSubReset.className = 'stat-sub';
   document.getElementById('stat-cycle').textContent = (cycle - getCycleSpanYears() + 1) + '–' + cycle;
 
