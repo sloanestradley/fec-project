@@ -249,11 +249,24 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
    header (#profile-header / #committee-header / #race-header) still uses the
    max() padding trick — invisible there because the header has no border. */
 .tabs-bar { position:sticky; top:var(--header-h); z-index:185;
-  background:var(--bg); border-bottom:2px solid var(--color-navy-950);
+  background:var(--bg);
   max-width:1600px; margin-left:auto; margin-right:auto;
-  padding:0 var(--page-gutter);
+  /* Total horizontal padding = gutter + 16px internal so tabs sit 16px in
+     from the navy ::after line (which anchors at var(--page-gutter)) —
+     mirrors the internal breathing room on .banner and #race-context-bar.
+     Mobile reverts to just the gutter (see media query below). */
+  padding:0 calc(var(--page-gutter) + var(--space-16));
   display:flex; gap:var(--space-16); overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
   opacity:0; transition:opacity 0.4s ease; }
+/* Navy bottom rule on .tabs-bar — pseudo-element instead of border-bottom so
+   the line ends at the gutter-inset edge (matching the bordered children of
+   the strips above) rather than running the full sticky-element width. The
+   .tab.active red underline (4px border-bottom + margin-bottom:-2px) overlays
+   this navy line at the same y-coordinate; z-index:-1 keeps the navy below
+   the .tab in stacking order so the red wins where they overlap. */
+.tabs-bar::after { content:''; position:absolute;
+  left:var(--page-gutter); right:var(--page-gutter); bottom:0; height:2px;
+  background:var(--color-navy-950); z-index:-1; }
 .tabs-bar::-webkit-scrollbar { display:none; }
 .tabs-bar.visible { opacity:1; }
 .cycle-select.form-select { align-self:stretch; border:none; border-radius:0;
@@ -262,7 +275,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .cycle-select.form-select:focus { outline:none; color:var(--color-navy-950); }
 .meta-row { display:flex; align-items:center; gap:var(--space-4) var(--space-8); flex-wrap:wrap; }
 .tab { font-family:'Oswald',sans-serif; padding:var(--space-4) 0; font-size:1.25rem; text-transform:none; color:var(--color-navy-950); cursor:pointer;
-  border-bottom:4px solid transparent; margin-bottom:-2px;
+  border-bottom:4px solid transparent;
   transition:all 0.15s; text-decoration:none; white-space:nowrap; flex-shrink:0; }
 .tab:hover { color:var(--muted); }
 .tab.active { color:var(--color-navy-950); border-bottom-color:var(--color-red-700); }
@@ -816,10 +829,18 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .retry-btn:hover { border-color:var(--text); color:var(--text); }
 
 /* ── Cycle index ── */
+/* #cycle-index carries the gutter inset on desktop so cycle-row borders end
+   at the gutter-inset edge (matching the new #summary-strip / #career-strip
+   pattern). Rows also carry uniform 16px horizontal padding (internal
+   breathing room from their own border edges — same treatment as .banner,
+   #race-context-bar, .tabs-bar). Mobile reverts the strip lift: zero out
+   #cycle-index horizontal padding so row borders go edge-to-edge of the
+   viewport; rows retain their 16px horizontal padding for content inset. */
+#cycle-index { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
 .cycle-index-header {
   display:grid;
   grid-template-columns:1fr 100px 100px 100px 28px;
-  padding:var(--space-8) var(--page-gutter);
+  padding:var(--space-8) var(--space-16);
   border-bottom:1px solid var(--border);
   font-family:'IBM Plex Mono',monospace;
   font-size:0.625rem;
@@ -831,7 +852,7 @@ a.cycle-row {
   display:grid;
   grid-template-columns:1fr 100px 100px 100px 28px;
   align-items:center;
-  padding:var(--space-16) var(--page-gutter);
+  padding:var(--space-16);
   border-bottom:1px solid var(--border);
   text-decoration:none;
   color:inherit;
@@ -845,14 +866,14 @@ div.cycle-row {
   display:grid;
   grid-template-columns:1fr 100px 100px 100px 28px;
   align-items:center;
-  padding:var(--space-16) var(--page-gutter);
+  padding:var(--space-16);
   border-bottom:1px solid var(--border);
   color:var(--muted);
   cursor:default;
 }
 .cycle-archive-divider {
   display:flex; align-items:center; gap:var(--space-8);
-  padding:var(--space-8) var(--page-gutter);
+  padding:var(--space-8) var(--space-16);
   border-bottom:1px solid var(--border);
   background:var(--surface2);
 }
@@ -910,6 +931,16 @@ div.cycle-row {
      their base rules (internal breathing room from their own border edges),
      so they don't need a mobile-specific override. */
   #career-strip, #summary-strip { padding-left:0; padding-right:0; }
+  /* #cycle-index: zero the gutter inset so row borders go edge-to-edge of
+     the viewport. Rows keep their 16px horizontal padding from the base
+     rule (uniform desktop + mobile internal breathing room). */
+  #cycle-index { padding-left:0; padding-right:0; }
+  /* .tabs-bar pseudo-element border: zero the gutter inset so the navy line
+     goes edge-to-edge on mobile, matching the other bordered children.
+     Strip its internal breathing room too — on mobile, tabs sit at the
+     standard 16px gutter inset (no extra 16 like desktop). */
+  .tabs-bar { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+  .tabs-bar::after { left:0; right:0; }
   .tab-section-header { flex-direction:column; align-items:flex-start; }
   .typeahead-dropdown { max-width:100%; }
   .state-combo .form-input { display:none; }
