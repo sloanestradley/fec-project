@@ -48,23 +48,20 @@ test.describe('candidate.html — profile header', () => {
     await expect(tags).not.toHaveCount(0);
   });
 
-  test('race label is present in meta-row (T15 — relocated from above title)', async ({ page }) => {
+  test('race tag is present in meta-row as a .tag-neutral (between FEC ID and party)', async ({ page }) => {
     await setup(page);
-    await expect(page.locator('#meta-row .candidate-race-label')).toBeAttached();
+    // Race tag is the second meta-row child after the simplification — a .tag-neutral
+    // that is NOT the .fec-id-tag. Content is short-form formatRaceName().
+    const raceTag = page.locator('#meta-row > .tag-neutral:not(.fec-id-tag)');
+    await expect(raceTag).toHaveCount(1);
+    // Test candidate H2WA03217 → House WA-03 → "House • WA-03"
+    await expect(raceTag).toContainText('House');
+    await expect(raceTag).toContainText('WA');
   });
 
-  test('race label contains a link to the race page', async ({ page }) => {
+  test('meta-row has no .candidate-race-label (replaced with .tag-neutral race tag)', async ({ page }) => {
     await setup(page);
-    const link = page.locator('#meta-row .candidate-race-label a');
-    await expect(link).toBeAttached();
-    const href = await link.getAttribute('href');
-    expect(href).toMatch(/\/race\?state=/);
-  });
-
-  test('meta-row has no .tag-neutral race tag (race element uses .candidate-race-label, not .tag-neutral)', async ({ page }) => {
-    await setup(page);
-    // After the .tag-inc migration (2026-05-13), incumbent tag is .tag-inc — only .fec-id-tag still uses .tag-neutral
-    await expect(page.locator('#meta-row .tag-neutral:not(.fec-id-tag)')).toHaveCount(0);
+    await expect(page.locator('#meta-row .candidate-race-label')).toHaveCount(0);
   });
 
   test('FEC ID tag renders with candidate ID text', async ({ page }) => {
@@ -80,17 +77,17 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#profile-header > #meta-row')).toHaveCount(1);
   });
 
-  test('meta-row children render in canonical order: race → party → incumbent → FEC ID', async ({ page }) => {
+  test('meta-row children render in canonical order: FEC ID → race → party → incumbent', async ({ page }) => {
     await setup(page);
-    // MGP is the incumbent in the mock fixture; all four children should be present (T15 added race as first).
+    // MGP is the incumbent in the mock fixture; all four children should be present.
     const roles = await page.locator('#meta-row > *').evaluateAll(nodes => nodes.map(n => {
-      if (n.classList.contains('candidate-race-label')) return 'race';
+      if (n.classList.contains('fec-id-tag')) return 'fec-id';
       if (n.classList.contains('tag-dem') || n.classList.contains('tag-rep') || n.classList.contains('tag-ind')) return 'party';
       if (n.classList.contains('tag-inc')) return 'incumbent';
-      if (n.classList.contains('fec-id-tag')) return 'fec-id';
+      if (n.classList.contains('tag-neutral')) return 'race';
       return 'other:' + n.className;
     }));
-    expect(roles).toEqual(['race', 'party', 'incumbent', 'fec-id']);
+    expect(roles).toEqual(['fec-id', 'race', 'party', 'incumbent']);
   });
 
   test('race-context element is present in meta-row', async ({ page }) => {

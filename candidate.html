@@ -19,9 +19,6 @@
     /* Race link — relocated to #meta-row in T15. Styling unchanged from the
        prior above-title slot pending explicit direction on a meta-row context
        variant; visual mismatch against the 0.625rem tags is acknowledged. */
-    .candidate-race-label { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--color-red-700); }
-    .candidate-race-label a { color:inherit; text-decoration:none; }
-    .candidate-race-label a:hover { text-decoration:underline; }
     /* Race context bar — bottom-most child of #summary-strip (T21 follow-up).
        Inherits the reveal cascade from #summary-strip; min-height reserves
        vertical space during the loading skeleton so the page doesn't shift
@@ -1829,14 +1826,8 @@ async function loadCycle(cycle) {
         var tag = document.createElement('span');
         tag.className = 'tag tag-inc';
         tag.textContent = 'Incumbent';
-        // Insert before the FEC ID tag so the meta-row reads
-        // party → incumbent → FEC ID.
-        var fecIdTag = metaRow.querySelector('.fec-id-tag');
-        if (fecIdTag) {
-          metaRow.insertBefore(tag, fecIdTag);
-        } else {
-          metaRow.appendChild(tag);
-        }
+        // Append at the end so the meta-row reads FEC ID → race → party → incumbent.
+        metaRow.appendChild(tag);
       }
     })();
 
@@ -2113,20 +2104,15 @@ async function init() {
     activeCycle = defaultCycle;
     CAND_NAME = displayName;
 
-    // Meta row — race link (T15, relocated from above title) + party + FEC ID
-    // (cycle-independent). Incumbent tag (cycle-dependent) is inserted later by
-    // loadCycle() BEFORE the FEC ID tag, giving order:
-    // race → party → incumbent → FEC ID.
-    // Note: race href includes &year=activeCycle but is not updated on cycle
-    // switch — pre-existing behavior, banked for T16 consideration.
-    var raceDistParam = (CAND_OFFICE === 'H' && CAND_DIST && CAND_DIST !== '00')
-      ? '&district=' + encodeURIComponent(CAND_DIST) : '';
-    var raceHref = '/race?state=' + encodeURIComponent(CAND_STATE)
-      + raceDistParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + activeCycle;
+    // Meta row — FEC ID + race tag + party (cycle-independent). Incumbent tag
+    // (cycle-dependent) is inserted later by loadCycle() at the end, giving order:
+    // FEC ID → race → party → incumbent. Race tag uses the short formatRaceName()
+    // form ("House • WA-03"); the long form ("US House: Washington's 3rd District")
+    // lives in the race-context-bar's prose-emphasis label below.
     document.getElementById('meta-row').innerHTML =
-      '<span class="candidate-race-label"><a href="'+raceHref+'">'+formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST)+'</a></span>'
-      + '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>'
-      + '<span class="tag tag-neutral fec-id-tag">FEC ID · '+CANDIDATE_ID+'</span>';
+      '<span class="tag tag-neutral fec-id-tag">FEC ID · '+CANDIDATE_ID+'</span>'
+      + '<span class="tag tag-neutral">'+formatRaceName(CAND_OFFICE, CAND_STATE, CAND_DIST)+'</span>'
+      + '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>';
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
     // populated unconditionally so detail-view transitions don't need to re-initialize the switcher

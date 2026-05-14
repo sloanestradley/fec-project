@@ -558,7 +558,7 @@
         </div>
         <div class="ds-type-row">
           <span class="ds-section-title" style="margin-bottom:0;padding-bottom:0;border-bottom:none">Committee Ecosystem</span>
-          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .candidate-race-label · .chart-title · .donors-head · .raised-cell-title</span>
+          <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .chart-title · .donors-head · .raised-cell-title</span>
         </div>
         <div class="ds-type-row">
           <span class="tab" style="padding:0;border-bottom:none;margin-bottom:0;cursor:default">Summary</span>
@@ -720,7 +720,7 @@
           <span class="ds-component-name">Candidate Header</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">extends .page-header · .back-affordance-slot · .profile-header-row · .page-title · .cycle-select · .committees-link · .meta-row · .candidate-race-label</div>
+        <div class="ds-component-classes">extends .page-header · .back-affordance-slot · .profile-header-row · .page-title · .cycle-select · .committees-link · .meta-row</div>
         <div class="ds-component-demo">
           <div class="profile-header page-header detail-view" style="padding:2rem">
             <div class="back-affordance-slot">
@@ -735,14 +735,14 @@
               </div>
             </div>
             <div class="meta-row" style="margin-top:var(--space-4)">
-              <span class="candidate-race-label"><a href="#">US House: Washington's 3rd District</a></span>
+              <span class="tag tag-neutral fec-id-tag">FEC ID · H2WA03217</span>
+              <span class="tag tag-neutral">House • WA-03</span>
               <span class="tag tag-dem">Democrat</span>
               <span class="tag tag-inc">Incumbent</span>
-              <span class="tag tag-neutral fec-id-tag">FEC ID · H2WA03217</span>
             </div>
           </div>
         </div>
-        <div class="ds-component-notes">T15 (2026-05-11) relocated the race label from a dedicated slot above the title into the meta-row as the first element. Styling unchanged from its prior above-title position (Oswald 400 1.25rem uppercase red-700) pending explicit direction on a meta-row context variant — visual mismatch against the 0.625rem tags is acknowledged. The slot above the title is now the back-affordance slot — visible only on cycle detail views (the demo shows the detail-view state via the <code>.detail-view</code> class on the wrapper). On cycle index views, the slot reserves vertical space but the button is hidden. The previous <code>.compact-sep</code> "/" separator was removed entirely. <code>.profile-header-row</code> contains the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> sits as a sibling below. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic.</div>
+        <div class="ds-component-notes">The meta-row is a uniform strip of <code>.tag</code>-style elements below the page title. Canonical order: <strong>FEC ID → race → party → incumbent</strong>. Race is a <code>.tag.tag-neutral</code> rendered via <code>formatRaceName(office, state, district)</code> (short form, "House • WA-03") — the long form ("US House: Washington's 3rd District") lives in the race-context-bar's prose-emphasis label below. Incumbent (<code>.tag-inc</code>) is cycle-dependent and appended dynamically by <code>loadCycle()</code>. The back-affordance slot above the title is visible only on cycle detail views (the demo shows the detail-view state via the <code>.detail-view</code> class on the wrapper); on cycle index views, the slot reserves vertical space but the button is hidden. <code>.profile-header-row</code> contains the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> sits as a sibling below. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic.</div>
       </div>
 
       <!-- 6b. Back affordance -->

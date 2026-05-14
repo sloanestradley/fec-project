@@ -756,11 +756,13 @@ function renderHeader(c) {
   // Name — title-cased
   document.getElementById('committee-name').textContent = toTitleCase(c.name) || '—';
 
-  // Meta row: type tag, status tag, designation, FEC ID, active-since (when active)
+  // Meta row order: FEC ID → type → designation (conditional) → status → state (conditional).
+  // FEC-ID-first matches candidate.html's meta-row simplification.
   var dotCls  = filingFrequencyDotClass(c.filing_frequency);
   var freqLbl = filingFrequencyLabel(c.filing_frequency);
   var metaHtml = '';
-  metaHtml += '<span class="tag tag-neutral">' + committeeTypeLabel(c.committee_type) + '</span>';
+  metaHtml += '<span class="tag tag-neutral fec-id-tag">FEC ID · ' + COMMITTEE_ID + '</span>';
+  metaHtml += ' <span class="tag tag-neutral">' + committeeTypeLabel(c.committee_type) + '</span>';
   if (c.designation && c.designation !== c.committee_type) {
     metaHtml += ' <span class="tag tag-neutral">' + designationLabel(c.designation) + '</span>';
   }
@@ -769,7 +771,6 @@ function renderHeader(c) {
   if (c.state) {
     metaHtml += ' <span class="tag tag-neutral">' + c.state + '</span>';
   }
-  metaHtml += ' <span class="tag tag-neutral fec-id-tag">FEC ID · ' + COMMITTEE_ID + '</span>';
   document.getElementById('meta-row').innerHTML = metaHtml;
 
   // Page title
