@@ -125,7 +125,10 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .main-inner { max-width:1600px; margin-left:auto; margin-right:auto; width:100%; }
 
 /* ── Top nav ── */
-.top-nav { position:sticky; top:0; left:0; right:0;
+/* position:relative (not static) so the mobile-search panel and mobile-nav
+   drawer — both `position:absolute; top:100%` children — anchor to .top-nav.
+   No `top:` value — nav scrolls naturally with document content. */
+.top-nav { position:relative;
   height:var(--header-h); background:var(--bg); z-index:200; }
 .top-nav-inner { display:flex; align-items:center;
   height:var(--header-h); padding:0 var(--page-gutter); gap:var(--space-24); }
