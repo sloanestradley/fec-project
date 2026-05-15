@@ -532,6 +532,56 @@ function initComboDropdown(config) {
   };
 }
 
+// ── initCompactHeader ─────────────────────────────────────────────────────────
+// Sticky-header compact-mode listener for profile pages. Lifted from inline
+// copies in candidate.html / committee.html / race.html (T-nav-scroll bundle,
+// 2026-05-15) — the three copies had grown a third reason to converge after
+// T6.5 (scroll-clamp guard via mainEl.paddingBottom), T14 (compactThreshold
+// expose for getDetailScrollTarget), and T-nav-scroll (CSS-custom-property
+// write replacing the inline tabsBarEl.style.top write so the nav-scroll
+// listener and compact listener can compose without stepping on each other).
+//
+// Coordinates with T-nav-scroll by writing --compact-header-h on :root instead
+// of tabsBarEl.style.top inline. .tabs-bar's top is calc(var(--nav-offset) +
+// var(--compact-header-h)) — each listener owns its own property.
+//
+// headerId — 'profile-header' | 'committee-header' | 'race-header'
+// Returns the compactThreshold (page offset at which compact engages) so
+// candidate.html and committee.html can expose it to getDetailScrollTarget.
+// race.html ignores the return value.
+function initCompactHeader(headerId) {
+  var headerEl   = document.getElementById(headerId);
+  var tabsBarEl  = document.getElementById('tabs-bar');
+  var sentinelEl = document.getElementById('profile-header-sentinel');
+  var mainEl     = document.querySelector('.main');
+  var headerH    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+  var compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - headerH + 1);
+  var isCompact      = false;
+  var compactHeaderH = null;
+  var suppressUntil  = 0;
+  function update() {
+    if (Date.now() < suppressUntil) return;
+    var compact = sentinelEl.getBoundingClientRect().top < headerH;
+    if (compact === isCompact) return;
+    isCompact = compact;
+    suppressUntil = Date.now() + 100;
+    if (compact) {
+      var fullH = headerEl.offsetHeight;
+      headerEl.classList.add('compact');
+      if (compactHeaderH === null) compactHeaderH = headerEl.offsetHeight;
+      mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
+      document.documentElement.style.setProperty('--compact-header-h', compactHeaderH + 'px');
+    } else {
+      headerEl.classList.remove('compact');
+      mainEl.style.paddingBottom = '';
+      document.documentElement.style.setProperty('--compact-header-h', '0px');
+    }
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+  return compactThreshold;
+}
+
 // ── initViewSwitcher ─────────────────────────────────────────────────────────
 // Profile-page in-place transitions between an index view (career stats + cycle
 // table) and a detail view (cycle-scoped tabs + content). Lifted from
@@ -600,6 +650,10 @@ function initViewSwitcher(config) {
       if (targetScrollY > 0) {
         mainEl.style.minHeight = (targetScrollY + window.innerHeight + 10) + 'px';
       }
+      // Programmatic scroll — flag so the nav-scroll listener treats it as
+      // non-user input and doesn't reveal the nav from the resulting upward
+      // delta (T-nav-scroll). 100ms covers the scroll-settle frame + margin.
+      window.__navScrollSuppressUntil = Date.now() + 100;
       window.scrollTo(0, targetScrollY);
 
       trackPageViewed('detail');
@@ -649,6 +703,7 @@ function initViewSwitcher(config) {
         indexElements.forEach(show);
         renderIndex(data);
         requestAnimationFrame(function() {
+          window.__navScrollSuppressUntil = Date.now() + 100;
           window.scrollTo(0, indexScrollY);
           indexElements.forEach(reveal);
         });

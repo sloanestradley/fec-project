@@ -69,7 +69,6 @@
 - [ ] ✅ Cycle row labels contain a year range with en-dash (automated)
 - [ ] Career Raised and Career Spent show formatted dollar amounts (not "—")
 - [ ] History cell year-range derives from first_file_date (start) and latest coverage_end_date in totals (end). Bare year for first-cycle candidates with no quarterly filings yet.
-- [ ] Career Spent sub-line shows "N% of raised" when data available
 - [ ] Cycle index column headers: Cycle / Raised / Spent / Cash on Hand
 - [ ] ✅ Clicking a cycle row loads detail view in-place — no page reload (`#profile-header` DOM node is the same object before and after; index elements hidden; tabs-bar visible) (automated)
 - [ ] ✅ Browser back from detail view → index view in-place — CareerStrip and cycle index visible; back button does NOT re-fetch `/history/` or `/totals/?per_page=100` (data cached) (automated)
@@ -338,7 +337,7 @@
 - [ ] ✅ CareerStrip has 3 cells (T14): History → Lifetime Raised → Lifetime Spent
 - [ ] History cell shows year-range from `first_file_date` to `last_file_date` (e.g. "2020–2026"); falls back to bare year when both dates produce the same year
 - [ ] Lifetime Raised = sum of `receipts` across all cycles in `/committee/{id}/totals/`
-- [ ] Lifetime Spent = sum of `disbursements`; sub-label shows `{N}% of raised`
+- [ ] Lifetime Spent = sum of `disbursements`
 - [ ] Cycle index renders one row per cycle in `c.cycles`, sorted descending (newest first)
 - [ ] Cycle row labels use coverage_start_date for year range (e.g. "2025–2026")
 - [ ] ✅ Clicking a cycle row loads detail view in-place — no page reload (`#committee-header` DOM node is the same object before and after; index elements hidden; tabs-bar visible) (automated, T10)

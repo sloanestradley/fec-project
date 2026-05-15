@@ -191,7 +191,6 @@
           <div class="stat-card">
             <div class="stat-label">Career Spent</div>
             <div class="stat-value" id="cstat-career-spent">—</div>
-            <div class="stat-sub" id="cstat-career-spent-sub"></div>
           </div>
         </div>
       </div>
@@ -473,9 +472,11 @@ function openCommitteesModal() {
   document.getElementById('committees-modal').style.display = 'flex';
   showModalTab('active');
   if (!committeesLoaded) fetchAndRenderCommittees();
+  if (window.__navForceVisible) window.__navForceVisible('committees-modal', true);
 }
 function closeCommitteesModal() {
   document.getElementById('committees-modal').style.display = 'none';
+  if (window.__navForceVisible) window.__navForceVisible('committees-modal', false);
 }
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeCommitteesModal();
@@ -1953,10 +1954,6 @@ function renderHistoryStrip(firstFiledYear, fullTotals) {
   document.getElementById('cstat-history').textContent = historyText;
   document.getElementById('cstat-career-raised').textContent = careerRaised ? fmt(careerRaised) : '—';
   document.getElementById('cstat-career-spent').textContent  = careerSpent  ? fmt(careerSpent)  : '—';
-  if (careerRaised > 0) {
-    var pct = Math.round(careerSpent / careerRaised * 100);
-    document.getElementById('cstat-career-spent-sub').textContent = pct + '% of raised';
-  }
 }
 
 function cycleRowHTML(year, raised, spent, coh, isArchive, startYear) {
@@ -2016,41 +2013,6 @@ function renderCycleIndex(cycles, totalsMap, office) {
   container.innerHTML = html;
 }
 
-// ── Compact header — scroll listener ─────────────────────────────────────────
-// Extracted from init()'s detail-view path so it can be registered once on first
-// detail entry regardless of which view was the landing view.
-function initCompactHeader() {
-  var headerEl      = document.getElementById('profile-header');
-  var tabsBarEl     = document.getElementById('tabs-bar');
-  var sentinelEl    = document.getElementById('profile-header-sentinel');
-  var mainEl        = document.querySelector('.main');
-  var headerH       = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
-  // Expose compact-engage threshold for getDetailScrollTarget — at init time scrollY=0 so BCR.top = page offset
-  compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - headerH + 1);
-  var isCompact      = false;
-  var compactHeaderH = null;
-  var suppressUntil  = 0;
-  function update() {
-    if (Date.now() < suppressUntil) return;
-    var compact = sentinelEl.getBoundingClientRect().top < headerH;
-    if (compact === isCompact) return;
-    isCompact = compact;
-    suppressUntil = Date.now() + 100;
-    if (compact) {
-      var fullH = headerEl.offsetHeight;
-      headerEl.classList.add('compact');
-      if (compactHeaderH === null) compactHeaderH = headerEl.offsetHeight;
-      mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
-      tabsBarEl.style.top = (headerH + compactHeaderH) + 'px';
-    } else {
-      headerEl.classList.remove('compact');
-      mainEl.style.paddingBottom = '';
-      tabsBarEl.style.top = headerH + 'px';
-    }
-  }
-  window.addEventListener('scroll', update, { passive: true });
-  update();
-}
 
 // ── Index view data processor ─────────────────────────────────────────────────
 // Called by the helper's renderIndex callback after fetchIndexData resolves.
@@ -2161,7 +2123,7 @@ async function init() {
     // would never enter the detail view, so the listener must be active from init().
     // Must run BEFORE the helper is instantiated so compactThreshold is set when
     // getDetailScrollTarget reads it.
-    initCompactHeader();
+    compactThreshold = initCompactHeader('profile-header');
     compactHeaderInited = true;
 
     // Tab section for top contributors (Raised tab) — wires WAI-ARIA tabs.

@@ -3,6 +3,63 @@
 amplitude.init('62280d38083601e001bf153dbcf38a9b', { defaultTracking: false });
 if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
 
+// ── Nav hide-on-scroll-down, reveal-on-scroll-up (T-nav-scroll) ─────────
+// Hides .top-nav via transform when user scrolls down past nav height; reveals
+// when user scrolls up 80px in a single direction. Programmatic scrolls are
+// gated by window.__navScrollSuppressUntil (set by utils.js view.switchTo).
+// Overlay states (mobile drawer, search panel, modal) force the nav visible
+// via window.__navForceVisible(key, on); CSS owns the slide via .top-nav.hidden.
+// Nav state does NOT persist across page loads — every page starts visible.
+(function() {
+  var nav = document.getElementById('top-nav');
+  if (!nav) return;
+  if (typeof window.__navScrollSuppressUntil !== 'number') window.__navScrollSuppressUntil = 0;
+  var headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+  var lastScrollY = window.scrollY;
+  var upwardAccumulator = 0;
+  var isHidden = false;
+  var forceKeys = {};
+  var forceCount = 0;
+
+  function setHidden(hide) {
+    if (hide === isHidden) return;
+    if (hide && forceCount > 0) return;
+    isHidden = hide;
+    nav.classList.toggle('hidden', hide);
+    if (hide) document.documentElement.style.setProperty('--nav-offset', '0px');
+    else document.documentElement.style.removeProperty('--nav-offset');
+  }
+
+  window.__navForceVisible = function(key, on) {
+    if (on) {
+      if (!forceKeys[key]) { forceKeys[key] = true; forceCount++; }
+      setHidden(false);
+    } else if (forceKeys[key]) {
+      forceKeys[key] = false; forceCount--;
+    }
+  };
+
+  window.addEventListener('scroll', function() {
+    if (Date.now() < window.__navScrollSuppressUntil) {
+      lastScrollY = window.scrollY;
+      return;
+    }
+    var y = window.scrollY;
+    var dy = y - lastScrollY;
+    lastScrollY = y;
+    if (dy > 0) {
+      upwardAccumulator = 0;
+      if (y > headerH) setHidden(true);
+    } else if (dy < 0) {
+      upwardAccumulator -= dy;
+      if (upwardAccumulator >= 80) {
+        upwardAccumulator = 0;
+        setHidden(false);
+      }
+    }
+  }, { passive: true });
+})();
+
 // ── Hamburger nav (drawer drops down from top) ───────
 (function() {
   var btn = document.getElementById('hamburger');
@@ -13,13 +70,19 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
     var open = nav.classList.toggle('open');
     btn.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', String(open));
-    if (open && searchPanel) searchPanel.classList.remove('open');
+    if (open && searchPanel && searchPanel.classList.contains('open')) {
+      searchPanel.classList.remove('open');
+      if (window.__navForceVisible) window.__navForceVisible('search', false);
+    }
+    if (window.__navForceVisible) window.__navForceVisible('drawer', open);
   });
   nav.querySelectorAll('.nav-item').forEach(function(el) {
     el.addEventListener('click', function() {
       nav.classList.remove('open');
       btn.classList.remove('open');
       btn.setAttribute('aria-expanded', 'false');
+      // Force-visible release omitted — nav-item click navigates to a new
+      // page and the fresh load resets nav state to default-visible.
     });
   });
 })();
@@ -33,14 +96,16 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
   var hamburger = document.getElementById('hamburger');
   toggle.addEventListener('click', function() {
     var open = panel.classList.toggle('open');
-    if (open && nav) {
+    if (open && nav && nav.classList.contains('open')) {
       nav.classList.remove('open');
       if (hamburger) { hamburger.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); }
+      if (window.__navForceVisible) window.__navForceVisible('drawer', false);
     }
     if (open) {
       var inp = document.getElementById('top-nav-mobile-search-input');
       if (inp) inp.focus();
     }
+    if (window.__navForceVisible) window.__navForceVisible('search', open);
   });
 })();
 

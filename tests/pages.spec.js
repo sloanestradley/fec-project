@@ -1057,3 +1057,141 @@ test.describe('feed.html', () => {
     await expect(rows).toHaveCount(1);
   });
 });
+
+// ── Global nav hide-on-scroll (T-nav-scroll) ─────────────────────────────────
+// Behavior is identical across every page that has #top-nav, so candidate.html
+// is the representative test surface (plenty of scrollable content + the
+// programmatic-scroll cases involve view.switchTo which is a candidate/committee
+// behavior). Tests cover: initial visibility, hide threshold (~56px), reveal
+// threshold (~80px single-direction upward), accumulator reset on direction
+// flip, programmatic-scroll suppression, tab-click does not toggle nav state.
+
+test.describe('global nav: hide-on-scroll', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    // Wait for the page to be ready — profile-header revealed so scroll
+    // listeners are bound and the page has scrollable content.
+    await page.waitForSelector('#profile-header.visible', { timeout: 5000 });
+    // Clear the suppression flag set by view.switchTo's initial scrollTo
+    // so tests start from a known state. Without this, test scrolls fired
+    // within ~100ms of page load are swallowed as "programmatic."
+    await page.evaluate(() => { window.__navScrollSuppressUntil = 0; });
+  });
+
+  test('nav is visible on fresh page load', async ({ page }) => {
+    await expect(page.locator('#top-nav')).not.toHaveClass(/hidden/);
+  });
+
+  test('nav hides after scrolling down past header height', async ({ page }) => {
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/, { timeout: 2000 });
+  });
+
+  test('nav reveals after scrolling up 80px from hidden state', async ({ page }) => {
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    // Simulate user scroll-up by dispatching incremental scroll events.
+    // window.scrollTo from a hidden state lands the page back at the new
+    // position; we need the listener to see a negative delta of >= 80.
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await expect(page.locator('#top-nav')).not.toHaveClass(/hidden/, { timeout: 2000 });
+  });
+
+  test('nav stays hidden when upward scroll is below 80px threshold', async ({ page }) => {
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    await page.evaluate(() => window.scrollTo(0, 360)); // -40, under 80
+    // Give the listener a tick to settle; nav should still be hidden.
+    await page.waitForTimeout(150);
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+  });
+
+  test('downward delta resets the upward accumulator', async ({ page }) => {
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    // Scroll up 50 (under threshold), then down 5 (resets), then up 50 again.
+    // Net upward = 100 but in two separate runs; accumulator reset means
+    // neither run alone reaches 80, so nav stays hidden.
+    await page.evaluate(() => window.scrollTo(0, 250));
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.scrollTo(0, 255));
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.scrollTo(0, 205));
+    await page.waitForTimeout(150);
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+  });
+
+  test('--nav-offset CSS custom property reflects nav state', async ({ page }) => {
+    // Visible state: inline override removed; CSS resolves to var(--header-h).
+    const visibleOffset = await page.evaluate(() =>
+      document.documentElement.style.getPropertyValue('--nav-offset'));
+    expect(visibleOffset).toBe('');
+    // Hidden state: 0px inline.
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    const hiddenOffset = await page.evaluate(() =>
+      document.documentElement.style.getPropertyValue('--nav-offset'));
+    expect(hiddenOffset).toBe('0px');
+  });
+
+  test('programmatic scroll via __navScrollSuppressUntil does not reveal nav', async ({ page }) => {
+    // Hide nav first.
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    // Simulate the suppression flag set by view.switchTo, then scroll up
+    // a large amount. Listener should swallow the delta and leave nav hidden.
+    await page.evaluate(() => {
+      window.__navScrollSuppressUntil = Date.now() + 200;
+      window.scrollTo(0, 100);
+    });
+    await page.waitForTimeout(50);
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+  });
+
+  test('tab click does not toggle nav state (no scroll fires)', async ({ page }) => {
+    // Hide nav.
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    // Click Raised tab — showTab preventDefaults the anchor, no scrollTo.
+    await page.locator('a.tab[href="#raised"]').click();
+    await page.waitForTimeout(150);
+    // Nav still hidden; scroll position unchanged.
+    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+  });
+
+  test('--compact-header-h is written by initCompactHeader when compact engages', async ({ page }) => {
+    // Pre-compact: --compact-header-h is 0px (or empty / default).
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await expect(page.locator('#profile-header')).toHaveClass(/compact/, { timeout: 2000 });
+    const compactH = await page.evaluate(() =>
+      document.documentElement.style.getPropertyValue('--compact-header-h'));
+    // Compact sets it to a positive px value (typically 48–56px).
+    expect(compactH).toMatch(/^\d+px$/);
+    expect(parseFloat(compactH)).toBeGreaterThan(0);
+  });
+});
+
+// ── Drawer-open holds nav visible (T-nav-scroll force-visible API) ──────────
+// Mobile-only behavior; test at 390px viewport so hamburger is visible.
+
+test.describe('global nav: force-visible while drawer open', () => {
+  test.use({ viewport: { width: 390, height: 800 } });
+
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    await page.waitForSelector('#profile-header.visible', { timeout: 5000 });
+  });
+
+  test('opening hamburger drawer holds nav visible across downward scroll', async ({ page }) => {
+    await page.locator('#hamburger').click();
+    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
+    // Scroll down — nav should stay visible because drawer holds it.
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(150);
+    await expect(page.locator('#top-nav')).not.toHaveClass(/hidden/);
+  });
+});

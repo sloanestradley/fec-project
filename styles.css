@@ -86,6 +86,16 @@
   --page-gutter: var(--space-48);
   --section-gap: var(--space-32);
 
+  /* Nav-scroll coordination (T-nav-scroll). --nav-offset is the live "where do
+     sticky surfaces below the nav anchor themselves" value; main.js sets it to
+     0 when the top-nav is hidden (transform:translateY(-100%)) and removes the
+     inline override when it reveals (falls back to the var(--header-h) default).
+     --compact-header-h is owned by initCompactHeader (utils.js) — set to the
+     compact-header height while engaged, 0px when not. .tabs-bar composes both
+     via calc() so each listener writes only its own state. */
+  --nav-offset:        var(--header-h);
+  --compact-header-h:  0px;
+
   /* Chart palette — opacified layer on semantic tokens */
   --chart-raised:           rgba(74,144,217,0.9);
   --chart-raised-solid:     rgba(74,144,217,1);
@@ -117,8 +127,13 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .main-inner { max-width:1600px; margin-left:auto; margin-right:auto; width:100%; }
 
 /* ── Top nav ── */
+/* Hide-on-scroll-down, reveal-on-scroll-up (T-nav-scroll). main.js toggles the
+   .hidden class on scroll direction + threshold. transform composes with mobile
+   drawer / search panel transforms (they're DOM children, ride along). */
 .top-nav { position:sticky; top:0; left:0; right:0;
-  height:var(--header-h); background:var(--bg); z-index:200; }
+  height:var(--header-h); background:var(--bg); z-index:200;
+  transition:transform 200ms cubic-bezier(0.25,0.46,0.45,0.94); }
+.top-nav.hidden { transform:translateY(-100%); }
 .top-nav-inner { display:flex; align-items:center;
   height:var(--header-h); padding:0 var(--page-gutter); gap:var(--space-24); }
 .top-nav-logo { font-family:'Oswald',sans-serif; font-size:1.25rem;
@@ -248,7 +263,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
    summary-strip and content area below at ultrawide viewports. Sticky profile
    header (#profile-header / #committee-header / #race-header) still uses the
    max() padding trick — invisible there because the header has no border. */
-.tabs-bar { position:sticky; top:var(--header-h); z-index:185;
+.tabs-bar { position:sticky; top:calc(var(--nav-offset) + var(--compact-header-h)); z-index:185;
   background:var(--bg);
   max-width:1600px; margin-left:auto; margin-right:auto;
   /* Total horizontal padding = gutter + 16px internal so tabs sit 16px in
@@ -257,7 +272,8 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
      Mobile reverts to just the gutter (see media query below). */
   padding:0 calc(var(--page-gutter) + var(--space-16));
   display:flex; gap:var(--space-16); overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
-  opacity:0; transition:opacity 0.4s ease; }
+  opacity:0;
+  transition:opacity 0.4s ease, top 200ms cubic-bezier(0.25,0.46,0.45,0.94); }
 /* Navy bottom rule on .tabs-bar — pseudo-element instead of border-bottom so
    the line ends at the gutter-inset edge (matching the bordered children of
    the strips above) rather than running the full sticky-element width. The
@@ -590,10 +606,11 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    a layout-shift flash when compact switches to row direction.
    Horizontal padding mirrors .tabs-bar alignment (max() handles ultrawide). */
 #profile-header, #committee-header, #race-header {
-  position:sticky; top:var(--header-h); z-index:195; background:var(--bg);
+  position:sticky; top:var(--nav-offset); z-index:195; background:var(--bg);
   display:flex; flex-direction:column;
   padding-left:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
-  padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter))); }
+  padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
+  transition:top 200ms cubic-bezier(0.25,0.46,0.45,0.94); }
 
 /* Compact mode — slim one-line strip, triggered by scroll listener.
    min-height stabilizes compact header height across all profile pages and view
@@ -886,6 +903,15 @@ div.cycle-row {
 }
 
 /* ── Responsive ── */
+/* Reduced motion — nav-scroll transitions snap instead of slide. The other
+   long-running transitions on the site (hover color shifts, mobile drawer
+   slide-in) are short and informational; leaving them alone is consistent with
+   the standard "disable motion-dominant animations" reading of the media query. */
+@media (prefers-reduced-motion: reduce) {
+  .top-nav, .tabs-bar,
+  #profile-header, #committee-header, #race-header { transition:none; }
+}
+
 @media (max-width:860px) {
   :root { --page-gutter: var(--space-16); }
   .top-nav-links { display:none; }

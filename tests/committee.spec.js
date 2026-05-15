@@ -273,13 +273,10 @@ test.describe('committee.html — index view landing state', () => {
     expect(text?.trim()).toBe('$7.6M');
   });
 
-  test('Lifetime Spent matches summed disbursements with % of raised sub-label', async ({ page }) => {
+  test('Lifetime Spent matches summed disbursements', async ({ page }) => {
     // Mock totals: 2026=600k + 2024=3.1M + 2022=1.95M = $5.65M; fmt() rounds to $5.7M
     const text = await page.locator('#cstat-career-spent').textContent();
     expect(text?.trim()).toBe('$5.7M');
-    // 5.65M / 7.6M = ~74%
-    const sub = await page.locator('#cstat-career-spent-sub').textContent();
-    expect(sub?.trim()).toMatch(/^\d{1,3}% of raised$/);
   });
 
   test('#cycle-index renders one row per cycle from c.cycles', async ({ page }) => {
