@@ -266,7 +266,7 @@
             <tr><td><span class="ds-token-dot" style="background:#1E6644"></span>green-deep</td><td class="ds-token-hex">#1E6644</td><td>Success</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#8A5F10"></span>amber-deep</td><td class="ds-token-hex">#8A5F10</td><td>Warning / watch — also backs --inc</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#F6E9CE;border:1px solid #D7D1C7"></span>amber-light</td><td class="ds-token-hex">#F6E9CE</td><td>Incumbent tag tint</td></tr>
-            <tr><td><span class="ds-token-dot" style="background:#05234F"></span>navy-950</td><td class="ds-token-hex">#05234F</td><td>Nav logo "Ledger", tabs-bar border, tab text, cycle select text</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#05234F"></span>navy-950</td><td class="ds-token-hex">#05234F</td><td>Nav logo "Ledger", tabs-bar navy line (T14.5: ::after pseudo-element, was border-bottom), tab text, cycle select text</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#A83228"></span>red-700</td><td class="ds-token-hex">#A83228</td><td>Nav logo "FEC", active tab indicator — also backs --rep and --red</td></tr>
             <tr><td colspan="3" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Chart primitives (still referenced by --chart-* tokens, unchanged from previous palette):</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#4A90D9"></span>blue-500</td><td class="ds-token-hex">#4A90D9</td><td>Chart raised</td></tr>
@@ -320,9 +320,7 @@
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-coh)"></span>--chart-coh</td><td>--green @ 85%</td><td class="ds-token-hex">rgba(61,191,122,0.85)</td><td>Cash on Hand line in chart</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-coh-solid)"></span>--chart-coh-solid</td><td>--green @ 100%</td><td class="ds-token-hex">rgba(61,191,122,1)</td><td>CoH chart point fill</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-spent-bar)"></span>--chart-spent-bar</td><td>--rep @ 72%</td><td class="ds-token-hex">rgba(217,74,74,0.72)</td><td>Spend purpose bar fill</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-deadline)"></span>--chart-overlay-deadline</td><td>--muted @ 40%</td><td class="ds-token-hex">rgba(90,96,112,0.4)</td><td>Filing deadline vertical line</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-election)"></span>--chart-overlay-election</td><td>--amber @ 75%</td><td class="ds-token-hex">rgba(232,160,32,0.75)</td><td>Election date vertical line</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-today)"></span>--chart-overlay-today</td><td>--subtle @ 18%</td><td class="ds-token-hex">rgba(136,144,160,0.18)</td><td>Today marker (active cycles)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-today)"></span>--chart-overlay-today</td><td>--subtle @ 18%</td><td class="ds-token-hex">rgba(136,144,160,0.18)</td><td>Today marker (active cycles) — sole remaining chart overlay token after filing-deadline + election-day overlays were retired 2026-04-24</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Spacing scale tokens (8px grid):</td></tr>
             <tr><td class="ds-token-name">--space-2</td><td>—</td><td class="ds-token-hex">2px</td><td>Micro — fine-tuning only; every call site must have an inline comment explaining the rationale</td></tr>
             <tr><td class="ds-token-name">--space-4</td><td>—</td><td class="ds-token-hex">0.25rem (4px)</td><td>Tag padding, chip gap, form-field label gap, sub-label margin</td></tr>
@@ -344,7 +342,7 @@
             <tr><td class="ds-token-name">--lh-tight</td><td>—</td><td class="ds-token-hex">1</td><td>Display and numeric — headings, stat values, tags, buttons</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Letter-spacing tokens:</td></tr>
             <tr><td class="ds-token-name">--ls-tight</td><td>—</td><td class="ds-token-hex">-0.125rem</td><td>Display titles — <code style="font-size:0.625rem">.page-title</code> (fixed rem, not proportional)</td></tr>
-            <tr><td class="ds-token-name">--ls-expanded</td><td>—</td><td class="ds-token-hex">0.1em</td><td>Small uppercase labels — <code style="font-size:0.625rem">.stat-label</code>, <code style="font-size:0.625rem">.tag</code>, table headers (proportional em)</td></tr>
+            <tr><td class="ds-token-name">--ls-expanded</td><td>—</td><td class="ds-token-hex">0.05em</td><td>Small uppercase labels — <code style="font-size:0.625rem">.stat-label</code>, <code style="font-size:0.625rem">.tag</code>, table headers (proportional em). Tightened from 0.1em on 2026-05-13 — single canonical value across all label-shape rules.</td></tr>
           </tbody>
         </table>
         <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#A83228</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). Both are backed by the <code>--color-red-700</code> primitive. If the status system diverges from the partisan palette in the future, they should split into separate primitives at that point.</div>
@@ -513,18 +511,6 @@
             <div class="ds-swatch-token">--chart-coh</div>
             <div class="ds-swatch-hex">→ --green</div>
             <div class="ds-swatch-desc">Cash on Hand line</div>
-          </div>
-          <div class="ds-swatch" data-token="--chart-overlay-deadline" data-hex="rgba(90,96,112,0.4)">
-            <div class="ds-swatch-color" style="background:var(--chart-overlay-deadline)"></div>
-            <div class="ds-swatch-token">--chart-overlay-deadline</div>
-            <div class="ds-swatch-hex">→ --muted</div>
-            <div class="ds-swatch-desc">Filing deadline line</div>
-          </div>
-          <div class="ds-swatch" data-token="--chart-overlay-election" data-hex="rgba(232,160,32,0.75)">
-            <div class="ds-swatch-color" style="background:var(--chart-overlay-election)"></div>
-            <div class="ds-swatch-token">--chart-overlay-election</div>
-            <div class="ds-swatch-hex">→ --amber</div>
-            <div class="ds-swatch-desc">Election date line</div>
           </div>
           <div class="ds-swatch" data-token="--chart-overlay-today" data-hex="rgba(136,144,160,0.18)">
             <div class="ds-swatch-color" style="background:var(--chart-overlay-today)"></div>
@@ -953,7 +939,7 @@
           <br><br>
           <strong>Responsive (≤860px):</strong> outer grid collapses to 1 column; first half-wrapper's <code>border-right</code> becomes <code>border-bottom</code>. Inner half-grids retain their <code>--cols</code> — the right-half 3-col on candidate-detail stays 3-col on mobile (typography is the scaling lever, not the layout — at ≤480px <code>.stat-value</code> shrinks to 1.25rem).
           <br><br>
-          <strong>Strip context:</strong> on both profile pages, <code>.stats-grid</code> lives inside <code>#summary-strip</code> (cycle-detail) or <code>#career-strip</code> (cycle-index). Horizontal gutter padding is applied to <code>.stats-grid</code> inside the strip (via scoped selector) so the navy top/bottom borders extend edge-to-edge within the 1600px max-width while stat card content stays aligned with the page gutter. <code>.stats-grid</code> itself owns no <code>margin-bottom</code> — the strip wrappers do, via a single shared rule in styles.css: <code>#career-strip, #summary-strip { margin-bottom: var(--section-gap) }</code>.
+          <strong>Strip context (T14.5 follow-up, 2026-05-14):</strong> on both profile pages, <code>.stats-grid</code> lives inside <code>#summary-strip</code> (cycle-detail) or <code>#career-strip</code> (cycle-index). The gutter-lift pattern moved horizontal padding from <code>.stats-grid</code> UP to the strip parents on desktop, so <code>.stats-grid</code> sits inside the gutter inset and its navy borders end at the gutter-inset edge. Mobile reverts — strips zero their horizontal padding and <code>.stats-grid</code> goes edge-to-edge of the viewport (intentional: cards' own 24px padding provides breathing room from the border, and the inter-half divider runs full-width on mobile to buy back narrow-viewport horizontal space). <code>.stats-grid</code> owns no <code>margin-bottom</code> — the strip wrappers do, via a single shared rule in styles.css: <code>#career-strip, #summary-strip { margin-bottom: var(--section-gap) }</code>. The 16px <code>margin-top</code> on <code>.stats-grid</code> (T14.5 polish) gives breathing room above the navy top border so it doesn't slide flush under the compact sticky header.
         </div>
       </div>
 
@@ -1021,8 +1007,6 @@
                   <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-raised)"></div>Raised</div>
                   <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-spent)"></div>Spent</div>
                   <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-coh)"></div>Cash on Hand</div>
-                  <div class="legend-item"><div class="legend-swatch legend-dashed"></div>Filing deadline</div>
-                  <div class="legend-item"><div class="legend-swatch legend-amber-dashed"></div>Election day</div>
                 </div>
               </div>
               <div class="ds-chart-placeholder">Chart renders here (Chart.js canvas)</div>
