@@ -534,25 +534,18 @@ function initComboDropdown(config) {
 
 // ── initCompactHeader ─────────────────────────────────────────────────────────
 // Sticky-header compact-mode listener for profile pages. Lifted from inline
-// copies in candidate.html / committee.html / race.html (T-nav-scroll bundle,
+// copies in candidate.html / committee.html / race.html (T-nav-scroll arc,
 // 2026-05-15) — the three copies had grown a third reason to converge after
 // T6.5 (scroll-clamp guard via mainEl.paddingBottom), T14 (compactThreshold
 // expose for getDetailScrollTarget), and T-nav-scroll (CSS-custom-property
-// write replacing the inline tabsBarEl.style.top write so the nav-scroll
-// listener and compact listener can compose without stepping on each other).
+// write replacing the inline tabsBarEl.style.top write). The nav-scroll
+// listener that originally motivated the property-write has been reverted,
+// but the lift + property mechanism stays — both improvements on the prior
+// three-inline-copies shape.
 //
-// Coordinates with T-nav-scroll by writing --compact-header-h on :root instead
-// of tabsBarEl.style.top inline. .tabs-bar's top is calc(var(--nav-offset) +
-// var(--compact-header-h)) — each listener owns its own property.
-//
-// T-nav-scroll v2 (2026-05-15): reads window.__navOffsetTarget (the nav
-// listener's source-of-truth value) as the compact-engagement threshold
-// instead of the static --header-h constant. This is required because under
-// v2 the profile-header's sticky-top is dynamic (0 when nav in natural flow,
-// var(--header-h) when revealed) — using --header-h would fire compact 56px
-// early in the default not-revealed state. Reading the TARGET value rather
-// than the live --nav-offset CSS computed value avoids flicker during the
-// 200ms reveal animation when --nav-offset is mid-transition.
+// Writes --compact-header-h on :root. .tabs-bar's top is
+// calc(var(--header-h) + var(--compact-header-h)) — the listener owns the
+// compact-state half of that composition.
 //
 // headerId — 'profile-header' | 'committee-header' | 'race-header'
 // Returns the compactThreshold (page offset at which compact engages) so
@@ -562,16 +555,14 @@ function initCompactHeader(headerId) {
   var headerEl   = document.getElementById(headerId);
   var sentinelEl = document.getElementById('profile-header-sentinel');
   var mainEl     = document.querySelector('.main');
-  function navOffset() {
-    return typeof window.__navOffsetTarget === 'number' ? window.__navOffsetTarget : 0;
-  }
-  var compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - navOffset() + 1);
+  var headerH    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+  var compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - headerH + 1);
   var isCompact      = false;
   var compactHeaderH = null;
   var suppressUntil  = 0;
   function update() {
     if (Date.now() < suppressUntil) return;
-    var compact = sentinelEl.getBoundingClientRect().top < navOffset();
+    var compact = sentinelEl.getBoundingClientRect().top < headerH;
     if (compact === isCompact) return;
     isCompact = compact;
     suppressUntil = Date.now() + 100;
@@ -660,10 +651,6 @@ function initViewSwitcher(config) {
       if (targetScrollY > 0) {
         mainEl.style.minHeight = (targetScrollY + window.innerHeight + 10) + 'px';
       }
-      // Programmatic scroll — flag so the nav-scroll listener treats it as
-      // non-user input and doesn't reveal the nav from the resulting upward
-      // delta (T-nav-scroll). 100ms covers the scroll-settle frame + margin.
-      window.__navScrollSuppressUntil = Date.now() + 100;
       window.scrollTo(0, targetScrollY);
 
       trackPageViewed('detail');
@@ -713,7 +700,6 @@ function initViewSwitcher(config) {
         indexElements.forEach(show);
         renderIndex(data);
         requestAnimationFrame(function() {
-          window.__navScrollSuppressUntil = Date.now() + 100;
           window.scrollTo(0, indexScrollY);
           indexElements.forEach(reveal);
         });

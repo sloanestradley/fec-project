@@ -472,11 +472,9 @@ function openCommitteesModal() {
   document.getElementById('committees-modal').style.display = 'flex';
   showModalTab('active');
   if (!committeesLoaded) fetchAndRenderCommittees();
-  if (window.__navForceVisible) window.__navForceVisible('committees-modal', true);
 }
 function closeCommitteesModal() {
   document.getElementById('committees-modal').style.display = 'none';
-  if (window.__navForceVisible) window.__navForceVisible('committees-modal', false);
 }
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeCommitteesModal();

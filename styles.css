@@ -86,16 +86,12 @@
   --page-gutter: var(--space-48);
   --section-gap: var(--space-32);
 
-  /* Nav-scroll coordination (T-nav-scroll v2). --nav-offset is the "where do
-     sticky surfaces below the nav anchor themselves" value. Default 0 — under
-     v2 the nav is in natural document flow by default (NOT sticky), so sticky
-     surfaces below have no nav above to anchor under. main.js writes
-     var(--header-h) when the nav is sticky-revealed; removes the inline
-     override on hide. --compact-header-h is owned by initCompactHeader
-     (utils.js) — set to the compact-header height while engaged, 0px when not.
-     .tabs-bar composes both via calc() so each listener writes only its own
-     state. */
-  --nav-offset:        0px;
+  /* --compact-header-h is owned by initCompactHeader (utils.js) — set to the
+     compact-header height while engaged, 0px when not. .tabs-bar composes
+     this with var(--header-h) via calc() so the compact listener writes only
+     its own state. (Lifted from inline tabsBarEl.style.top writes during the
+     T-nav-scroll arc; the property + the lifted helper stay, the nav-scroll
+     listener that originally motivated them has been reverted.) */
   --compact-header-h:  0px;
 
   /* Chart palette — opacified layer on semantic tokens */
@@ -129,18 +125,8 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .main-inner { max-width:1600px; margin-left:auto; margin-right:auto; width:100%; }
 
 /* ── Top nav ── */
-/* Asymmetric hide/reveal (T-nav-scroll v2). Default: nav is in natural
-   document flow (position:relative). Scroll-down → nav scrolls out of view
-   with the document, no animation. Scroll-up past 80px upward accumulator →
-   main.js adds .revealed → nav becomes sticky at top:0, instantly visible.
-   Hide direction (scroll-down while revealed) just removes the class — nav
-   snaps back to natural flow, off-screen above the current scroll position.
-   Symmetric instant transitions in both directions (the v2 slide-in
-   keyframe was retired in the v2 polish pass). Mobile drawer / search panel
-   are DOM children of .top-nav and ride along with the parent's positioning. */
-.top-nav { position:relative; left:0; right:0;
+.top-nav { position:sticky; top:0; left:0; right:0;
   height:var(--header-h); background:var(--bg); z-index:200; }
-.top-nav.revealed { position:sticky; top:0; }
 .top-nav-inner { display:flex; align-items:center;
   height:var(--header-h); padding:0 var(--page-gutter); gap:var(--space-24); }
 .top-nav-logo { font-family:'Oswald',sans-serif; font-size:1.25rem;
@@ -270,7 +256,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
    summary-strip and content area below at ultrawide viewports. Sticky profile
    header (#profile-header / #committee-header / #race-header) still uses the
    max() padding trick — invisible there because the header has no border. */
-.tabs-bar { position:sticky; top:calc(var(--nav-offset) + var(--compact-header-h)); z-index:185;
+.tabs-bar { position:sticky; top:calc(var(--header-h) + var(--compact-header-h)); z-index:185;
   background:var(--bg);
   max-width:1600px; margin-left:auto; margin-right:auto;
   /* Total horizontal padding = gutter + 16px internal so tabs sit 16px in
@@ -613,7 +599,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    a layout-shift flash when compact switches to row direction.
    Horizontal padding mirrors .tabs-bar alignment (max() handles ultrawide). */
 #profile-header, #committee-header, #race-header {
-  position:sticky; top:var(--nav-offset); z-index:195; background:var(--bg);
+  position:sticky; top:var(--header-h); z-index:195; background:var(--bg);
   display:flex; flex-direction:column;
   padding-left:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
   padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter))); }

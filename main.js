@@ -3,109 +3,6 @@
 amplitude.init('62280d38083601e001bf153dbcf38a9b', { defaultTracking: false });
 if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
 
-// ── Nav natural-scroll-out, instant reveal (T-nav-scroll v2) ────────────
-// Nav is in natural document flow by default (NOT sticky). Scroll-down → nav
-// scrolls out of view naturally with the document. Scroll-up past 80px upward
-// accumulator → add .revealed class → nav becomes sticky at top:0, instantly
-// visible. Hide direction (scroll-down 10px while revealed) → remove .revealed
-// → nav snaps back to natural flow, instantly out of viewport. Symmetric
-// instant transitions in both directions (the v2 reveal slide-in keyframe
-// was retired in the v2 polish pass).
-//
-// Programmatic scrolls are gated by window.__navScrollSuppressUntil (set by
-// utils.js view.switchTo). Overlay states (mobile drawer, search panel, modal)
-// force the nav visible via window.__navForceVisible(key, on) — calling this
-// while nav is in natural-flow scrolled-out state actively reveals the nav
-// (intended; user invoked an overlay, nav should appear). Nav state does NOT
-// persist across page loads — every page starts in natural-flow default
-// (not revealed).
-//
-// window.__navOffsetTarget exposes the target sticky-top value (0 or 56) for
-// surfaces below the nav. initCompactHeader in utils.js reads this as the
-// compact-engagement threshold — needed because the threshold is dynamic
-// (depends on whether the nav is sticky-revealed or in natural flow).
-(function() {
-  var nav = document.getElementById('top-nav');
-  if (!nav) return;
-  if (typeof window.__navScrollSuppressUntil !== 'number') window.__navScrollSuppressUntil = 0;
-  var headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
-  window.__navOffsetTarget = 0; // default: nav in natural flow, no sticky offset below
-  var lastScrollY = window.scrollY;
-  var lastScrollHeight = document.documentElement.scrollHeight;
-  var upwardAccumulator = 0;
-  var downwardAccumulator = 0;
-  var isRevealed = false;
-  var forceKeys = {};
-  var forceCount = 0;
-
-  function setRevealed(reveal) {
-    if (reveal === isRevealed) return;
-    if (!reveal && forceCount > 0) return;
-    isRevealed = reveal;
-    nav.classList.toggle('revealed', reveal);
-    window.__navOffsetTarget = reveal ? headerH : 0;
-    if (reveal) document.documentElement.style.setProperty('--nav-offset', headerH + 'px');
-    else document.documentElement.style.removeProperty('--nav-offset');
-  }
-
-  window.__navForceVisible = function(key, on) {
-    if (on) {
-      if (!forceKeys[key]) { forceKeys[key] = true; forceCount++; }
-      setRevealed(true);
-    } else if (forceKeys[key]) {
-      forceKeys[key] = false; forceCount--;
-    }
-  };
-
-  window.addEventListener('scroll', function() {
-    if (Date.now() < window.__navScrollSuppressUntil) {
-      lastScrollY = window.scrollY;
-      lastScrollHeight = document.documentElement.scrollHeight;
-      return;
-    }
-    var y = window.scrollY;
-    var h = document.documentElement.scrollHeight;
-    var prevY = lastScrollY;
-    var dy = y - prevY;
-    lastScrollY = y;
-    lastScrollHeight = h;
-    // Clamp-event filter (T-nav-scroll v2): if the previous scrollY would now
-    // be beyond the page's new max-scroll (because scrollHeight shrank), the
-    // browser will have clamped scrollY downward — the negative dy is the
-    // clamp adjustment, not user input. Skip direction processing. Distinct
-    // from a simple `dh < 0` check: a page that shrinks slightly during a
-    // legitimate user scroll-up still has the prev position within the new
-    // max, so we process it correctly. Only the case where the prev position
-    // is now invalid is filtered. (lastScrollY/Height sync above already
-    // happened so the next real event compares from the clamped state.)
-    var newMaxScroll = Math.max(0, h - window.innerHeight);
-    if (prevY > newMaxScroll) return;
-    if (dy > 0) {
-      upwardAccumulator = 0;
-      // Hide direction: 10px downward accumulator before removing .revealed.
-      // Prevents micro-oscillation on trackpad/precise input from flickering
-      // the nav state. Asymmetric with the 80px reveal accumulator — hide is
-      // forgiving, reveal requires deliberate upward intent.
-      if (isRevealed) {
-        downwardAccumulator += dy;
-        if (downwardAccumulator >= 10) {
-          downwardAccumulator = 0;
-          setRevealed(false);
-        }
-      }
-    } else if (dy < 0) {
-      downwardAccumulator = 0;
-      if (!isRevealed) {
-        upwardAccumulator -= dy;
-        if (upwardAccumulator >= 80) {
-          upwardAccumulator = 0;
-          setRevealed(true);
-        }
-      }
-    }
-  }, { passive: true });
-})();
-
 // ── Hamburger nav (drawer drops down from top) ───────
 (function() {
   var btn = document.getElementById('hamburger');
@@ -116,19 +13,13 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
     var open = nav.classList.toggle('open');
     btn.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', String(open));
-    if (open && searchPanel && searchPanel.classList.contains('open')) {
-      searchPanel.classList.remove('open');
-      if (window.__navForceVisible) window.__navForceVisible('search', false);
-    }
-    if (window.__navForceVisible) window.__navForceVisible('drawer', open);
+    if (open && searchPanel) searchPanel.classList.remove('open');
   });
   nav.querySelectorAll('.nav-item').forEach(function(el) {
     el.addEventListener('click', function() {
       nav.classList.remove('open');
       btn.classList.remove('open');
       btn.setAttribute('aria-expanded', 'false');
-      // Force-visible release omitted — nav-item click navigates to a new
-      // page and the fresh load resets nav state to default-visible.
     });
   });
 })();
@@ -142,16 +33,14 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
   var hamburger = document.getElementById('hamburger');
   toggle.addEventListener('click', function() {
     var open = panel.classList.toggle('open');
-    if (open && nav && nav.classList.contains('open')) {
+    if (open && nav) {
       nav.classList.remove('open');
       if (hamburger) { hamburger.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); }
-      if (window.__navForceVisible) window.__navForceVisible('drawer', false);
     }
     if (open) {
       var inp = document.getElementById('top-nav-mobile-search-input');
       if (inp) inp.focus();
     }
-    if (window.__navForceVisible) window.__navForceVisible('search', open);
   });
 })();
 
