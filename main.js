@@ -3,25 +3,27 @@
 amplitude.init('62280d38083601e001bf153dbcf38a9b', { defaultTracking: false });
 if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
 
-// ── Nav natural-scroll-out, animated reveal (T-nav-scroll v2) ────────────
-// Asymmetric pattern: nav is in natural document flow by default (NOT sticky).
-// Scroll-down → nav scrolls out of view naturally with the document, no
-// animation. Scroll-up past 80px upward accumulator → add .revealed class →
-// nav becomes sticky at top:0 AND @keyframes navSlideIn runs once. Hide
-// direction (scroll-down 10px while revealed) → remove .revealed → nav snaps
-// back to natural flow, instantly out of viewport. Programmatic scrolls are
-// gated by window.__navScrollSuppressUntil (set by utils.js view.switchTo).
-// Overlay states (mobile drawer, search panel, modal) force the nav visible
-// via window.__navForceVisible(key, on) — under v2 this can trigger the
-// slide-in animation if the nav was in natural-flow scrolled-out state when
-// the overlay opened (intended; user invoked an overlay, nav should appear).
-// Nav state does NOT persist across page loads — every page starts in
-// natural-flow default (not revealed).
+// ── Nav natural-scroll-out, instant reveal (T-nav-scroll v2) ────────────
+// Nav is in natural document flow by default (NOT sticky). Scroll-down → nav
+// scrolls out of view naturally with the document. Scroll-up past 80px upward
+// accumulator → add .revealed class → nav becomes sticky at top:0, instantly
+// visible. Hide direction (scroll-down 10px while revealed) → remove .revealed
+// → nav snaps back to natural flow, instantly out of viewport. Symmetric
+// instant transitions in both directions (the v2 reveal slide-in keyframe
+// was retired in the v2 polish pass).
 //
-// window.__navOffsetTarget exposes the target sticky-top value for surfaces
-// below the nav (compact-header listener reads this instead of the live
-// --nav-offset CSS value to avoid mid-animation flicker during the 200ms
-// reveal transition; see initCompactHeader in utils.js).
+// Programmatic scrolls are gated by window.__navScrollSuppressUntil (set by
+// utils.js view.switchTo). Overlay states (mobile drawer, search panel, modal)
+// force the nav visible via window.__navForceVisible(key, on) — calling this
+// while nav is in natural-flow scrolled-out state actively reveals the nav
+// (intended; user invoked an overlay, nav should appear). Nav state does NOT
+// persist across page loads — every page starts in natural-flow default
+// (not revealed).
+//
+// window.__navOffsetTarget exposes the target sticky-top value (0 or 56) for
+// surfaces below the nav. initCompactHeader in utils.js reads this as the
+// compact-engagement threshold — needed because the threshold is dynamic
+// (depends on whether the nav is sticky-revealed or in natural flow).
 (function() {
   var nav = document.getElementById('top-nav');
   if (!nav) return;
@@ -35,24 +37,11 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
   var isRevealed = false;
   var forceKeys = {};
   var forceCount = 0;
-  var animatingTimer = null;
 
   function setRevealed(reveal) {
     if (reveal === isRevealed) return;
     if (!reveal && forceCount > 0) return;
     isRevealed = reveal;
-    // html.nav-animating gates the asymmetric `top` transitions on the
-    // profile-header / tabs-bar / committee-header / race-header chain.
-    // Applied only on reveal direction — hide is instant per the asymmetric
-    // design. Removed after 250ms (animation duration + margin).
-    if (reveal) {
-      document.documentElement.classList.add('nav-animating');
-      if (animatingTimer) clearTimeout(animatingTimer);
-      animatingTimer = setTimeout(function() {
-        document.documentElement.classList.remove('nav-animating');
-        animatingTimer = null;
-      }, 250);
-    }
     nav.classList.toggle('revealed', reveal);
     window.__navOffsetTarget = reveal ? headerH : 0;
     if (reveal) document.documentElement.style.setProperty('--nav-offset', headerH + 'px');

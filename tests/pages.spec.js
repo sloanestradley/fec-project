@@ -1185,42 +1185,6 @@ test.describe('global nav: T-nav-scroll v2', () => {
     expect(revealedTarget).toBe(56);
   });
 
-  test('html.nav-animating class added on reveal, removed after animation', async ({ page }) => {
-    await page.evaluate(() => window.scrollTo(0, 300));
-    await page.waitForTimeout(50);
-    await page.evaluate(() => window.scrollTo(0, 200));
-    // Direct snapshot mid-animation — the 250ms removal timer races the
-    // assertion poller, so capturing the class state synchronously inside
-    // evaluate() (rather than relying on toHaveClass polling) is more
-    // reliable. Wait briefly to let the scroll listener fire.
-    await page.waitForTimeout(50);
-    const animatingDuringReveal = await page.evaluate(() =>
-      document.documentElement.classList.contains('nav-animating'));
-    expect(animatingDuringReveal).toBe(true);
-    // Removed after the 250ms setTimeout.
-    await page.waitForTimeout(300);
-    const animatingAfter = await page.evaluate(() =>
-      document.documentElement.classList.contains('nav-animating'));
-    expect(animatingAfter).toBe(false);
-  });
-
-  test('html.nav-animating is NOT added on hide direction (asymmetric design)', async ({ page }) => {
-    // Reveal first, then wait past the 250ms cleanup.
-    await page.evaluate(() => window.scrollTo(0, 300));
-    await page.waitForTimeout(50);
-    await page.evaluate(() => window.scrollTo(0, 200));
-    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
-    await page.waitForTimeout(300);
-    await expect(page.locator('html')).not.toHaveClass(/nav-animating/);
-    // Hide via downward scroll past 10px accumulator.
-    await page.evaluate(() => window.scrollTo(0, 250));
-    await page.waitForTimeout(100);
-    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
-    // Hide direction must NOT add nav-animating — profile-header / tabs-bar
-    // snap to top:0 instantly per the asymmetric design.
-    await expect(page.locator('html')).not.toHaveClass(/nav-animating/);
-  });
-
   test('programmatic scroll via __navScrollSuppressUntil does not reveal nav', async ({ page }) => {
     // Get into scrolled-out state (no .revealed).
     await page.evaluate(() => window.scrollTo(0, 300));
