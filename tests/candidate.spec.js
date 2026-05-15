@@ -191,14 +191,6 @@ test.describe('candidate.html — profile header', () => {
     await expect(tag).toHaveText('Incumbent');
   });
 
-  test('cycle switcher renders as select with options', async ({ page }) => {
-    await setup(page);
-    const switcher = page.locator('select#cycle-switcher');
-    await expect(switcher).toBeVisible();
-    const options = switcher.locator('option');
-    await expect(options).not.toHaveCount(0);
-  });
-
   test('committees trigger shows no count, ready immediately', async ({ page }) => {
     await setup(page);
     // T11: committees fetch is deferred to modal-open. The trigger is revealed
@@ -1348,7 +1340,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeVisible();
   });
 
-  test('cycle switch after 429 clears error and renders new cycle', async ({ page }) => {
+  test('cycle switch via Cycle card chevron after 429 clears error and renders new cycle (T16)', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     let block429 = true;
@@ -1364,10 +1356,16 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
     await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
-    // Lift the block, switch cycle — cycle change resets error states + re-fires fetches
+    // Lift the block, switch cycle via the Cycle card chevron → cycle index → row click.
+    // T16 retired the in-tabs-bar switcher; this exercises the new cycle-change path.
     block429 = false;
-    await page.locator('#cycle-switcher').selectOption({ index: 1 });
-    // Error UI clears, donor card eventually visible
+    await page.locator('#cycle-back-btn').click();
+    await page.waitForSelector('#cycle-index.visible', { timeout: 5000 });
+    // Click a different cycle row than the one we just left (#2024 in setup; pick the other).
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('.tabs-bar.visible', { timeout: 12000 });
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+    // Error UI clears, donor card eventually visible on the new cycle
     await expect(page.locator('#donors-card')).toBeVisible({ timeout: 12000 });
     await expect(page.locator('#raised-slow-error')).toBeHidden();
   });

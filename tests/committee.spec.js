@@ -179,28 +179,6 @@ test.describe('committee.html — detail view', () => {
     expect(stripBeforeTabs).toBe(true);
   });
 
-  test('cycle switcher is present inside .tabs-bar', async ({ page }) => {
-    await expect(page.locator('.tabs-bar #cycle-switcher')).toBeAttached();
-  });
-
-  test('cycle switcher has at least one numeric cycle option', async ({ page }) => {
-    await expect(page.locator('#cycle-switcher option')).not.toHaveCount(0);
-  });
-
-  test('cycle switcher has only numeric options (no "All time")', async ({ page }) => {
-    await expect(page.locator('#cycle-switcher option[value="all"]')).toHaveCount(0);
-    const options = page.locator('#cycle-switcher option');
-    const count = await options.count();
-    for (let i = 0; i < count; i++) {
-      const value = await options.nth(i).getAttribute('value');
-      expect(value).toMatch(/^\d{4}$/);
-    }
-  });
-
-  test('cycle switcher value matches URL hash on detail view', async ({ page }) => {
-    await expect(page.locator('#cycle-switcher')).toHaveValue('2024');
-  });
-
   test('#committee-name text is title-cased, not ALL CAPS', async ({ page }) => {
     const text = await page.locator('#committee-name').textContent();
     expect(text?.trim()).not.toBe(text?.trim().toUpperCase());
@@ -220,11 +198,6 @@ test.describe('committee.html — detail view', () => {
 
   test('filing history stub is not present', async ({ page }) => {
     await expect(page.locator('.section-title').filter({ hasText: 'Filing History' })).toHaveCount(0);
-  });
-
-  test('URL hash updates when cycle switcher changes', async ({ page }) => {
-    await page.locator('#cycle-switcher').selectOption('2022');
-    await expect(page).toHaveURL(/#2022#summary/);
   });
 
   test('URL hash updates when tab changes', async ({ page }) => {
@@ -338,7 +311,6 @@ test.describe('committee.html — index view landing state', () => {
     await page.waitForSelector('#summary-strip.visible', { timeout: 12000 });
     await expect(page.locator('#summary-strip')).toBeVisible();
     await expect(page.locator('#career-strip')).toBeHidden();
-    await expect(page.locator('#cycle-switcher')).toHaveValue('2024');
   });
 
   test('Page Viewed fires with view: index', async ({ page }) => {
@@ -431,16 +403,6 @@ test.describe('committee.html — archive threshold', () => {
 // ── All-time removal regressions ─────────────────────────────────────────────
 
 test.describe('committee.html — All-time removal regressions', () => {
-  test('cycle switcher contains zero options with value="all" or text "All time"', async ({ page }) => {
-    await setupDetail(page);
-    await expect(page.locator('#cycle-switcher option[value="all"]')).toHaveCount(0);
-    const options = page.locator('#cycle-switcher option');
-    const count = await options.count();
-    for (let i = 0; i < count; i++) {
-      const text = await options.nth(i).textContent();
-      expect(text?.trim()).not.toBe('All time');
-    }
-  });
 
   test('old #all#summary bookmarks land on the index view (NaN fallthrough)', async ({ page }) => {
     await mockAmplitude(page);
@@ -823,8 +785,12 @@ test.describe('committee.html — in-place transitions', () => {
   test('rapid cycle hash navigation: last cycle wins in summary stats', async ({ page }) => {
     // Committee renderStats reads from pre-cached ALL_TOTALS synchronously, so summary
     // stats don't have an async race the way candidate's loadCycle does. This test
-    // verifies the URL-routing flow is robust under rapid clicks: regardless of
+    // verifies the URL-routing flow is robust under rapid hashchanges: regardless of
     // intermediate hash flips, the final visible cycle in the URL is what renders.
+    // Pre-T16 this also asserted the in-tabs-bar #cycle-switcher value tracked; with
+    // the switcher retired, the stat-raised value is the authoritative signal — the
+    // same fetch-race-token machinery (view.claimToken / isCurrentToken in renderStats)
+    // protects this code path regardless of how the cycle change was triggered.
     await page.evaluate(() => { window.location.hash = '#2024#summary'; });
     await page.evaluate(() => { window.location.hash = '#2022#summary'; });
     await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
@@ -832,8 +798,7 @@ test.describe('committee.html — in-place transitions', () => {
       () => { const el = document.getElementById('stat-raised'); return el && el.textContent !== '—'; },
       { timeout: 12000 }
     );
-    const switcherValue = await page.locator('#cycle-switcher').inputValue();
-    expect(switcherValue).toBe('2022');
+    await expect(page).toHaveURL(/#2022#summary/);
     const raisedText = await page.locator('#stat-raised').textContent();
     // 2022 fixture: receipts=2,100,000 → "$2.1M". 2024 fixture: 3,700,000 → "$3.7M"
     expect(raisedText).toContain('2.1');
@@ -1128,7 +1093,7 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeVisible();
   });
 
-  test('cycle switch after tab-fetch 429 clears error and renders new cycle', async ({ page }) => {
+  test('cycle switch via Cycle card chevron after tab-fetch 429 clears error and renders new cycle (T16)', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     let block429 = true;
@@ -1145,8 +1110,13 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     await page.locator('.tab').filter({ hasText: 'Raised' }).click();
     await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
     block429 = false;
-    // Switch cycle via the cycle switcher
-    await page.locator('#cycle-switcher').selectOption({ index: 1 });
+    // T16: switch cycle via the Cycle card chevron → cycle index → row click.
+    // The cycle-switcher in the tabs-bar retired.
+    await page.locator('#cycle-back-btn').click();
+    await page.waitForSelector('#cycle-index.visible', { timeout: 5000 });
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('.tabs-bar.visible', { timeout: 12000 });
+    await page.locator('.tab').filter({ hasText: 'Raised' }).click();
     // Active (Committees default) panel renders on new cycle, slow error clears
     await expect(page.locator('#committee-donors-card')).toBeVisible({ timeout: 12000 });
     await expect(page.locator('#raised-slow-error')).toBeHidden();

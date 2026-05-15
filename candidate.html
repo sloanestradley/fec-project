@@ -171,7 +171,6 @@
     <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
     <a class="tab"        href="#raised"  onclick="showTab('raised',event)">Raised</a>
     <a class="tab"        href="#spent"   onclick="showTab('spent',event)">Spent</a>
-    <select id="cycle-switcher" class="form-select cycle-select"></select>
   </div>
   <div class="main-inner">
 
@@ -1251,7 +1250,7 @@ function renderRaisedIfReady() {
     renderTopDonors(raisedSlowData.topDonors);
     renderTopConduits(raisedSlowData.topConduits);
 
-    // Cycle label + data note. Recomputed on every render so cycle-switcher changes propagate.
+    // Cycle label + data note. Recomputed on every render so cycle changes propagate.
     var subCycles = raisedSlowData.subCycles;
     var cycleLabel = (subCycles[0] - 1) + '–' + subCycles[subCycles.length - 1];
     document.getElementById('raised-tab-section-title')
@@ -1651,10 +1650,6 @@ async function loadCycle(cycle) {
   document.getElementById('spent-still-loading').style.display = 'none';
   document.getElementById('spent-data-note').style.display = 'none';
   document.getElementById('spent-error').style.display = 'none';
-
-  // Update cycle select value
-  var sw = document.getElementById('cycle-switcher');
-  if (sw) sw.value = cycle;
 
   // Show label + skeleton in race-context while /elections/ fetch is in-flight.
   // Label is derived from candidate metadata (cycle-independent) and renders
@@ -2150,21 +2145,6 @@ async function init() {
       + '<span class="tag tag-neutral">'+formatRaceName(CAND_OFFICE, CAND_STATE, CAND_DIST)+'</span>'
       + '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>';
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
-
-    // populated unconditionally so detail-view transitions don't need to re-initialize the switcher
-    var sw = document.getElementById('cycle-switcher');
-    ALL_CYCLES.forEach(function(cy) {
-      var opt = document.createElement('option');
-      opt.value = cy;
-      opt.textContent = cy;
-      sw.appendChild(opt);
-    });
-    sw.value = activeCycle;
-    sw.onchange = function() {
-      var cy = parseInt(sw.value);
-      amplitude.track('Cycle Switched', { cycle: cy, candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME });
-      loadCycle(cy);
-    };
 
     // Reveal profile header once — shared by index and detail view paths
     document.getElementById('state-msg').style.display = 'none';

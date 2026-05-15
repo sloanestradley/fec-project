@@ -151,7 +151,6 @@
     <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
     <a class="tab"        href="#raised"  onclick="showTab('raised',event)">Raised</a>
     <a class="tab"        href="#spent"   onclick="showTab('spent',event)">Spent</a>
-    <select id="cycle-switcher" class="form-select cycle-select"></select>
   </div>
   <div class="main-inner">
 
@@ -782,24 +781,10 @@ function renderHeader(c) {
   COMM_PARTY = c.party || null;
   COMM_TYPE  = c.committee_type || null;
 
-  // Populate cycle switcher from c.cycles. Numeric options only — the index view
-  // replaces the prior "All time" option (removed in T8). The switcher is only
-  // visible on detail view; init()'s detail branch sets sw.value to the URL hash
-  // cycle. On index view the switcher is in #tabs-bar which stays hidden.
+  // Cycle list from c.cycles — feeds the cycle-index landing view. T16 (2026-05-14)
+  // retired the in-tabs-bar cycle switcher; cycle changes now happen via the
+  // Cycle card chevron → cycle index → row click path.
   ALL_CYCLES = (c.cycles || []).slice().sort(function(a,b){ return b - a; });
-  var sw = document.getElementById('cycle-switcher');
-  sw.innerHTML = '';
-  ALL_CYCLES.forEach(function(cy) {
-    var opt = document.createElement('option');
-    opt.value = cy;
-    opt.textContent = cy;
-    sw.appendChild(opt);
-  });
-  sw.onchange = function() {
-    activeCycle = parseInt(sw.value, 10);
-    amplitude.track('Cycle Switched', { cycle: activeCycle, committee_id: COMMITTEE_ID });
-    renderStats(activeCycle);
-  };
 }
 
 // ── T12 fetch kickoffs (called from renderStats + retry handlers) ─────
@@ -963,8 +948,6 @@ function renderStats(cycleOrAll) {
   // Single fetch-race token covers both raised + spent passes — both kick off
   // immediately below, both invalidate together when the next cycle change arrives.
   cycleFetchToken = view.claimToken();
-  var sw = document.getElementById('cycle-switcher');
-  if (sw) sw.value = String(cycleOrAll);
   var rec = null;
   for (var i = 0; i < ALL_TOTALS.length; i++) {
     if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }

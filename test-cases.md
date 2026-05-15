@@ -101,7 +101,7 @@
 ### Amplitude events
 - [ ] `Page Viewed` fires with properties: `page`, `candidate_id`, `candidate_name`, `cycle`
 - [ ] `Tab Switched` fires on tab click (not on init) with `tab`, `candidate_id`, `candidate_name`
-- [ ] `Cycle Switched` fires on cycle button click with `cycle`, `candidate_id`, `candidate_name`
+- [ ] `Page Viewed { view: 'detail', cycle }` fires when a new cycle is entered via cycle-row click (T16 — replaces the retired `Cycle Switched` event)
 - [ ] `Committees Modal Opened` fires on clicking the committees trigger
 - [ ] `Committees Tab Switched` fires on clicking Active/Terminated tabs inside modal
 
@@ -169,16 +169,13 @@
 - [ ] URL hash is cleared on chevron click (bare entity URL after)
 - [ ] Keyboard: Tab focuses the chevron; Enter / Space activates it; focus-visible outline visible
 
-### Cycle switcher
-- [ ] ✅ Cycle switcher renders as a `<select>` with options populated from candidate's `election_years`
-- [ ] Select is positioned as the last element in the tab bar (after all tabs), pushed right via margin-left:auto
-- [ ] No border on the select; tab bar's bottom border provides visual structure
-- [ ] Tabs-bar bottom border ends at the 1600px content column edge (check at >1600px viewport — border should NOT extend to the viewport edge); tab text aligns with page content below
-- [ ] Default to current active cycle (or most recent if no active cycle)
-- [ ] Selecting a different cycle re-fetches data and updates the view; select value stays in sync
-- [ ] `Cycle Switched` Amplitude event fires on select change (not on init)
-- [ ] URL anchor updates to `#YYYY#summary` on cycle change
-- [ ] `localhost:8080/candidate.html?id=H2WA03217#2022#raised` pre-selects 2022 cycle and Raised tab on load
+### Cycle change path (T16 — switcher retired)
+- [ ] Tabs-bar contains only the three tab links (Summary / Raised / Spent). No cycle `<select>` in the tabs-bar on candidate.html or committee.html.
+- [ ] Tabs-bar bottom border ends at the gutter-inset edge (check at >1600px viewport — line should NOT extend to the viewport edge); tab text aligns with page content below
+- [ ] Cycle changes happen via the Cycle card chevron → cycle index → click a different cycle row → land on the new cycle's Summary tab
+- [ ] URL anchor updates to `#YYYY#summary` on cycle-row click (always Summary post-T16 — tab context across cycles is an accepted regression)
+- [ ] `localhost:8080/candidate.html?id=H2WA03217#2022#raised` direct-load pre-selects 2022 cycle and Raised tab (URL hash routing unchanged)
+- [ ] `Cycle Switched` Amplitude event no longer fires (retired with T16). The replacement signal is `Page Viewed { view: 'detail', cycle }` on cycle-row click.
 
 ### Stats row (T14)
 - [ ] 5 cards on cycle-detail. Left half (2 cols): **Cycle** (with back chevron) | Raised:Spent ratio. Right half (3 cols): Raised | Spent | Cash on Hand.
@@ -349,7 +346,7 @@
 - [ ] `#cycles` URL also lands on index view (parseInt('cycles')=NaN → ALL_CYCLES.indexOf(NaN)=-1)
 - [ ] Old `#all#summary` bookmarks fall through to index view (parseInt('all')=NaN, same routing)
 - [ ] Amplitude `Page Viewed` fires with `view: 'index'`
-- [ ] No "All time" option exists in the cycle-switcher (the switcher is hidden on index view but contains numeric-only options when revealed)
+- [ ] No "All time" option in cycle-row markup (T8 removed All-time mode; T16 retired the cycle-switcher entirely — no select exists to contain options now)
 
 ### Detail view tabs bar + cycle switcher (URL `#{year}#{tab}`)
 - [ ] ✅ Tabs bar is present and visible after load
@@ -363,7 +360,7 @@
 - [ ] Tabs-bar bottom border ends at the 1600px content column edge (check at >1600px viewport — border should NOT extend to the viewport edge); tab text aligns with page content below
 - [ ] Selecting a cycle re-renders stats for that cycle
 - [ ] Selecting 2026 (no totals record) shows `—` in all stat fields
-- [ ] Amplitude `Cycle Switched` fires with `{ cycle, committee_id }` — no `committee_name` property
+- [ ] Amplitude `Cycle Switched` no longer fires (T16 retired the switcher); `Page Viewed { view: 'detail', cycle }` fires instead on cycle-row click
 - [ ] Amplitude `Tab Switched` fires on user tab click with `{ tab, committee_id }` — does NOT fire on hash-restore load
 - [ ] Amplitude `Page Viewed` fires with `view: 'detail'` on detail-view load
 
