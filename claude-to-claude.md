@@ -5297,3 +5297,70 @@ The chevron position. The .page-title margin. The stats-grid margin-top. The rac
 - **strategy/t15-back-affordance-semantics.md status.** The SUPERSEDED banner was added in this session — T14.5 collapsed both the browser-scoped-semantics question AND T23 (entity cycle-index navigation affordance) into one architectural surface. The doc is now historical. Worth a deliberate decision: keep it as historical record (current state), archive it under strategy/archived/ or similar to clean the active strategy surface, or just delete (history is in git). I'd lean keep-as-historical; the diagnosis pattern in the doc is more valuable than the deferred decision it banks.
 
 - **Session length + context usage.** This session ran 7 commits across stats-grid restructure → back-affordance migration → multiple polish passes → cycle-switcher removal → bug fix. Context at end-of-session is 68% (678k / 1M). The arc was longer than a typical T-ticket because the polish-tail kept extending. Worth a meta-conversation on when to cut a session (commit + reopen) vs. ride the cadence — the deploy-then-eyeball loop on layout work is hard to pause mid-flight without losing context, but at 68% there's not much rope left if the next thing surfaces.
+
+---
+2026-05-15 — T-nav-scroll arc (v1 → v2 → polish → revert → flip → fix → sweep) + cstat removal
+
+## Process log draft
+
+**The arc that ended where it began (almost)**
+
+I shipped a feature, then a different version of the same feature, then a polish pass, then reverted the whole thing, then changed my mind about the revert target, then caught a bug from my mind-change. Six commits' worth of T-nav-scroll work, plus a closing doc sweep, and the test count is back to 546 — exactly where it started this session. The codebase doesn't show net new behavior. The session was almost entirely about deciding what the nav should actually do.
+
+What I want to remember: the v1 implementation worked, was tested, and shipped. Then real-world verification surfaced a bug (stuck near top). v2 fixed it architecturally. Then I looked at v2 in production and didn't like the animated reveal. Polish removed the animation. Then I looked at the whole thing again and decided the asymmetric pattern wasn't what I wanted at all. Revert. Then I realized the revert target should have been "natural in-flow" not "back to sticky" — flip. Then I realized that the flip left a 56px gap because profile-header was still anchored under where the nav used to pin. Fix.
+
+The two pieces that survived the arc and stay shipped: the `initCompactHeader` lift from three inline copies into a shared utils.js helper, and the `--compact-header-h` CSS token. Both came in as scaffolding for nav-scroll coordination but turned out to be improvements on the pre-T-nav-scroll shape independent of any nav-scroll behavior — the right answer for compact-header coordination regardless of what the nav does. Net result of an 8-commit arc: roughly 30 lines of permanent improvement (the lift + token) plus the documentation accurately describing the in-flow nav that now ships.
+
+Changelog:
+- T-nav-scroll v1 — shipped a transform-based hide/reveal with 80px upward accumulator, programmatic-scroll suppression, force-visible overlay API, compact-listener lift, `--nav-offset` + `--compact-header-h` CSS tokens, 10 Playwright tests
+- T-nav-scroll v2 — fixed the "stuck near top" bug structurally: nav goes to natural document flow, animated slide-in on scroll-up reveal, 16 Playwright tests, async-load clamp-event filter discovered during verification
+- v2 polish — removed the slide-in animation, symmetric instant-in-both-directions
+- Full revert — back to sticky+top:0, preserved `initCompactHeader` helper and `--compact-header-h` token, 16 tests retired
+- Sticky → relative flip — concrete instruction was wrong, prose intent was right; nav is now `position:relative`, scrolls out with content
+- Profile-header pin fix — flip introduced a 56px empty band; profile-header / tabs-bar now anchor at top:0
+- Cstat removal (separate but bundled into v1 commit) — retired `#cstat-career-spent-sub` from CareerStrip on both profile pages
+- Closing doc sweep — 6 stale references to "sticky nav" in CLAUDE.md, design-system.html, ia.md updated to reflect in-flow state
+
+Field notes:
+The revert preserved two things — the compact-header lift and the `--compact-header-h` token — because they were independently correct regardless of what the nav does. That feels like the right shape for "what survives when you revert a feature": the parts that solved problems orthogonal to the feature stay; the parts that only made sense as scaffolding for the feature go.
+
+The "concrete instruction was wrong, prose intent was right" exchange was the most interesting moment. I wrote a revert prompt where the prose said "in-flow element that scrolls out naturally" and the concrete instruction said "position:sticky; top:0". CC flagged the contradiction and asked which one to follow; I told it to follow the concrete instruction. CC shipped it, then I saw the result, then I came back and said the concrete instruction had been wrong. The flag CC raised should have been a stop signal but I missed it; CC stopped anyway and shipped the sticky version, and we needed one more commit to course-correct. Worth banking: when CC explicitly flags an internal contradiction in a prompt, that's the moment to slow down and resolve it, not to push CC through.
+
+The 56px gap bug after the flip is the cleanest example of "implementation reveals what plans don't." I'd flagged the implication in the commit message — "profile pages still have profile-header { top:var(--header-h) } — 56px empty band possible" — but the message was buried in a commit body. Visual QA saw it immediately. The lesson: a flag in a commit body is approximately invisible compared to the page itself in a browser. If a known implication might matter, ship the fix instead of flagging.
+
+Stack tags: revert as a code-shape pattern (what survives, what doesn't) · prompt-prose-vs-prompt-instruction reconciliation · commit-message flags vs in-page verification · accumulator + suppression as a reusable scroll-listener primitive (now reverted)
+
+## How Sloane steered the work
+
+**You shipped, looked, and decided the feature wasn't what you wanted.**
+Three commits into the T-nav-scroll arc you came back and said: revert all of it. Not because anything was broken — it worked — but because the asymmetric scroll pattern wasn't the right interaction. That's a hard call to make after a full investigation-implementation-test cycle has already shipped. The discipline to look at a shipped feature and say "actually, no" is the discipline that keeps the codebase from accumulating tested-but-wrong work.
+
+**The "investigate before scoping" rule paid for itself, and also misled.**
+v1 investigation was excellent — surfaced the clamp-event filter and other coordination issues. v2 investigation was excellent — surfaced the state model A-F and the bug-fix mechanism. But neither investigation surfaced the "is this even the right interaction?" question. You ended up answering that one in production by looking at the shipped result. Worth banking: thorough technical investigation can produce architecturally correct work that's still the wrong product decision. The pattern doesn't preempt that — it just makes the implementation clean.
+
+**Catching the concrete-vs-prose contradiction in the revert prompt.**
+Your revert prompt said both "nav scrolls out naturally like an in-flow element" (prose) and "position:sticky; top:0" (concrete). I flagged the contradiction and went with the concrete instruction. You came back and said the prose was right. The takeaway is mine: when I flag a contradiction in a prompt, the right move is to stop and resolve it, not to pick one and ship. I picked the wrong half; you had to course-correct with another commit.
+
+**The 56px gap bug — caught instantly by visual QA.**
+After the sticky→relative flip shipped, profile-header was still anchored 56px below the top of viewport (where the nav used to pin). I'd flagged this in the commit body as a known implication. You opened a profile page in the browser, saw the gap, and asked for the fix. The lesson lives at the boundary between Claude's flagging discipline and your visual-verification discipline: I should have shipped the fix instead of flagging the implication, OR shipped the gap with explicit "ship now, fix in the next commit" — but burying the flag in a commit body was approximately invisible.
+
+**"Any other tests or documentation to clean up based on this work?"**
+You explicitly asked for the closing audit. The grep sweep found 6 stale references the per-commit doc updates had missed — three in CLAUDE.md (including the long-stale `padding-top:var(--header-h)` rule claim that never actually existed in styles.css), two in design-system.html, one in ia.md. None of them would have broken anything; all of them would have misled the next person to read those docs. Worth banking as a pattern: at the end of a multi-commit arc with structural changes, explicitly ask for the closing audit. The per-commit updates almost always miss cross-file drift.
+
+**The through-line:** you steered for "let me look at it in production, then decide if it's right." Technical correctness alone wasn't enough to keep a feature; visual / product correctness in actual use was the bar. That's a hard standard to hold when you've already invested in investigation + implementation + tests, and you held it three times this session (v1 → v2, v2 → polish, polish → revert). The cost of holding it: an 8-commit arc that ends close to where it started. The benefit: the codebase doesn't carry tested-but-not-right code into the next session.
+
+## What to bring to Claude Chat
+
+- **The "is this the right interaction?" question, banked.** Three times this session you looked at a shipped nav-scroll interaction and decided it wasn't right. The thing that's now shipped is the SIMPLEST possible answer (in-flow nav, no scroll behavior). Worth a real conversation about whether the answer is durable, or whether you'll want to revisit nav-scroll behavior again in 6 months with a fresh perspective on what feels right in production use.
+
+- **What's the right product-validation step before declaring a UI feature "done"?** The session showed clearly that investigation + implementation + tests don't substitute for "use the thing in a real browser, on a real page, for a few sessions." Should there be an explicit "live with it for N days before considering it shipped" rule for any feature that changes scroll/motion/position? Or is in-the-moment visual QA enough?
+
+- **Memory candidates from this session:**
+  - "When CC flags an internal contradiction in a prompt, stop and resolve before implementing" — process feedback
+  - "Implementation tests product intuition — be willing to revert architecturally-correct work that isn't the right interaction" — process feedback
+  - "When reverting, preserve the parts that solved problems orthogonal to the reverted feature" — architectural pattern
+  - "Closing doc sweep is high-value at end of multi-commit arcs with structural changes" — already banked, this session reinforces
+
+- **The "I missed the bug because the flag was buried in a commit body" pattern.** Worth a real conversation. Commit body flags are approximately invisible compared to in-browser visual QA. When a feature has a known implication that might matter, is the right move to ship the fix (extra commit), ship the implication with an explicit "fix in next commit" comment in the prompt response (high salience), or ship and flag in commit body (current pattern, missed)?
+
+- **`initCompactHeader` is the only utility in utils.js with a `STICKY_TOP = 0` constant marker for "if profile-header's sticky-top changes in CSS, update here."** That marker is the right pattern for tight CSS↔JS coupling. Worth applying the same shape elsewhere if there are other places where JS reads a hard-coded value that mirrors a CSS rule. Worth a code-survey conversation.
