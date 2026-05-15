@@ -544,25 +544,31 @@ function initComboDropdown(config) {
 // three-inline-copies shape.
 //
 // Writes --compact-header-h on :root. .tabs-bar's top is
-// calc(var(--header-h) + var(--compact-header-h)) — the listener owns the
-// compact-state half of that composition.
+// var(--compact-header-h) — the listener owns the entire compact-state
+// composition now that the nav is no longer sticky (top:0 base).
+//
+// STICKY_TOP is the threshold at which the profile-header pins to viewport.
+// Matches the CSS `top:0` rule on #profile-header / #committee-header /
+// #race-header (set when the nav was un-stickied — nav no longer occupies
+// the viewport-top band, so profile-header anchors at 0 instead of 56).
+// If the profile-header sticky-top value ever changes in CSS, update here.
 //
 // headerId — 'profile-header' | 'committee-header' | 'race-header'
 // Returns the compactThreshold (page offset at which compact engages) so
 // candidate.html and committee.html can expose it to getDetailScrollTarget.
 // race.html ignores the return value.
 function initCompactHeader(headerId) {
+  var STICKY_TOP = 0;
   var headerEl   = document.getElementById(headerId);
   var sentinelEl = document.getElementById('profile-header-sentinel');
   var mainEl     = document.querySelector('.main');
-  var headerH    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
-  var compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - headerH + 1);
+  var compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - STICKY_TOP + 1);
   var isCompact      = false;
   var compactHeaderH = null;
   var suppressUntil  = 0;
   function update() {
     if (Date.now() < suppressUntil) return;
-    var compact = sentinelEl.getBoundingClientRect().top < headerH;
+    var compact = sentinelEl.getBoundingClientRect().top < STICKY_TOP;
     if (compact === isCompact) return;
     isCompact = compact;
     suppressUntil = Date.now() + 100;

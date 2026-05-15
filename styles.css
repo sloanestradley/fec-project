@@ -259,7 +259,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
    summary-strip and content area below at ultrawide viewports. Sticky profile
    header (#profile-header / #committee-header / #race-header) still uses the
    max() padding trick — invisible there because the header has no border. */
-.tabs-bar { position:sticky; top:calc(var(--header-h) + var(--compact-header-h)); z-index:185;
+.tabs-bar { position:sticky; top:var(--compact-header-h); z-index:185;
   background:var(--bg);
   max-width:1600px; margin-left:auto; margin-right:auto;
   /* Total horizontal padding = gutter + 16px internal so tabs sit 16px in
@@ -602,7 +602,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    a layout-shift flash when compact switches to row direction.
    Horizontal padding mirrors .tabs-bar alignment (max() handles ultrawide). */
 #profile-header, #committee-header, #race-header {
-  position:sticky; top:var(--header-h); z-index:195; background:var(--bg);
+  position:sticky; top:0; z-index:195; background:var(--bg);
   display:flex; flex-direction:column;
   padding-left:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
   padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter))); }
