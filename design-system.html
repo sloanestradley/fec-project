@@ -334,7 +334,7 @@
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Layout tokens:</td></tr>
             <tr><td class="ds-token-name">--page-gutter</td><td>--space-48</td><td class="ds-token-hex">3rem / 1rem</td><td>Horizontal content padding — <code style="font-size:0.625rem">var(--space-48)</code> desktop, <code style="font-size:0.625rem">var(--space-16)</code> mobile (≤860px). Use <code style="font-size:0.625rem">padding: &lt;v&gt; var(--page-gutter)</code> on all content sections.</td></tr>
             <tr><td class="ds-token-name">--section-gap</td><td>--space-32</td><td class="ds-token-hex">2rem</td><td>Vertical spacing between stacked content sections (cards, tables, charts). Applied via <code style="font-size:0.625rem">margin-bottom</code> on: <code style="font-size:0.625rem">.banner</code>, <code style="font-size:0.625rem">.chart-card</code>, <code style="font-size:0.625rem">.donors-card</code>, <code style="font-size:0.625rem">#career-strip, #summary-strip</code>, <code style="font-size:0.625rem">.raised-grid</code>. (T21 follow-up: <code style="font-size:0.625rem">.stats-grid</code> no longer owns its own bottom rhythm — both strip wrappers share a single rule in styles.css for parity between cycle-index and cycle-detail.)</td></tr>
-            <tr><td class="ds-token-name">--header-h</td><td>—</td><td class="ds-token-hex">56px</td><td>Sticky nav height. Content follows naturally in flow — no explicit offset needed.</td></tr>
+            <tr><td class="ds-token-name">--header-h</td><td>—</td><td class="ds-token-hex">56px</td><td>Top nav height. Nav is in-flow and scrolls out with content; no offset needed below.</td></tr>
             <tr><td class="ds-token-name">--banner-h</td><td>—</td><td class="ds-token-hex">32px</td><td>Global banner height. Banner is not fixed — scrolls with page. Token retained for height reference.</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Line-height tokens:</td></tr>
             <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.625rem">.data-note</code>, <code style="font-size:0.625rem">.callout</code>, log entry body text</td></tr>
@@ -664,7 +664,7 @@
           <span class="ds-component-name">Global Banner</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.global-banner · .global-banner-text — in normal flow above sticky nav; scrolls out of view</div>
+        <div class="ds-component-classes">.global-banner · .global-banner-text — in normal flow at the top of the document; scrolls out of view with the nav</div>
         <div class="ds-component-demo">
           <div class="ds-note">Rendered inline here; on live pages it is <code style="font-size:0.625rem">position:fixed</code> and sits above the top nav.</div>
           <div class="global-banner">

@@ -219,8 +219,8 @@ Light "broadsheet" theme. Key CSS variables.
 Layout tokens (reference --space-* scale):
 --page-gutter: var(--space-48)   (48px desktop / var(--space-16) 16px mobile ≤860px)
 --section-gap: var(--space-32)   (32px — vertical margin-bottom between stacked content sections)
---header-h: 56px                 (sticky top nav height)
---banner-h: 32px                 (in-flow global banner height; banner scrolls away naturally before nav sticks)
+--header-h: 56px                 (top nav height; nav is in-flow, scrolls out with content)
+--banner-h: 32px                 (in-flow global banner height; banner + nav scroll out together)
 --compact-header-h: 0px          (compact-header height while engaged; initCompactHeader writes the measured value, restores to 0px on un-compact; tabs-bar uses this directly as `top: var(--compact-header-h)` — nav is no longer sticky so no --header-h offset above)
 
 Nav tokens:
@@ -615,11 +615,11 @@ Nav link targets (all pages must use these — absolute paths, no stubs):
 
 Search, Process Log, and Design System are **not** in the top nav. No active link on those pages.
 
-**Top nav structure (`.top-nav`):** `position:sticky; top:0`, full-width, `z-index:200`. Inner `.top-nav-inner`: logo left → `.top-nav-links` (desktop nav links: `Candidates`, `Committees`, `Races`, `Feed`) → `.top-nav-search` (desktop search bar, `margin-left:auto`) → `.top-nav-mobile-controls` (hidden at desktop: search toggle icon + hamburger). **Mobile panels are direct children of `.top-nav` (siblings of `.top-nav-inner`):** `#top-nav-mobile-search` (search panel) and `#mobile-nav` (nav drawer) sit after `.top-nav-inner` inside `<nav class="top-nav">`, positioned `absolute; top:100%`. Mobile nav drawer drops down from below the nav bar (not from the side). Search toggle expands search panel inline below the nav bar. No `.sidebar`, no `.layout` grid wrapper — `.main` is a direct child of `<body>`.
+**Top nav structure (`.top-nav`):** `position:relative` (in-flow, scrolls out with content; `position:relative` rather than `static` so the absolutely-positioned mobile drawer + search panel children anchor to the nav), full-width, `z-index:200`. Inner `.top-nav-inner`: logo left → `.top-nav-links` (desktop nav links: `Candidates`, `Committees`, `Races`, `Feed`) → `.top-nav-search` (desktop search bar, `margin-left:auto`) → `.top-nav-mobile-controls` (hidden at desktop: search toggle icon + hamburger). **Mobile panels are direct children of `.top-nav` (siblings of `.top-nav-inner`):** `#top-nav-mobile-search` (search panel) and `#mobile-nav` (nav drawer) sit after `.top-nav-inner` inside `<nav class="top-nav">`, positioned `absolute; top:100%`. Mobile nav drawer drops down from below the nav bar (not from the side). Search toggle expands search panel inline below the nav bar. No `.sidebar`, no `.layout` grid wrapper — `.main` is a direct child of `<body>`.
 
 **Active state:** `.nav-link.active` on the correct `<a>` in `.top-nav-links`, plus `.nav-item` with active class in `.mobile-nav` for browse pages. Profile pages activate their parent browse page's link.
 
-**`.main` padding:** Global rule `padding-top:var(--header-h)` in `styles.css` handles the fixed nav offset. No per-page media query override needed.
+**`.main` padding:** No special top-offset needed — `.top-nav` is in-flow and `.main` follows it naturally in the document.
 
 **Candidate page entry-point URL decisions (audited 2026-04-23):**
 - **Bare URL** (`/candidate/{id}`) for all identity/discovery contexts: search.html typeahead, search.html results, candidates.html cards, candidates.html typeahead, committee.html assoc section. `?from=xxx` tracking params may be appended for Amplitude `source` — they don't affect landing behavior.

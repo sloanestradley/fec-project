@@ -28,7 +28,7 @@
 
 ## Navigation Structure
 
-The global nav is a fixed top nav (`.top-nav`) — not a sidebar. It was refactored from a sidebar layout in 2026-03-19.
+The global nav is a top nav (`.top-nav`) — not a sidebar. It was refactored from a sidebar layout in 2026-03-19. The nav is `position:relative` (in-flow); it scrolls out with content on scroll-down and reappears at its document position on scroll-up. Sticky profile-header and tabs-bar pin at viewport top once the nav has scrolled past.
 
 ```
 FECLedger (logo → /)        [top-nav-logo]
