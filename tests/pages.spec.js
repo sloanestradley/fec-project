@@ -1058,21 +1058,21 @@ test.describe('feed.html', () => {
   });
 });
 
-// ── Global nav hide-on-scroll (T-nav-scroll) ─────────────────────────────────
+// ── Global nav natural-scroll-out, animated reveal (T-nav-scroll v2) ─────────
+// Asymmetric pattern: nav is in natural document flow by default (NOT sticky).
+// Scroll-down → nav scrolls out of viewport with the document, no animation.
+// Scroll-up past 80px upward accumulator → .revealed class → sticky + slide-in.
+// Hide direction has its own 10px accumulator to prevent jitter.
 // Behavior is identical across every page that has #top-nav, so candidate.html
 // is the representative test surface (plenty of scrollable content + the
 // programmatic-scroll cases involve view.switchTo which is a candidate/committee
-// behavior). Tests cover: initial visibility, hide threshold (~56px), reveal
-// threshold (~80px single-direction upward), accumulator reset on direction
-// flip, programmatic-scroll suppression, tab-click does not toggle nav state.
+// behavior).
 
-test.describe('global nav: hide-on-scroll', () => {
+test.describe('global nav: T-nav-scroll v2', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.goto('/candidate.html?id=H2WA03217#2024#summary');
-    // Wait for the page to be ready — profile-header revealed so scroll
-    // listeners are bound and the page has scrollable content.
     await page.waitForSelector('#profile-header.visible', { timeout: 5000 });
     // Clear the suppression flag set by view.switchTo's initial scrollTo
     // so tests start from a known state. Without this, test scrolls fired
@@ -1080,103 +1080,189 @@ test.describe('global nav: hide-on-scroll', () => {
     await page.evaluate(() => { window.__navScrollSuppressUntil = 0; });
   });
 
-  test('nav is visible on fresh page load', async ({ page }) => {
-    await expect(page.locator('#top-nav')).not.toHaveClass(/hidden/);
+  test('nav has no .revealed class on fresh page load (default natural-flow state)', async ({ page }) => {
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
   });
 
-  test('nav hides after scrolling down past header height', async ({ page }) => {
+  test('nav scrolls naturally out of viewport on scroll-down (no .revealed class)', async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, 300));
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/, { timeout: 2000 });
+    await page.waitForTimeout(100);
+    // No .revealed class on scroll-down (default state).
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
+    // Nav has scrolled out of viewport above (natural flow at document y=32).
+    const bottom = await page.locator('#top-nav').evaluate(el => el.getBoundingClientRect().bottom);
+    expect(bottom).toBeLessThan(0);
   });
 
-  test('nav reveals after scrolling up 80px from hidden state', async ({ page }) => {
+  test('nav reveals via .revealed class after scrolling up 80px from scrolled-past state', async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, 400));
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
-    // Simulate user scroll-up by dispatching incremental scroll events.
-    // window.scrollTo from a hidden state lands the page back at the new
-    // position; we need the listener to see a negative delta of >= 80.
+    await page.waitForTimeout(100);
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
+    // 100px upward — exceeds 80px reveal accumulator.
     await page.evaluate(() => window.scrollTo(0, 300));
-    await expect(page.locator('#top-nav')).not.toHaveClass(/hidden/, { timeout: 2000 });
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/, { timeout: 2000 });
   });
 
-  test('nav stays hidden when upward scroll is below 80px threshold', async ({ page }) => {
+  test('nav stays in default state when upward scroll is below 80px threshold', async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, 400));
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    await page.waitForTimeout(100);
     await page.evaluate(() => window.scrollTo(0, 360)); // -40, under 80
-    // Give the listener a tick to settle; nav should still be hidden.
     await page.waitForTimeout(150);
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
   });
 
   test('downward delta resets the upward accumulator', async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, 300));
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    await page.waitForTimeout(100);
     // Scroll up 50 (under threshold), then down 5 (resets), then up 50 again.
-    // Net upward = 100 but in two separate runs; accumulator reset means
-    // neither run alone reaches 80, so nav stays hidden.
+    // Net upward = 100 but in two separate runs; reset means neither hits 80.
     await page.evaluate(() => window.scrollTo(0, 250));
     await page.waitForTimeout(50);
     await page.evaluate(() => window.scrollTo(0, 255));
     await page.waitForTimeout(50);
     await page.evaluate(() => window.scrollTo(0, 205));
     await page.waitForTimeout(150);
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
   });
 
-  test('--nav-offset CSS custom property reflects nav state', async ({ page }) => {
-    // Visible state: inline override removed; CSS resolves to var(--header-h).
-    const visibleOffset = await page.evaluate(() =>
-      document.documentElement.style.getPropertyValue('--nav-offset'));
-    expect(visibleOffset).toBe('');
-    // Hidden state: 0px inline.
+  test('hide-direction 10px accumulator: 5px downward delta does NOT remove .revealed', async ({ page }) => {
+    // Reveal first. Each scrollTo gets a brief wait so the listener processes
+    // it as a separate event — rapid sequential scrollTos coalesce into one.
     await page.evaluate(() => window.scrollTo(0, 300));
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
-    const hiddenOffset = await page.evaluate(() =>
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
+    // 5px down — under the 10px hide accumulator. Should stay revealed.
+    await page.evaluate(() => window.scrollTo(0, 205));
+    await page.waitForTimeout(150);
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
+    // 15px more down (cumulative 20, definitely past 10) — should hide.
+    await page.evaluate(() => window.scrollTo(0, 220));
+    await page.waitForTimeout(150);
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
+  });
+
+  test('nav rejoins document flow at scrollY=0 — bug fix from v1 stuck-near-top case', async ({ page }) => {
+    // Scroll down past nav natural position (32px), then back to top.
+    // Under v1 this case could leave nav hidden if accumulator didn't reach 80.
+    // Under v2, nav is just in natural flow — banner + nav both visible at top.
+    await page.evaluate(() => window.scrollTo(0, 60));
+    await page.waitForTimeout(100);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(150);
+    // Nav has no .revealed class (default natural flow). Banner + nav both visible.
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
+    const top = await page.locator('#top-nav').evaluate(el => el.getBoundingClientRect().top);
+    // Nav's natural position is below banner (~32px). Should be visible.
+    expect(top).toBeGreaterThanOrEqual(0);
+  });
+
+  test('--nav-offset inline override mirrors revealed state', async ({ page }) => {
+    // Default state: no inline override (falls back to :root default of 0px).
+    const defaultOffset = await page.evaluate(() =>
       document.documentElement.style.getPropertyValue('--nav-offset'));
-    expect(hiddenOffset).toBe('0px');
+    expect(defaultOffset).toBe('');
+    // Reveal — main.js sets inline override to var(--header-h) value (56px).
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
+    const revealedOffset = await page.evaluate(() =>
+      document.documentElement.style.getPropertyValue('--nav-offset'));
+    expect(revealedOffset).toBe('56px');
+  });
+
+  test('window.__navOffsetTarget shared state mirrors revealed state', async ({ page }) => {
+    // Default: 0 (no sticky offset below the nav).
+    const defaultTarget = await page.evaluate(() => window.__navOffsetTarget);
+    expect(defaultTarget).toBe(0);
+    // Revealed: 56 (compact-listener uses this as the threshold for engagement).
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
+    const revealedTarget = await page.evaluate(() => window.__navOffsetTarget);
+    expect(revealedTarget).toBe(56);
+  });
+
+  test('html.nav-animating class added on reveal, removed after animation', async ({ page }) => {
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    // Direct snapshot mid-animation — the 250ms removal timer races the
+    // assertion poller, so capturing the class state synchronously inside
+    // evaluate() (rather than relying on toHaveClass polling) is more
+    // reliable. Wait briefly to let the scroll listener fire.
+    await page.waitForTimeout(50);
+    const animatingDuringReveal = await page.evaluate(() =>
+      document.documentElement.classList.contains('nav-animating'));
+    expect(animatingDuringReveal).toBe(true);
+    // Removed after the 250ms setTimeout.
+    await page.waitForTimeout(300);
+    const animatingAfter = await page.evaluate(() =>
+      document.documentElement.classList.contains('nav-animating'));
+    expect(animatingAfter).toBe(false);
+  });
+
+  test('html.nav-animating is NOT added on hide direction (asymmetric design)', async ({ page }) => {
+    // Reveal first, then wait past the 250ms cleanup.
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
+    await page.waitForTimeout(300);
+    await expect(page.locator('html')).not.toHaveClass(/nav-animating/);
+    // Hide via downward scroll past 10px accumulator.
+    await page.evaluate(() => window.scrollTo(0, 250));
+    await page.waitForTimeout(100);
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
+    // Hide direction must NOT add nav-animating — profile-header / tabs-bar
+    // snap to top:0 instantly per the asymmetric design.
+    await expect(page.locator('html')).not.toHaveClass(/nav-animating/);
   });
 
   test('programmatic scroll via __navScrollSuppressUntil does not reveal nav', async ({ page }) => {
-    // Hide nav first.
+    // Get into scrolled-out state (no .revealed).
     await page.evaluate(() => window.scrollTo(0, 300));
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
-    // Simulate the suppression flag set by view.switchTo, then scroll up
-    // a large amount. Listener should swallow the delta and leave nav hidden.
+    await page.waitForTimeout(100);
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
+    // Simulate the suppression flag, then scroll up a large amount.
+    // Listener should swallow the delta and leave nav in default state.
     await page.evaluate(() => {
       window.__navScrollSuppressUntil = Date.now() + 200;
       window.scrollTo(0, 100);
     });
     await page.waitForTimeout(50);
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
   });
 
   test('tab click does not toggle nav state (no scroll fires)', async ({ page }) => {
-    // Hide nav.
-    await page.evaluate(() => window.scrollTo(0, 400));
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    // Reveal first.
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
     // Click Raised tab — showTab preventDefaults the anchor, no scrollTo.
     await page.locator('a.tab[href="#raised"]').click();
     await page.waitForTimeout(150);
-    // Nav still hidden; scroll position unchanged.
-    await expect(page.locator('#top-nav')).toHaveClass(/hidden/);
+    // Nav still revealed; scroll position unchanged.
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
   });
 
   test('--compact-header-h is written by initCompactHeader when compact engages', async ({ page }) => {
-    // Pre-compact: --compact-header-h is 0px (or empty / default).
     await page.evaluate(() => window.scrollTo(0, 400));
     await expect(page.locator('#profile-header')).toHaveClass(/compact/, { timeout: 2000 });
     const compactH = await page.evaluate(() =>
       document.documentElement.style.getPropertyValue('--compact-header-h'));
-    // Compact sets it to a positive px value (typically 48–56px).
     expect(compactH).toMatch(/^\d+px$/);
     expect(parseFloat(compactH)).toBeGreaterThan(0);
   });
 });
 
-// ── Drawer-open holds nav visible (T-nav-scroll force-visible API) ──────────
-// Mobile-only behavior; test at 390px viewport so hamburger is visible.
+// ── Force-visible API (T-nav-scroll v2) ──────────────────────────────────────
+// Mobile-only behavior (drawer); test at 390px viewport so hamburger is visible.
 
-test.describe('global nav: force-visible while drawer open', () => {
+test.describe('global nav: force-visible API', () => {
   test.use({ viewport: { width: 390, height: 800 } });
 
   test.beforeEach(async ({ page }) => {
@@ -1184,14 +1270,28 @@ test.describe('global nav: force-visible while drawer open', () => {
     await mockFecApi(page);
     await page.goto('/candidate.html?id=H2WA03217#2024#summary');
     await page.waitForSelector('#profile-header.visible', { timeout: 5000 });
+    await page.evaluate(() => { window.__navScrollSuppressUntil = 0; });
   });
 
-  test('opening hamburger drawer holds nav visible across downward scroll', async ({ page }) => {
+  test('opening hamburger drawer holds nav revealed across downward scroll', async ({ page }) => {
     await page.locator('#hamburger').click();
     await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
-    // Scroll down — nav should stay visible because drawer holds it.
+    // Scroll down — nav should stay revealed because drawer holds it.
     await page.evaluate(() => window.scrollTo(0, 400));
     await page.waitForTimeout(150);
-    await expect(page.locator('#top-nav')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
+  });
+
+  test('force-visible while in natural-flow state triggers reveal (v2 behavior change)', async ({ page }) => {
+    // Scroll into default scrolled-out state (no .revealed class).
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(100);
+    await expect(page.locator('#top-nav')).not.toHaveClass(/revealed/);
+    // Open hamburger — invokes force-visible, which under v2 sets revealed=true.
+    // (Under v1, force-visible while hidden only meant "prevent hiding"; under
+    // v2, it actively engages the sticky reveal — nav slides in from off-screen.)
+    await page.locator('#hamburger').click();
+    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
+    await expect(page.locator('#top-nav')).toHaveClass(/revealed/);
   });
 });

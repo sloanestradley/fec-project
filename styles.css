@@ -86,14 +86,16 @@
   --page-gutter: var(--space-48);
   --section-gap: var(--space-32);
 
-  /* Nav-scroll coordination (T-nav-scroll). --nav-offset is the live "where do
-     sticky surfaces below the nav anchor themselves" value; main.js sets it to
-     0 when the top-nav is hidden (transform:translateY(-100%)) and removes the
-     inline override when it reveals (falls back to the var(--header-h) default).
-     --compact-header-h is owned by initCompactHeader (utils.js) — set to the
-     compact-header height while engaged, 0px when not. .tabs-bar composes both
-     via calc() so each listener writes only its own state. */
-  --nav-offset:        var(--header-h);
+  /* Nav-scroll coordination (T-nav-scroll v2). --nav-offset is the "where do
+     sticky surfaces below the nav anchor themselves" value. Default 0 — under
+     v2 the nav is in natural document flow by default (NOT sticky), so sticky
+     surfaces below have no nav above to anchor under. main.js writes
+     var(--header-h) when the nav is sticky-revealed; removes the inline
+     override on hide. --compact-header-h is owned by initCompactHeader
+     (utils.js) — set to the compact-header height while engaged, 0px when not.
+     .tabs-bar composes both via calc() so each listener writes only its own
+     state. */
+  --nav-offset:        0px;
   --compact-header-h:  0px;
 
   /* Chart palette — opacified layer on semantic tokens */
@@ -127,13 +129,24 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .main-inner { max-width:1600px; margin-left:auto; margin-right:auto; width:100%; }
 
 /* ── Top nav ── */
-/* Hide-on-scroll-down, reveal-on-scroll-up (T-nav-scroll). main.js toggles the
-   .hidden class on scroll direction + threshold. transform composes with mobile
-   drawer / search panel transforms (they're DOM children, ride along). */
-.top-nav { position:sticky; top:0; left:0; right:0;
-  height:var(--header-h); background:var(--bg); z-index:200;
-  transition:transform 200ms cubic-bezier(0.25,0.46,0.45,0.94); }
-.top-nav.hidden { transform:translateY(-100%); }
+/* Asymmetric hide/reveal (T-nav-scroll v2). Default: nav is in natural
+   document flow (position:relative). Scroll-down → nav scrolls out of view
+   with the document, no animation. Scroll-up past 80px upward accumulator →
+   main.js adds .revealed → nav becomes sticky at top:0 AND the @keyframes
+   navSlideIn runs once, sliding in from translateY(-100%). The keyframe's
+   `from` state is painted at class-add time, so no JS-driven snap-before-
+   animate dance is needed. Hide direction (scroll-down while revealed) just
+   removes the class — nav snaps back to natural flow, off-screen above the
+   current scroll position. Mobile drawer / search panel are DOM children of
+   .top-nav and inherit the parent's positioning + transform. */
+.top-nav { position:relative; left:0; right:0;
+  height:var(--header-h); background:var(--bg); z-index:200; }
+.top-nav.revealed { position:sticky; top:0;
+  animation:navSlideIn 200ms cubic-bezier(0.25,0.46,0.45,0.94); }
+@keyframes navSlideIn {
+  from { transform:translateY(-100%); }
+  to   { transform:translateY(0); }
+}
 .top-nav-inner { display:flex; align-items:center;
   height:var(--header-h); padding:0 var(--page-gutter); gap:var(--space-24); }
 .top-nav-logo { font-family:'Oswald',sans-serif; font-size:1.25rem;
@@ -273,6 +286,12 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   padding:0 calc(var(--page-gutter) + var(--space-16));
   display:flex; gap:var(--space-16); overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
   opacity:0;
+  transition:opacity 0.4s ease; }
+/* T-nav-scroll v2: animate `top` only during reveal direction. main.js sets
+   html.nav-animating on reveal, removes it after the 200ms animation. Hide
+   direction is instant — profile-header / tabs-bar snap from top:56 → top:0
+   in one frame, matching the nav's instant return to natural flow. */
+html.nav-animating .tabs-bar {
   transition:opacity 0.4s ease, top 200ms cubic-bezier(0.25,0.46,0.45,0.94); }
 /* Navy bottom rule on .tabs-bar — pseudo-element instead of border-bottom so
    the line ends at the gutter-inset edge (matching the bordered children of
@@ -609,7 +628,12 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   position:sticky; top:var(--nav-offset); z-index:195; background:var(--bg);
   display:flex; flex-direction:column;
   padding-left:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
-  padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter)));
+  padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter))); }
+/* T-nav-scroll v2: animate `top` only during reveal direction (see .tabs-bar
+   note above for the asymmetry rationale). */
+html.nav-animating #profile-header,
+html.nav-animating #committee-header,
+html.nav-animating #race-header {
   transition:top 200ms cubic-bezier(0.25,0.46,0.45,0.94); }
 
 /* Compact mode — slim one-line strip, triggered by scroll listener.
@@ -903,13 +927,19 @@ div.cycle-row {
 }
 
 /* ── Responsive ── */
-/* Reduced motion — nav-scroll transitions snap instead of slide. The other
-   long-running transitions on the site (hover color shifts, mobile drawer
-   slide-in) are short and informational; leaving them alone is consistent with
-   the standard "disable motion-dominant animations" reading of the media query. */
+/* Reduced motion — nav-scroll v2 has only one animated surface (the slide-in
+   keyframe on .top-nav.revealed) plus the html.nav-animating-gated top:
+   transitions on profile-header / tabs-bar. Both go to instant. Hide direction
+   is already instant for everyone (no symmetric animation to disable). Other
+   long-running transitions (hover color shifts, mobile drawer slide-in) are
+   short and informational; leaving them alone matches the standard "disable
+   motion-dominant animations" reading of the media query. */
 @media (prefers-reduced-motion: reduce) {
-  .top-nav, .tabs-bar,
-  #profile-header, #committee-header, #race-header { transition:none; }
+  .top-nav.revealed { animation:none; }
+  html.nav-animating #profile-header,
+  html.nav-animating #committee-header,
+  html.nav-animating #race-header,
+  html.nav-animating .tabs-bar { transition:none; }
 }
 
 @media (max-width:860px) {

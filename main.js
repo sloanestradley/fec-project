@@ -3,37 +3,66 @@
 amplitude.init('62280d38083601e001bf153dbcf38a9b', { defaultTracking: false });
 if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
 
-// ── Nav hide-on-scroll-down, reveal-on-scroll-up (T-nav-scroll) ─────────
-// Hides .top-nav via transform when user scrolls down past nav height; reveals
-// when user scrolls up 80px in a single direction. Programmatic scrolls are
+// ── Nav natural-scroll-out, animated reveal (T-nav-scroll v2) ────────────
+// Asymmetric pattern: nav is in natural document flow by default (NOT sticky).
+// Scroll-down → nav scrolls out of view naturally with the document, no
+// animation. Scroll-up past 80px upward accumulator → add .revealed class →
+// nav becomes sticky at top:0 AND @keyframes navSlideIn runs once. Hide
+// direction (scroll-down 10px while revealed) → remove .revealed → nav snaps
+// back to natural flow, instantly out of viewport. Programmatic scrolls are
 // gated by window.__navScrollSuppressUntil (set by utils.js view.switchTo).
 // Overlay states (mobile drawer, search panel, modal) force the nav visible
-// via window.__navForceVisible(key, on); CSS owns the slide via .top-nav.hidden.
-// Nav state does NOT persist across page loads — every page starts visible.
+// via window.__navForceVisible(key, on) — under v2 this can trigger the
+// slide-in animation if the nav was in natural-flow scrolled-out state when
+// the overlay opened (intended; user invoked an overlay, nav should appear).
+// Nav state does NOT persist across page loads — every page starts in
+// natural-flow default (not revealed).
+//
+// window.__navOffsetTarget exposes the target sticky-top value for surfaces
+// below the nav (compact-header listener reads this instead of the live
+// --nav-offset CSS value to avoid mid-animation flicker during the 200ms
+// reveal transition; see initCompactHeader in utils.js).
 (function() {
   var nav = document.getElementById('top-nav');
   if (!nav) return;
   if (typeof window.__navScrollSuppressUntil !== 'number') window.__navScrollSuppressUntil = 0;
   var headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
+  window.__navOffsetTarget = 0; // default: nav in natural flow, no sticky offset below
   var lastScrollY = window.scrollY;
+  var lastScrollHeight = document.documentElement.scrollHeight;
   var upwardAccumulator = 0;
-  var isHidden = false;
+  var downwardAccumulator = 0;
+  var isRevealed = false;
   var forceKeys = {};
   var forceCount = 0;
+  var animatingTimer = null;
 
-  function setHidden(hide) {
-    if (hide === isHidden) return;
-    if (hide && forceCount > 0) return;
-    isHidden = hide;
-    nav.classList.toggle('hidden', hide);
-    if (hide) document.documentElement.style.setProperty('--nav-offset', '0px');
+  function setRevealed(reveal) {
+    if (reveal === isRevealed) return;
+    if (!reveal && forceCount > 0) return;
+    isRevealed = reveal;
+    // html.nav-animating gates the asymmetric `top` transitions on the
+    // profile-header / tabs-bar / committee-header / race-header chain.
+    // Applied only on reveal direction — hide is instant per the asymmetric
+    // design. Removed after 250ms (animation duration + margin).
+    if (reveal) {
+      document.documentElement.classList.add('nav-animating');
+      if (animatingTimer) clearTimeout(animatingTimer);
+      animatingTimer = setTimeout(function() {
+        document.documentElement.classList.remove('nav-animating');
+        animatingTimer = null;
+      }, 250);
+    }
+    nav.classList.toggle('revealed', reveal);
+    window.__navOffsetTarget = reveal ? headerH : 0;
+    if (reveal) document.documentElement.style.setProperty('--nav-offset', headerH + 'px');
     else document.documentElement.style.removeProperty('--nav-offset');
   }
 
   window.__navForceVisible = function(key, on) {
     if (on) {
       if (!forceKeys[key]) { forceKeys[key] = true; forceCount++; }
-      setHidden(false);
+      setRevealed(true);
     } else if (forceKeys[key]) {
       forceKeys[key] = false; forceCount--;
     }
@@ -42,19 +71,47 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
   window.addEventListener('scroll', function() {
     if (Date.now() < window.__navScrollSuppressUntil) {
       lastScrollY = window.scrollY;
+      lastScrollHeight = document.documentElement.scrollHeight;
       return;
     }
     var y = window.scrollY;
-    var dy = y - lastScrollY;
+    var h = document.documentElement.scrollHeight;
+    var prevY = lastScrollY;
+    var dy = y - prevY;
     lastScrollY = y;
+    lastScrollHeight = h;
+    // Clamp-event filter (T-nav-scroll v2): if the previous scrollY would now
+    // be beyond the page's new max-scroll (because scrollHeight shrank), the
+    // browser will have clamped scrollY downward — the negative dy is the
+    // clamp adjustment, not user input. Skip direction processing. Distinct
+    // from a simple `dh < 0` check: a page that shrinks slightly during a
+    // legitimate user scroll-up still has the prev position within the new
+    // max, so we process it correctly. Only the case where the prev position
+    // is now invalid is filtered. (lastScrollY/Height sync above already
+    // happened so the next real event compares from the clamped state.)
+    var newMaxScroll = Math.max(0, h - window.innerHeight);
+    if (prevY > newMaxScroll) return;
     if (dy > 0) {
       upwardAccumulator = 0;
-      if (y > headerH) setHidden(true);
+      // Hide direction: 10px downward accumulator before removing .revealed.
+      // Prevents micro-oscillation on trackpad/precise input from flickering
+      // the nav state. Asymmetric with the 80px reveal accumulator — hide is
+      // forgiving, reveal requires deliberate upward intent.
+      if (isRevealed) {
+        downwardAccumulator += dy;
+        if (downwardAccumulator >= 10) {
+          downwardAccumulator = 0;
+          setRevealed(false);
+        }
+      }
     } else if (dy < 0) {
-      upwardAccumulator -= dy;
-      if (upwardAccumulator >= 80) {
-        upwardAccumulator = 0;
-        setHidden(false);
+      downwardAccumulator = 0;
+      if (!isRevealed) {
+        upwardAccumulator -= dy;
+        if (upwardAccumulator >= 80) {
+          upwardAccumulator = 0;
+          setRevealed(true);
+        }
       }
     }
   }, { passive: true });

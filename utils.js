@@ -545,23 +545,33 @@ function initComboDropdown(config) {
 // of tabsBarEl.style.top inline. .tabs-bar's top is calc(var(--nav-offset) +
 // var(--compact-header-h)) — each listener owns its own property.
 //
+// T-nav-scroll v2 (2026-05-15): reads window.__navOffsetTarget (the nav
+// listener's source-of-truth value) as the compact-engagement threshold
+// instead of the static --header-h constant. This is required because under
+// v2 the profile-header's sticky-top is dynamic (0 when nav in natural flow,
+// var(--header-h) when revealed) — using --header-h would fire compact 56px
+// early in the default not-revealed state. Reading the TARGET value rather
+// than the live --nav-offset CSS computed value avoids flicker during the
+// 200ms reveal animation when --nav-offset is mid-transition.
+//
 // headerId — 'profile-header' | 'committee-header' | 'race-header'
 // Returns the compactThreshold (page offset at which compact engages) so
 // candidate.html and committee.html can expose it to getDetailScrollTarget.
 // race.html ignores the return value.
 function initCompactHeader(headerId) {
   var headerEl   = document.getElementById(headerId);
-  var tabsBarEl  = document.getElementById('tabs-bar');
   var sentinelEl = document.getElementById('profile-header-sentinel');
   var mainEl     = document.querySelector('.main');
-  var headerH    = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 56;
-  var compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - headerH + 1);
+  function navOffset() {
+    return typeof window.__navOffsetTarget === 'number' ? window.__navOffsetTarget : 0;
+  }
+  var compactThreshold = Math.max(0, sentinelEl.getBoundingClientRect().top + window.scrollY - navOffset() + 1);
   var isCompact      = false;
   var compactHeaderH = null;
   var suppressUntil  = 0;
   function update() {
     if (Date.now() < suppressUntil) return;
-    var compact = sentinelEl.getBoundingClientRect().top < headerH;
+    var compact = sentinelEl.getBoundingClientRect().top < navOffset();
     if (compact === isCompact) return;
     isCompact = compact;
     suppressUntil = Date.now() + 100;
