@@ -604,10 +604,22 @@ function initViewSwitcher(config) {
 
       trackPageViewed('detail');
 
-      // Capture tab hash BEFORE await — loadCycle calls history.replaceState
-      // with #cycle#summary which overwrites the original #cycle#tab hash.
+      // Restore tab BEFORE the await window (T-bug fix, 2026-05-14). Leaving
+      // detail view (chevron click → switchTo(false, NaN) → detailElements hide)
+      // hides the parent #content but leaves child tab-panel inline `display`
+      // styles untouched. Re-entering detail at a different cycle without an
+      // explicit panel reset means the previously-visible tab (e.g. #tab-raised)
+      // stays visible on the new cycle's render. Calling restoreTab in the
+      // synchronous portion of switchTo (pre-microtask-queue, pre-await)
+      // eliminates the window during which the panel state can desync from the
+      // URL hash. Default to 'summary' so URLs without a tab segment produce
+      // deterministic behavior (matches the cycle-row hrefs which always
+      // include #summary). loadCycle's internal history.replaceState then reads
+      // the now-correct .tab.active and writes the right URL on first try, so
+      // no corrective post-await restoreTab call is needed.
       var hParts  = window.location.hash.replace(/^#/, '').split('#');
       var tabHash = hParts[1];
+      restoreTab(tabHash || 'summary');
 
       await loadCycle(hashCycle);
       // minHeight is intentionally NOT cleared here. The original T6.5 design
@@ -625,8 +637,6 @@ function initViewSwitcher(config) {
       // exceeds it (typical after tab switches) it's a no-op; when natural is
       // shorter (committee detail in skeleton state) it preserves the document
       // height required for the in-place scroll target to remain valid.
-
-      restoreTab(tabHash);
 
     } else {
       detailElements.forEach(hide);

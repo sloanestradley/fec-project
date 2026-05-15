@@ -715,6 +715,31 @@ test.describe('committee.html — in-place transitions', () => {
     expect(mark).toBe('x');
   });
 
+  test('chevron + cycle-row round-trip resets tab panels to Summary (T-bug fix)', async ({ page }) => {
+    // Reproduces the chevron + cycle-row-click flow that previously left
+    // tab-panel display state stale: leave detail via the chevron and re-enter
+    // via a row click, with a non-Summary tab active when leaving. The fix
+    // (utils.js: restoreTab moved pre-await inside switchTo) ensures the
+    // panel state matches the URL hash on re-entry.
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    // Switch to Raised tab — sets #tab-raised display:block + .tab.active=Raised.
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Raised' }).click();
+    await expect(page.locator('#tab-raised')).toBeVisible();
+    // Click chevron → cycle index.
+    await page.locator('#cycle-back-btn').click();
+    await page.waitForSelector('#cycle-index.visible', { timeout: 5000 });
+    // Click a cycle row to re-enter detail (any row — same or different cycle).
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    // URL hash, .tab.active, AND #tab-* panel visibility must all agree on Summary.
+    await expect(page).toHaveURL(/#\d{4}#summary/);
+    await expect(page.locator('.tab').filter({ hasText: 'Summary' })).toHaveClass(/active/);
+    await expect(page.locator('#tab-summary')).toBeVisible();
+    await expect(page.locator('#tab-raised')).toBeHidden();
+    await expect(page.locator('#tab-spent')).toBeHidden();
+  });
+
   test('back button returns to index view', async ({ page }) => {
     // No pre-scroll — indexScrollY=0, so compact should NOT be active after back
     await page.locator('#cycle-index a.cycle-row').first().click();
@@ -803,6 +828,9 @@ test.describe('committee.html — in-place transitions', () => {
     // 2022 fixture: receipts=2,100,000 → "$2.1M". 2024 fixture: 3,700,000 → "$3.7M"
     expect(raisedText).toContain('2.1');
     expect(raisedText).not.toContain('3.7');
+    // T-bug fix (2026-05-14): tab panels must agree with the #summary hash.
+    await expect(page.locator('#tab-summary')).toBeVisible();
+    await expect(page.locator('#tab-raised')).toBeHidden();
   });
 });
 
