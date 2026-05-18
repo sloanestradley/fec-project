@@ -5364,3 +5364,85 @@ You explicitly asked for the closing audit. The grep sweep found 6 stale referen
 - **The "I missed the bug because the flag was buried in a commit body" pattern.** Worth a real conversation. Commit body flags are approximately invisible compared to in-browser visual QA. When a feature has a known implication that might matter, is the right move to ship the fix (extra commit), ship the implication with an explicit "fix in next commit" comment in the prompt response (high salience), or ship and flag in commit body (current pattern, missed)?
 
 - **`initCompactHeader` is the only utility in utils.js with a `STICKY_TOP = 0` constant marker for "if profile-header's sticky-top changes in CSS, update here."** That marker is the right pattern for tight CSS↔JS coupling. Worth applying the same shape elsewhere if there are other places where JS reads a hard-coded value that mirrors a CSS rule. Worth a code-survey conversation.
+
+
+---
+2026-05-18 — Committees modal refresh: associated-committees title, JFA fix, off-office PCC tag, always-paired tabs, layout polish
+
+## Process log draft
+
+**Cleaning up the committees modal — and the bug that wasn't "just Other"**
+
+The session opened as styling cleanup — section-title borders, modal padding, a new tag variant. By the end, twelve hours later, I'd shipped an FEC API bug fix that had been documented as "unresolved" for months, surfaced and tagged a class of committees no one had been distinguishing before, retired and replaced the modal's loading/empty/tab UX, and learned the hard way that height-stability isn't a free goal when your tabs have wildly different content sizes.
+
+The JFA fix surprised me. I was looking at Marco Rubio's modal during browser QA — confirming the new "*Active from a prior candidacy" tag worked — and noticed his Terminated tab was 16 rows all grouped as "Other." That can't be right. I asked Claude: were some committees not showing up, or was that the actual data? It was the data — 16 joint fundraising committees, all `designation:'J'`, all incorrectly bucketed because our code was looking for `committee_type:'J'`. The FEC almost never uses that value. The "unresolved" note in project-brief.md was exactly this case, now confirmed by real data. The fix was four characters: change the filter to union. Pelosi's modal got cleaner too — her "VICTORY FUND" moved from Other to Joint Fundraising where it belonged.
+
+The off-office PCC tag was the substantive new work. Rubio's Senate profile shows two principal committees: his current Senate PCC and his 2016 presidential PCC, which never re-registered after he dropped out. The presidential committee is still actively filing, still linked to his Senate candidate ID, still has `designation:'P'`. Two PCCs under one profile, both legitimately principal. The tag explicitly distinguishes "this one is from a prior office of yours" — gated to candidate.html's modal context because that's the only place where the comparison has a clean reference (the candidate whose profile you're on). The intra-group sort puts true-office first, off-office last. Both came in as the same plumb-through: `opts.referenceOffice: CAND_OFFICE` on `committeeRowHTML`, gates on `designation==='P'` and a known H/S/P committee_type.
+
+The height-stability arc I'd rather forget. The Terminated tab was hidden until data resolved; switching tabs caused the modal to jump if Active and Terminated had different row counts. Three approaches in sequence: grid-stack with visibility-hidden (shipped, then reverted — Rubio's 2 active vs 16 terminated produced empty space below the active rows that looked broken); fixed footer for the data-note (shipped, then reverted — bad interaction design, doesn't actually solve the empty-space problem); sticky bottom (rejected before implementing — same visual as fixed). The fundamental tension is real: height-stability + content-fit-per-tab + natural-flow can only have two when tab content sizes vary that much. We accepted the height jump.
+
+What actually fixed the UX wasn't height stability. It was the always-paired tabs + empty-state pattern. Terminated tab is always there now, count includes (0) — "Terminated (0)" communicates "we checked, none here" without requiring a click. The empty state inside the panel ("No terminated committees", no trailing period) is just the fallback for users who do click. The loading state hides the tab bar entirely until counts are known — eliminates the morphing "Active alone → Active + Terminated" state that had been bothering me. Both loading and error states migrated to the existing .state-msg utility — centered horizontally and vertically.
+
+Closed with a cold-read documentation audit before commit. Caught two real gaps: the new card-meta max-width was completely undocumented, and the design-system modal demo's data-note didn't reflect the production override that fixes the doubled border. One stale line in test-cases.md from T11 (multi-session drift) got swept too. Pushed as one commit.
+
+Changelog:
+- Section-title gains border-bottom; modal width 600→680px; header/tabs/btn padding refresh; modal-tabs bottom rule navy; modal-tab-btn.active underline red
+- JFA grouping fix: filter unioned to `designation === 'J' || committee_type === 'J'`; Leadership PAC moved to position 2 (defensive ordering)
+- New .tag-transparent variant; committeeRowHTML opts.referenceOffice; intra-group sort on Principal Committee bucket (true-office first, off-office last)
+- Modal title "Committee Ecosystem" → "Associated Committees"; data-note copy simplified
+- Card-meta max-width:408px
+- Always-paired tabs with count badges (including (0)); empty-state placeholders both panels; loading state hides tabs + data-note until fetch resolves
+- Loading/error states use .state-msg (centered both axes)
+- Tests +8 net (546 → 554)
+
+Field notes:
+The JFA bug had been documented as "unresolved" in project-brief.md since the original investigation, with a note that `designation === 'J'` "may be a more reliable signal but has not been verified against live data." This session verified it via Rubio (16 terminated JFAs) and Pelosi (2 active JFAs) — same shape across both. The four-character fix had been sitting in the project's "known gaps" list for the asking. Discipline lesson: when a note says "may be a more reliable signal," that's an invitation to verify, not a parking lot.
+
+The "no clean third option" moment on the height-stability arc was educational. I went into the discussion assuming there'd be a smarter approach if we just thought harder. There wasn't. Height-stability + content-fit-per-tab + natural-flow has the same structural tension as any three-constraint design problem — pick two. The recognition that no clever measurement-based solution exists made the revert decision clean. Worth banking as the pattern: when three constraints conflict on a finite layout surface, the trick isn't to find the trick. It's to choose which constraint matters least.
+
+The orphan asterisk in the tag copy ("*Active from a prior candidacy" without a footnote) is a small visible thing left unresolved. The asterisk now points nowhere. Either it should be removed in a follow-up, or accepted as a graphic accent — either is defensible, but the current state is implicitly the first.
+
+Stack tags: stable JS Array.sort comparator (ES2019+); CSS state-msg utility reused across loading/error/empty contexts; opts-gated row-helper decoration pattern (only relevant call sites pass the opt; default unchanged); grid-stack with visibility-hidden as a height-stability mechanism (TRIED and REJECTED — banked as "doesn't work when content sizes vary widely"); fixed/sticky footer for in-modal data-note (REJECTED — interaction design)
+
+## How Sloane steered the work
+
+**"Are some committees not showing up?"**
+The diagnostic question that surfaced the JFA bug. I was looking at the off-office tag in Rubio's modal during browser QA, noticed his Terminated tab was 16 committees all labeled "Other," and asked the right question. The "lots of Other" pattern is the kind of thing that's easy to dismiss as "weird FEC data" — Sloane went the other way and asked Claude to investigate. That single question moved us from a styling task into the project's known-gap-but-unfixed JFA classification bug. Without it, the fix wouldn't have shipped this session.
+
+**The hypothetical that caught the recency edge case.**
+I'd proposed "any current candidate office differs from committee_type" as the off-office detection rule. Sloane pushed: "if Rubio transferred this back to a Presidential PCC, the rule would be incorrect." That hypothetical forced the refinement — the rule needs recency information (most-recently-active candidate) as the tiebreaker, not just "any differs." Without that push, we'd have shipped a rule with a latent false-positive that would activate any time a politician re-ran for the same office their old committee was registered for. Hypotheticals as design tools.
+
+**"NO VARIANT" — kept the implementation minimal three times.**
+For the data-note double-border fix: rejected the `.data-note-flush` class I proposed, went inline. For the asterisk footnote: removed the second data-note entirely as "overkill" instead of keeping it. For the off-office tag: scoped strictly to candidate.html modal, not committee.html or browse pages, even though I'd surfaced the data-credibility argument for extending it. Each call kept the surface smaller than I would have built it. The pattern: minimum code, minimum to maintain, only abstract when there's a reason.
+
+**Three height-stability iterations: ship, look, revert.**
+Grid-stack with visibility-hidden: implemented, tested, shipped — then Sloane saw the "massive extra scrollable area below text on the tab with less data" and called it. Fixed footer for the data-note: implemented, tested, shipped — then "I don't like that interaction design (fixed to the bottom)." Sticky variant: rejected before implementing because it's the same visual as fixed. The discipline to look at a shipped feature and say "actually, no" — three times in one session — is exactly what keeps the codebase from accumulating tested-but-wrong work. The cost is rework. The benefit is that what does ship survives.
+
+**"Investigation only" framing on every multi-step ticket.**
+The off-office tag scope, the always-paired tabs, the modal-height conversation — all started with "investigation only, no code changes" framing before any implementation. Each diagnostic pass produced concerns I wouldn't have surfaced otherwise. The discipline is so established now it's automatic, not aspirational. The implementation prompts that follow have nothing to relitigate.
+
+**The "no clean third option" recognition.**
+On the modal-height conversation, after I'd run out of approaches, Sloane asked: "Is there a better solution that doesn't cause this weirdness?" I gave the honest answer: no, the three constraints conflict structurally; pick two. The willingness to accept "no, there isn't" instead of pushing for another iteration kept us from a fourth doomed attempt. Recognition of a genuine constraint is its own design move.
+
+**"Let's only apply fix inline to committees modal note."**
+On the data-note double-border issue: I proposed both a variant class AND a inline fix. Sloane chose inline + scoped to the one site. Then she went further — "after investigation, I don't think the variant quite works as well in the other areas" — and explicitly rejected the global solution after thinking about it. The discipline to investigate the proposed pattern's actual fit, not just accept it as a "good idea in principle," matters here.
+
+**"Investigation only. Don't write any code yet."**
+On the always-paired tabs work, Sloane explicitly slowed implementation until the trade-offs were clear. The conversation produced three concrete decisions (hide tabs during loading, drop counts on `(0)` versus keep, empty-state copy without period) before any code shipped. Implementation cost: 75 lines. Rework cost: zero.
+
+**The cold-read documentation audit before commit.**
+Sloane explicitly asked for the closing audit. The grep sweep found two real gaps (card-meta max-width was completely undocumented, design-system modal demo's data-note didn't reflect production) plus a stale T11 reference. The audit at commit-boundary is now established as a regular practice — not a "if we have time" step.
+
+**Through-line:** Sloane held the line on visual correctness AND product correctness over "shipped + tests pass." Every iteration this session that survived was vetted in production by her own eye. The ones that didn't (grid-stack, fixed footer) got reverted before shipping the next thing. Three rounds of "ship, look, decide" in one session — that's a discipline I'd undervalue in solo work. The result: an arc of 12+ commits' worth of work landed as a single coherent commit because the wrong directions got cleaned up before they accumulated.
+
+## What to bring to Claude Chat
+
+- **The orphan asterisk decision.** Tag copy is `*Active from a prior candidacy` but the footnote (the JFA-gap data-note that paired with it) is gone. Asterisk now points nowhere. Three options: (a) drop the asterisk in a follow-up (asterisk-without-footnote is implicitly an oversight); (b) keep as graphic accent — accept that the asterisk reads as decoration not footnote; (c) bring back a minimal footnote somewhere else if you decide the explanation is load-bearing. Current state is implicitly (a) but only by inaction. Worth a deliberate decision.
+
+- **Extending off-office tag to committee.html.** Banked this session as out-of-scope (would require N candidate fetches per committee profile, where N = candidate_ids.length). When server-side caching lands at functions/api/fec/[[path]].js (Phase 4 architectural debt), this cost collapses. Worth revisiting then. Committee.html viewers of Rubio's "FOR PRESIDENT" committee currently see no signal that the committee is operating for a Senate candidacy now — the credibility gap remains there.
+
+- **Tab UI direction for the committees modal.** The height-stability arc surfaced that the tab pattern may not be the right shape for this content long-term. For most candidates, Terminated is empty — the (0) badge already communicates that. The tabs are doing work for the minority case (candidates with both). Is there a different layout where Active is the main view and Terminated is a "show terminated (N)" disclosure affordance? Worth a real product think before the next ticket touches this surface.
+
+- **Recency-as-tiebreaker pattern.** The off-office PCC rule needs office-mismatch AND most-recently-active as the resolver. Same two-signal shape might apply elsewhere — the associated-candidate selection on committee.html (which currently picks the first candidate_id arbitrarily and gets it wrong for Rubio) is the obvious next case. Worth banking as a generalizable pattern when scoping committee.html work.
+
+- **Strategy doc for committees modal evolution.** This session iterated the modal three times in one arc. Worth a strategy doc capturing where the modal stands now (always-paired tabs as stable foundation, height jump accepted, JFA filter union, off-office tag) and what's banked for future evolution (orphan asterisk, off-office to committee.html, possible tab-pattern rethink, recency-fix to assoc-section).
