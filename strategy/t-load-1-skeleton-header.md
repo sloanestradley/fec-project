@@ -64,7 +64,6 @@ The T-nav-scroll arc (`3074673..91e8a26`) and all subsequent commits (T12, T14/T
 
 **Out of scope for T-load-1:**
 - Skeleton placeholders for stats-grid, cycle-index, tabs-bar content (those are T-load-3 / T-load-4).
-- Proxy-layer caching at `functions/api/fec/[[path]].js` (durable architectural fix — see follow-up section).
 - `apiFetch` retry/backoff behavior in utils.js (separate concern).
 
 ---
@@ -237,27 +236,6 @@ Page-level adaptations of three T12 primitives:
 
 ---
 
-## Proxy caching at `functions/api/fec/[[path]].js` — durable follow-up
-
-T-load-1 is the **defensive** solution: makes the wait tolerable for every visitor, including cache misses. **Proxy caching is the offensive solution:** collapses all visitor traffic into one cold fetch per TTL period — 99%+ of visitors get sub-100ms responses.
-
-Already noted in CLAUDE.md "Remaining architectural debt" → "Server-side proxy caching at `functions/api/fec/[[path]].js` (Phase 4): Today the proxy is pass-through — every client call hits FEC." T-load-1's measurement gives concrete production justification (43s and 14s response times observed) for elevating this from "banked" to near-term priority.
-
-**Sequencing intent:** ship T-load-1 first (defensive). Don't gate it on proxy caching. After T-load-1 ships, proxy caching becomes the next architectural priority — and once it lands, most visitors won't trigger T-load-1's 10s/30s augmentations at all.
-
-**TTL design considerations** for the proxy-caching ticket (future scope, banking here):
-
-- `/candidate/{id}/`, `/committee/{id}/` — entity metadata changes rarely (committee re-registration, candidate name change). 1hr+ TTL safe; 24hr arguably safe.
-- `/candidate/{id}/totals/`, `/committee/{id}/totals/` — updated on each quarterly filing. 1hr TTL conservative; 6hr+ likely safe.
-- `/candidate/{id}/history/` — historical data, rarely changes. 24hr+ TTL safe.
-- `/elections/` — same shape as totals; quarterly updates.
-- `/schedules/schedule_a/`, `/schedules/schedule_b/` — transaction-level; updates on each filing. 1hr conservative.
-- `/filings/` (feed.html) — newest filings; needs shorter TTL (5-15min) to keep the feed meaningful.
-
-Cache storage: Cloudflare KV (same namespace pattern as `fecledger-aggregations`) or Cloudflare Cache API (edge cache, lower-cost). Worth a separate strategy doc when the ticket starts.
-
----
-
 ## Verification protocol
 
 ### Manual browser checks
@@ -291,7 +269,6 @@ Not strictly needed — Track 1 covers the structural behavior. If a smoke test 
 3. **Reveal mechanism preserved.** Existing `.page-header-reveal` opacity transition stays; trigger moves to top of `init()` so skeleton fades in instead of resolved content. Real content swaps in sync after entity resolves (no fade on hydration).
 4. **Committee.html Promise.all split bundled.** Required for skeleton hydration on `/committee/{id}/` resolve independent of `/totals/`. Helper contract preserved via separate wrapper for the back-navigation `renderIndex` path.
 5. **10s "still loading" + 30s retry reuse T12 primitives at page scope.** Visual treatment matches `.section-state-msg` (10s) and `.tab-error` + `.retry-btn` (30s). Retry button calls `location.reload()` — simplest universally-understood action.
-6. **Proxy caching is the durable follow-up, not gated to T-load-1.** Ship defensive solution first; offensive solution lands when scoped.
 
 ---
 
@@ -313,7 +290,6 @@ Estimated implementation footprint: ~100-150 lines across candidate.html + commi
 
 ## Related work / cross-references
 
-- **CLAUDE.md** "Remaining architectural debt" → "Server-side proxy caching at `functions/api/fec/[[path]].js` (Phase 4)" — the durable follow-up T-load-1 makes more justifiable.
 - **`strategy/t12-loading-state-rescope.md`** — source of `.section-state-msg`, `.tab-error`, `.retry-btn`, `showTabError`, `is429`, `TAB_ERROR_*` primitives reused here at page scope.
 - **CLAUDE.md** "Tab-skeleton variants (T12)" — defines the `.skeleton` family this ticket extends to the header.
 - **CLAUDE.md** "Skeleton loading" — defines the `.skeleton` shared primitive used for the page-title and meta-row placeholders.
