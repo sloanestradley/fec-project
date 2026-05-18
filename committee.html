@@ -98,19 +98,17 @@
 
 <!-- Main -->
   <div class="main">
-  <div class="main-inner">
-    <div class="state-msg" id="state-msg">
-      <div class="loader"></div><span>Fetching committee data from FEC…</span>
-    </div>
-  </div><!-- /main-inner -->
   <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
-  <!-- Committee header — revealed after load -->
-  <div class="committee-header page-header page-header-reveal" id="committee-header" style="display:none">
+  <!-- Committee header — skeleton from first paint; hydrates on entity-resolve (T-load-1) -->
+  <div class="committee-header page-header page-header-reveal" id="committee-header">
     <div class="profile-header-row">
-      <div class="page-title" id="committee-name">—</div>
+      <div class="page-title" id="committee-name"><span class="skeleton" style="width:60%;height:1em"></span></div>
     </div>
-    <div class="meta-row" id="meta-row"></div>
+    <div class="meta-row" id="meta-row"><span class="skeleton" style="width:40%;height:1.2rem"></span></div>
   </div>
+  <div class="main-inner">
+    <div class="state-msg" id="state-msg" style="display:none"></div>
+  </div><!-- /main-inner -->
   <div class="main-inner">
     <!-- Persistent across all tabs: cycle stats -->
     <div id="summary-strip" style="display:none">
@@ -433,8 +431,12 @@ var currentCycleScope         = null;
 var currentTotalsRecord       = null;
 var currentRaisedFastPromise  = null;  // slow tier awaits this for KV state
 
-var cachedMeta          = null;  // /committee/{id}/ — reused on detail→index back-navigation
-var cachedAllTotalsRes  = null;  // /committee/{id}/totals/?per_page=100 — reused on back-nav
+// T-load-1 — cache the in-flight promises so init()'s skeleton-hydration
+// path (await meta before totals) and the helper's renderIndex path
+// (awaits both) share the same underlying apiFetch calls without
+// duplicating. Parallel callers all await the same promise.
+var cachedMetaP   = null;  // /committee/{id}/ — in-flight or resolved
+var cachedTotalsP = null;  // /committee/{id}/totals/?per_page=100 — in-flight or resolved
 var compactThreshold    = 0;     // scrollY at which compact mode engages; set in initCompactHeader()
 var compactHeaderInited = false; // compact scroll listener registered once at init
 var cycleFetchToken     = null;  // claimed in renderStats; checked in renderRaisedIfReady/renderSpentIfReady
@@ -561,37 +563,62 @@ function renderCycleIndex(cycles, totalsMap) {
 }
 
 // ── View switcher callbacks ──────────────────────────────────────────────────
-// Index data fetcher — caches /committee/{id}/ + /totals/ so back-navigation
-// from detail view re-renders without re-fetching. Cache lives in module
-// scope (per-page) for now; T13 will add a session-level cache layer above
-// this without touching the helper.
+// Promise-cached fetchers. T-load-1 split fetchIndexData into two awaitable
+// promises so init()'s skeleton-hydration path can await the entity call
+// independently of /totals/ (the heavier of the two). Helper's renderIndex
+// path goes through fetchIndexData below which awaits both — preserves
+// the helper config contract.
+function fetchEntity() {
+  if (!cachedMetaP) cachedMetaP = apiFetch('/committee/' + COMMITTEE_ID + '/');
+  return cachedMetaP;
+}
+function fetchAllTotals() {
+  if (!cachedTotalsP) cachedTotalsP = apiFetch('/committee/' + COMMITTEE_ID + '/totals/', { per_page: 100, sort: '-coverage_end_date' });
+  return cachedTotalsP;
+}
+// Helper-compatible — awaits both and returns the shape renderIndex expects.
 async function fetchIndexData() {
-  if (cachedMeta && cachedAllTotalsRes) {
-    return { metaRes: cachedMeta, allTotalsRes: cachedAllTotalsRes };
-  }
-  var idxResults = await Promise.all([
-    apiFetch('/committee/' + COMMITTEE_ID + '/'),
-    apiFetch('/committee/' + COMMITTEE_ID + '/totals/', { per_page: 100, sort: '-coverage_end_date' })
-  ]);
-  cachedMeta         = idxResults[0];
-  cachedAllTotalsRes = idxResults[1];
-  return { metaRes: cachedMeta, allTotalsRes: cachedAllTotalsRes };
+  var metaRes   = await fetchEntity();
+  var totalsRes = await fetchAllTotals();
+  return { metaRes: metaRes, allTotalsRes: totalsRes };
 }
 
 async function init() {
   if (!COMMITTEE_ID) {
+    document.getElementById('committee-header').style.display = 'none';
     var msg = document.getElementById('state-msg');
+    msg.style.removeProperty('display');
     msg.innerHTML = '<p style="font-family:\'IBM Plex Sans\',sans-serif;font-size:0.875rem;color:var(--muted)">'
       + 'No committee ID provided. <a href="/committees" style="color:var(--accent)">Browse committees →</a></p>';
     return;
   }
 
   history.scrollRestoration = 'manual';
+
+  // T-load-1 — reveal skeleton header from first paint; start 10s/30s
+  // page-level loading timers so cold-cache entity-call latency surfaces
+  // a "still loading" message under the header (10s) and a retry
+  // affordance (30s). Both cleared on entity-resolve or catch.
+  requestAnimationFrame(function() {
+    document.getElementById('committee-header').classList.add('visible');
+  });
+  var pageTimers = initPageLoadingTimers(document.getElementById('state-msg'));
+
+  // Fire both fetches in parallel — both return promises immediately.
+  // We await the entity call first to hydrate the skeleton header; totals
+  // is awaited later before view.switchTo (which depends on ALL_TOTALS).
+  var entityP = fetchEntity();
+  var totalsP = fetchAllTotals();
+
   try {
-    var data = await fetchIndexData();
-    var committee = (data.metaRes.results || [])[0];
+    var metaRes = await entityP;
+    // Entity resolved — clear timers, hide state-msg if 10s/30s fired
+    pageTimers.clear();
+    document.getElementById('state-msg').style.display = 'none';
+    document.getElementById('state-msg').innerHTML = '';
+
+    var committee = (metaRes.results || [])[0];
     if (!committee) throw new Error('Committee not found');
-    ALL_TOTALS = data.allTotalsRes.results || [];
 
     renderHeader(committee);
 
@@ -602,12 +629,11 @@ async function init() {
     var hashCycle = parseInt(hashParts[0], 10);
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
-    // Reveal profile header once — shared by index and detail view paths
-    document.getElementById('state-msg').style.display = 'none';
-    document.getElementById('committee-header').style.removeProperty('display');
-    requestAnimationFrame(function() {
-      document.getElementById('committee-header').classList.add('visible');
-    });
+    // Now await totals — needed for renderStats / view.switchTo below.
+    // Typically already resolved by this point since it fired in parallel
+    // with the entity call.
+    var totalsRes = await totalsP;
+    ALL_TOTALS = totalsRes.results || [];
 
     // Relationship type detection — moved out of the detail-view branch in T10
     // so in-place transitions to detail (cycle-row clicks) don't need to re-run
@@ -676,6 +702,7 @@ async function init() {
       onIndexError: function(err) {
         var el = document.getElementById('state-msg');
         el.className = 'state-msg error';
+        el.style.removeProperty('display');
         el.textContent = '⚠ Could not load committee.';
         console.error('[committee] index view error:', err);
       }
@@ -704,8 +731,11 @@ async function init() {
     await view.switchTo(isDetailView, hashCycle);
 
   } catch(err) {
+    pageTimers.clear();
+    document.getElementById('committee-header').style.display = 'none';
     var el = document.getElementById('state-msg');
     el.className = 'state-msg error';
+    el.style.removeProperty('display');
     el.textContent = '⚠ Could not load committee: ' + err.message;
     console.error('init error:', err);
   }

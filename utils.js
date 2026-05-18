@@ -734,6 +734,40 @@ function initViewSwitcher(config) {
   };
 }
 
+// ── Page-level loading-state timers (T-load-1) ──────────────────────────────
+// Skeleton profile-header is visible from first paint; the entity-call await
+// hydrates it. When entity-call latency exceeds 10s, surface a "still loading"
+// message under the header. At 30s, swap to a "loading is taking longer"
+// message with a retry button (location.reload — simplest universally-
+// understood action). Both timers cleared on entity-resolve OR on catch-branch;
+// state-msg hidden again on success (self-healing if 10s already fired).
+//
+// Visual treatments reuse T12 primitives (.section-state-msg, .retry-btn)
+// adapted at page scope. Thresholds match T12's .section-state-msg 10s timer.
+//
+// stateMsgEl — the #state-msg DOM element (each page positions it after the
+//   profile-header in document flow so messages appear below the skeleton).
+// Returns: { clear }
+function initPageLoadingTimers(stateMsgEl) {
+  function show(html) {
+    stateMsgEl.className = 'state-msg';
+    stateMsgEl.style.display = '';
+    stateMsgEl.innerHTML = html;
+  }
+  var stillLoadingT = setTimeout(function() {
+    show('<div class="section-state-msg">Still loading — the FEC API can be slow during high-traffic periods.</div>');
+  }, 10000);
+  var retryT = setTimeout(function() {
+    show('Loading is taking longer than expected. <button class="retry-btn" type="button" onclick="location.reload()">Try again</button>');
+  }, 30000);
+  return {
+    clear: function() {
+      clearTimeout(stillLoadingT);
+      clearTimeout(retryT);
+    }
+  };
+}
+
 // ── Tab section helper ──────────────────────────────────────────────────────
 // Wires WAI-ARIA tabs behavior on a `.tab-section` root: click + keyboard
 // activation (←/→ wrap, Home/End, Enter/Space), aria-selected + roving

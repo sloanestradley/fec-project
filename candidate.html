@@ -101,21 +101,19 @@
 
 <!-- Main -->
   <div class="main">
-  <div class="main-inner">
-    <div class="state-msg" id="state-msg">
-      <div class="loader"></div><span>Fetching candidate data from FEC…</span>
-    </div>
-  </div><!-- /main-inner -->
   <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
-  <div class="page-header page-header-reveal" id="profile-header" style="display:none">
+  <div class="page-header page-header-reveal" id="profile-header">
     <div class="profile-header-row" id="profile-header-row">
-      <div class="page-title" id="candidate-name">—</div>
+      <div class="page-title" id="candidate-name"><span class="skeleton" style="width:60%;height:1em"></span></div>
       <div id="committees-trigger" style="display:none;margin-left:auto;align-self:center">
         <button class="committees-link" onclick="openCommitteesModal()">Committees →</button>
       </div>
     </div>
-    <div class="meta-row" id="meta-row"></div>
+    <div class="meta-row" id="meta-row"><span class="skeleton" style="width:40%;height:1.2rem"></span></div>
   </div>
+  <div class="main-inner">
+    <div class="state-msg" id="state-msg" style="display:none"></div>
+  </div><!-- /main-inner -->
   <div class="main-inner">
     <!-- Persistent across all tabs: cycle stats + health banner -->
     <div id="summary-strip" style="display:none">
@@ -2073,14 +2071,30 @@ async function fetchIndexData() {
 // ── Init ────────────────────────────────────────────
 async function init() {
   if (!CANDIDATE_ID) {
+    document.getElementById('profile-header').style.display = 'none';
     var msg = document.getElementById('state-msg');
+    msg.style.removeProperty('display');
     msg.innerHTML = '<p style="font-family:\'IBM Plex Sans\',sans-serif;font-size:0.875rem;color:var(--muted)">'
       + 'No candidate ID provided. <a href="/candidates" style="color:var(--accent)">Browse candidates →</a></p>';
     return;
   }
   history.scrollRestoration = 'manual';
+
+  // T-load-1 — reveal skeleton header from first paint; start 10s/30s
+  // page-level loading timers so cold-cache entity-call latency surfaces
+  // a "still loading" message under the header (10s) and a retry
+  // affordance (30s). Both cleared on entity-resolve or catch.
+  requestAnimationFrame(function() {
+    document.getElementById('profile-header').classList.add('visible');
+  });
+  var pageTimers = initPageLoadingTimers(document.getElementById('state-msg'));
+
   try {
     var candJson = await apiFetch('/candidate/'+CANDIDATE_ID+'/');
+    // Entity resolved — clear timers, hide state-msg if 10s/30s fired
+    pageTimers.clear();
+    document.getElementById('state-msg').style.display = 'none';
+    document.getElementById('state-msg').innerHTML = '';
     var cand = (candJson.results||[])[0];
     if (!cand) throw new Error('Candidate not found');
 
@@ -2122,12 +2136,6 @@ async function init() {
       + '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>';
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
-    // Reveal profile header once — shared by index and detail view paths
-    document.getElementById('state-msg').style.display = 'none';
-    document.getElementById('profile-header').style.removeProperty('display');
-    requestAnimationFrame(function() {
-      document.getElementById('profile-header').classList.add('visible');
-    });
     // Reveal Committees trigger unconditionally — every FEC-registered candidate
     // has at least a Principal Campaign Committee, so the modal is always meaningful.
     // The data fetch is deferred to modal-open (T11).
@@ -2175,7 +2183,10 @@ async function init() {
         });
       },
       onIndexError: function(err) {
-        document.getElementById('state-msg').textContent = 'Unable to load candidate data.';
+        var el = document.getElementById('state-msg');
+        el.className = 'state-msg error';
+        el.style.removeProperty('display');
+        el.textContent = 'Unable to load candidate data.';
         console.error('[candidate] index view error:', err);
       }
     });
@@ -2203,8 +2214,11 @@ async function init() {
     await view.switchTo(isDetailView, hashCycle);
 
   } catch(err) {
+    pageTimers.clear();
+    document.getElementById('profile-header').style.display = 'none';
     var el = document.getElementById('state-msg');
     el.className = 'state-msg error';
+    el.style.removeProperty('display');
     el.textContent = '⚠ Could not load candidate: '+err.message;
     console.error('init error:', err);
   }

@@ -1,6 +1,6 @@
 # T-load-1 — Skeleton profile-header for entity-call latency
 
-> **STATUS:** Investigation complete; decision made (Path B-full, minimal-first skeleton). Implementation scoping happens after Sloane reviews this doc.
+> **EXECUTED 2026-05-18.** Skeleton header lands from first paint on candidate.html + committee.html; hydrates on entity-resolve; 10s "still loading" + 30s retry adapt T12's `.section-state-msg` and `.tab-error`/`.retry-btn` primitives at page scope. committee.html's Promise.all split bundled — `fetchEntity()` and `fetchAllTotals()` cache the in-flight promises so init()'s skeleton-hydration path awaits entity-only before totals. Shared `initPageLoadingTimers(stateMsgEl)` helper in utils.js. State-msg `#state-msg` relocated below the profile-header in document flow (was above) — initial "Fetching candidate/committee data from FEC…" text retired entirely; skeleton communicates "loading" structurally. Note: the doc section "JS changes (candidate.html)" originally said "the `state-msg` toggle stays in place" — that was superseded during scoping; the state-msg *element* stays, the *initial loader text* retires. Tests +9 net (554 → 563).
 
 ---
 

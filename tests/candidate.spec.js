@@ -1687,3 +1687,45 @@ test.describe('candidate.html — tab section (top contributors)', () => {
     );
   });
 });
+
+// ── T-load-1: skeleton profile-header + page-level loading timers ─────────
+// Verifies the skeleton is structurally present in the served HTML (visible
+// from first paint), hydrates cleanly when the entity call resolves, and
+// the page-level timers (10s "still loading" + 30s retry) don't fire on
+// normal loads (clear-path locked structurally).
+test.describe('candidate.html — T-load-1 skeleton header', () => {
+  test('skeleton spans present in initial HTML for candidate-name and meta-row', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/candidate.html');
+    const html = await response.text();
+    expect(html).toMatch(/<div class="page-title" id="candidate-name"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/<div class="meta-row" id="meta-row"><span class="skeleton"[^>]*><\/span><\/div>/);
+  });
+
+  test('skeleton spans replaced by real content after entity resolves', async ({ page }) => {
+    await setup(page);
+    // Real name in candidate-name (no skeleton span left)
+    await expect(page.locator('#candidate-name')).toContainText(/[A-Za-z]+/);
+    await expect(page.locator('#candidate-name .skeleton')).toHaveCount(0);
+    // Real tags in meta-row (no skeleton span left)
+    await expect(page.locator('#meta-row .skeleton')).toHaveCount(0);
+    await expect(page.locator('#meta-row .fec-id-tag')).toBeVisible();
+  });
+
+  test('state-msg stays hidden on successful load — 10s/30s timers cleared on entity resolve', async ({ page }) => {
+    await setup(page);
+    // No "still loading" / retry message under the header during a normal load
+    await expect(page.locator('#state-msg')).not.toBeVisible();
+    // Re-check after a tick to be sure no async path reveals it
+    await page.waitForTimeout(500);
+    await expect(page.locator('#state-msg')).not.toBeVisible();
+    await expect(page.locator('#state-msg')).toBeEmpty();
+  });
+
+  test('profile-header has no display:none in initial HTML — skeleton visible from first paint', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/candidate.html');
+    const html = await response.text();
+    // The reveal-display-toggle dance retired in T-load-1; ensure no
+    // display:none lingers on #profile-header in the served HTML.
+    expect(html).not.toMatch(/id="profile-header"[^>]*style="display:none/);
+  });
+});

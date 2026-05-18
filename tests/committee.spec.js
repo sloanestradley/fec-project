@@ -1340,3 +1340,59 @@ test.describe('committee.html — tab section (top contributors)', () => {
     await expect(page.locator('#raised-slow-error')).toBeVisible();
   });
 });
+
+// ── T-load-1: skeleton committee-header + page-level loading timers ───────
+// Verifies skeleton is structurally present in served HTML, hydrates on
+// entity-resolve, page-level timers don't fire on normal load (clear-path
+// locked). Plus: Promise.all split — committee-header reveals after
+// /committee/{id}/ resolves, independent of /totals/.
+test.describe('committee.html — T-load-1 skeleton header', () => {
+  test('skeleton spans present in initial HTML for committee-name and meta-row', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/committee.html');
+    const html = await response.text();
+    expect(html).toMatch(/<div class="page-title" id="committee-name"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/<div class="meta-row" id="meta-row"><span class="skeleton"[^>]*><\/span><\/div>/);
+  });
+
+  test('skeleton spans replaced by real content after entity resolves', async ({ page }) => {
+    await setupDetail(page);
+    await expect(page.locator('#committee-name')).toContainText(/[A-Za-z]+/);
+    await expect(page.locator('#committee-name .skeleton')).toHaveCount(0);
+    await expect(page.locator('#meta-row .skeleton')).toHaveCount(0);
+    await expect(page.locator('#meta-row .fec-id-tag')).toBeVisible();
+  });
+
+  test('state-msg stays hidden on successful load — 10s/30s timers cleared on entity resolve', async ({ page }) => {
+    await setupDetail(page);
+    await expect(page.locator('#state-msg')).not.toBeVisible();
+    await page.waitForTimeout(500);
+    await expect(page.locator('#state-msg')).not.toBeVisible();
+    await expect(page.locator('#state-msg')).toBeEmpty();
+  });
+
+  test('committee-header has no display:none in initial HTML — skeleton visible from first paint', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/committee.html');
+    const html = await response.text();
+    expect(html).not.toMatch(/id="committee-header"[^>]*style="display:none/);
+  });
+
+  test('committee-header reveals after /committee/{id}/ resolves, independent of /totals/ (Promise.all split)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Delay /totals/ by 1500ms — committee-header should reveal well before that
+    // since the Promise.all split lets the entity call hydrate the header
+    // independently. With the prior coupling this test would time out.
+    await page.route('**/api/fec/committee/*/totals/**', async (route) => {
+      await new Promise(r => setTimeout(r, 1500));
+      await route.fallback();
+    });
+    const t0 = Date.now();
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 1000 });
+    const elapsed = Date.now() - t0;
+    expect(elapsed).toBeLessThan(1500);
+    // Committee name is hydrated (no skeleton remains)
+    await expect(page.locator('#committee-name .skeleton')).toHaveCount(0);
+    await expect(page.locator('#committee-name')).not.toHaveText('—');
+  });
+});
