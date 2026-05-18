@@ -541,6 +541,238 @@ test.describe('candidate.html — title-always-visible during loading', () => {
   });
 });
 
+test.describe('candidate.html — off-office PCC tag (*Active from a prior candidacy)', () => {
+  // Mock a Rubio-shape committees response: one PCC matching MGP's office (H) and one
+  // presidential PCC (committee_type='P'). The detection rule fires only on the off-
+  // office row.
+  async function mockOffOfficeCommittees(page) {
+    await page.route('**/api/fec/candidate/H2WA03217/committees/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            // Off-office presidential PCC (intentionally listed FIRST in the mock to
+            // verify the intra-group sort moves it AFTER the true-office row)
+            {
+              committee_id: 'C00111111',
+              name: 'TEST FOR PRESIDENT',
+              committee_type: 'P',
+              committee_type_full: 'Presidential',
+              designation: 'P',
+              filing_frequency: 'Q',
+              filing_frequency_full: 'Quarterly',
+            },
+            // True-office House PCC
+            {
+              committee_id: 'C00222222',
+              name: 'TEST FOR CONGRESS',
+              committee_type: 'H',
+              committee_type_full: 'House',
+              designation: 'P',
+              filing_frequency: 'Q',
+              filing_frequency_full: 'Quarterly',
+            },
+          ],
+          pagination: { count: 2 },
+        }),
+      });
+    });
+  }
+
+  test('off-office PCC row carries the tag; true-office PCC does not', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await mockOffOfficeCommittees(page);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
+    const rows = page.locator('#committees-modal #modal-active-list .committee-row');
+    await expect(rows).toHaveCount(2);
+    // True-office row (TEST FOR CONGRESS — committee_type='H') — no off-office tag
+    const trueRow = rows.filter({ hasText: 'TEST FOR CONGRESS' });
+    await expect(trueRow.locator('.tag.tag-transparent')).toHaveCount(0);
+    // Off-office row (TEST FOR PRESIDENT — committee_type='P') — has the tag with the correct copy
+    const offRow = rows.filter({ hasText: 'TEST FOR PRESIDENT' });
+    await expect(offRow.locator('.tag.tag-transparent')).toHaveCount(1);
+    await expect(offRow.locator('.tag.tag-transparent')).toHaveText('*Active from a prior candidacy');
+  });
+
+  test('off-office PCC sorts AFTER true-office PCC (regardless of API order)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await mockOffOfficeCommittees(page);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
+    // The mock returns the off-office PCC FIRST; the intra-group sort should swap them
+    // so the true-office row renders first in DOM order.
+    const rowNames = await page.locator('#committees-modal #modal-active-list .committee-row .committee-name').allTextContents();
+    expect(rowNames.length).toBe(2);
+    expect(rowNames[0]).toContain('TEST FOR CONGRESS');   // true-office (H) — first
+    expect(rowNames[1]).toContain('TEST FOR PRESIDENT');  // off-office (P) — after
+  });
+
+});
+
+test.describe('candidate.html — committees modal always-paired tabs + empty states', () => {
+  // Mock: only-active candidate (no terminated) — exercises the empty-state on
+  // the Terminated panel, the always-visible Terminated tab, and the (0) count.
+  async function mockOnlyActive(page) {
+    await page.route('**/api/fec/candidate/H2WA03217/committees/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            { committee_id: 'C00200001', name: 'MGP FOR CONGRESS', committee_type: 'H', designation: 'P', filing_frequency: 'Q', filing_frequency_full: 'Quarterly' },
+          ],
+          pagination: { count: 1 },
+        }),
+      });
+    });
+  }
+
+  // Mock: only-terminated candidate (no active) — exercises the symmetric empty-
+  // state on the Active panel.
+  async function mockOnlyTerminated(page) {
+    await page.route('**/api/fec/candidate/H2WA03217/committees/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            { committee_id: 'C00200002', name: 'OLD COMMITTEE', committee_type: 'H', designation: 'A', filing_frequency: 'T', filing_frequency_full: 'Terminated' },
+          ],
+          pagination: { count: 1 },
+        }),
+      });
+    });
+  }
+
+  test('Terminated tab shows empty state when no terminated committees exist', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await mockOnlyActive(page);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
+    // Click into the Terminated tab and confirm the empty-state copy renders.
+    await page.locator('#modal-history-tab-btn').click();
+    const emptyMsg = page.locator('#modal-history-list .state-msg');
+    await expect(emptyMsg).toBeVisible();
+    await expect(emptyMsg).toHaveText('No terminated committees');
+  });
+
+  test('both tab buttons are visible after fetch (regardless of terminated count)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await mockOnlyActive(page);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
+    // Both tab buttons should be visible (the Terminated tab is no longer
+    // conditionally hidden when there are no terminated committees).
+    const activeTab = page.locator('#committees-modal .modal-tab-btn[data-tab="active"]');
+    const historyTab = page.locator('#modal-history-tab-btn');
+    await expect(activeTab).toBeVisible();
+    await expect(historyTab).toBeVisible();
+  });
+
+  test('count badges show counts after fetch, including (0)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await mockOnlyActive(page);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
+    // Active label has the count; Terminated label explicitly carries (0).
+    const activeLabel = await page.locator('#committees-modal .modal-tab-btn[data-tab="active"]').textContent();
+    const historyLabel = await page.locator('#modal-history-tab-btn').textContent();
+    expect(activeLabel).toContain('(1)');
+    expect(historyLabel).toContain('(0)');
+  });
+
+  test('Active panel shows empty state when no active committees', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await mockOnlyTerminated(page);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    // Wait for tabs to reveal (the natural post-fetch signal — terminated rows
+    // exist but live inside the hidden Terminated panel until the user clicks).
+    await page.waitForFunction(
+      () => getComputedStyle(document.querySelector('#committees-modal .modal-tabs')).display !== 'none',
+      { timeout: 8000 }
+    );
+    // The Active panel should carry the symmetric empty-state copy.
+    const activeEmpty = page.locator('#modal-active-list .state-msg');
+    await expect(activeEmpty).toBeVisible();
+    await expect(activeEmpty).toHaveText('No active committees');
+  });
+
+  test('tabs are hidden during loading, revealed after fetch resolves', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Delay the committees endpoint response so the loading state has a real window.
+    await page.route('**/api/fec/candidate/H2WA03217/committees/**', async (route) => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            { committee_id: 'C00200003', name: 'MGP FOR CONGRESS', committee_type: 'H', designation: 'P', filing_frequency: 'Q', filing_frequency_full: 'Quarterly' },
+          ],
+          pagination: { count: 1 },
+        }),
+      });
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    // Immediately after click — tab bar should be hidden (mid-load).
+    const tabsDisplayDuringLoad = await page.locator('#committees-modal .modal-tabs').evaluate(el => getComputedStyle(el).display);
+    expect(tabsDisplayDuringLoad).toBe('none');
+    // Wait for committees to render — fetch resolved.
+    await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
+    const tabsDisplayAfter = await page.locator('#committees-modal .modal-tabs').evaluate(el => getComputedStyle(el).display);
+    expect(tabsDisplayAfter).not.toBe('none');
+  });
+
+  test('data-note is hidden during loading and visible after fetch resolves', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/candidate/H2WA03217/committees/**', async (route) => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            { committee_id: 'C00200004', name: 'MGP FOR CONGRESS', committee_type: 'H', designation: 'P', filing_frequency: 'Q', filing_frequency_full: 'Quarterly' },
+          ],
+          pagination: { count: 1 },
+        }),
+      });
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('.committees-link').click();
+    const noteDisplayDuringLoad = await page.locator('#committees-modal .modal-body .data-note').evaluate(el => getComputedStyle(el).display);
+    expect(noteDisplayDuringLoad).toBe('none');
+    await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
+    const noteDisplayAfter = await page.locator('#committees-modal .modal-body .data-note').evaluate(el => getComputedStyle(el).display);
+    expect(noteDisplayAfter).not.toBe('none');
+  });
+});
+
 test.describe('candidate.html — modal section-title spacing (adjacent sibling combinator)', () => {
   test('second .section-title in modal has top margin; first does not', async ({ page }) => {
     await mockAmplitude(page);

@@ -140,7 +140,7 @@
 - [ ] ✅ Incumbent tag `.tag-inc` appears in `#meta-row` after party tag when candidate is the incumbent (automated)
 - [ ] Incumbent tag absent when candidate is a challenger or open-seat candidate
 - [ ] Incumbent tag clears and re-evaluates correctly on cycle switch (tag may appear in one cycle but not another)
-- [ ] "Committees (N) →" trigger shows a count immediately on load (not blank while loading)
+- [ ] "Committees →" trigger reads with no parenthetical count (T11 retired the count; trigger renders instantly, no waiting for fetch)
 
 ### Compact sticky header
 - [ ] ✅ `#profile-header-sentinel` is present in DOM (automated)
@@ -237,8 +237,14 @@
 - [ ] Trigger button reads "Committees →" (no count) on initial render — visible immediately, before any fetch
 - [ ] DevTools Network: zero `/candidate/{id}/committees/?per_page=50` or `/committees/?sponsor_candidate_id=` calls fire on cycle load
 - [ ] Click "Committees →" → modal opens; brief loading state visible inside `#modal-active-list`; both committees calls fire in Network panel
+- [ ] Modal title reads "Associated Committees" (not "Committee Ecosystem" — retired 2026-05-18)
+- [ ] Loading spinner + "Loading…" text are horizontally centered within the modal-body (uses `.state-msg` utility, not left-aligned)
+- [ ] Error state (force a fetch failure) renders horizontally centered with red text + retry copy (uses `.state-msg.error` utility)
 - [ ] Active tab shows authorized/principal committees
-- [ ] "Terminated" tab visible (not "History") if terminated committees exist (`filing_frequency === 'T'` or `'A'`; administratively terminated committees go here too)
+- [ ] "Terminated" tab (not "History") is ALWAYS visible after fetch — even when there are no terminated committees (label shows `Terminated (0)` and panel renders the "No terminated committees" empty state when clicked)
+- [ ] During loading, the tab bar AND the modal data-note are hidden; both reveal together once the fetch resolves
+- [ ] Both tab labels carry counts after fetch, including `(0)` for the empty case
+- [ ] Edge case — candidate with terminated committees but no active: Active panel shows "No active committees" empty state (symmetric with the Terminated empty state)
 - [ ] Each committee row uses the shared `.committee-row` shape: whole row clickable as a link, name + meta tags (committee-type tag + status-dot filing-frequency tag)
 - [ ] Section titles (Principal Committee, Joint Fundraising, etc.) have visible spacing above when not the first title in the modal
 - [ ] Click anywhere on a committee row → navigates to /committee/{id}
@@ -246,7 +252,9 @@
 - [ ] Terminated committees show a status-dot tag with "Terminated" label (no muted-name treatment)
 - [ ] Close modal + reopen → instant, no second network round-trip (cache hit)
 - [ ] Hard reload + open modal → fetches fire (cache cleared on reload)
-- [ ] JFA gap note visible at bottom of modal
+- [ ] JFA gap note visible at bottom of modal (no doubled border against last committee-row above — inline `border-top:none; padding-top:0` on this note)
+- [ ] Off-office PCC tag (Marco Rubio Senate profile S0FL00338): inside the Principal Committee group, `MARCO RUBIO FOR SENATE` row renders FIRST with no extra tag; `MARCO RUBIO FOR PRESIDENT` row renders AFTER it with a `*Active from a prior candidacy` `.tag-transparent` annotation
+- [ ] Off-office tag does NOT appear when viewing Rubio's Presidential profile (P60006723) — `committee_type === 'P'` matches `CAND_OFFICE === 'P'`, tag suppressed
 - [ ] Modal closes on Escape key
 - [ ] Modal closes on clicking outside the modal panel
 

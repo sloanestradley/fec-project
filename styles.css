@@ -195,7 +195,8 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 
 /* ── Utilities ── */
 .section-title { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; text-transform:uppercase;
-  letter-spacing:var(--ls-expanded); color:var(--muted); padding-bottom:var(--space-8); }
+  letter-spacing:var(--ls-expanded); color:var(--muted); padding-bottom:var(--space-8);
+  border-bottom:1px solid var(--border); }
 .state-msg { display:flex; align-items:center; justify-content:center; gap:var(--space-16);
   padding:var(--space-64) var(--space-48); color:var(--muted); font-size:0.75rem; }
 .state-msg.error { color:var(--red); }
@@ -301,11 +302,12 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .tag { display:inline-flex; align-items:center; padding:0 var(--space-4);
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem; text-transform:uppercase;
   letter-spacing:var(--ls-expanded); border-radius:2px; white-space:nowrap; }
-.tag-dem     { color:var(--dem); background:var(--dem50); }
-.tag-rep     { color:var(--rep); background:var(--rep50); }
-.tag-ind     { color:var(--ind); background:var(--ind50); }
-.tag-neutral { background:var(--surface2); }
-.tag-inc     { color:var(--inc); background:var(--inc50); }
+.tag-dem         { color:var(--dem); background:var(--dem50); }
+.tag-rep         { color:var(--rep); background:var(--rep50); }
+.tag-ind         { color:var(--ind); background:var(--ind50); }
+.tag-neutral     { background:var(--surface2); }
+.tag-inc         { color:var(--inc); background:var(--inc50); }
+.tag-transparent { background:transparent; }
 /* Editorial prose row used for sentence-format context lines. Despite the
    "context" suffix this is NOT a .tag variant — it shares zero declarations
    with .tag. IBM Plex Serif 0.875rem, flex with wrap, no border/background/
@@ -446,30 +448,30 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .modal-overlay { position:fixed; inset:0; background:var(--overlay-bg);
   z-index:200; display:flex; align-items:center; justify-content:center; }
 .modal-panel { background:var(--surface); border:1px solid var(--border);
-  border-radius:2px; width:min(600px,92vw); max-height:80vh;
+  border-radius:2px; width:min(680px,92vw); max-height:80vh;
   display:flex; flex-direction:column; overflow:hidden; }
 .modal-header { display:flex; justify-content:space-between; align-items:center;
-  padding:var(--space-24); border-bottom:1px solid var(--border); flex-shrink:0; }
+  padding:var(--space-16) var(--space-24); flex-shrink:0; }
 .modal-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;
   text-transform:uppercase; }
 .modal-close { background:none; border:none; cursor:pointer; color:var(--muted);
   font-size:1.25rem; padding:var(--space-4); transition:color 0.15s; line-height:var(--lh-tight); }
 .modal-close:hover { color:var(--text); }
-.modal-tabs { display:flex; gap:var(--space-24); padding:var(--space-16) var(--space-24);
-  border-bottom:1px solid var(--border); flex-shrink:0; }
+.modal-tabs { display:flex; gap:var(--space-24); padding:0 var(--space-24);
+  border-bottom:1px solid var(--color-navy-950); flex-shrink:0; }
 .modal-tab-btn { background:none; border:none; border-bottom:2px solid transparent;
-  padding:0 0 var(--space-4); font-family:'IBM Plex Sans',sans-serif; font-size:0.875rem;
+  padding:var(--space-8) 0; font-family:'IBM Plex Sans',sans-serif; font-size:0.875rem;
   font-weight:400; color:var(--muted);
   cursor:pointer; transition:color 0.15s, border-color 0.15s; }
-.modal-tab-btn.active { color:var(--text); border-bottom-color:var(--accent); }
+.modal-tab-btn.active { color:var(--text); border-bottom-color:var(--color-red-700); }
 .modal-tab-btn:hover:not(.active) { color:var(--subtle); }
-.modal-body { overflow-y:auto; padding:var(--space-24); flex:1; }
+.modal-body { overflow-y:auto; padding:var(--space-32) var(--space-24); flex:1; }
 /* Section-title spacing inside the committees modal — only when a title
    follows a committee-row (i.e. a new group after the previous group's last
    row). The first title in the modal is preceded by .modal-tabs, not a row,
    so it gets no extra margin. Adjacent sibling keeps scope minimal — no
    global change to .section-title elsewhere. */
-.modal-body .committee-row + .section-title { margin-top:var(--space-24); }
+.modal-body .committee-row + .section-title { margin-top:var(--space-32); }
 
 /* ── J: Choropleth map ── */
 .map-svg-wrap { width:100%; line-height:0; }
@@ -571,7 +573,8 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .candidate-card-meta,
 .committee-card-meta {
   display:flex; align-items:center; gap:var(--space-8);
-  flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+  flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;
+  max-width:408px; }
 .candidate-card-stats { display:flex; gap:var(--space-24); margin-top:var(--space-8);
   padding-top:var(--space-8); border-top:1px solid var(--border); flex-wrap:wrap;
   grid-column: 1 / -1; }

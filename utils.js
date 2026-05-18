@@ -285,12 +285,24 @@ function committeeRowHTML(c, opts) {
   if (opts.resultPosition != null) trackProps.result_position = opts.resultPosition;
   if (opts.query) trackProps.query = opts.query;
   var trackName = opts.trackEvent || 'Committee Result Clicked';
+  // Off-office PCC tag: fires only when caller passes opts.referenceOffice (today,
+  // only candidate.html modal does — see "*Active from a prior candidacy" footnote).
+  // Gate on designation==='P' and a known H/S/P committee_type so the tag is bounded
+  // to candidate-office committees.
+  var offOfficeTag = '';
+  if (opts.referenceOffice
+      && c.designation === 'P'
+      && (c.committee_type === 'H' || c.committee_type === 'S' || c.committee_type === 'P')
+      && c.committee_type !== opts.referenceOffice) {
+    offOfficeTag = '<span class="tag tag-transparent">*Active from a prior candidacy</span>';
+  }
   return '<a class="committee-row" href="/committee/' + c.committee_id + '?from=' + encodeURIComponent(fromPage) + '"'
     + ' onclick="amplitude.track(' + JSON.stringify(trackName) + ',' + JSON.stringify(trackProps) + ')">'
     + '<div class="committee-name">' + (c.name || '—') + '</div>'
     + '<div class="committee-card-meta">'
     + '<span class="tag tag-neutral">' + committeeTypeLabel(c.committee_type) + '</span>'
     + '<span class="tag tag-neutral"><span class="status-dot ' + dotCls + '"></span>' + freqLbl + '</span>'
+    + offOfficeTag
     + '</div>'
     + '</a>';
 }

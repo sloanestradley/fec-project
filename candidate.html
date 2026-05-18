@@ -375,17 +375,17 @@
 <div id="committees-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeCommitteesModal()">
   <div class="modal-panel">
     <div class="modal-header">
-      <div class="modal-title">Committee Ecosystem</div>
+      <div class="modal-title">Associated Committees</div>
       <button class="modal-close" onclick="closeCommitteesModal()">✕</button>
     </div>
-    <div class="modal-tabs">
+    <div class="modal-tabs" style="display:none">
       <button class="modal-tab-btn active" data-tab="active" onclick="showModalTab('active');amplitude.track('Committees Tab Switched',{tab:'active',candidate_id:CANDIDATE_ID,candidate_name:CAND_NAME})">Active<span id="modal-active-count"></span></button>
-      <button class="modal-tab-btn" data-tab="history" id="modal-history-tab-btn" onclick="showModalTab('history');amplitude.track('Committees Tab Switched',{tab:'history',candidate_id:CANDIDATE_ID,candidate_name:CAND_NAME})" style="display:none">Terminated<span id="modal-history-count"></span></button>
+      <button class="modal-tab-btn" data-tab="history" id="modal-history-tab-btn" onclick="showModalTab('history');amplitude.track('Committees Tab Switched',{tab:'history',candidate_id:CANDIDATE_ID,candidate_name:CAND_NAME})">Terminated<span id="modal-history-count"></span></button>
     </div>
     <div class="modal-body">
       <div id="modal-active-list"></div>
       <div id="modal-history-list" style="display:none"></div>
-      <div class="data-note">This list reflects committees directly linked to this candidate in FEC records. Some joint fundraising committees where this candidate is a participant may not appear — the FEC doesn't always index these associations in a way that's queryable by candidate. For a complete picture, see this candidate's most recent Statement of Candidacy (Form F2) on the FEC website.</div>
+      <div class="data-note" style="border-top:none; padding-top:0; display:none">Reflects committees directly linked to this candidate in FEC records. Some joint fundraising committees where this candidate is a participant may not appear. For a complete picture, see this candidate's most recent F2 Statement of Candidacy on the FEC website.</div>
     </div>
   </div>
 </div>
@@ -489,20 +489,35 @@ function renderCommitteeGroups(comms) {
       assigned.add(c.committee_id); return true;
     });
   }
+  // Group order matters — takeGroup assigns each committee to the FIRST matching
+  // predicate. Leadership PAC checks before Joint Fundraising so a record with both
+  // signals (rare in current FEC data) classifies as the more specific identity.
+  // JFA filter unions designation==='J' (primary signal — what FEC actually uses)
+  // and committee_type==='J' (rare-but-real fallback).
   var groups = [
-    { label: 'Principal Committee', items: takeGroup(function(c){ return c.designation === 'P'; }) },
-    { label: 'Joint Fundraising',   items: takeGroup(function(c){ return c.committee_type === 'J'; }) },
+    { label: 'Principal Committee', items: takeGroup(function(c){ return c.designation === 'P'; })
+        .sort(function(a, b) {
+          // True-office PCCs first, off-office PCCs (e.g. Rubio's "FOR PRESIDENT"
+          // under his Senate profile) last. Array.sort is stable in ES2019+ so
+          // ordering within each subgroup is preserved.
+          var aMatch = a.committee_type === CAND_OFFICE;
+          var bMatch = b.committee_type === CAND_OFFICE;
+          return (bMatch ? 1 : 0) - (aMatch ? 1 : 0);
+        }) },
     { label: 'Leadership PAC',      items: takeGroup(function(c){ return c._isLeadershipPac || c.leadership_pac === true; }) },
+    { label: 'Joint Fundraising',   items: takeGroup(function(c){ return c.designation === 'J' || c.committee_type === 'J'; }) },
     { label: 'Other Authorized',    items: takeGroup(function(c){ return c.designation === 'A'; }) },
     { label: 'Other',               items: takeGroup(function(c){ return true; }) }
   ].filter(function(g){ return g.items.length > 0; });
   // Each row uses the shared committeeRowHTML helper from utils.js — same shape as
   // /committees browse + /search results. The status-dot tag in the meta carries the
   // active/terminated signal, so no per-row "muted" treatment is needed.
+  // referenceOffice=CAND_OFFICE triggers the "*Active from a prior candidacy" tag
+  // on PCCs whose committee_type doesn't match this candidate's current office.
   return groups.map(function(g, gi) {
     return '<div class="section-title">'+g.label+'</div>' +
       g.items.map(function(c, i) {
-        return committeeRowHTML(c, { fromPage: 'candidate-modal', resultPosition: i });
+        return committeeRowHTML(c, { fromPage: 'candidate-modal', resultPosition: i, referenceOffice: CAND_OFFICE });
       }).join('');
   }).join('');
 }
@@ -515,7 +530,7 @@ async function fetchAndRenderCommittees() {
   committeesLoaded = true;
   var activeEl  = document.getElementById('modal-active-list');
   var historyEl = document.getElementById('modal-history-list');
-  activeEl.innerHTML = '<div style="display:flex;align-items:center;gap:0.75rem;color:var(--muted);font-size:0.75rem;padding:1rem 0"><div class="loader"></div>Loading…</div>';
+  activeEl.innerHTML = '<div class="state-msg"><div class="loader"></div>Loading…</div>';
   try {
     // Two parallel calls: authorized committees + sponsored (leadership PACs use sponsor_candidate_id)
     var results = await Promise.all([
@@ -538,25 +553,26 @@ async function fetchAndRenderCommittees() {
     var active     = unique.filter(function(c){ return c.filing_frequency !== 'T' && c.filing_frequency !== 'A'; });
     var terminated = unique.filter(function(c){ return c.filing_frequency === 'T' || c.filing_frequency === 'A'; });
 
-    // Render Active tab
-    var activeHtml = renderCommitteeGroups(active);
-    activeEl.innerHTML = activeHtml ||
-      '<div style="color:var(--muted);font-size:0.75rem;padding:1rem 0">No active committee data available.</div>';
+    // Render both tabs. Empty-state placeholder when a panel has no committees;
+    // both panels are always populated post-fetch so the always-paired-tab UX
+    // works regardless of which sides have data.
+    activeEl.innerHTML     = renderCommitteeGroups(active)     || '<div class="state-msg">No active committees</div>';
+    historyEl.innerHTML    = renderCommitteeGroups(terminated) || '<div class="state-msg">No terminated committees</div>';
 
-    // Render History tab — only if terminated committees exist
-    if (terminated.length) {
-      historyEl.innerHTML = renderCommitteeGroups(terminated);
-      document.getElementById('modal-history-tab-btn').style.display = 'inline-block';
-    }
+    // Reveal the tab bar and data-note now that counts are known — hidden during
+    // loading to avoid the morphing "Active alone → Active + Terminated" state.
+    document.querySelector('#committees-modal .modal-tabs').style.display = 'flex';
+    document.querySelector('#committees-modal .data-note').style.display  = 'block';
 
     // In-modal tab badges — populate after fetch resolves. The trigger button
     // label is intentionally NOT updated; it stays "Committees →" by design (T11).
+    // Both labels always carry a count (including (0)) — the count is the signal.
     document.getElementById('modal-active-count').textContent  = ' (' + active.length + ')';
     document.getElementById('modal-history-count').textContent = ' (' + terminated.length + ')';
   } catch(err) {
     // Clear loader, surface friendly retry message, allow a subsequent click to retry.
     committeesLoaded = false;
-    activeEl.innerHTML = '<div style="color:var(--red);font-size:0.75rem;padding:1rem 0">⚠ Could not load committees. Close and reopen to retry.</div>';
+    activeEl.innerHTML = '<div class="state-msg error">⚠ Could not load committees. Close and reopen to retry.</div>';
     console.error('fetchAndRenderCommittees:', err);
   }
 }

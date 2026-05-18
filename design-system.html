@@ -537,7 +537,7 @@
           <span class="ds-type-meta"><strong>stat</strong><br>Oswald 600 · 2rem · --lh-tight<br>.stat-value</span>
         </div>
         <div class="ds-type-row">
-          <span class="ds-section-title" style="margin-bottom:0;padding-bottom:0;border-bottom:none">Committee Ecosystem</span>
+          <span class="ds-section-title" style="margin-bottom:0;padding-bottom:0;border-bottom:none">Associated Committees</span>
           <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .chart-title · .donors-head · .raised-cell-title</span>
         </div>
         <div class="ds-type-row">
@@ -621,7 +621,7 @@
           <span class="ds-component-name">Tags</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.tag · .tag-dem · .tag-rep · .tag-ind · .tag-neutral · .tag-inc · with nested .status-dot</div>
+        <div class="ds-component-classes">.tag · .tag-dem · .tag-rep · .tag-ind · .tag-neutral · .tag-inc · .tag-transparent · with nested .status-dot</div>
         <div class="ds-component-demo">
           <div class="ds-demo-row">
             <span class="tag tag-dem">Democrat</span>
@@ -634,9 +634,10 @@
           <div class="ds-demo-row" style="margin-top:var(--space-8)">
             <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Quarterly</span>
             <span class="tag tag-neutral"><span class="status-dot dot-terminated"></span>Terminated</span>
+            <span class="tag tag-transparent">*Active from a prior candidacy</span>
           </div>
         </div>
-        <div class="ds-component-notes"><strong>Filled-on-light pattern (2026-05-13 restyle):</strong> tags use a deep text color on a light tinted background, no border, 2px corner radius. Each partisan variant pairs the canonical party color with its <code>--xxx50</code> tint (<code>.tag-dem</code> on <code>--dem50</code>, etc.). <code>.tag-neutral</code> uses <code>--surface2</code> as background and inherits text color from the parent (typically body's <code>--text</code>). <code>.tag-inc</code> is the incumbent variant — <code>--inc</code> text on <code>--inc50</code> bg — replacing the prior <code>.incumbent-tag</code> identifier class used as a JS hook (now <code>.tag-inc</code> serves both styling and addressing). <strong>Slot for neutral content:</strong> seat/race labels, FEC IDs, state codes, status pairs. Inline middle-dot (<code>·</code>) is the convention for "label · value" pairings inside a single tag. <strong>Status-dot composition:</strong> nest a <code>&lt;span class="status-dot dot-active|dot-terminated"&gt;</code> as the first child of a <code>.tag-neutral</code> to prefix a 6×6 colored dot. Used on every committee-row site-wide (candidate modal, /committees browse, /search results, committee.html header) — see <a href="#comp-committee-rows">comp-committee-rows</a> for the row-level composition.</div>
+        <div class="ds-component-notes"><strong>Filled-on-light pattern (2026-05-13 restyle):</strong> tags use a deep text color on a light tinted background, no border, 2px corner radius. Each partisan variant pairs the canonical party color with its <code>--xxx50</code> tint (<code>.tag-dem</code> on <code>--dem50</code>, etc.). <code>.tag-neutral</code> uses <code>--surface2</code> as background and inherits text color from the parent (typically body's <code>--text</code>). <code>.tag-inc</code> is the incumbent variant — <code>--inc</code> text on <code>--inc50</code> bg — replacing the prior <code>.incumbent-tag</code> identifier class used as a JS hook (now <code>.tag-inc</code> serves both styling and addressing). <code>.tag-transparent</code> is the quietest variant — transparent background, inherits text color — used today only by the "*Active from a prior candidacy" annotation on off-office PCC rows inside the candidate.html committees modal (see <a href="#comp-committee-rows">comp-committee-rows</a>). <strong>Slot for neutral content:</strong> seat/race labels, FEC IDs, state codes, status pairs. Inline middle-dot (<code>·</code>) is the convention for "label · value" pairings inside a single tag. <strong>Status-dot composition:</strong> nest a <code>&lt;span class="status-dot dot-active|dot-terminated"&gt;</code> as the first child of a <code>.tag-neutral</code> to prefix a 6×6 colored dot. Used on every committee-row site-wide (candidate modal, /committees browse, /search results, committee.html header) — see <a href="#comp-committee-rows">comp-committee-rows</a> for the row-level composition.</div>
       </div>
 
       <!-- 4. Nav item -->
@@ -1022,7 +1023,7 @@
           <span class="ds-component-name">Section Title + Committee Rows</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.section-title · .committee-row · .committee-name · .committee-card-meta — single row pattern shared across candidate.html committees modal, /committees browse, and /search results via the <code>committeeRowHTML(c, opts)</code> helper in utils.js. Whole row is the <code>&lt;a&gt;</code> link (native middle-click + keyboard focus). Type + filing-frequency status rendered as <code>tag tag-neutral</code> inside <code>.committee-card-meta</code>.</div>
+        <div class="ds-component-classes">.section-title · .committee-row · .committee-name · .committee-card-meta — single row pattern shared across candidate.html committees modal, /committees browse, and /search results via the <code>committeeRowHTML(c, opts)</code> helper in utils.js. Whole row is the <code>&lt;a&gt;</code> link (native middle-click + keyboard focus). Type + filing-frequency status rendered as <code>tag tag-neutral</code> inside <code>.committee-card-meta</code>. <code>.section-title</code> carries a <code>1px solid var(--border)</code> bottom rule globally — labels its following list visually; also used on committee.html (Associated Candidate) and race.html (Candidates count header).</div>
         <div class="ds-component-demo">
           <div class="section-title">Principal Committee</div>
           <a class="committee-row" href="#">
@@ -1032,7 +1033,7 @@
               <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Quarterly</span>
             </div>
           </a>
-          <div class="section-title" style="margin-top:var(--space-24)">Joint Fundraising</div>
+          <div class="section-title" style="margin-top:var(--space-32)">Joint Fundraising</div>
           <a class="committee-row" href="#">
             <div class="committee-name">WA Democratic Victory Fund</div>
             <div class="committee-card-meta">
@@ -1040,7 +1041,7 @@
               <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Quarterly</span>
             </div>
           </a>
-          <div class="section-title" style="margin-top:var(--space-24)">Other</div>
+          <div class="section-title" style="margin-top:var(--space-32)">Other</div>
           <a class="committee-row" href="#">
             <div class="committee-name">Speaker's Majority Fund</div>
             <div class="committee-card-meta">
@@ -1050,7 +1051,7 @@
           </a>
         </div>
         <div class="ds-component-notes">
-          Inside the modal context, <code>.modal-body .committee-row + .section-title { margin-top: var(--space-24) }</code> adds inter-group spacing only when a title follows a row (the first title in the modal is preceded by <code>.modal-tabs</code> and gets nothing extra). Status dot in the meta tag carries the active/terminated signal — terminated rows do NOT get a separate muted-name treatment, the status tag alone is the cue.
+          Inside the modal context, <code>.modal-body .committee-row + .section-title { margin-top: var(--space-32) }</code> adds inter-group spacing only when a title follows a row (the first title in the modal is preceded by <code>.modal-tabs</code> and gets nothing extra). Status dot in the meta tag carries the active/terminated signal — terminated rows do NOT get a separate muted-name treatment, the status tag alone is the cue. Group order in <code>renderCommitteeGroups()</code> (candidate.html) is Principal Committee → Leadership PAC → Joint Fundraising → Other Authorized → Other; Leadership PAC is checked before Joint Fundraising so a record carrying both signals classifies as the more specific identity. The JFA filter unions <code>designation === 'J'</code> (primary signal — what FEC actually uses) and <code>committee_type === 'J'</code> (rare-but-real fallback). <strong>Off-office PCC tagging:</strong> within the Principal Committee group, rows whose <code>committee_type</code> doesn't match the current candidate's office get a <code>.tag.tag-transparent</code> "*Active from a prior candidacy" annotation, and are sorted AFTER the true-office PCCs in the group. Gated on <code>opts.referenceOffice</code> in <code>committeeRowHTML(c, opts)</code> — passed only from candidate.html's modal call site; committees.html, search.html, and committee.html's assoc cards don't pass it and don't see the tag. <strong>Always-paired tabs (2026-05-18):</strong> the Terminated tab is always rendered after fetch (even when count is 0); both labels carry counts including <code>(0)</code>. Empty panels render <code>&lt;div class="state-msg"&gt;No active committees&lt;/div&gt;</code> or the terminated equivalent. During loading, <code>.modal-tabs</code> and the modal-footer <code>.data-note</code> are both hidden via inline <code>display:none</code> and revealed in the same JS step that populates counts and rows — avoids the morphing "Active alone → Active + Terminated" loading state.
         </div>
       </div>
 
@@ -1779,7 +1780,7 @@
 <div class="modal-overlay" id="ds-modal-demo" style="display:none" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal-panel">
     <div class="modal-header">
-      <div class="modal-title">Committee Ecosystem</div>
+      <div class="modal-title">Associated Committees</div>
       <button class="modal-close" id="ds-modal-close">✕</button>
     </div>
     <div class="modal-tabs">
@@ -1804,7 +1805,7 @@
             <span class="tag tag-neutral"><span class="status-dot dot-active"></span>Monthly</span>
           </div>
         </a>
-        <div class="section-title">Other</div>
+        <div class="section-title">Joint Fundraising</div>
         <a class="committee-row" href="/committee/C00492421">
           <div class="committee-name">Nancy Pelosi Victory Fund</div>
           <div class="committee-card-meta">
@@ -1814,7 +1815,7 @@
         </a>
       </div>
       <div id="ds-modal-terminated" style="display:none">
-        <div class="section-title">Other</div>
+        <div class="section-title">Joint Fundraising</div>
         <a class="committee-row" href="/committee/C00410100">
           <div class="committee-name">Speaker Nancy Pelosi's Majority Fund</div>
           <div class="committee-card-meta">
@@ -1822,6 +1823,7 @@
             <span class="tag tag-neutral"><span class="status-dot dot-terminated"></span>Terminated</span>
           </div>
         </a>
+        <div class="section-title">Other</div>
         <a class="committee-row" href="/committee/C00376400">
           <div class="committee-name">Team Majority</div>
           <div class="committee-card-meta">
@@ -1830,7 +1832,7 @@
           </div>
         </a>
       </div>
-      <div class="data-note">Real data — Nancy Pelosi (H8CA05035). Populated dynamically in production via <code style="font-size:0.625rem">fetchAndRenderCommittees()</code> using the shared <code style="font-size:0.625rem">committeeRowHTML()</code> helper from utils.js — same row shape as /committees and /search. Status dot in the meta tag carries the active/terminated signal.</div>
+      <div class="data-note" style="border-top:none; padding-top:0">Real data — Nancy Pelosi (H8CA05035). Populated dynamically in production via <code style="font-size:0.625rem">fetchAndRenderCommittees()</code> using the shared <code style="font-size:0.625rem">committeeRowHTML()</code> helper from utils.js — same row shape as /committees and /search. Status dot in the meta tag carries the active/terminated signal. (Demo note: the inline <code>border-top:none; padding-top:0</code> mirrors the production override to avoid a doubled rule against the last committee-row's bottom border above.)</div>
     </div>
   </div>
 </div>
