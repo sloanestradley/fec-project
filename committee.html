@@ -405,8 +405,14 @@ var activeCycle = null;  // integer cycle year — set in detail-view branch of 
 // committee types, so a single threshold applies (vs candidate.html's office-keyed map).
 var ARCHIVE_MIN_YEAR_COMMITTEE = 2008;
 
-var COMM_PARTY        = null;
-var COMM_TYPE         = null;
+var COMM_PARTY            = null;
+var COMM_TYPE             = null;
+// T-load-4a — stashed at renderHeader time so renderIndexScaffold can hydrate
+// #cstat-history from entity-only data (no /totals/ dependency). Committee's
+// History card uses first_file_date + last_file_date directly from the entity
+// call, unlike candidate.html where cstat-history's endYear comes from totals.
+var COMM_FIRST_FILE_DATE  = null;
+var COMM_LAST_FILE_DATE   = null;
 var donutInstance      = null;
 var usTopoCache        = null;
 // T12 progressive-render state — same shape as candidate.html, with KV-aware fast tier.
@@ -490,9 +496,12 @@ function showTab(name, e) {
 // committee that filed Form 1 but never filed a financial report, the two dates
 // often match — fall back to the single-year form "2020" rather than a
 // misleading "2020–2020" range.
+// T-load-4a — optional allTotals. Called twice: once at scaffold time with
+// allTotals=null (writes only cstat-history from entity dates, leaves career
+// cells as skeletons); again at hydration time with full allTotals (writes
+// career raised/spent from /totals/ sum). cstat-history value is idempotent
+// across the two passes — it's derived from entity-only data.
 function renderHistoryStrip(firstFiledYear, lastFileDate, allTotals) {
-  var lifetimeRaised = allTotals.reduce(function(s, r){ return s + (r.receipts || 0); }, 0);
-  var lifetimeSpent  = allTotals.reduce(function(s, r){ return s + (r.disbursements || 0); }, 0);
   var endYear = lastFileDate ? String(lastFileDate).slice(0, 4) : null;
   var historyText;
   if (firstFiledYear && endYear && endYear !== firstFiledYear) {
@@ -503,6 +512,9 @@ function renderHistoryStrip(firstFiledYear, lastFileDate, allTotals) {
     historyText = '—';
   }
   document.getElementById('cstat-history').textContent = historyText;
+  if (!allTotals) return; // scaffold mode — career cells stay as skeletons
+  var lifetimeRaised = allTotals.reduce(function(s, r){ return s + (r.receipts || 0); }, 0);
+  var lifetimeSpent  = allTotals.reduce(function(s, r){ return s + (r.disbursements || 0); }, 0);
   document.getElementById('cstat-career-raised').textContent = lifetimeRaised ? fmt(lifetimeRaised) : '—';
   document.getElementById('cstat-career-spent').textContent  = lifetimeSpent  ? fmt(lifetimeSpent)  : '—';
 }
@@ -530,6 +542,14 @@ function cycleRowHTML(year, raised, spent, coh, isArchive, startYear) {
 function renderCycleIndex(cycles, totalsMap) {
   var threshold = ARCHIVE_MIN_YEAR_COMMITTEE;
   var container = document.getElementById('cycle-index');
+  if (!cycles.length) {
+    // T-load-4a — empty-cycle case (committee filed Form 1 but never filed
+    // financials). Matches renderIndexScaffold's empty-state output so the
+    // scaffold→hydration transition doesn't overwrite the message with an
+    // empty header-only table.
+    container.innerHTML = '<div class="inline-status-msg">No filing cycles on record.</div>';
+    return;
+  }
   var html = '<div class="cycle-index-header">'
     + '<span>Cycle</span>'
     + '<span style="text-align:right">Raised</span>'
@@ -565,9 +585,10 @@ function renderCycleIndex(cycles, totalsMap) {
 // ── View switcher callbacks ──────────────────────────────────────────────────
 // Promise-cached fetchers. T-load-1 split fetchIndexData into two awaitable
 // promises so init()'s skeleton-hydration path can await the entity call
-// independently of /totals/ (the heavier of the two). Helper's renderIndex
-// path goes through fetchIndexData below which awaits both — preserves
-// the helper config contract.
+// independently of /totals/ (the heavier of the two). T-load-4a — fetchIndexData
+// now returns the promises directly (not awaited values) so the helper can call
+// renderIndexScaffold before awaiting; helper does Promise.all and passes
+// resolved values to renderIndex with 'P' suffix stripped from keys.
 function fetchEntity() {
   if (!cachedMetaP) cachedMetaP = apiFetch('/committee/' + COMMITTEE_ID + '/');
   return cachedMetaP;
@@ -576,12 +597,128 @@ function fetchAllTotals() {
   if (!cachedTotalsP) cachedTotalsP = apiFetch('/committee/' + COMMITTEE_ID + '/totals/', { per_page: 100, sort: '-coverage_end_date' });
   return cachedTotalsP;
 }
-// Helper-compatible — awaits both and returns the shape renderIndex expects.
-async function fetchIndexData() {
-  var metaRes   = await fetchEntity();
-  var totalsRes = await fetchAllTotals();
-  return { metaRes: metaRes, allTotalsRes: totalsRes };
+// Helper-compatible — returns object of in-flight promises.
+function fetchIndexData() {
+  return { metaP: fetchEntity(), totalsP: fetchAllTotals() };
 }
+
+// ── Index view scaffold (T-load-4a) ───────────────────────────────────────────
+// Sync render BEFORE fetchIndexData await resolves. cstat-history hydrates
+// immediately from entity globals (committee's History card uses first_file_date
+// + last_file_date directly — no /totals/ dependency, unlike candidate.html).
+// Empty-cycle case (c.cycles = []) renders an inline-status-msg instead of
+// scaffold rows — covers committees that filed Form 1 but never filed financials.
+function renderIndexScaffold() {
+  // Hydrate cstat-history from entity dates (scaffold mode — allTotals=null);
+  // career raised/spent stay as the skeletons seeded by T-load-3 initial HTML.
+  var firstFiledYear = COMM_FIRST_FILE_DATE ? String(COMM_FIRST_FILE_DATE).slice(0, 4) : '';
+  renderHistoryStrip(firstFiledYear, COMM_LAST_FILE_DATE, null);
+  setStatSkeleton('cstat-career-raised', 5);
+  setStatSkeleton('cstat-career-spent', 5);
+  if (!ALL_CYCLES.length) {
+    document.getElementById('cycle-index').innerHTML =
+      '<div class="inline-status-msg">No filing cycles on record.</div>';
+  } else {
+    renderCycleIndexScaffold(ALL_CYCLES);
+  }
+}
+
+function renderCycleIndexScaffold(cycles) {
+  var threshold = ARCHIVE_MIN_YEAR_COMMITTEE;
+  var container = document.getElementById('cycle-index');
+  var skel = '<span class="skeleton" style="width:5ch;height:1.2rem"></span>';
+  var html = '<div class="cycle-index-header">'
+    + '<span>Cycle</span>'
+    + '<span style="text-align:right">Raised</span>'
+    + '<span class="cycle-row-spent-col" style="text-align:right">Spent</span>'
+    + '<span style="text-align:right">Cash on Hand</span>'
+    + '<span></span>'
+    + '</div>';
+  var archiveDividerInserted = false;
+  cycles.forEach(function(year) {
+    var isArchive = year < threshold;
+    if (isArchive && !archiveDividerInserted) {
+      archiveDividerInserted = true;
+      html += '<div class="cycle-archive-divider">'
+        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
+        + 'FEC coverage begins ' + threshold + '.</span>'
+        + '</div>';
+    }
+    html += cycleRowHTML(year, skel, skel, skel, isArchive, year - 1);
+  });
+  container.innerHTML = html;
+}
+
+// ── Partial-data error handler (T-load-4a) ────────────────────────────────────
+// Fires when entity resolved (scaffold rendered, cstat-history hydrated) but
+// /totals/ failed. Resolves career-raised/spent skeletons to dashes + renders
+// .tab-error retry UI inside #cycle-index above the column header. cstat-history
+// stays hydrated — entity data is still in scope.
+function onPartialError(err) {
+  document.getElementById('cstat-career-raised').textContent = '—';
+  document.getElementById('cstat-career-spent').textContent = '—';
+  var threshold = ARCHIVE_MIN_YEAR_COMMITTEE;
+  var container = document.getElementById('cycle-index');
+  var rateLimit = is429(err);
+  var msg = rateLimit ? TAB_ERROR_RATE_LIMIT_MSG : '⚠ Unable to load financial totals.';
+  var html = '<div class="tab-error">'
+    + '<span class="tab-error-msg">' + msg + '</span>';
+  if (!rateLimit) {
+    html += '<button class="tab-retry-btn" type="button" data-retry="index-totals">Try again</button>';
+  }
+  html += '</div>';
+  if (!ALL_CYCLES.length) {
+    html += '<div class="inline-status-msg">No filing cycles on record.</div>';
+    container.innerHTML = html;
+    console.error('[committee] partial-data error (/totals/):', err);
+    return;
+  }
+  html += '<div class="cycle-index-header">'
+    + '<span>Cycle</span>'
+    + '<span style="text-align:right">Raised</span>'
+    + '<span class="cycle-row-spent-col" style="text-align:right">Spent</span>'
+    + '<span style="text-align:right">Cash on Hand</span>'
+    + '<span></span>'
+    + '</div>';
+  var archiveDividerInserted = false;
+  ALL_CYCLES.forEach(function(year) {
+    var isArchive = year < threshold;
+    if (isArchive && !archiveDividerInserted) {
+      archiveDividerInserted = true;
+      html += '<div class="cycle-archive-divider">'
+        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
+        + 'FEC coverage begins ' + threshold + '.</span>'
+        + '</div>';
+    }
+    html += cycleRowHTML(year, '—', '—', '—', isArchive, year - 1);
+  });
+  container.innerHTML = html;
+  console.error('[committee] partial-data error (/totals/):', err);
+}
+
+function retryIndexTotals() {
+  cachedTotalsP = null;
+  var myToken = view.claimToken();
+  renderIndexScaffold();
+  fetchAllTotals()
+    .then(function(totalsRes) {
+      if (!view.isCurrentToken(myToken)) return;
+      // Re-render full index with cached entity + freshly-fetched totals
+      var totalsMap = {};
+      (totalsRes.results || []).forEach(function(r) { totalsMap[r.cycle] = r; });
+      var firstFiledYear = COMM_FIRST_FILE_DATE ? String(COMM_FIRST_FILE_DATE).slice(0, 4) : '';
+      renderHistoryStrip(firstFiledYear, COMM_LAST_FILE_DATE, totalsRes.results || []);
+      renderCycleIndex(ALL_CYCLES, totalsMap);
+    })
+    .catch(function(err) {
+      if (!view.isCurrentToken(myToken)) return;
+      onPartialError(err);
+    });
+}
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-retry="index-totals"]');
+  if (btn) retryIndexTotals();
+});
 
 async function init() {
   if (!COMMITTEE_ID) {
@@ -687,14 +824,16 @@ async function init() {
       ],
       mainEl: document.querySelector('.main'),
       fetchIndexData: fetchIndexData,
+      renderIndexScaffold: renderIndexScaffold,
       renderIndex: function(data) {
         var totalsMap = {};
-        (data.allTotalsRes.results || []).forEach(function(r) { totalsMap[r.cycle] = r; });
-        var c = (data.metaRes.results || [])[0];
+        (data.totals.results || []).forEach(function(r) { totalsMap[r.cycle] = r; });
+        var c = (data.meta.results || [])[0];
         var firstFiledYear = c && c.first_file_date ? String(c.first_file_date).slice(0, 4) : '';
-        renderHistoryStrip(firstFiledYear, c && c.last_file_date, data.allTotalsRes.results || []);
+        renderHistoryStrip(firstFiledYear, c && c.last_file_date, data.totals.results || []);
         renderCycleIndex(ALL_CYCLES, totalsMap);
       },
+      onPartialError: onPartialError,
       loadCycle: function(cycle) { renderStats(cycle); return Promise.resolve(); },
       getDetailScrollTarget: function(indexScrollY) {
         // compactThreshold > 0 guard: defensive against initCompactHeader() not
@@ -780,6 +919,10 @@ function renderHeader(c) {
   // Party for choropleth color
   COMM_PARTY = c.party || null;
   COMM_TYPE  = c.committee_type || null;
+
+  // T-load-4a — stash entity dates for renderIndexScaffold's cstat-history hydration
+  COMM_FIRST_FILE_DATE = c.first_file_date || null;
+  COMM_LAST_FILE_DATE  = c.last_file_date || null;
 
   // Cycle list from c.cycles — feeds the cycle-index landing view. T16 (2026-05-14)
   // retired the in-tabs-bar cycle switcher; cycle changes now happen via the

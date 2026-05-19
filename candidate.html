@@ -437,8 +437,11 @@ var usTopoCache          = null;
 var CAND_PARTY           = null;
 var committeesLoaded     = false;
 var CAND_NAME            = null;
-var cachedHistory       = null;  // /history/ response — reused on detail→index back-navigation
-var cachedAllTotals     = null;  // /totals/?per_page=100 — reused on detail→index back-navigation
+// T-load-4a — in-flight-promise caching (mirrors committee.html post-T-load-1).
+// fetchIndexData returns these promises directly; helper does Promise.all.
+// Clearing on retry: nullify the rejected promise so the next call re-fires.
+var cachedHistoryP      = null;  // /history/ promise — reused on detail→index back-navigation
+var cachedAllTotalsP    = null;  // /totals/?per_page=100 promise — reused on detail→index back-navigation
 var compactHeaderInited = false; // compact scroll listener registered once on first detail entry
 var compactThreshold    = 0;     // scrollY at which compact mode engages; set in initCompactHeader()
 var view                = null;  // initViewSwitcher instance — created in init() before first switchTo
@@ -2027,6 +2030,116 @@ function renderCycleIndex(cycles, totalsMap, office) {
 }
 
 
+// ── Index view scaffold (T-load-4a) ───────────────────────────────────────────
+// Sync render BEFORE fetchIndexData await resolves. Writes real year labels
+// (single year per T-cycle-semantics) and skeleton placeholders for financial
+// cells. Used by initViewSwitcher's renderIndexScaffold config callback.
+//
+// On candidate.html, cstat-history is also a skeleton at scaffold time (its
+// endYear depends on max(coverage_end_date) from /totals/; full skeleton is
+// simpler than partial hydration — same minimal-first instinct from T-load-3).
+function renderIndexScaffold() {
+  setStatSkeleton('cstat-history', 6);
+  setStatSkeleton('cstat-career-raised', 5);
+  setStatSkeleton('cstat-career-spent', 5);
+  renderCycleIndexScaffold(ALL_CYCLES, CAND_OFFICE);
+}
+
+function renderCycleIndexScaffold(cycles, office) {
+  var threshold = ARCHIVE_MIN_YEAR[office] || 2008;
+  var container = document.getElementById('cycle-index');
+  var skel = '<span class="skeleton" style="width:5ch;height:1.2rem"></span>';
+  var html = '<div class="cycle-index-header">'
+    + '<span>Election</span>'
+    + '<span style="text-align:right">Raised</span>'
+    + '<span class="cycle-row-spent-col" style="text-align:right">Spent</span>'
+    + '<span style="text-align:right">Cash on Hand</span>'
+    + '<span></span>'
+    + '</div>';
+  var archiveDividerInserted = false;
+  cycles.forEach(function(year) {
+    var isArchive = year < threshold;
+    if (isArchive && !archiveDividerInserted) {
+      archiveDividerInserted = true;
+      var officeLabel = { H:'House', S:'Senate', P:'Presidential' }[office] || 'House';
+      html += '<div class="cycle-archive-divider">'
+        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
+        + 'FEC coverage begins ' + threshold + ' for ' + officeLabel + ' races.</span>'
+        + '</div>';
+    }
+    html += cycleRowHTML(year, skel, skel, skel, isArchive);
+  });
+  container.innerHTML = html;
+}
+
+// ── Partial-data error handler (T-load-4a) ────────────────────────────────────
+// Fires when entity-side data resolved (scaffold rendered) but /totals/ failed.
+// Resolves skeletons to dashes + renders .tab-error retry UI inside #cycle-index
+// (above the column header). 429 case (via is429) shows rate-limit copy with no
+// retry button.
+function onPartialError(err) {
+  // Career-strip skeletons resolve to dashes
+  document.getElementById('cstat-history').textContent = '—';
+  document.getElementById('cstat-career-raised').textContent = '—';
+  document.getElementById('cstat-career-spent').textContent = '—';
+  // Cycle-index: prepend tab-error block, render rows with dash cells
+  var threshold = ARCHIVE_MIN_YEAR[CAND_OFFICE] || 2008;
+  var container = document.getElementById('cycle-index');
+  var rateLimit = is429(err);
+  var msg = rateLimit ? TAB_ERROR_RATE_LIMIT_MSG : '⚠ Unable to load financial totals.';
+  var html = '<div class="tab-error">'
+    + '<span class="tab-error-msg">' + msg + '</span>';
+  if (!rateLimit) {
+    html += '<button class="tab-retry-btn" type="button" data-retry="index-totals">Try again</button>';
+  }
+  html += '</div>';
+  html += '<div class="cycle-index-header">'
+    + '<span>Election</span>'
+    + '<span style="text-align:right">Raised</span>'
+    + '<span class="cycle-row-spent-col" style="text-align:right">Spent</span>'
+    + '<span style="text-align:right">Cash on Hand</span>'
+    + '<span></span>'
+    + '</div>';
+  var archiveDividerInserted = false;
+  ALL_CYCLES.forEach(function(year) {
+    var isArchive = year < threshold;
+    if (isArchive && !archiveDividerInserted) {
+      archiveDividerInserted = true;
+      var officeLabel = { H:'House', S:'Senate', P:'Presidential' }[CAND_OFFICE] || 'House';
+      html += '<div class="cycle-archive-divider">'
+        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
+        + 'FEC coverage begins ' + threshold + ' for ' + officeLabel + ' races.</span>'
+        + '</div>';
+    }
+    html += cycleRowHTML(year, '—', '—', '—', isArchive);
+  });
+  container.innerHTML = html;
+  console.error('[candidate] partial-data error (/totals/):', err);
+}
+
+// Retry handler — clears cached /totals/ promise, re-renders scaffold, refires.
+// Reuses view.claimToken() namespace so a cycle-switch during retry correctly
+// invalidates the retry's eventual hydration.
+function retryIndexTotals() {
+  cachedAllTotalsP = null;
+  var myToken = view.claimToken();
+  renderIndexScaffold(); // restore skeleton state
+  Promise.all([fetchHistory(), fetchAllTotals()])
+    .then(function(res) {
+      if (!view.isCurrentToken(myToken)) return;
+      renderIndexFromData(res[0], res[1]);
+    })
+    .catch(function(err) {
+      if (!view.isCurrentToken(myToken)) return;
+      onPartialError(err);
+    });
+}
+// Delegated click handler — fires on the retry button rendered by onPartialError
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-retry="index-totals"]');
+  if (btn) retryIndexTotals();
+});
+
 // ── Index view data processor ─────────────────────────────────────────────────
 // Called by the helper's renderIndex callback after fetchIndexData resolves.
 function renderIndexFromData(histJson, allTotalsJson) {
@@ -2052,21 +2165,21 @@ function renderIndexFromData(histJson, allTotalsJson) {
 }
 
 // ── View switcher callbacks ──────────────────────────────────────────────────
-// Index data fetcher — caches /history/ + /totals/ results so back-navigation
-// from detail view re-renders without re-fetching. Cache lives in module scope
-// (per-page) for now; T13 will add a session-level cache layer above this
-// without touching the helper.
-async function fetchIndexData() {
-  if (cachedHistory && cachedAllTotals) {
-    return { hist: cachedHistory, allTotals: cachedAllTotals };
-  }
-  var idxResults = await Promise.all([
-    apiFetch('/candidate/' + CANDIDATE_ID + '/history/', { per_page: 1 }),
-    apiFetch('/candidate/' + CANDIDATE_ID + '/totals/', { per_page: 100 }),
-  ]);
-  cachedHistory   = idxResults[0];
-  cachedAllTotals = idxResults[1];
-  return { hist: cachedHistory, allTotals: cachedAllTotals };
+// Index data fetchers — T-load-4a — in-flight-promise caching so the helper's
+// scaffold-then-hydrate flow has both promises available sync at scaffold time.
+// Duplicate callers (e.g. back-navigation) all await the same promise.
+function fetchHistory() {
+  if (!cachedHistoryP) cachedHistoryP = apiFetch('/candidate/' + CANDIDATE_ID + '/history/', { per_page: 1 });
+  return cachedHistoryP;
+}
+function fetchAllTotals() {
+  if (!cachedAllTotalsP) cachedAllTotalsP = apiFetch('/candidate/' + CANDIDATE_ID + '/totals/', { per_page: 100 });
+  return cachedAllTotalsP;
+}
+// Helper-compatible — returns object of promises. Helper does Promise.all and
+// strips 'P' suffix from keys before passing to renderIndex callback.
+function fetchIndexData() {
+  return { histP: fetchHistory(), totalsP: fetchAllTotals() };
 }
 
 // ── Init ────────────────────────────────────────────
@@ -2177,7 +2290,9 @@ async function init() {
       ],
       mainEl: document.querySelector('.main'),
       fetchIndexData: fetchIndexData,
-      renderIndex: function(data) { renderIndexFromData(data.hist, data.allTotals); },
+      renderIndexScaffold: renderIndexScaffold,
+      renderIndex: function(data) { renderIndexFromData(data.hist, data.totals); },
+      onPartialError: onPartialError,
       loadCycle: loadCycle,
       getDetailScrollTarget: function(indexScrollY) {
         // compactThreshold > 0 guard: defensive against initCompactHeader() not

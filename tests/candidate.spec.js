@@ -1132,6 +1132,10 @@ test.describe('candidate.html — in-place transitions', () => {
     await mockFecApi(page);
     await page.goto('/candidate.html?id=H2WA03217');
     await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    // T-load-4a: career-strip visibility fires BEFORE hydration (scaffold-then-
+    // hydrate). Wait for the index data to settle before tests trigger cycle
+    // switches — keeps timing pre-conditions stable for race-condition tests.
+    await page.waitForSelector('#cycle-index a.cycle-row .skeleton', { state: 'detached', timeout: 12000 });
   });
 
   test('no page reload on cycle row click', async ({ page }) => {
@@ -1783,5 +1787,104 @@ test.describe('candidate.html — T-load-3 stats-grid skeletons', () => {
     await expect(page.locator('#cstat-career-raised .skeleton')).toHaveCount(0);
     await expect(page.locator('#cstat-career-spent .skeleton')).toHaveCount(0);
     await expect(page.locator('#cstat-history')).toHaveText(/^\d{4}([–\-]\d{4})?$/);
+  });
+});
+
+// ── T-load-4a: progressive cycle-index hydration ──────────────────────────────
+// Architectural shift — index strips show with skeletons before /totals/
+// resolves; hydrate after. Real cycle-row year labels at scaffold time (T-cycle-
+// semantics); skeleton financial cells until /totals/ lands; partial-data retry
+// UI on /totals/ failure with retry button refire.
+test.describe('candidate.html — T-load-4a progressive cycle-index', () => {
+  test('cycle-index scaffold renders with real year labels + skeleton financial cells during /totals/ fetch', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Delay /totals/?per_page=100 to keep the scaffold visible
+    await page.route('**/api/fec/candidate/*/totals/?per_page=100**', async (route) => {
+      await new Promise(r => setTimeout(r, 1500));
+      await route.fallback();
+    });
+    await page.goto('/candidate.html?id=H2WA03217');
+    // Scaffold should be visible while /totals/ is still in flight
+    await page.waitForSelector('#cycle-index.visible', { timeout: 1000 });
+    // Year labels are real (no skeleton on year column)
+    const firstRowLabel = page.locator('#cycle-index a.cycle-row .cycle-row-label').first();
+    await expect(firstRowLabel).toHaveText(/^\d{4}$/);
+    // Financial cells are skeletons
+    const firstRowSkeletons = page.locator('#cycle-index a.cycle-row').first().locator('.skeleton');
+    await expect(firstRowSkeletons).toHaveCount(3); // raised, spent, coh
+  });
+
+  test('cycle-index financial cells replace skeletons with values after /totals/ resolves', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#cycle-index.visible', { timeout: 12000 });
+    // After hydration, no skeletons remain in cycle rows
+    await expect(page.locator('#cycle-index a.cycle-row .skeleton')).toHaveCount(0);
+    // Financial cells have either dollar values or dashes
+    const firstRowStats = page.locator('#cycle-index a.cycle-row').first().locator('.cycle-row-stat');
+    await expect(firstRowStats.first()).toHaveText(/\$[\d,.]+[MK]?|—/);
+  });
+
+  test('back navigation to index does not refire /totals/ (cached promise reuse)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    let totalsRequestCount = 0;
+    page.on('request', (req) => {
+      if (/\/api\/fec\/candidate\/[^/]+\/totals\/\?per_page=100/.test(req.url())) {
+        totalsRequestCount++;
+      }
+    });
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#cycle-index.visible', { timeout: 12000 });
+    const initialCount = totalsRequestCount;
+    expect(initialCount).toBeGreaterThanOrEqual(1);
+    // Navigate to detail then back to index
+    await page.evaluate(() => { window.location.hash = '#2024#summary'; });
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+    await page.evaluate(() => { history.replaceState('', '', location.pathname); window.dispatchEvent(new HashChangeEvent('hashchange')); });
+    await page.waitForSelector('#cycle-index.visible', { timeout: 12000 });
+    // Cached promise — no additional /totals/ request
+    expect(totalsRequestCount).toBe(initialCount);
+  });
+
+  test('partial-data /totals/ failure renders .tab-error with retry button + dashed financial cells', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/candidate/*/totals/?per_page=100**', (route) => {
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#cycle-index .tab-error', { timeout: 12000 });
+    // Retry button visible
+    await expect(page.locator('#cycle-index .tab-error .tab-retry-btn')).toBeVisible();
+    // Career-strip cells resolved to dashes
+    await expect(page.locator('#cstat-history')).toHaveText('—');
+    await expect(page.locator('#cstat-career-raised')).toHaveText('—');
+    await expect(page.locator('#cstat-career-spent')).toHaveText('—');
+    // Cycle row labels still present + financial cells dashed
+    await expect(page.locator('#cycle-index a.cycle-row .cycle-row-label').first()).toHaveText(/^\d{4}$/);
+  });
+
+  test('partial-data retry click refires /totals/ and hydrates on success', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // First request fails; subsequent requests fall through to the mock (success)
+    let totalsRequestCount = 0;
+    await page.route('**/api/fec/candidate/*/totals/?per_page=100**', (route) => {
+      totalsRequestCount++;
+      if (totalsRequestCount === 1) {
+        return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+      }
+      return route.fallback();
+    });
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#cycle-index .tab-error', { timeout: 12000 });
+    // Click retry
+    await page.locator('#cycle-index .tab-error .tab-retry-btn').click();
+    // Tab-error gone, real values hydrated
+    await page.waitForSelector('#cycle-index .tab-error', { state: 'detached', timeout: 12000 });
+    await expect(page.locator('#cstat-career-raised')).not.toHaveText('—');
   });
 });

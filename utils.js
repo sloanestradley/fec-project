@@ -609,25 +609,48 @@ function initCompactHeader(headerId) {
 // Behavior preserved from candidate.html's original switchView():
 //   - Detail entry: capture window.scrollY, hide index, show detail w/ RAF
 //     reveal, scroll to compact-aware target, await loadCycle, restore tab
-//   - Index entry: hide detail, await fetchIndexData, render, RAF reveal +
-//     scrollTo restore (no-op on first visit when scrollY=0)
+//   - Index entry (T-load-4a, 2026-05-19 — scaffold-then-hydrate): hide
+//     detail, call fetchIndexData (returns object of promises), show index,
+//     call renderIndexScaffold sync, RAF reveal + scrollTo restore, await
+//     Promise.all on the promises, call renderIndex with resolved values.
+//     Was: hide detail, await fetchIndexData (resolved values), show index,
+//     render. The old flow left strips display:none for the entire fetch
+//     window — header + nothing below felt broken on slow loads.
 //   - Fetch-race token: helper-owned counter, exposed via claimToken/
 //     isCurrentToken so the page's own loadCycle can participate in the same
 //     namespace. Single counter is required — separate counters wouldn't
 //     invalidate each other's in-flight fetches and stale DOM writes could
-//     land on hidden elements.
+//     land on hidden elements. Also used by per-page retry handlers (T-load-4a)
+//     to invalidate stale retries when a newer cycle-switch fires.
 //
 // config:
 //   indexElements          — [{id, display}] elements to show on index entry
 //   detailElements         — [{id, display}] elements to show on detail entry
 //   mainEl                 — HTMLElement for minHeight scroll-clamp guard
-//   fetchIndexData         — () => Promise<any>   page handles caching
-//   renderIndex            — (data) => void       sync DOM render
+//   fetchIndexData         — () => { keyP: Promise, ... }  returns object of
+//                             in-flight promises (T-load-4a). Helper does
+//                             Promise.all and strips 'P' suffix from keys
+//                             before passing to renderIndex.
+//   renderIndexScaffold    — () => void  sync render BEFORE await (T-load-4a).
+//                             Required. Writes year labels + skeleton
+//                             placeholders. Helper throws on init if missing.
+//   renderIndex            — (data) => void  sync DOM render after await;
+//                             hydrates over the scaffold. data keys are the
+//                             fetchIndexData keys with 'P' suffix stripped.
 //   loadCycle              — (cycle) => Promise   page's existing loader
 //   getDetailScrollTarget  — (indexScrollY) => number   compact-aware target
 //   restoreTab             — (tabHash) => void    page picks tab from hash
 //   trackPageViewed        — (viewName) => void   'detail' | 'index'
-//   onIndexError           — (err) => void        page's error UI
+//   onIndexError           — (err) => void        page's error UI for full
+//                             failure (entity or scaffold-time). Used when
+//                             onPartialError isn't provided.
+//   onPartialError         — (err) => void  optional (T-load-4a). Called
+//                             instead of onIndexError when fetchIndexData
+//                             rejects AFTER scaffold rendered. Page handler
+//                             resolves skeleton cells to dashes + renders
+//                             .tab-error retry UI. If absent, helper falls
+//                             through to onIndexError (escape-hatch path,
+//                             defers partial-retry to T-load-4c).
 //
 // Returns: { switchTo, claimToken, isCurrentToken }
 //   T14.5 retired headerEl (.detail-view toggle) and wasIndexShown() — both
@@ -639,12 +662,19 @@ function initViewSwitcher(config) {
   var detailElements        = config.detailElements;
   var mainEl                = config.mainEl;
   var fetchIndexData        = config.fetchIndexData;
+  var renderIndexScaffold   = config.renderIndexScaffold;
   var renderIndex           = config.renderIndex;
   var loadCycle             = config.loadCycle;
   var getDetailScrollTarget = config.getDetailScrollTarget;
   var restoreTab            = config.restoreTab;
   var trackPageViewed       = config.trackPageViewed;
   var onIndexError          = config.onIndexError;
+  var onPartialError        = config.onPartialError;
+
+  // T-load-4a — atomic single-mode migration. renderIndexScaffold is required.
+  if (typeof renderIndexScaffold !== 'function') {
+    throw new Error('initViewSwitcher: renderIndexScaffold is required (T-load-4a contract)');
+  }
 
   var tokenCounter = 0;
   var indexScrollY = 0;
@@ -712,17 +742,36 @@ function initViewSwitcher(config) {
       trackPageViewed('index');
 
       var myToken = ++tokenCounter;
+      // T-load-4a — scaffold first, hydrate after. Show index elements +
+      // render scaffold BEFORE awaiting so the user sees structural
+      // placeholders during the fetch window instead of header-and-nothing.
+      var promises = fetchIndexData();
+      indexElements.forEach(show);
+      renderIndexScaffold();
+      requestAnimationFrame(function() {
+        window.scrollTo(0, indexScrollY);
+        indexElements.forEach(reveal);
+      });
       try {
-        var data = await fetchIndexData();
+        var keys = Object.keys(promises);
+        var resolved = await Promise.all(keys.map(function(k){ return promises[k]; }));
         if (myToken !== tokenCounter) return; // newer transition started
-        indexElements.forEach(show);
+        // Strip 'P' suffix from promise keys for the resolved data shape.
+        var data = {};
+        keys.forEach(function(k, i) { data[k.replace(/P$/, '')] = resolved[i]; });
         renderIndex(data);
-        requestAnimationFrame(function() {
-          window.scrollTo(0, indexScrollY);
-          indexElements.forEach(reveal);
-        });
       } catch(err) {
-        onIndexError(err);
+        if (myToken !== tokenCounter) return; // newer transition started
+        // Scaffold was rendered (sync, before await). If page provides a
+        // partial-error handler (resolves skeletons to dashes + .tab-error
+        // retry), use it. Else fall through to onIndexError (escape-hatch
+        // path — hides scaffold and shows page-level error per pre-T-load-4a
+        // behavior; partial-retry deferred to T-load-4c).
+        if (typeof onPartialError === 'function') {
+          onPartialError(err);
+        } else {
+          onIndexError(err);
+        }
       }
     }
   }

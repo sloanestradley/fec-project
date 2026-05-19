@@ -1449,3 +1449,57 @@ test.describe('committee.html — T-load-3 stats-grid skeletons', () => {
     await expect(page.locator('#cstat-history')).toHaveText(/^\d{4}([–\-]\d{4})?$/);
   });
 });
+
+// ── T-load-4a: progressive cycle-index hydration ──────────────────────────────
+// committee.html — cstat-history is entity-hydrated immediately at scaffold time
+// (no /totals/ dependency). Career raised/spent cells use skeletons until
+// /totals/ resolves. Empty-cycle case (c.cycles=[]) renders inline-status-msg
+// "No filing cycles on record." instead of cycle-row scaffold.
+test.describe('committee.html — T-load-4a progressive cycle-index', () => {
+  test('cstat-history is hydrated from entity at scaffold time (no skeleton, real text)', async ({ page }) => {
+    await setupIndex(page);
+    // cstat-history rendered from entity dates (committee data is in scope before any await on /totals/)
+    await expect(page.locator('#cstat-history .skeleton')).toHaveCount(0);
+    await expect(page.locator('#cstat-history')).toHaveText(/^\d{4}([–\-]\d{4})?$/);
+  });
+
+  test('career-strip raised/spent cells replace skeletons with values after /totals/ resolves', async ({ page }) => {
+    await setupIndex(page);
+    await expect(page.locator('#cstat-career-raised .skeleton')).toHaveCount(0);
+    await expect(page.locator('#cstat-career-spent .skeleton')).toHaveCount(0);
+    await expect(page.locator('#cstat-career-raised')).toHaveText(/\$[\d,.]+[MK]?|—/);
+  });
+
+  test('empty-cycle committee (c.cycles=[]) renders "No filing cycles on record." inside #cycle-index', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Override /committee/{id}/ to return a committee with empty cycles array
+    await page.route('**/api/fec/committee/C00775668/?**', (route) => {
+      route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          results: [{
+            committee_id: 'C00775668',
+            name: 'TEST EMPTY-CYCLES COMMITTEE',
+            committee_type: 'H',
+            designation: 'P',
+            filing_frequency: 'Q',
+            state: 'WA',
+            cycles: [],
+            first_file_date: '2026-01-15',
+            last_file_date: '2026-01-15',
+          }],
+          pagination: { count: 1 },
+        }),
+      });
+    });
+    await page.goto(COMMITTEE_INDEX_URL);
+    await page.waitForSelector('#cycle-index.visible', { timeout: 12000 });
+    // Empty-state copy rendered inside #cycle-index
+    const emptyMsg = page.locator('#cycle-index .inline-status-msg');
+    await expect(emptyMsg).toBeVisible();
+    await expect(emptyMsg).toHaveText('No filing cycles on record.');
+    // No cycle-row elements
+    await expect(page.locator('#cycle-index a.cycle-row')).toHaveCount(0);
+  });
+});
