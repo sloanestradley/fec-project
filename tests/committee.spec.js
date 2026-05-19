@@ -816,8 +816,12 @@ test.describe('committee.html — in-place transitions', () => {
     await page.evaluate(() => { window.location.hash = '#2024#summary'; });
     await page.evaluate(() => { window.location.hash = '#2022#summary'; });
     await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    // Wait for actual money value (e.g. "$2.1M"), not just "not dash". After
+    // T-load-3 + T-load-4a, cycle-switch reset path inserts a skeleton span
+    // into #stat-raised — textContent is "" during that window, which the
+    // older "!== '—'" predicate matched truthy.
     await page.waitForFunction(
-      () => { const el = document.getElementById('stat-raised'); return el && el.textContent !== '—'; },
+      () => { const el = document.getElementById('stat-raised'); return el && /\$/.test(el.textContent); },
       { timeout: 12000 }
     );
     await expect(page).toHaveURL(/#2022#summary/);

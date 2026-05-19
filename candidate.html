@@ -437,10 +437,14 @@ var usTopoCache          = null;
 var CAND_PARTY           = null;
 var committeesLoaded     = false;
 var CAND_NAME            = null;
+// T-history-retire (2026-05-19) — career-wide first-file date stashed from
+// the entity call so renderIndexFromData can read it without a separate
+// /history/ fetch. Same source as the prior /history/.first_file_date.
+var CAND_FIRST_FILE_DATE = null;
 // T-load-4a — in-flight-promise caching (mirrors committee.html post-T-load-1).
-// fetchIndexData returns these promises directly; helper does Promise.all.
-// Clearing on retry: nullify the rejected promise so the next call re-fires.
-var cachedHistoryP      = null;  // /history/ promise — reused on detail→index back-navigation
+// fetchIndexData returns the totals promise; helper does Promise.all over the
+// single-key shape. Clearing on retry: nullify the rejected promise so the
+// next call re-fires.
 var cachedAllTotalsP    = null;  // /totals/?per_page=100 promise — reused on detail→index back-navigation
 var compactHeaderInited = false; // compact scroll listener registered once on first detail entry
 var compactThreshold    = 0;     // scrollY at which compact mode engages; set in initCompactHeader()
@@ -2124,10 +2128,10 @@ function retryIndexTotals() {
   cachedAllTotalsP = null;
   var myToken = view.claimToken();
   renderIndexScaffold(); // restore skeleton state
-  Promise.all([fetchHistory(), fetchAllTotals()])
-    .then(function(res) {
+  fetchAllTotals()
+    .then(function(totalsRes) {
       if (!view.isCurrentToken(myToken)) return;
-      renderIndexFromData(res[0], res[1]);
+      renderIndexFromData(totalsRes);
     })
     .catch(function(err) {
       if (!view.isCurrentToken(myToken)) return;
@@ -2142,44 +2146,36 @@ document.addEventListener('click', function(e) {
 
 // ── Index view data processor ─────────────────────────────────────────────────
 // Called by the helper's renderIndex callback after fetchIndexData resolves.
-function renderIndexFromData(histJson, allTotalsJson) {
-  var histData   = histJson.results && histJson.results[0];
+// T-history-retire (2026-05-19) — signature simplified from (histJson, allTotalsJson)
+// to (allTotalsJson); /history/ retired. cstat-history start year reads from
+// CAND_FIRST_FILE_DATE (stashed from entity at init time — same upstream source
+// as the previous histData.first_file_date). Cycle list reads ALL_CYCLES
+// directly (entity-sourced — sample verified entity.election_years matches
+// history.election_years identically across H/S/P candidates including
+// Senate special-election cycles).
+function renderIndexFromData(allTotalsJson) {
   var fullTotals = (allTotalsJson.results || []).filter(function(r) { return r.election_full; });
   var totalsMap  = {};
   fullTotals.forEach(function(r) { totalsMap[r.candidate_election_year] = r; });
-  var historyCycles = histData && histData.election_years
-    ? histData.election_years
-    : (histData && histData.cycles ? histData.cycles : []);
-  var indexCycles = historyCycles.length
-    ? historyCycles.slice().sort(function(a,b){return b-a;})
-    : ALL_CYCLES;
-  var allCyclesSet = new Set(ALL_CYCLES);
-  historyCycles.forEach(function(y) {
-    if (!allCyclesSet.has(y)) console.warn('[candidate] history.election_years has ' + y + ' not in ALL_CYCLES');
-  });
-  var idxFirstFiledYear = histData && histData.first_file_date
-    ? String(histData.first_file_date).slice(0, 4)
-    : null;
+  var idxFirstFiledYear = CAND_FIRST_FILE_DATE ? String(CAND_FIRST_FILE_DATE).slice(0, 4) : null;
   renderHistoryStrip(idxFirstFiledYear, fullTotals);
-  renderCycleIndex(indexCycles, totalsMap, CAND_OFFICE);
+  renderCycleIndex(ALL_CYCLES, totalsMap, CAND_OFFICE);
 }
 
 // ── View switcher callbacks ──────────────────────────────────────────────────
-// Index data fetchers — T-load-4a — in-flight-promise caching so the helper's
-// scaffold-then-hydrate flow has both promises available sync at scaffold time.
-// Duplicate callers (e.g. back-navigation) all await the same promise.
-function fetchHistory() {
-  if (!cachedHistoryP) cachedHistoryP = apiFetch('/candidate/' + CANDIDATE_ID + '/history/', { per_page: 1 });
-  return cachedHistoryP;
-}
+// Index data fetcher — T-load-4a in-flight-promise caching so the helper's
+// scaffold-then-hydrate flow has the promise available sync at scaffold time;
+// duplicate callers (e.g. back-navigation) all await the same promise.
+// T-history-retire (2026-05-19) — /history/ retired; only /totals/?per_page=100
+// remains. fetchIndexData returns a single-key object; helper does Promise.all
+// over the single value and strips 'P' suffix from the key before passing to
+// renderIndex callback.
 function fetchAllTotals() {
   if (!cachedAllTotalsP) cachedAllTotalsP = apiFetch('/candidate/' + CANDIDATE_ID + '/totals/', { per_page: 100 });
   return cachedAllTotalsP;
 }
-// Helper-compatible — returns object of promises. Helper does Promise.all and
-// strips 'P' suffix from keys before passing to renderIndex callback.
 function fetchIndexData() {
-  return { histP: fetchHistory(), totalsP: fetchAllTotals() };
+  return { totalsP: fetchAllTotals() };
 }
 
 // ── Init ────────────────────────────────────────────
@@ -2228,6 +2224,7 @@ async function init() {
     CAND_DIST   = cand.district || '';
     CAND_OFFICE = cand.office   || 'H';
     CAND_PARTY  = cand.party    || '';
+    CAND_FIRST_FILE_DATE = cand.first_file_date || null;
     ALL_CYCLES  = (cand.election_years || []).slice().sort(function(a,b){ return b-a; });
     if (!ALL_CYCLES.length) throw new Error('No election years found for this candidate');
 
@@ -2291,7 +2288,7 @@ async function init() {
       mainEl: document.querySelector('.main'),
       fetchIndexData: fetchIndexData,
       renderIndexScaffold: renderIndexScaffold,
-      renderIndex: function(data) { renderIndexFromData(data.hist, data.totals); },
+      renderIndex: function(data) { renderIndexFromData(data.totals); },
       onPartialError: onPartialError,
       loadCycle: loadCycle,
       getDetailScrollTarget: function(indexScrollY) {

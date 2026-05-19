@@ -1083,16 +1083,28 @@ test.describe('candidate.html — archive threshold (House pre-2008)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
-    // Override /history/ to include a pre-2008 cycle
-    await page.route('**/api/fec/candidate/**history**', route => {
+    // T-history-retire (2026-05-19) — cycle list is sourced from entity.election_years
+    // now (was /history/.election_years pre-retirement). Override the entity response
+    // to inject a pre-2008 cycle for archive-threshold testing.
+    await page.route(/\/api\/fec\/candidate\/[^/]+\/(?!.*\/)/, route => {
+      // Match /candidate/{id}/ (entity), not /candidate/{id}/totals/, /committees/, etc.
+      // The lookahead (?!.*\/) excludes URLs with further path segments after the id.
       route.fulfill({
         status: 200, contentType: 'application/json',
         body: JSON.stringify({
           results: [{
             candidate_id: 'H2WA03217',
+            name: 'GLUESENKAMP PEREZ, MARIE',
+            office: 'H',
+            state: 'WA',
+            district: '03',
+            party: 'DEM',
+            party_full: 'Democratic Party',
+            election_years: [2024, 2006],
             cycles: [2024, 2006],
             first_file_date: '2004-01-01',
             last_file_date: '2024-10-15',
+            active_through: 2024,
           }],
           pagination: { count: 1 },
         }),
@@ -1297,8 +1309,13 @@ test.describe('candidate.html — in-place transitions', () => {
     await page.evaluate(() => { window.location.hash = '#2024#summary'; });
     await page.evaluate(() => { window.location.hash = '#2022#summary'; });
     await page.waitForSelector('#tabs-bar.visible', { timeout: 12000 });
+    // Wait for actual money value (e.g. "$2.2M"), not just "not dash". After
+    // T-load-3 + T-load-4a, cycle-switch reset path inserts a skeleton span
+    // into #stat-raised — textContent is "" during that window, which the
+    // older "!== '—'" predicate matched truthy, causing flaky failures under
+    // heavy parallel load (2026-05-19).
     await page.waitForFunction(
-      () => { const el = document.getElementById('stat-raised'); return el && el.textContent !== '—'; },
+      () => { const el = document.getElementById('stat-raised'); return el && /\$/.test(el.textContent); },
       { timeout: 12000 }
     );
     const raisedText = await page.locator('#stat-raised').textContent();
@@ -1886,5 +1903,37 @@ test.describe('candidate.html — T-load-4a progressive cycle-index', () => {
     // Tab-error gone, real values hydrated
     await page.waitForSelector('#cycle-index .tab-error', { state: 'detached', timeout: 12000 });
     await expect(page.locator('#cstat-career-raised')).not.toHaveText('—');
+  });
+});
+
+// ── T-history-retire: /candidate/{id}/history/ is no longer called ─────────
+// Architectural retirement (strategy/history-retirement.md). Verified that
+// every field candidate.html previously read from /history/ is also returned
+// by the entity endpoint with identical values across the sample (including
+// Gillibrand's 2010 special-election cycle). These tests lock the absence of
+// the /history/ call so a future regression that reintroduces it gets caught.
+test.describe('candidate.html — T-history-retire regression lock', () => {
+  test('/candidate/{id}/history/ is NOT called on cycle-index landing', async ({ page }) => {
+    let historyCalled = false;
+    page.on('request', (req) => {
+      if (/\/api\/fec\/candidate\/[^/]+\/history\//.test(req.url())) historyCalled = true;
+    });
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#cycle-index.visible', { timeout: 12000 });
+    expect(historyCalled).toBe(false);
+  });
+
+  test('/candidate/{id}/history/ is NOT called on cycle-detail landing', async ({ page }) => {
+    let historyCalled = false;
+    page.on('request', (req) => {
+      if (/\/api\/fec\/candidate\/[^/]+\/history\//.test(req.url())) historyCalled = true;
+    });
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+    expect(historyCalled).toBe(false);
   });
 });
