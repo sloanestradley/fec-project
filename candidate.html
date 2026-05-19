@@ -1701,55 +1701,56 @@ async function loadCycle(cycle) {
   document.getElementById('stat-cycle').textContent = cycle;
 
   try {
-    // ── Step 1: committees + totals for all sub-cycles in parallel ──
+    // ── Step 1: committees + election-aggregated totals in parallel ──
+    // T-loadcycle-single-fetch (2026-05-19) — was N parallel /totals/?cycle={sc}
+    // calls iterated and summed client-side (1 for H, 2 for P, 3 for S). Now a
+    // single /totals/?cycle={cycle}&election_full=true call returns FEC's own
+    // pre-aggregated record. Data parity verified across H/S/P samples:
+    // receipts, disbursements, last_cash_on_hand_end_period, coverage_end_date,
+    // debt fields, and all 13 breakdown receipt fields + 5 disbursement
+    // breakdown fields are identical between approaches. subCycles is kept in
+    // scope for Step 2 (chart per-period reports) and the Raised/Spent kickoffs
+    // which still need per-subcycle granularity.
     var subCycles = getSubCycles(cycle);
-    var fetchArgs = [apiFetch('/candidate/'+CANDIDATE_ID+'/committees/', { cycle: cycle })]
-      .concat(subCycles.map(function(sc) {
-        return apiFetch('/candidate/'+CANDIDATE_ID+'/totals/', { cycle: sc })
-               .catch(function(){ return { results: [] }; });
-      }));
-    var fetchResults = await Promise.all(fetchArgs);
+    var fetchResults = await Promise.all([
+      apiFetch('/candidate/'+CANDIDATE_ID+'/committees/', { cycle: cycle }),
+      apiFetch('/candidate/'+CANDIDATE_ID+'/totals/', { cycle: cycle, election_full: true })
+        .catch(function(){ return { results: [] }; }),
+    ]);
     if (!view.isCurrentToken(myFetchId)) return; // discard: a newer cycle was requested
-    var committees   = fetchResults[0].results || [];
-    var allTotalsArr = fetchResults.slice(1);
-    var principal    = committees.find(function(c){ return c.designation==='P'; }) || committees[0];
+    var committees = fetchResults[0].results || [];
+    var totalsRec  = (fetchResults[1].results || [])[0] || {};
+    var principal  = committees.find(function(c){ return c.designation==='P'; }) || committees[0];
 
-    // Sum raised/spent across sub-cycles; COH/debt/covDate from most recent only
-    var raised = 0, spent = 0, coh = 0, debt = 0, covDate = null;
+    // Extract from the single FEC election-aggregated record. The empty-data
+    // case (totalsRec = {}) coalesces all per-field reads to 0 / null.
+    var raised  = totalsRec.receipts || 0;
+    var spent   = totalsRec.disbursements || 0;
+    var coh     = totalsRec.last_cash_on_hand_end_period || 0;
+    var debt    = (totalsRec.loans_received || 0) + (totalsRec.debts_owed_by_committee || 0);
+    var covDate = totalsRec.coverage_end_date ? totalsRec.coverage_end_date.split('T')[0] : null;
     var totalsBreakdown = {
-      individual_itemized_contributions: 0,
-      individual_unitemized_contributions: 0,
-      other_political_committee_contributions: 0,
-      political_party_committee_contributions: 0,
-      transfers_from_other_authorized_committee: 0,
-      candidate_contribution: 0,
-      other_receipts: 0,
-      loans_made_by_candidate: 0,
-      all_other_loans: 0,
-      federal_funds: 0,
-      offsets_to_operating_expenditures: 0,
-      offsets_to_fundraising_expenditures: 0,
-      offsets_to_legal_accounting: 0
+      individual_itemized_contributions:           totalsRec.individual_itemized_contributions || 0,
+      individual_unitemized_contributions:         totalsRec.individual_unitemized_contributions || 0,
+      other_political_committee_contributions:     totalsRec.other_political_committee_contributions || 0,
+      political_party_committee_contributions:     totalsRec.political_party_committee_contributions || 0,
+      transfers_from_other_authorized_committee:   totalsRec.transfers_from_other_authorized_committee || 0,
+      candidate_contribution:                      totalsRec.candidate_contribution || 0,
+      other_receipts:                              totalsRec.other_receipts || 0,
+      loans_made_by_candidate:                     totalsRec.loans_made_by_candidate || 0,
+      all_other_loans:                             totalsRec.all_other_loans || 0,
+      federal_funds:                               totalsRec.federal_funds || 0,
+      offsets_to_operating_expenditures:           totalsRec.offsets_to_operating_expenditures || 0,
+      offsets_to_fundraising_expenditures:         totalsRec.offsets_to_fundraising_expenditures || 0,
+      offsets_to_legal_accounting:                 totalsRec.offsets_to_legal_accounting || 0,
     };
     var disbursementsBreakdown = {
-      operating_expenditures: 0,
-      transfers_to_other_authorized_committee: 0,
-      loan_repayments_made: 0,
-      contribution_refunds: 0,
-      other_disbursements: 0
+      operating_expenditures:                  totalsRec.operating_expenditures || 0,
+      transfers_to_other_authorized_committee: totalsRec.transfers_to_other_authorized_committee || 0,
+      loan_repayments_made:                    totalsRec.loan_repayments_made || 0,
+      contribution_refunds:                    totalsRec.contribution_refunds || 0,
+      other_disbursements:                     totalsRec.other_disbursements || 0,
     };
-    allTotalsArr.forEach(function(r, i) {
-      var t = (r.results||[])[0]; if (!t) return;
-      raised += t.receipts||0;
-      spent  += t.disbursements||0;
-      Object.keys(totalsBreakdown).forEach(function(k){ totalsBreakdown[k] += t[k] || 0; });
-      Object.keys(disbursementsBreakdown).forEach(function(k){ disbursementsBreakdown[k] += t[k] || 0; });
-      if (i === allTotalsArr.length - 1) {
-        coh     = t.last_cash_on_hand_end_period||0;
-        debt    = (t.loans_received||0) + (t.debts_owed_by_committee||0);
-        covDate = t.coverage_end_date ? t.coverage_end_date.split('T')[0] : null;
-      }
-    });
 
     // ── Step 2: fetch reports, deadlines, elections independently ──
     // Each is wrapped in its own try/catch so one failure doesn't kill the page.

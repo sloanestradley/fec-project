@@ -1937,3 +1937,25 @@ test.describe('candidate.html — T-history-retire regression lock', () => {
     expect(historyCalled).toBe(false);
   });
 });
+
+// ── T-loadcycle-single-fetch: loadCycle fires one totals call, not N ─────
+// Architectural simplification. Was N parallel /totals/?cycle={sc} calls
+// iterated and summed client-side (1 for H, 2 for P, 3 for S). Now a single
+// /totals/?cycle={cycle}&election_full=true call returns FEC's pre-aggregated
+// record. Data parity verified across H/S/P samples on 2026-05-19; this test
+// locks the architectural decision.
+test.describe('candidate.html — T-loadcycle-single-fetch regression lock', () => {
+  test('cycle-detail fires exactly one /totals/?cycle= call (election_full=true)', async ({ page }) => {
+    let totalsCalls = 0;
+    page.on('request', (req) => {
+      // Match cycle-specific totals call (e.g. /totals/?cycle=2024&election_full=true);
+      // excludes the index view's /totals/?per_page=100 (no cycle param).
+      if (/\/api\/fec\/candidate\/[^/]+\/totals\/\?.*\bcycle=/.test(req.url())) totalsCalls++;
+    });
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+    expect(totalsCalls).toBe(1);
+  });
+});
