@@ -950,6 +950,13 @@ div.cycle-row {
      the viewport. Rows keep their 16px horizontal padding from the base
      rule (uniform desktop + mobile internal breathing room). */
   #cycle-index { padding-left:0; padding-right:0; }
+  /* T-load-4a — the partial-data .tab-error block rendered inside #cycle-index
+     has a visible border. Without margin-left/right, the border touches the
+     viewport edge on mobile (other .tab-error instances inherit page-gutter
+     padding from their .profile-content ancestor — this one doesn't, since
+     #cycle-index zeros its own padding on mobile per the rule above). Scoped
+     mobile rule keeps the existing instances untouched. */
+  #cycle-index .tab-error { margin-left:var(--page-gutter); margin-right:var(--page-gutter); }
   /* .tabs-bar pseudo-element border: zero the gutter inset so the navy line
      goes edge-to-edge on mobile, matching the other bordered children.
      Strip its internal breathing room too — on mobile, tabs sit at the

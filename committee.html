@@ -660,7 +660,7 @@ function onPartialError(err) {
   var threshold = ARCHIVE_MIN_YEAR_COMMITTEE;
   var container = document.getElementById('cycle-index');
   var rateLimit = is429(err);
-  var msg = rateLimit ? TAB_ERROR_RATE_LIMIT_MSG : '⚠ Unable to load financial totals.';
+  var msg = rateLimit ? TAB_ERROR_RATE_LIMIT_MSG : '⚠ Unable to load cycle totals';
   var html = '<div class="tab-error">'
     + '<span class="tab-error-msg">' + msg + '</span>';
   if (!rateLimit) {
