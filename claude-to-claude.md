@@ -5446,3 +5446,73 @@ Sloane explicitly asked for the closing audit. The grep sweep found two real gap
 - **Recency-as-tiebreaker pattern.** The off-office PCC rule needs office-mismatch AND most-recently-active as the resolver. Same two-signal shape might apply elsewhere — the associated-candidate selection on committee.html (which currently picks the first candidate_id arbitrarily and gets it wrong for Rubio) is the obvious next case. Worth banking as a generalizable pattern when scoping committee.html work.
 
 - **Strategy doc for committees modal evolution.** This session iterated the modal three times in one arc. Worth a strategy doc capturing where the modal stands now (always-paired tabs as stable foundation, height jump accepted, JFA filter union, off-office tag) and what's banked for future evolution (orphan asterisk, off-office to committee.html, possible tab-pattern rethink, recency-fix to assoc-section).
+
+---
+2026-05-19 — T-load-1 skeleton profile-header (investigation + strategy doc + implementation + production verification)
+
+## Process log draft
+
+**Skeleton, not silence — what the cold-cache numbers actually said**
+
+The session opened as an investigation: why does the profile-header sit at opacity:0 for "multiple seconds" after a fresh page load? Two questions framed it — regression or longstanding inefficiency, and what's the minimum change to decouple the reveal from the broader fetch chain. By the time the measurement snippet returned numbers from production, both framings had collapsed into a third: it's neither regression nor coupling-bug. It's FEC API cold-cache latency (43-second `/committee/{id}/`, 14-second `/totals/`, 8.6-second `/history/` all observed in production) showing up as a blank page with a loader for seconds, because there's no structural content under the loader to communicate "loading something specific."
+
+The original ticket would have shipped a Promise.all split on committee.html — architecturally correct, ~50ms warm-cache win, invisible to users. Rescoped to Path B-full: skeleton header from first paint, 10s "still loading" + 30s retry affordance reusing T12 primitives at page scope, Promise.all split bundled as a prerequisite. The minimal skeleton (two gray rectangles, 60%/40% widths, no per-tag detail) shipped on the bet that simpler shapes don't risk hydration jolt — verified clean in production this morning. The elaborate-skeleton fallback was banked in the strategy doc but never triggered.
+
+Changelog:
+- Skeleton spans from first paint inside `#candidate-name` (60%/1em) and `#meta-row` (40%/1.2rem) on both profile pages
+- `#state-msg` relocated below the profile-header (was above); initial "Fetching… from FEC" text retired — skeleton communicates loading structurally
+- `initPageLoadingTimers(stateMsgEl)` helper in utils.js — adapts T12's `.section-state-msg` (10s) and `.tab-error`/`.retry-btn` (30s) to page scope; returns `{clear}`; both pages call clear on entity-resolve AND in the catch
+- committee.html `fetchIndexData` split into `fetchEntity()`/`fetchAllTotals()` with in-flight-promise caching (`cachedMetaP`/`cachedTotalsP`) so init()'s skeleton-hydration path and the helper's renderIndex path share the same underlying apiFetch calls. init() awaits entity → renders header → awaits totals → continues
+- Error branches (no-ID, catch) hide the profile-header so skeleton doesn't contradict the error UI in `#state-msg`
+- 9 new Playwright tests: skeleton in initial HTML, hydration replaces skeleton, state-msg hidden on success (timer-clear locked), no display:none on header in initial HTML, committee Promise.all split timing (header reveals before /totals/ resolves even when /totals/ delayed 1500ms)
+- Tests 554 → 563 net; verified live on all four production URLs (candidate cycle-detail/index, committee cycle-detail/index)
+
+Field notes:
+The investigation-then-measurement combo had distinct value. Code trace alone told me the reveal mechanism on candidate.html was already decoupled — Path A literally has no effect on candidate.html, only marginal on committee.html. Measurement gave the actual latency numbers and the actual symptom shape. Either signal alone would have led to a less-targeted fix; both together rescoped the ticket correctly.
+
+The in-flight-promise caching pattern (`cachedMetaP`/`cachedTotalsP`) is worth banking. Caching resolved values has a race: two parallel callers can both fire the apiFetch before either sets the cached value. Caching the promise itself means parallel callers all await the same in-flight call — no duplicate fetch, no race. The pattern generalizes anywhere you have multiple async entry points that should share a fetch.
+
+The proxy-caching question came up twice — banked in the doc, then explicitly removed at Sloane's call. "Proxy caching introduces a staleness window that's a data-engineering trade I don't want to design around right now." Right scope discipline: T-load-1 is a pure UX fix using shipped patterns; bolting on a separate architectural concern would have muddied the ticket and forced staleness decisions that aren't ready. Worth remembering as a pattern: when an "obvious" follow-up actually opens a different conversation, it doesn't belong banked in the current doc.
+
+The measurement pass surfaced a third option to the "regression vs longstanding inefficiency" dichotomy: longstanding but freshly visible. The T-nav-scroll arc didn't touch the reveal code, but after T-nav-scroll's revert the page is quieter on load — no nav animation, no distracting motion — which makes the static loader text more noticeable. The code didn't get worse; the surrounding context made the existing slowness more salient. Worth banking as a debugging frame: "feels slower" can be a perception change driven by adjacent work, not a code-level regression. Trace before assuming.
+
+Stack tags: in-flight-promise caching (`cachedMetaP`/`cachedTotalsP`) for duplicate-fetch elimination across parallel async entry points · page-scope adaptation of T12 section-scope primitives (`.section-state-msg`, `.tab-error`, `.retry-btn`) via shared utils.js helper · skeleton at page-header level (60%/40% minimal placeholders, no per-tag detail) · skeleton-doesn't-contradict-error principle (hide header in error branches) · "freshly visible but longstanding" as a third debugging framing distinct from regression-vs-inefficiency
+
+## How Sloane steered the work
+
+**"Don't push doc-only commits in advance."**
+The strategy doc landed in two commits over yesterday's session, but Sloane gated the push behind work completion: "implementation is the goal. Push doc + implementation commits together as a single beat when the work is complete." That sequencing intent kept the strategy doc from going live as an incomplete-state artifact and ensured the public record (origin/main) only shows the finished arc. Worth banking as a discipline.
+
+**Three doc-review carries, with the third reshaping scope.**
+Three small things to address in the implementation prompt: (1) skeleton dimensions as reasonable defaults not specs, (2) 10s/30s thresholds inherited from T12, (3) "the current state-msg 'Fetching…' text retires entirely." The third was substantive — it caught a sentence in the strategy doc that said "the state-msg toggle stays in place" and corrected the implementation direction without editing the doc. The supersedes-call landed in the EXECUTED banner. Banking: doc-internal sentences can drift during scoping; carry the correction into the implementation prompt rather than re-editing the doc.
+
+**Proxy-caching removal — explicit scope discipline.**
+The strategy doc draft included a "durable follow-up: proxy caching at functions/api/fec/[[path]].js" section, framed T-load-1 as the defensive solution and proxy caching as the offensive counterpart. Sloane removed it entirely: "proxy caching introduces a staleness window that's a data-engineering trade I don't want to design around right now. The skeleton + progressive feedback work is a pure UX fix using patterns we've already shipped — that's the right scope to bank in this doc." Right call. The follow-up was technically true but mixed two different concerns; surfacing it diluted the doc. Worth banking: when an "obvious" follow-up opens a different conversation, leaving it out of the current doc keeps both concerns clean.
+
+**Path B over my Path A recommendation.**
+After the measurement returned numbers, my initial framing was Path A (ship the Promise.all split as documented, defer load-state UX to T-load-3/4). Sloane corrected: "The Promise.all fix is correct but cosmetic compared to the actual latency problem. A skeleton header addresses what Sloane is observing." That's the difference between architectural-correctness and product-correctness. Path A would have shipped a passing-tests-but-invisible fix; Path B addressed the symptom. Banked: when the small fix is correct but doesn't address the observed symptom, the bigger reshape is usually the right answer.
+
+**Implementation-prompt review pass even with a strategy doc.**
+"After that, scope the implementation prompt from sections 1-5 and surface it for review before coding starts (diagnostic-first cadence applies — even though the strategy doc is the diagnostic, the implementation prompt itself benefits from one review pass)." The implementation prompt surfaced five clarification questions that the strategy doc didn't pre-empt (state-msg position verification, 30s retry hide-on-success, race-context-bar skeleton verification, flex-parent layout, timer-clear paths). The five-minute review pass produced five concrete answers the code committed to before any line was written. Banked: even with a strategy doc, the implementation prompt is the diagnostic-first checkpoint for execution-level decisions.
+
+**The Playwright test for timer-clear paths.**
+Clarification #5 was about tracing the timer-clear paths carefully so the "still loading" message doesn't flicker on every normal load. Sloane added: "Worth adding a structural Playwright test asserting 'timer cleared in both success and catch paths' to lock the behavior. A missed clear path would mean the 'still loading' message flickers on every normal load — worse than today." That test went in. Banked: when a small bug could degrade UX worse than the pre-fix state, lock the prevention structurally even if the code looks obviously right.
+
+**The verification pass actually ran.**
+Yesterday's commit shipped the implementation; today's verification pass ran the live check on all four production URLs and confirmed working. That's the discipline T-nav-scroll surfaced — "tests green + commits shipped" is not "done"; production eyeball is the actual ship gate. The minimal skeleton design held up; elaborate-skeleton fallback didn't trigger.
+
+**Through-line:** Sloane steers for the version that does what the symptom needs, not what the code suggests. The investigation pattern is reflexive, the scope discipline is automatic, the production verification is the actual ship gate. Every redirect in this session was Sloane noticing that "technically correct" and "actually addresses the problem" had drifted apart, and pulling the work back to the second.
+
+## What to bring to Claude Chat
+
+- **T-load-3 / T-load-4 are the natural follow-ups.** Stats-grid skeleton placeholders (T-load-3) and cycle-index loading state (T-load-4) were explicitly out of scope for T-load-1. The "header into emptiness" UX concern raised during investigation — skeleton header reveals into a still-loading stats-grid — becomes T-load-3's surface to address. Now that the page-header skeleton pattern is shipped and reads cleanly in production, T-load-3 has a primitive to lean on. Worth scoping when the next polish window opens.
+
+- **The proxy-caching conversation, deliberately separate.** Banked from this session per Sloane's explicit call. Cold-cache 43s entity latency was observed in production; T-load-1 addresses the user-facing symptom defensively (looks loading, not broken), but the underlying latency remains. The data-staleness trade vs. UX benefit is a different conversation — when it happens, it's a strategy doc of its own, not a T-load-1 follow-up. Worth keeping on the radar without forcing it now.
+
+- **Elaborate-skeleton fallback, banked but not triggered.** Production verification didn't surface hydration jolt or meta-row width-shift issues. If real user traffic surfaces either, the path is documented in the strategy doc (per-tag placeholders, width-matched skeletons, hydration animation). Worth keeping the bank intact in case feedback comes.
+
+- **The 10s/30s timer behavior is untested in real cold-cache traffic.** Warm-cache loads resolve before 10s every time, so verification only covered structural correctness (tests). The Playwright slow-API simulation tests at @slow tag cover the logic, but the actual copy ("Still loading — the FEC API can be slow during high-traffic periods.") hasn't been seen by a real user yet. If a real cold-cache session hits the threshold and the copy reads wrong, that's a small follow-up.
+
+- **The "freshly visible but longstanding" debugging framing.** The investigation surfaced that the perceived "feels slower now" wasn't a regression — it was longstanding architecture that became more salient after T-nav-scroll's revert removed adjacent motion. Worth banking as a third frame distinct from "regression" or "longstanding inefficiency" when diagnosing future user-perception complaints. The trace before fixing discipline applies double when the symptom is "feels" — could be code or could be context.
+
+- **Implementation-prompt review pass as a project pattern.** This session surfaced that even with a strategy doc as diagnostic, the implementation prompt benefits from a separate review pass. The five clarification questions in this session's prompt produced concrete decisions before any line was coded, and the implementation landed in one commit with no rework. Worth formalizing as project practice: strategy doc → implementation prompt → review → code.
