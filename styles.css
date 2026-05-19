@@ -233,7 +233,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
    map container loading + error fallbacks on profile pages, and empty-state
    notes inside content sections. Body family/size aligns with .tab-error-msg
    and .retry-btn so state messaging reads as a coherent family. */
-.section-state-msg { font-size:0.75rem; color:var(--muted);
+.inline-status-msg { font-size:0.75rem; color:var(--muted);
   text-align:center; padding:var(--space-16) 0; }
 /* Per-tier inline error UI with retry */
 .tab-error { display:flex; align-items:center; justify-content:center; gap:var(--space-16);

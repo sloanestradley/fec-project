@@ -742,8 +742,8 @@ function initViewSwitcher(config) {
 // understood action). Both timers cleared on entity-resolve OR on catch-branch;
 // state-msg hidden again on success (self-healing if 10s already fired).
 //
-// Visual treatments reuse T12 primitives (.section-state-msg, .retry-btn)
-// adapted at page scope. Thresholds match T12's .section-state-msg 10s timer.
+// Visual treatments reuse T12 primitives (.inline-status-msg, .retry-btn)
+// adapted at page scope. Thresholds match T12's .inline-status-msg 10s timer.
 //
 // stateMsgEl — the #state-msg DOM element (each page positions it after the
 //   profile-header in document flow so messages appear below the skeleton).
@@ -755,7 +755,7 @@ function initPageLoadingTimers(stateMsgEl) {
     stateMsgEl.innerHTML = html;
   }
   var stillLoadingT = setTimeout(function() {
-    show('<div class="section-state-msg">Still loading — the FEC API can be slow during high-traffic periods.</div>');
+    show('<div class="inline-status-msg">Still loading — the FEC API can be slow during high-traffic periods.</div>');
   }, 10000);
   var retryT = setTimeout(function() {
     show('Loading is taking longer than expected. <button class="retry-btn" type="button" onclick="location.reload()">Try again</button>');
