@@ -129,15 +129,15 @@
         <div class="stats-grid-half" style="--cols:3">
           <div class="stat-card">
             <div class="stat-label">Raised</div>
-            <div class="stat-value" id="stat-raised">—</div>
+            <div class="stat-value" id="stat-raised"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Spent</div>
-            <div class="stat-value" id="stat-spent">—</div>
+            <div class="stat-value" id="stat-spent"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Cash on Hand</div>
-            <div class="stat-value" id="stat-coh">—</div>
+            <div class="stat-value" id="stat-coh"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
             <div class="stat-sub" id="stat-coh-sub"></div>
           </div>
         </div>
@@ -158,17 +158,17 @@
         <div class="stats-grid-half" style="--cols:1">
           <div class="stat-card">
             <div class="stat-label">History</div>
-            <div class="stat-value" id="cstat-history">—</div>
+            <div class="stat-value" id="cstat-history"><span class="skeleton" style="width:6ch;height:2rem"></span></div>
           </div>
         </div>
         <div class="stats-grid-half" style="--cols:2">
           <div class="stat-card">
             <div class="stat-label">Lifetime Raised</div>
-            <div class="stat-value" id="cstat-career-raised">—</div>
+            <div class="stat-value" id="cstat-career-raised"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Lifetime Spent</div>
-            <div class="stat-value" id="cstat-career-spent">—</div>
+            <div class="stat-value" id="cstat-career-spent"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
           </div>
         </div>
       </div>
@@ -594,6 +594,18 @@ async function init() {
   }
 
   history.scrollRestoration = 'manual';
+
+  // T-load-3 — sync hash-write for #stat-cycle. Committee cycle values are
+  // pure URL-hash derivations (startYear = cycle - 1), so we can populate
+  // the cycle card before any await rather than seeding a skeleton that
+  // resolves through renderStats. renderStats's eventual write (line ~949)
+  // remains the source of truth on cycle-switch; this is just first-paint
+  // hydration. No-op on bare URL (NaN cycle) — index view doesn't show
+  // #stat-cycle anyway (it lives in #summary-strip which is detail-only).
+  var initialHashCycle = parseInt((window.location.hash.replace(/^#/, '').split('#')[0] || ''), 10);
+  if (initialHashCycle > 0) {
+    document.getElementById('stat-cycle').textContent = (initialHashCycle - 1) + '–' + initialHashCycle;
+  }
 
   // T-load-1 — reveal skeleton header from first paint; start 10s/30s
   // page-level loading timers so cold-cache entity-call latency surfaces

@@ -1396,3 +1396,56 @@ test.describe('committee.html — T-load-1 skeleton header', () => {
     await expect(page.locator('#committee-name')).not.toHaveText('—');
   });
 });
+
+// ── T-load-3: skeleton stats-grid placeholders ─────────────────────────────
+// Verifies skeletons are structurally present in the served HTML for the
+// raised/spent/coh detail cells and the career-strip index cells. #stat-cycle
+// is excluded from skeleton seeding — it gets a sync URL-hash write in init()
+// before any await, so the cell renders with its real value at first paint.
+test.describe('committee.html — T-load-3 stats-grid skeletons', () => {
+  test('cycle-detail stat cells (raised/spent/coh) have skeleton spans in initial HTML', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/committee.html');
+    const html = await response.text();
+    expect(html).toMatch(/id="stat-raised"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="stat-spent"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="stat-coh"><span class="skeleton"[^>]*><\/span><\/div>/);
+  });
+
+  test('#stat-cycle has no skeleton in initial HTML (sync URL-hash write)', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/committee.html');
+    const html = await response.text();
+    expect(html).not.toMatch(/id="stat-cycle"><span class="skeleton"/);
+    // Initial HTML still carries literal '—'; overwritten sync in init() before any await
+    expect(html).toMatch(/id="stat-cycle">—<\/div>/);
+  });
+
+  test('#stat-cycle hydrates synchronously from URL hash (cycle value present without awaiting any fetch)', async ({ page }) => {
+    await setupDetail(page);
+    await expect(page.locator('#stat-cycle .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-cycle')).toHaveText('2023–2024');
+  });
+
+  test('cycle-detail stat cells replaced by real values after totals resolve', async ({ page }) => {
+    await setupDetail(page);
+    await expect(page.locator('#stat-raised .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-spent .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-coh .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-raised')).toHaveText(/\$[\d,.]+[MK]?|—/);
+  });
+
+  test('cycle-index career cells have skeleton spans in initial HTML', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/committee.html');
+    const html = await response.text();
+    expect(html).toMatch(/id="cstat-history"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="cstat-career-raised"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="cstat-career-spent"><span class="skeleton"[^>]*><\/span><\/div>/);
+  });
+
+  test('cycle-index career cells replaced by real values after index resolves', async ({ page }) => {
+    await setupIndex(page);
+    await expect(page.locator('#cstat-history .skeleton')).toHaveCount(0);
+    await expect(page.locator('#cstat-career-raised .skeleton')).toHaveCount(0);
+    await expect(page.locator('#cstat-career-spent .skeleton')).toHaveCount(0);
+    await expect(page.locator('#cstat-history')).toHaveText(/^\d{4}([–\-]\d{4})?$/);
+  });
+});

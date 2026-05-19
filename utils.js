@@ -768,6 +768,17 @@ function initPageLoadingTimers(stateMsgEl) {
   };
 }
 
+// ── Stats-grid skeleton helper (T-load-3) ───────────────────────────────────
+// Renders a .skeleton span sized in ch units (scales with font) at 2rem height
+// (matches .stat-value font-size). Used to (1) re-seed skeletons on cycle-switch
+// in candidate.html's loadCycle reset, and (2) factor out the inline span
+// markup so the same shape isn't duplicated across pages.
+function setStatSkeleton(id, widthCh) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '<span class="skeleton" style="width:' + widthCh + 'ch;height:2rem"></span>';
+}
+
 // ── Tab section helper ──────────────────────────────────────────────────────
 // Wires WAI-ARIA tabs behavior on a `.tab-section` root: click + keyboard
 // activation (←/→ wrap, Home/End, Enter/Space), aria-selected + roving

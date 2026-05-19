@@ -127,27 +127,27 @@
             </button>
             <div class="stat-card-body">
               <div class="stat-label">Cycle</div>
-              <div class="stat-value" id="stat-cycle">—</div>
+              <div class="stat-value" id="stat-cycle"><span class="skeleton" style="width:6ch;height:2rem"></span></div>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Raised:Spent ratio</div>
-            <div class="stat-value" id="stat-ratio">—</div>
+            <div class="stat-value" id="stat-ratio"><span class="skeleton" style="width:4ch;height:2rem"></span></div>
             <div class="stat-sub" id="stat-ratio-sub"></div>
           </div>
         </div>
         <div class="stats-grid-half" style="--cols:3">
           <div class="stat-card">
             <div class="stat-label">Raised</div>
-            <div class="stat-value" id="stat-raised">—</div>
+            <div class="stat-value" id="stat-raised"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Spent</div>
-            <div class="stat-value" id="stat-spent">—</div>
+            <div class="stat-value" id="stat-spent"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Cash on Hand</div>
-            <div class="stat-value" id="stat-coh">—</div>
+            <div class="stat-value" id="stat-coh"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
             <div class="stat-sub" id="stat-coh-sub"></div>
           </div>
         </div>
@@ -178,17 +178,17 @@
         <div class="stats-grid-half" style="--cols:1">
           <div class="stat-card">
             <div class="stat-label">History</div>
-            <div class="stat-value" id="cstat-history">—</div>
+            <div class="stat-value" id="cstat-history"><span class="skeleton" style="width:6ch;height:2rem"></span></div>
           </div>
         </div>
         <div class="stats-grid-half" style="--cols:2">
           <div class="stat-card">
             <div class="stat-label">Career Raised</div>
-            <div class="stat-value" id="cstat-career-raised">—</div>
+            <div class="stat-value" id="cstat-career-raised"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Career Spent</div>
-            <div class="stat-value" id="cstat-career-spent">—</div>
+            <div class="stat-value" id="cstat-career-spent"><span class="skeleton" style="width:5ch;height:2rem"></span></div>
           </div>
         </div>
       </div>
@@ -1675,16 +1675,17 @@ async function loadCycle(cycle) {
       + '</span>';
   }
 
-  // Reset stats to em-dash while loading. #stat-cycle is set synchronously
-  // below from the cycle param (no fetch needed) so the new cycle's range
-  // shows immediately on cycle-switch transitions — otherwise the prior
-  // cycle's range sits in the DOM during the await window. Sub-lines that
-  // can hold derived values from the previous cycle (#stat-coh-sub,
-  // #stat-ratio-sub) are reset to defaults so they don't carry stale data
-  // when the new cycle resolves to no-data or different state.
-  ['stat-raised','stat-spent','stat-coh','stat-ratio'].forEach(function(id) {
-    document.getElementById(id).textContent = '—';
-  });
+  // Reset stats to skeletons while loading (T-load-3). #stat-cycle is set
+  // synchronously below from the cycle param (no fetch needed) so the new
+  // cycle's range shows immediately on cycle-switch transitions — no skeleton
+  // for that cell. Sub-lines that can hold derived values from the previous
+  // cycle (#stat-coh-sub, #stat-ratio-sub) are reset to defaults so they
+  // don't carry stale data when the new cycle resolves to no-data or
+  // different state.
+  setStatSkeleton('stat-raised', 5);
+  setStatSkeleton('stat-spent',  5);
+  setStatSkeleton('stat-coh',    5);
+  setStatSkeleton('stat-ratio',  4);
   document.getElementById('stat-ratio').style.color = '';
   document.getElementById('stat-coh-sub').textContent = '';
   var ratioSubReset = document.getElementById('stat-ratio-sub');
@@ -1884,6 +1885,13 @@ async function loadCycle(cycle) {
         (covDate ? ' Coverage through '+fmtDate(covDate)+'.' : '')+
         ' Raised-to-spent = total receipts ÷ total disbursements. Data updated nightly by FEC.';
     } else {
+      // T-load-3 — empty cycle (no filings). Resolve skeletons to dashes so
+      // they don't pulse forever. FEC convention: absence of activity returns
+      // no record, not a $0 record; dash correctly represents "no data for
+      // this cycle" in this convention.
+      ['stat-raised','stat-spent','stat-coh','stat-ratio'].forEach(function(id) {
+        document.getElementById(id).textContent = '—';
+      });
       document.getElementById('data-note').innerHTML = 'No financial filings found for the '+cycle+' cycle.';
     }
 

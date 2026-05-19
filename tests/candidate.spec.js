@@ -1729,3 +1729,50 @@ test.describe('candidate.html — T-load-1 skeleton header', () => {
     expect(html).not.toMatch(/id="profile-header"[^>]*style="display:none/);
   });
 });
+
+// ── T-load-3: skeleton stats-grid placeholders ─────────────────────────────
+// Verifies skeletons are structurally present in the served HTML for both
+// cycle-detail and cycle-index stat cells, hydrate cleanly after their
+// respective resolves, and the cycle-switch reset path re-seeds skeletons
+// during the loadCycle await window.
+test.describe('candidate.html — T-load-3 stats-grid skeletons', () => {
+  test('cycle-detail stat cells have skeleton spans in initial HTML', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/candidate.html');
+    const html = await response.text();
+    expect(html).toMatch(/id="stat-cycle"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="stat-raised"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="stat-spent"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="stat-coh"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="stat-ratio"><span class="skeleton"[^>]*><\/span><\/div>/);
+  });
+
+  test('cycle-detail stat cells replaced by real values after loadCycle resolves', async ({ page }) => {
+    await setupWithContent(page);
+    await expect(page.locator('#stat-cycle .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-raised .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-spent .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-coh .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-ratio .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-cycle')).toHaveText(/^\d{4}[–\-]\d{4}$/);
+    await expect(page.locator('#stat-raised')).toHaveText(/\$[\d,.]+[MK]?/);
+  });
+
+  test('cycle-index career cells have skeleton spans in initial HTML', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/candidate.html');
+    const html = await response.text();
+    expect(html).toMatch(/id="cstat-history"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="cstat-career-raised"><span class="skeleton"[^>]*><\/span><\/div>/);
+    expect(html).toMatch(/id="cstat-career-spent"><span class="skeleton"[^>]*><\/span><\/div>/);
+  });
+
+  test('cycle-index career cells replaced by real values after index resolves', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    await expect(page.locator('#cstat-history .skeleton')).toHaveCount(0);
+    await expect(page.locator('#cstat-career-raised .skeleton')).toHaveCount(0);
+    await expect(page.locator('#cstat-career-spent .skeleton')).toHaveCount(0);
+    await expect(page.locator('#cstat-history')).toHaveText(/^\d{4}([–\-]\d{4})?$/);
+  });
+});
