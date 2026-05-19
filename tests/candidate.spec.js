@@ -133,10 +133,10 @@ test.describe('candidate.html — profile header', () => {
     expect(new URL(page.url()).hash).toBe('');
   });
 
-  test('#stat-cycle shows cycle year-range on detail view (T14.5)', async ({ page }) => {
+  test('#stat-cycle shows election year on detail view (T-cycle-semantics, was T14.5)', async ({ page }) => {
     await setupWithContent(page);
     const cycleText = await page.locator('#stat-cycle').textContent();
-    expect(cycleText?.trim()).toMatch(/^\d{4}[–\-]\d{4}$/);
+    expect(cycleText?.trim()).toMatch(/^\d{4}$/);
   });
 
   test('Cycle card is hidden in cycle-index state (T14.5)', async ({ page }) => {
@@ -275,10 +275,10 @@ test.describe('candidate.html — health banner', () => {
     await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
   });
 
-  test('first stat card is Cycle (T14)', async ({ page }) => {
+  test('first stat card is Election (T-cycle-semantics, was T14)', async ({ page }) => {
     await setupWithContent(page);
     const firstLabel = page.locator('#summary-strip .stats-grid .stat-card').first().locator('.stat-label');
-    await expect(firstLabel).toHaveText('Cycle');
+    await expect(firstLabel).toHaveText('Election');
   });
 
   test('#summary-strip precedes #tabs-bar in the DOM (T21 contract)', async ({ page }) => {
@@ -1050,9 +1050,9 @@ test.describe('candidate.html — landing state (index view)', () => {
     expect(href).toMatch(/#\d{4}#summary/);
   });
 
-  test('cycle row labels contain a year range with en-dash', async ({ page }) => {
+  test('cycle row labels contain a single election year (T-cycle-semantics)', async ({ page }) => {
     const label = await page.locator('#cycle-index a.cycle-row .cycle-row-label').first().textContent();
-    expect(label?.trim()).toMatch(/^\d{4}[\u2013\-]\d{4}$/);
+    expect(label?.trim()).toMatch(/^\d{4}$/);
   });
 
   test('#committees-trigger is visible in index view', async ({ page }) => {
@@ -1736,14 +1736,23 @@ test.describe('candidate.html — T-load-1 skeleton header', () => {
 // respective resolves, and the cycle-switch reset path re-seeds skeletons
 // during the loadCycle await window.
 test.describe('candidate.html — T-load-3 stats-grid skeletons', () => {
-  test('cycle-detail stat cells have skeleton spans in initial HTML', async ({ page }) => {
+  test('cycle-detail stat cells have skeleton spans in initial HTML (#stat-cycle excluded — sync hash-write)', async ({ page }) => {
     const response = await page.context().request.get('http://localhost:8080/candidate.html');
     const html = await response.text();
-    expect(html).toMatch(/id="stat-cycle"><span class="skeleton"[^>]*><\/span><\/div>/);
+    // #stat-cycle has no skeleton — value derivable sync from URL hash (T-cycle-semantics)
+    expect(html).not.toMatch(/id="stat-cycle"><span class="skeleton"/);
+    expect(html).toMatch(/id="stat-cycle">—<\/div>/);
     expect(html).toMatch(/id="stat-raised"><span class="skeleton"[^>]*><\/span><\/div>/);
     expect(html).toMatch(/id="stat-spent"><span class="skeleton"[^>]*><\/span><\/div>/);
     expect(html).toMatch(/id="stat-coh"><span class="skeleton"[^>]*><\/span><\/div>/);
     expect(html).toMatch(/id="stat-ratio"><span class="skeleton"[^>]*><\/span><\/div>/);
+  });
+
+  test('#stat-cycle is hydrated synchronously from URL hash (T-cycle-semantics)', async ({ page }) => {
+    await mockAmplitude(page);
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    await expect(page.locator('#stat-cycle .skeleton')).toHaveCount(0);
+    await expect(page.locator('#stat-cycle')).toHaveText('2024');
   });
 
   test('cycle-detail stat cells replaced by real values after loadCycle resolves', async ({ page }) => {
@@ -1753,7 +1762,7 @@ test.describe('candidate.html — T-load-3 stats-grid skeletons', () => {
     await expect(page.locator('#stat-spent .skeleton')).toHaveCount(0);
     await expect(page.locator('#stat-coh .skeleton')).toHaveCount(0);
     await expect(page.locator('#stat-ratio .skeleton')).toHaveCount(0);
-    await expect(page.locator('#stat-cycle')).toHaveText(/^\d{4}[–\-]\d{4}$/);
+    await expect(page.locator('#stat-cycle')).toHaveText(/^\d{4}$/);
     await expect(page.locator('#stat-raised')).toHaveText(/\$[\d,.]+[MK]?/);
   });
 

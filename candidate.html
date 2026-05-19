@@ -126,8 +126,8 @@
               </svg>
             </button>
             <div class="stat-card-body">
-              <div class="stat-label">Cycle</div>
-              <div class="stat-value" id="stat-cycle"><span class="skeleton" style="width:6ch;height:2rem"></span></div>
+              <div class="stat-label">Election</div>
+              <div class="stat-value" id="stat-cycle">—</div>
             </div>
           </div>
           <div class="stat-card">
@@ -1691,7 +1691,7 @@ async function loadCycle(cycle) {
   var ratioSubReset = document.getElementById('stat-ratio-sub');
   ratioSubReset.textContent = '';
   ratioSubReset.className = 'stat-sub';
-  document.getElementById('stat-cycle').textContent = (cycle - getCycleSpanYears() + 1) + '–' + cycle;
+  document.getElementById('stat-cycle').textContent = cycle;
 
   try {
     // ── Step 1: committees + totals for all sub-cycles in parallel ──
@@ -1976,8 +1976,8 @@ function renderHistoryStrip(firstFiledYear, fullTotals) {
   document.getElementById('cstat-career-spent').textContent  = careerSpent  ? fmt(careerSpent)  : '—';
 }
 
-function cycleRowHTML(year, raised, spent, coh, isArchive, startYear) {
-  var label = (startYear || year - 1) + '\u2013' + year;
+function cycleRowHTML(year, raised, spent, coh, isArchive) {
+  var label = String(year);
   if (isArchive) {
     return '<div class="cycle-row cycle-row--archive" tabindex="-1">'
       + '<span class="cycle-row-label">' + label + '</span>'
@@ -2000,7 +2000,7 @@ function renderCycleIndex(cycles, totalsMap, office) {
   var threshold = ARCHIVE_MIN_YEAR[office] || 2008;
   var container = document.getElementById('cycle-index');
   var html = '<div class="cycle-index-header">'
-    + '<span>Cycle</span>'
+    + '<span>Election</span>'
     + '<span style="text-align:right">Raised</span>'
     + '<span class="cycle-row-spent-col" style="text-align:right">Spent</span>'
     + '<span style="text-align:right">Cash on Hand</span>'
@@ -2013,13 +2013,6 @@ function renderCycleIndex(cycles, totalsMap, office) {
     var raised = t ? fmt(t.receipts || 0) : '—';
     var spent  = t ? fmt(t.disbursements || 0) : '—';
     var coh    = t ? fmt(t.last_cash_on_hand_end_period || 0) : '—';
-    // Derive cycle start year from coverage_start_date (API-sourced, handles Senate 6yr spans
-    // and special elections). If coverage starts in the election year itself (first-cycle
-    // candidate who filed mid-period), normalize to year-1 to match the FEC 2-year period.
-    var startYear = t && t.coverage_start_date
-      ? parseInt(String(t.coverage_start_date).slice(0, 4), 10)
-      : year - 1;
-    if (startYear >= year) startYear = year - 1;
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
       var officeLabel = { H:'House', S:'Senate', P:'Presidential' }[office] || 'House';
@@ -2028,7 +2021,7 @@ function renderCycleIndex(cycles, totalsMap, office) {
         + 'FEC coverage begins ' + threshold + ' for ' + officeLabel + ' races.</span>'
         + '</div>';
     }
-    html += cycleRowHTML(year, raised, spent, coh, isArchive, startYear);
+    html += cycleRowHTML(year, raised, spent, coh, isArchive);
   });
   container.innerHTML = html;
 }
@@ -2087,6 +2080,17 @@ async function init() {
     return;
   }
   history.scrollRestoration = 'manual';
+
+  // T-cycle-semantics — sync hash-write for #stat-cycle. Single-year election
+  // label is derivable from URL hash alone; populate before any await so the
+  // cycle card displays its value at first paint on detail-URL loads.
+  // loadCycle's eventual write (line ~1693) remains the source of truth on
+  // cycle-switch; this is first-paint hydration. No-op on bare URL (NaN cycle)
+  // — index view doesn't show #stat-cycle (lives in #summary-strip, detail-only).
+  var initialHashCycle = parseInt((window.location.hash.replace(/^#/, '').split('#')[0] || ''), 10);
+  if (initialHashCycle > 0) {
+    document.getElementById('stat-cycle').textContent = initialHashCycle;
+  }
 
   // T-load-1 — reveal skeleton header from first paint; start 10s/30s
   // page-level loading timers so cold-cache entity-call latency surfaces
