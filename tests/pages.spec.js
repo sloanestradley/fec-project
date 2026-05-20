@@ -294,12 +294,6 @@ test.describe('candidates.html', () => {
     await page.goto('/candidates.html');
   });
 
-  test('"Candidates" nav item is active', async ({ page }) => {
-    const active = page.locator('.top-nav .nav-link.active');
-    const text = await active.first().textContent();
-    expect(text?.trim()).toContain('Candidates');
-  });
-
   test('Page Viewed fires with page: candidates', async ({ page }) => {
     const event = await findTrackEvent(page, 'Page Viewed');
     expect(event).toBeDefined();
@@ -424,12 +418,6 @@ test.describe('committees.html', () => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.goto('/committees.html');
-  });
-
-  test('"Committees" nav item is active', async ({ page }) => {
-    const active = page.locator('.top-nav .nav-link.active');
-    const text = await active.first().textContent();
-    expect(text?.trim()).toContain('Committees');
   });
 
   test('Page Viewed fires with page: committees', async ({ page }) => {

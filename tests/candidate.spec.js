@@ -964,17 +964,6 @@ test.describe('candidate.html — Amplitude events', () => {
   });
 });
 
-// ── Nav active state ──────────────────────────────────────────────────────────
-
-test.describe('candidate.html — nav active state', () => {
-  test('"Candidates" nav item is active (profile activates parent browse)', async ({ page }) => {
-    await setup(page);
-    const activeItem = page.locator('.top-nav .nav-link.active');
-    const text = await activeItem.first().textContent();
-    expect(text?.trim()).toContain('Candidates');
-  });
-});
-
 // ── API correctness ───────────────────────────────────────────────────────────
 
 test.describe('candidate.html — API correctness', () => {

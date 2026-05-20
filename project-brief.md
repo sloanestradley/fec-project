@@ -39,7 +39,8 @@ A visual, non-partisan tool for answering one question fast: *where is money flo
 ## MVP Requirements
 
 ### Global Navigation
-- Navigation links: Home, Candidates, Committees, Races (present from launch as stubs; activated as pages are built per phase plan)
+- Navigation links: Races, Feed (the curated/contextual experiences); Search is the discovery layer via the inline search bar
+- The `/candidates` and `/committees` browse pages remain live but are search-extension surfaces — reachable from search results' "View all" affordances and direct URLs, not via the top nav (decision: T-IA-candidate-committees-nav-removal, 2026-05-20)
 - Search exposed in nav across all pages
 - **Mobile nav:** at smaller breakpoints, search remains accessible via a search icon exposed left of the hamburger menu icon — search does not collapse into the drawer
 

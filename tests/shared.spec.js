@@ -31,25 +31,25 @@ const PAGES = [
   {
     name: 'candidates.html',
     url: '/candidates.html',
-    activeNavText: 'Candidates',
+    activeNavText: null,
     needsApiMock: true,
   },
   {
     name: 'candidate.html',
     url: '/candidate.html?id=H2WA03217',
-    activeNavText: 'Candidates',
+    activeNavText: null,
     needsApiMock: true,
   },
   {
     name: 'committees.html',
     url: '/committees.html',
-    activeNavText: 'Committees',
+    activeNavText: null,
     needsApiMock: true,
   },
   {
     name: 'committee.html',
     url: '/committee.html?id=C00775668',
-    activeNavText: 'Committees',
+    activeNavText: null,
     needsApiMock: true,
   },
   {
@@ -106,15 +106,16 @@ for (const pageConfig of PAGES) {
       await expect(script).toHaveCount(1);
     });
 
-    test('top nav has four main nav links', async ({ page }) => {
+    test('top nav has two main nav links', async ({ page }) => {
       const topNav = page.locator('.top-nav');
       await expect(topNav).toBeVisible();
       // Scope to .top-nav-links (desktop) — mobile nav is inside .top-nav so each link appears twice in total
       const desktopLinks = topNav.locator('.top-nav-links');
-      await expect(desktopLinks.locator('a[href*="candidates"]')).toHaveCount(1);
-      await expect(desktopLinks.locator('a[href*="committees"]')).toHaveCount(1);
       await expect(desktopLinks.locator('a[href*="races"]')).toHaveCount(1);
       await expect(desktopLinks.locator('a[href*="feed"]')).toHaveCount(1);
+      // Candidates and Committees removed from nav (T-IA-candidate-committees-nav-removal)
+      await expect(desktopLinks.locator('a[href="/candidates"]')).toHaveCount(0);
+      await expect(desktopLinks.locator('a[href="/committees"]')).toHaveCount(0);
     });
 
     test('top nav is present in DOM', async ({ page }) => {
@@ -170,12 +171,13 @@ for (const pageConfig of PAGES) {
       expect(result).toBe(true);
     });
 
-    test('mobile nav has four links', async ({ page }) => {
+    test('mobile nav has two links', async ({ page }) => {
       const mobileNav = page.locator('#mobile-nav');
-      await expect(mobileNav.locator('a[href*="candidates"]')).toHaveCount(1);
-      await expect(mobileNav.locator('a[href*="committees"]')).toHaveCount(1);
       await expect(mobileNav.locator('a[href*="races"]')).toHaveCount(1);
       await expect(mobileNav.locator('a[href*="feed"]')).toHaveCount(1);
+      // Candidates and Committees removed from nav (T-IA-candidate-committees-nav-removal)
+      await expect(mobileNav.locator('a[href="/candidates"]')).toHaveCount(0);
+      await expect(mobileNav.locator('a[href="/committees"]')).toHaveCount(0);
     });
 
     test('.global-banner precedes .top-nav in the DOM', async ({ page }) => {

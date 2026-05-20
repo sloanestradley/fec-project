@@ -44,12 +44,6 @@ async function setupIndex(page) {
 test.describe('committee.html — detail view', () => {
   test.beforeEach(async ({ page }) => { await setupDetail(page); });
 
-  test('"Committees" nav item is active (profile activates parent)', async ({ page }) => {
-    const active = page.locator('.top-nav .nav-link.active');
-    const text = await active.first().textContent();
-    expect(text?.trim()).toContain('Committees');
-  });
-
   test('Page Viewed fires with page: committee and view: detail', async ({ page }) => {
     const event = await findTrackEvent(page, 'Page Viewed');
     expect(event).toBeDefined();
@@ -115,11 +109,6 @@ test.describe('committee.html — detail view', () => {
       if (text?.match(/\$[\d,.]+/) && text !== '$0') hasNonZeroDollar = true;
     }
     expect(hasNonZeroDollar).toBe(true);
-  });
-
-  test('committees link is present in nav', async ({ page }) => {
-    const backLink = page.locator('.top-nav a[href*="committees"]').first();
-    await expect(backLink).toBeAttached();
   });
 
   test('committee content area is present', async ({ page }) => {

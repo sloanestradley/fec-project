@@ -29,7 +29,7 @@
 *Items marked ✅ are covered by automated tests (`npx playwright test`). Run manual checks for the rest.*
 
 - [ ] ✅ `styles.css` and `main.js` both linked
-- [ ] ✅ Top nav present with 4 main nav links (Candidates, Committees, Races, Feed)
+- [ ] ✅ Top nav present with 2 main nav links (Races, Feed)
 - [ ] ✅ Mobile search toggle present
 - [ ] ✅ Nav active state is correct for this page
 - [ ] ✅ Page background is warm parchment (not dark or white)
@@ -95,7 +95,7 @@
 - [ ] Archive divider copy includes "FEC coverage begins YEAR for [Office] races"
 
 ### Nav active state
-- [ ] "Candidates" nav item is active (profile page activates parent browse)
+- [ ] ✅ No nav link is active (T-IA-candidate-committees-nav-removal: candidate profile no longer activates a parent browse)
 
 ### Amplitude events
 - [ ] `Page Viewed` fires with properties: `page`, `candidate_id`, `candidate_name`, `cycle`
@@ -314,7 +314,7 @@
 *(C00806174 = Marie for Congress, MGP's principal committee — verified active with real filings)*
 
 ### Nav active state
-- [ ] "Committees" nav item is active (profile page activates parent browse)
+- [ ] ✅ No nav link is active (T-IA-candidate-committees-nav-removal: committee profile no longer activates a parent browse)
 
 ### Amplitude events
 - [ ] `Page Viewed` fires with `page: 'committee'` and `committee_id` property

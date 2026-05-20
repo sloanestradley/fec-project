@@ -34,8 +34,6 @@ The global nav is a top nav (`.top-nav`) — not a sidebar. It was refactored fr
 FECLedger (logo → /)        [top-nav-logo]
 
 Nav links (desktop, always visible)
-├── Candidates  → /candidates   (browse landing)
-├── Committees  → /committees   (browse landing)
 ├── Races       → /races        (browse landing)
 └── Feed        → /feed         (filing feed)
 
@@ -47,20 +45,20 @@ Mobile controls (hidden at desktop)
 └── Hamburger → opens .mobile-nav drawer
 
 Mobile nav drawer (.mobile-nav)
-├── Candidates
-├── Committees
 ├── Races
 └── Feed
 ```
 
-Search, Process Log, and Design System are **not** nav link items. Search is accessible via the inline search bar (desktop) or search toggle (mobile). Process Log and Design System have no nav presence.
+Top-level nav exposes only the curated/contextual experiences (Races + Feed). **Search, Candidates browse, Committees browse, Process Log, Design System, and all profile pages are not nav link items.** Search is accessible via the inline search bar (desktop) or search toggle (mobile); the `/candidates` and `/committees` browse pages are reached from search results' "View all" affordances or directly via URL.
 
 **Active state logic:**
-- Browse landing pages (`candidates.html`, `committees.html`, `races.html`, `feed.html`) activate their own nav item
-- Profile pages (`candidate.html`, `committee.html`, `race.html`) activate their parent section's nav item (Candidates, Committees, Races respectively)
-- `search.html`, `process-log.html`, `design-system.html` have no active nav link
+- Browse landing pages in nav (`races.html`, `feed.html`) activate their own nav item
+- `race.html` activates its parent (`Races`) — the only profile→parent activation that survived T-IA-candidate-committees-nav-removal (2026-05-20)
+- All other pages (candidate.html, committee.html, candidates.html, committees.html, search.html, process-log.html, design-system.html) have no active nav link
 
-**Mobile nav:** Three main items (Candidates, Committees, Races) in the drawer. Search toggle icon always visible left of the hamburger in the mobile header — search does not collapse into the drawer.
+**Active state rendering:** The `.nav-link.active` / `.nav-item.active` CSS rules currently match the base text color — the active class is a **structural marker** for tests and a reservation for future visual treatment, but renders no visible difference today.
+
+**Mobile nav:** Two main items (Races, Feed) in the drawer. Search toggle icon always visible left of the hamburger in the mobile header — search does not collapse into the drawer.
 
 ---
 
