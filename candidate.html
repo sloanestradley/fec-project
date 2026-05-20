@@ -209,8 +209,12 @@
               <div class="legend-item"><div class="legend-swatch" style="background:var(--chart-coh)"></div>Cash on Hand</div>
             </div>
           </div>
-          <div style="position:relative;width:100%;min-width:0;">
+          <div id="chart-area" style="position:relative;width:100%;min-width:0;height:320px">
             <canvas id="chart-timeline"></canvas>
+            <div id="chart-skeleton" class="skeleton" style="position:absolute;inset:0"></div>
+            <div id="chart-error" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center">
+              <span class="inline-status-msg" style="padding:0">⚠ Unable to load chart</span>
+            </div>
           </div>
           <div id="overspend-note" style="display:none" class="callout">
             ⚠ Disbursements exceed receipts this cycle — this campaign spent beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.
@@ -675,6 +679,13 @@ function assessHealth(raised, spent, coh, debt) {
 // linear for COH.
 // Overlay: subtle vertical line at today (active cycles only).
 function renderChart(reports, cycle) {
+  // T-load-4b — clear loading state (skeleton overlay + chart-area height
+  // floor), reveal the chart canvas underneath. Container's inline height
+  // clears so Chart.js sizes the canvas to its natural aspect ratio without
+  // the 320px floor constraining it.
+  document.getElementById('chart-skeleton').style.display = 'none';
+  document.getElementById('chart-error').style.display = 'none';
+  document.getElementById('chart-area').style.height = '';
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 
   // X-axis: full election cycle span (H=2yr, S=6yr, P=4yr)
@@ -1700,6 +1711,13 @@ async function loadCycle(cycle) {
   ratioSubReset.className = 'stat-sub';
   document.getElementById('stat-cycle').textContent = cycle;
 
+  // T-load-4b — chart-card reset. Re-overlay the skeleton on top of the
+  // previous cycle's chart (hidden underneath) and restore the 320px height
+  // floor for the new cycle's await window. renderChart's top reverses this.
+  document.getElementById('chart-skeleton').style.display = '';
+  document.getElementById('chart-error').style.display = 'none';
+  document.getElementById('chart-area').style.height = '320px';
+
   try {
     // ── Step 1: committees + election-aggregated totals in parallel ──
     // T-loadcycle-single-fetch (2026-05-19) — was N parallel /totals/?cycle={sc}
@@ -1936,6 +1954,11 @@ async function loadCycle(cycle) {
   } catch(err) {
     document.getElementById('data-note').innerHTML = '⚠ Error loading cycle data: '+err.message;
     console.error('loadCycle error:', err);
+    // T-load-4b — chart-card error resolution. Hide skeleton, show inline
+    // error message in the chart-area. Without this, the skeleton overlay
+    // would pulse forever next to the data-note's error text.
+    document.getElementById('chart-skeleton').style.display = 'none';
+    document.getElementById('chart-error').style.display = 'flex';
     // T12.5 — bridge init-stage failures to the tab-error UI. Without this, the
     // Raised/Spent kickoffs never fired (they sit after the await that threw),
     // so their .then chain never resolves and skeletons hold forever. Mark

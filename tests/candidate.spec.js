@@ -1959,3 +1959,53 @@ test.describe('candidate.html — T-loadcycle-single-fetch regression lock', () 
     expect(totalsCalls).toBe(1);
   });
 });
+
+// ── T-load-4b: chart-card skeleton + error overlay ────────────────────────
+// Skeleton overlays the canvas during cycle-detail loading; hidden by
+// renderChart on resolve. Cycle-switch reset path re-overlays during the new
+// cycle's await window. Catch branch resolves to inline "Unable to load chart"
+// message rather than leaving the skeleton pulsing forever.
+test.describe('candidate.html — T-load-4b chart-card skeleton', () => {
+  test('chart-skeleton + chart-error overlays present in initial HTML; canvas in normal flow', async ({ page }) => {
+    const response = await page.context().request.get('http://localhost:8080/candidate.html');
+    const html = await response.text();
+    expect(html).toMatch(/id="chart-area"[^>]*height:320px/);
+    expect(html).toMatch(/id="chart-skeleton" class="skeleton"/);
+    expect(html).toMatch(/id="chart-error"[^>]*display:none/);
+  });
+
+  test('chart-skeleton hidden after renderChart resolves; canvas visible', async ({ page }) => {
+    await setupWithContent(page);
+    // renderChart fires at the end of loadCycle; wait for skeleton hide
+    await page.waitForFunction(() => {
+      const sk = document.getElementById('chart-skeleton');
+      return sk && sk.style.display === 'none';
+    }, { timeout: 12000 });
+    await expect(page.locator('#chart-timeline')).toBeVisible();
+    await expect(page.locator('#chart-error')).toBeHidden();
+    // chart-area's inline height:320px floor cleared (Chart.js sizes canvas naturally)
+    const areaHeight = await page.locator('#chart-area').evaluate(el => el.style.height);
+    expect(areaHeight).toBe('');
+  });
+
+  test('loadCycle catch resolves chart-skeleton to "Unable to load chart"', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Force loadCycle's catch branch by failing /committees/?cycle= (not /totals/,
+    // which has its own .catch fallback inside the Promise.all and doesn't trigger).
+    await page.route(/\/api\/fec\/candidate\/[^/]+\/committees\/\?cycle=/, route => {
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+    // Wait for catch to fire (data-note shows error) — confirms loadCycle reached catch
+    await page.waitForFunction(() => {
+      const dn = document.getElementById('data-note');
+      return dn && /Error loading cycle data/.test(dn.textContent);
+    }, { timeout: 12000 });
+    // Skeleton hidden, error visible with the inline-status-msg copy
+    await expect(page.locator('#chart-skeleton')).toBeHidden();
+    await expect(page.locator('#chart-error')).toBeVisible();
+    await expect(page.locator('#chart-error')).toContainText('Unable to load chart');
+  });
+});
