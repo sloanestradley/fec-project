@@ -17,71 +17,19 @@ import { mockFecApi } from './helpers/api-mock.js';
 /**
  * Each entry describes a page and its expected shared state.
  *
- * activeNavText: the nav item that should have `.active` at this URL.
- *   Profile pages activate their parent browse page's nav item (per ia.md).
  * needsApiMock: true if the page auto-fetches API data on load.
  */
 const PAGES = [
-  {
-    name: 'search.html',
-    url: '/search.html',
-    activeNavText: null,
-    needsApiMock: false,
-  },
-  {
-    name: 'candidates.html',
-    url: '/candidates.html',
-    activeNavText: null,
-    needsApiMock: true,
-  },
-  {
-    name: 'candidate.html',
-    url: '/candidate.html?id=H2WA03217',
-    activeNavText: null,
-    needsApiMock: true,
-  },
-  {
-    name: 'committees.html',
-    url: '/committees.html',
-    activeNavText: null,
-    needsApiMock: true,
-  },
-  {
-    name: 'committee.html',
-    url: '/committee.html?id=C00775668',
-    activeNavText: null,
-    needsApiMock: true,
-  },
-  {
-    name: 'races.html',
-    url: '/races.html',
-    activeNavText: 'Races',
-    needsApiMock: true,
-  },
-  {
-    name: 'race.html',
-    url: '/race.html?state=WA&district=03&year=2024&office=H',
-    activeNavText: 'Races',
-    needsApiMock: true,
-  },
-  {
-    name: 'feed.html',
-    url: '/feed.html',
-    activeNavText: 'Feed',
-    needsApiMock: true,
-  },
-  {
-    name: 'process-log.html',
-    url: '/process-log.html',
-    activeNavText: null,
-    needsApiMock: false,
-  },
-  {
-    name: 'design-system.html',
-    url: '/design-system.html',
-    activeNavText: null,
-    needsApiMock: false,
-  },
+  { name: 'search.html', url: '/search.html', needsApiMock: false },
+  { name: 'candidates.html', url: '/candidates.html', needsApiMock: true },
+  { name: 'candidate.html', url: '/candidate.html?id=H2WA03217', needsApiMock: true },
+  { name: 'committees.html', url: '/committees.html', needsApiMock: true },
+  { name: 'committee.html', url: '/committee.html?id=C00775668', needsApiMock: true },
+  { name: 'races.html', url: '/races.html', needsApiMock: true },
+  { name: 'race.html', url: '/race.html?state=WA&district=03&year=2024&office=H', needsApiMock: true },
+  { name: 'feed.html', url: '/feed.html', needsApiMock: true },
+  { name: 'process-log.html', url: '/process-log.html', needsApiMock: false },
+  { name: 'design-system.html', url: '/design-system.html', needsApiMock: false },
 ];
 
 // ── Shared test suite ─────────────────────────────────────────────────────────
@@ -125,15 +73,6 @@ for (const pageConfig of PAGES) {
     test('mobile search toggle is present in DOM', async ({ page }) => {
       const toggle = page.locator('.top-nav-search-toggle');
       await expect(toggle).toBeAttached();
-    });
-
-    test(`correct nav link is active: "${pageConfig.activeNavText}"`, async ({ page }) => {
-      if (!pageConfig.activeNavText) return; // process-log and design-system have no active link
-      const activeLink = page.locator('.top-nav .nav-link.active');
-      const count = await activeLink.count();
-      expect(count).toBeGreaterThanOrEqual(1);
-      const activeText = await activeLink.first().textContent();
-      expect(activeText?.trim()).toContain(pageConfig.activeNavText);
     });
 
     test('page background is warm parchment (not dark or white)', async ({ page }) => {

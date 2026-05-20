@@ -10,9 +10,6 @@
   --border:       #D7D1C7;
   --border-strong:#A8A099;
 
-  /* Nav */
-  --nav-active-bg:  #D4CDC3;
-
   /* Typography — color */
   --text:    #1A1510;
   --muted:   #625B52;
@@ -143,7 +140,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   display:flex; align-items:center; text-decoration:none;
   transition:color 0.15s; white-space:nowrap; }
 .nav-link:hover { color:var(--muted); }
-.nav-link.active { color:var(--text); }
 .top-nav-search { margin-left:auto; display:flex; align-items:center; }
 .top-nav-search-form { display:flex; }
 .top-nav-search .form-input { width:240px; font-size:0.75rem;
@@ -191,7 +187,6 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   transition:color 0.15s; border-bottom:1px solid var(--border); }
 .nav-item:last-child { border-bottom:none; }
 .nav-item:hover { color:var(--muted); }
-.nav-item.active { color:var(--text); }
 
 /* ── Utilities ── */
 .section-title { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; text-transform:uppercase;

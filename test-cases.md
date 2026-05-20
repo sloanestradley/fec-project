@@ -31,7 +31,6 @@
 - [ ] ✅ `styles.css` and `main.js` both linked
 - [ ] ✅ Top nav present with 2 main nav links (Races, Feed)
 - [ ] ✅ Mobile search toggle present
-- [ ] ✅ Nav active state is correct for this page
 - [ ] ✅ Page background is warm parchment (not dark or white)
 - [ ] ✅ Amplitude `Page Viewed` fires on load
 - [ ] ✅ No uncaught JS errors on load
@@ -93,9 +92,6 @@
 - [ ] ✅ Archive divider row is present with correct year and office label (automated)
 - [ ] Archive rows are visually dimmed / not clickable (cursor:default, no hover highlight)
 - [ ] Archive divider copy includes "FEC coverage begins YEAR for [Office] races"
-
-### Nav active state
-- [ ] ✅ No nav link is active (T-IA-candidate-committees-nav-removal: candidate profile no longer activates a parent browse)
 
 ### Amplitude events
 - [ ] `Page Viewed` fires with properties: `page`, `candidate_id`, `candidate_name`, `cycle`
@@ -312,9 +308,6 @@
 
 **Test URL:** Navigate from a candidate's committees modal, or `localhost:8080/committee.html?id=C00806174`
 *(C00806174 = Marie for Congress, MGP's principal committee — verified active with real filings)*
-
-### Nav active state
-- [ ] ✅ No nav link is active (T-IA-candidate-committees-nav-removal: committee profile no longer activates a parent browse)
 
 ### Amplitude events
 - [ ] `Page Viewed` fires with `page: 'committee'` and `committee_id` property
@@ -552,9 +545,6 @@
 
 **Test URL:** `localhost:8080/race.html?state=WA&district=03&year=2024&office=H`
 *(2024 is a completed cycle with known filings — 2026 is too early to have reliable financial data)*
-
-### Nav active state
-- [ ] "Races" nav item is active (profile page activates parent browse)
 
 ### Amplitude events
 - [ ] `Page Viewed` fires with `page: 'race'` and `state`, `year`, `office`, `district` properties

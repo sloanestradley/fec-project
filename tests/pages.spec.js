@@ -6,7 +6,7 @@
  * committee.html tests live in tests/committee.spec.js (split out 2026-04-27
  * for parity with candidate.spec.js).
  *
- * Covers: nav active states, key structural elements, Amplitude events,
+ * Covers: key structural elements, Amplitude events,
  * and scaffold-level presence checks for not-yet-built sections.
  */
 
@@ -21,12 +21,6 @@ test.describe('races.html', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await page.goto('/races.html');
-  });
-
-  test('"Races" nav item is active', async ({ page }) => {
-    const active = page.locator('.top-nav .nav-link.active');
-    const text = await active.first().textContent();
-    expect(text?.trim()).toContain('Races');
   });
 
   test('Page Viewed fires with page: races', async ({ page }) => {
@@ -104,12 +98,6 @@ test.describe('race.html', () => {
     await mockFecApi(page);
     await page.goto('/race.html?state=WA&district=03&year=2024&office=H');
     await waitForRaceLoad(page);
-  });
-
-  test('"Races" nav item is active (profile activates parent)', async ({ page }) => {
-    const active = page.locator('.top-nav .nav-link.active');
-    const text = await active.first().textContent();
-    expect(text?.trim()).toContain('Races');
   });
 
   test('Page Viewed fires with race context props', async ({ page }) => {
@@ -692,11 +680,6 @@ test.describe('process-log.html', () => {
     await page.goto('/process-log.html');
   });
 
-  test('no nav link is active (process-log not in top nav)', async ({ page }) => {
-    const activeLinks = page.locator('.top-nav .nav-link.active');
-    await expect(activeLinks).toHaveCount(0);
-  });
-
   test('Page Viewed fires', async ({ page }) => {
     const event = await findTrackEvent(page, 'Page Viewed');
     expect(event).toBeDefined();
@@ -727,11 +710,6 @@ test.describe('design-system.html', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await page.goto('/design-system.html');
-  });
-
-  test('no nav link is active (design-system not in top nav)', async ({ page }) => {
-    const activeLinks = page.locator('.top-nav .nav-link.active');
-    await expect(activeLinks).toHaveCount(0);
   });
 
   test('Page Viewed fires', async ({ page }) => {

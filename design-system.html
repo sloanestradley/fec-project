@@ -308,7 +308,6 @@
   <td class="ds-token-hex">rgba(26,21,16,0.65)</td>
   <td>Modal and drawer overlay scrim</td>
 </tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--nav-active-bg)"></span>--nav-active-bg</td><td>warm-active</td><td class="ds-token-hex">#D4CDC3</td><td>Active nav item background (mobile drawer)</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-raised)"></span>--chart-raised</td><td>--dem @ 90%</td><td class="ds-token-hex">rgba(74,144,217,0.9)</td><td>Raised money line in chart</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-raised-solid)"></span>--chart-raised-solid</td><td>--dem @ 100%</td><td class="ds-token-hex">rgba(74,144,217,1)</td><td>Raised chart point fill</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-spent)"></span>--chart-spent</td><td>--rep @ 85%</td><td class="ds-token-hex">rgba(217,74,74,0.85)</td><td>Spent money line in chart</td></tr>
@@ -642,15 +641,15 @@
           <span class="ds-component-name">Top Nav</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.top-nav · .top-nav-logo · .top-nav-links · .nav-link · .nav-link.active · .top-nav-search · .top-nav-mobile-controls · .mobile-nav · .nav-item · .nav-item.active</div>
+        <div class="ds-component-classes">.top-nav · .top-nav-logo · .top-nav-links · .nav-link · .top-nav-search · .top-nav-mobile-controls · .mobile-nav · .nav-item</div>
         <div class="ds-component-demo">
           <div style="background:var(--bg);border:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:1rem;border-radius:2px">
             <span class="top-nav-logo"><span class="logo-fec">FEC</span><span class="logo-ledger">Ledger</span></span>
-            <a class="nav-link active" href="#" style="height:auto;padding:0.25rem 0.75rem">Races</a>
+            <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Races</a>
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Feed</a>
           </div>
         </div>
-        <div class="ds-component-notes">Desktop: logo + nav links (Races, Feed) + search bar. Mobile ≤860px: logo + search icon + hamburger. <strong>Active state is currently a no-op</strong> — `.nav-link.active` and `.nav-item.active` resolve to the same color as their base rules; the class is a structural marker only (used by tests and reserved for future visual treatment). <strong>DOM structure:</strong> <code>#mobile-nav</code> (.mobile-nav) and <code>#top-nav-mobile-search</code> are direct children of <code>&lt;nav class="top-nav"&gt;</code> — siblings of <code>.top-nav-inner</code>, not siblings of the nav itself. Both use <code>position:absolute; top:100%</code> so they hang directly below the nav's bottom edge regardless of scroll state. Being inside .top-nav's stacking context (z-index:200) automatically elevates them above all page elements — profile headers (195), tabs bar (185), etc. Do not move them outside .top-nav. <strong>.mobile-nav</strong> uses <code>padding: var(--space-8) 0 0</code> (no bottom padding — last item sits flush against the bottom border). <strong>.nav-item</strong> uses <code>padding: var(--space-16) var(--space-24)</code> for a 48px minimum tap target height. Note: .top-nav-logo uses Oswald 600 — explicit deviation from the heading type style (400). Weight set directly on the component rule.</div>
+        <div class="ds-component-notes">Desktop: logo + nav links (Races, Feed) + search bar. Mobile ≤860px: logo + search icon + hamburger. <strong>No active-state treatment</strong> — every page treats its nav links identically; the `.active` class and its CSS rules were retired (T-IA-candidate-committees-nav-removal follow-up, 2026-05-20). <strong>DOM structure:</strong> <code>#mobile-nav</code> (.mobile-nav) and <code>#top-nav-mobile-search</code> are direct children of <code>&lt;nav class="top-nav"&gt;</code> — siblings of <code>.top-nav-inner</code>, not siblings of the nav itself. Both use <code>position:absolute; top:100%</code> so they hang directly below the nav's bottom edge regardless of scroll state. Being inside .top-nav's stacking context (z-index:200) automatically elevates them above all page elements — profile headers (195), tabs bar (185), etc. Do not move them outside .top-nav. <strong>.mobile-nav</strong> uses <code>padding: var(--space-8) 0 0</code> (no bottom padding — last item sits flush against the bottom border). <strong>.nav-item</strong> uses <code>padding: var(--space-16) var(--space-24)</code> for a 48px minimum tap target height. Note: .top-nav-logo uses Oswald 600 — explicit deviation from the heading type style (400). Weight set directly on the component rule.</div>
       </div>
 
       <!-- 5. Global banner -->

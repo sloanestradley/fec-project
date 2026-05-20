@@ -51,12 +51,7 @@ Mobile nav drawer (.mobile-nav)
 
 Top-level nav exposes only the curated/contextual experiences (Races + Feed). **Search, Candidates browse, Committees browse, Process Log, Design System, and all profile pages are not nav link items.** Search is accessible via the inline search bar (desktop) or search toggle (mobile); the `/candidates` and `/committees` browse pages are reached from search results' "View all" affordances or directly via URL.
 
-**Active state logic:**
-- Browse landing pages in nav (`races.html`, `feed.html`) activate their own nav item
-- `race.html` activates its parent (`Races`) — the only profile→parent activation that survived T-IA-candidate-committees-nav-removal (2026-05-20)
-- All other pages (candidate.html, committee.html, candidates.html, committees.html, search.html, process-log.html, design-system.html) have no active nav link
-
-**Active state rendering:** The `.nav-link.active` / `.nav-item.active` CSS rules currently match the base text color — the active class is a **structural marker** for tests and a reservation for future visual treatment, but renders no visible difference today.
+**No active-state treatment:** Every page renders its nav links identically. The `.nav-link.active` / `.nav-item.active` CSS rules and their markup application were retired in T-IA-candidate-committees-nav-removal (2026-05-20) — they had been visual no-ops (same color as base) and were not load-bearing for any UX affordance.
 
 **Mobile nav:** Two main items (Races, Feed) in the drawer. Search toggle icon always visible left of the hamburger in the mobile header — search does not collapse into the drawer.
 

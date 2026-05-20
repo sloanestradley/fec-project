@@ -232,9 +232,6 @@ Layout tokens (reference --space-* scale):
 --header-h: 56px                 (top nav height; nav is in-flow, scrolls out with content)
 --banner-h: 32px                 (in-flow global banner height; banner + nav scroll out together)
 --compact-header-h: 0px          (compact-header height while engaged; initCompactHeader writes the measured value, restores to 0px on un-compact; tabs-bar uses this directly as `top: var(--compact-header-h)` — nav is no longer sticky so no --header-h offset above)
-
-Nav tokens:
---nav-active-bg: #D4CDC3  (nav active state background — currently unused, reserved)
 ```
 
 **Typography — named type styles:** All text must use one of these 11 canonical styles. Do not introduce new font-family/font-size/font-weight combinations — map to the closest existing style. The styles are documented in `styles.css :root` (comment block) and rendered as live specimens in `design-system.html`.
@@ -612,21 +609,19 @@ Live filing feed showing recent FEC filings from candidate campaign committees (
 
 ## Navigation and IA architecture
 
-The nav surfaces only the **curated/contextual experiences** (Races + Feed). Discovery happens through Search; the `/candidates` and `/committees` pages remain live as search-extension surfaces, reachable via the search "View all" affordances and direct URLs but **no longer top-nav destinations** (T-IA-candidate-committees-nav-removal, 2026-05-20):
+The nav surfaces only the **curated/contextual experiences** (Races + Feed). Discovery happens through Search; the `/candidates` and `/committees` pages remain live as search-extension surfaces, reachable via the search "View all" affordances and direct URLs but **no longer top-nav destinations** (T-IA-candidate-committees-nav-removal, 2026-05-20). **There is no active-state treatment** — every page renders its nav links identically; the `.nav-link.active` / `.nav-item.active` rules and their markup application were retired in a follow-up to the same ticket.
 
-- **Browse landing pages in nav** (`races.html`, `feed.html`) — each is its own nav item's active target
-- **All other pages have no active nav link**, including the candidate/committee browse pages and all four profile pages (candidate, committee, race-via-profile patterns reuse the parent rule only for race.html, which still activates Races)
 - **`ia.md`** is the canonical IA reference — page inventory, URL patterns, nav hierarchy, page relationships, phase roadmap. Read it before adding new pages or changing nav structure.
 
 Nav link targets (all pages must use these — absolute paths, no stubs):
 - Races → `/races`
 - Feed → `/feed`
 
-Search, Process Log, Design System, Candidates browse, Committees browse, and all profile pages (except race.html which still activates Races) are **not** active in the top nav. The `/candidates` and `/committees` browse pages are reached from search results' "View all" affordances or directly via URL.
+The `/candidates` and `/committees` browse pages are reached from search results' "View all" affordances or directly via URL.
 
 **Top nav structure (`.top-nav`):** `position:relative` (in-flow, scrolls out with content; `position:relative` rather than `static` so the absolutely-positioned mobile drawer + search panel children anchor to the nav), full-width, `z-index:200`. Inner `.top-nav-inner`: logo left → `.top-nav-links` (desktop nav links: `Races`, `Feed`) → `.top-nav-search` (desktop search bar, `margin-left:auto`) → `.top-nav-mobile-controls` (hidden at desktop: search toggle icon + hamburger). **Mobile panels are direct children of `.top-nav` (siblings of `.top-nav-inner`):** `#top-nav-mobile-search` (search panel) and `#mobile-nav` (nav drawer) sit after `.top-nav-inner` inside `<nav class="top-nav">`, positioned `absolute; top:100%`. Mobile nav drawer drops down from below the nav bar (not from the side). Search toggle expands search panel inline below the nav bar. No `.sidebar`, no `.layout` grid wrapper — `.main` is a direct child of `<body>`.
 
-**Active state:** `.nav-link.active` (desktop) and `.nav-item.active` (mobile) are applied as structural markers used by tests to verify page identity; **the CSS rules currently match the base text color, so the active class renders no visible treatment** (no underline, no weight change, no color shift). Browse landing pages (`races.html`, `feed.html`) carry the active class on their own nav item; `race.html` inherits Races-active as the only profile-page parent activation that survived T-IA-candidate-committees-nav-removal. All other pages have no active class applied. Decision banked: whether to add real visual treatment to `.active` or retire the rules entirely is a separate ticket.
+**Active state:** None. The `.nav-link.active` / `.nav-item.active` CSS rules and their markup application were retired in T-IA-candidate-committees-nav-removal (2026-05-20). The nav has no per-page "you are here" treatment — every page renders the same two nav links identically.
 
 **`.main` padding:** No special top-offset needed — `.top-nav` is in-flow and `.main` follows it naturally in the document.
 
