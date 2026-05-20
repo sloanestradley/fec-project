@@ -1724,6 +1724,13 @@ async function loadCycle(cycle) {
   document.getElementById('chart-area').style.height = '320px';
   document.querySelector('.chart-legend').style.display = 'none';
 
+  // Clear data-note so it starts fresh for this cycle. Success / empty-cycle
+  // paths write their own content; on catch the element stays present but
+  // empty — chart-error overlay carries the user-facing failure messaging,
+  // data-note doesn't compete (separation of concerns: data-note is cycle-
+  // metadata, not chart-state).
+  document.getElementById('data-note').innerHTML = '';
+
   try {
     // ── Step 1: committees + election-aggregated totals in parallel ──
     // T-loadcycle-single-fetch (2026-05-19) — was N parallel /totals/?cycle={sc}
@@ -1958,7 +1965,12 @@ async function loadCycle(cycle) {
     history.replaceState(null, '', '#'+cycle+'#'+tabName);
 
   } catch(err) {
-    document.getElementById('data-note').innerHTML = '⚠ Error loading cycle data: '+err.message;
+    // data-note intentionally left untouched on catch — chart-error overlay
+    // carries the user-facing failure messaging. data-note represents cycle-
+    // level metadata (Source / Coverage / definition glossary); coupling it
+    // to chart error state would mean future chart additions could blank out
+    // each other's data-note context. Reset-block already cleared data-note
+    // to empty for this cycle; on catch it stays empty.
     console.error('loadCycle error:', err);
     // T-load-4b — chart-card error resolution. Hide skeleton, show inline
     // error message in the chart-area. Legend stays hidden — there's no
