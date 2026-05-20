@@ -753,6 +753,11 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .search-combo .form-input { flex:1; min-width:160px; }
 .search-combo .search-field { flex:1; min-width:0; }
 
+/* search.html input fill — parallel to .search-combo .form-input above.
+   Without this, the input renders at the browser's intrinsic <input size=20> width (~168px)
+   inside its .search-field flex container instead of filling .search-bar. */
+.search-bar .form-input { flex:1; min-width:0; }
+
 /* Typeahead width override for the wider page-level search inputs on /search /candidates /committees.
    Scoped via parent class so the global nav typeahead (different ancestor) keeps its 600px cap. */
 .search-bar .typeahead-dropdown,
