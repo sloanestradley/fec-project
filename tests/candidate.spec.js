@@ -1966,15 +1966,17 @@ test.describe('candidate.html — T-loadcycle-single-fetch regression lock', () 
 // cycle's await window. Catch branch resolves to inline "Unable to load chart"
 // message rather than leaving the skeleton pulsing forever.
 test.describe('candidate.html — T-load-4b chart-card skeleton', () => {
-  test('chart-skeleton + chart-error overlays present in initial HTML; canvas in normal flow', async ({ page }) => {
+  test('chart-skeleton + chart-error overlays present in initial HTML; chart-legend hidden; canvas in normal flow', async ({ page }) => {
     const response = await page.context().request.get('http://localhost:8080/candidate.html');
     const html = await response.text();
     expect(html).toMatch(/id="chart-area"[^>]*height:320px/);
     expect(html).toMatch(/id="chart-skeleton" class="skeleton"/);
     expect(html).toMatch(/id="chart-error"[^>]*display:none/);
+    // chart-legend hidden initially — swatches reference data not yet rendered
+    expect(html).toMatch(/class="chart-legend" style="display:none"/);
   });
 
-  test('chart-skeleton hidden after renderChart resolves; canvas visible', async ({ page }) => {
+  test('chart-skeleton hidden after renderChart resolves; canvas + chart-legend visible', async ({ page }) => {
     await setupWithContent(page);
     // renderChart fires at the end of loadCycle; wait for skeleton hide
     await page.waitForFunction(() => {
@@ -1983,6 +1985,7 @@ test.describe('candidate.html — T-load-4b chart-card skeleton', () => {
     }, { timeout: 12000 });
     await expect(page.locator('#chart-timeline')).toBeVisible();
     await expect(page.locator('#chart-error')).toBeHidden();
+    await expect(page.locator('.chart-legend')).toBeVisible();
     // chart-area's inline height:320px floor cleared (Chart.js sizes canvas naturally)
     const areaHeight = await page.locator('#chart-area').evaluate(el => el.style.height);
     expect(areaHeight).toBe('');
@@ -2003,9 +2006,11 @@ test.describe('candidate.html — T-load-4b chart-card skeleton', () => {
       const dn = document.getElementById('data-note');
       return dn && /Error loading cycle data/.test(dn.textContent);
     }, { timeout: 12000 });
-    // Skeleton hidden, error visible with the inline-status-msg copy
+    // Skeleton hidden, error visible with the inline-status-msg copy.
+    // Legend stays hidden — there's no chart for the swatches to reference.
     await expect(page.locator('#chart-skeleton')).toBeHidden();
     await expect(page.locator('#chart-error')).toBeVisible();
     await expect(page.locator('#chart-error')).toContainText('Unable to load chart');
+    await expect(page.locator('.chart-legend')).toBeHidden();
   });
 });
