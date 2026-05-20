@@ -1749,6 +1749,30 @@ test.describe('candidate.html — T-load-1 skeleton header', () => {
     // display:none lingers on #profile-header in the served HTML.
     expect(html).not.toMatch(/id="profile-header"[^>]*style="display:none/);
   });
+
+  test('name skeleton renders at non-zero width during load window (T-load-header-title-skeleton regression lock)', async ({ page }) => {
+    // Was a latent bug: width:60% inside .page-title (flex item, no flex-basis)
+    // resolved to 0 via CSS circular-percentage-ref. Fix changed to width:8em
+    // (proportional to title font-size). This test asserts the skeleton
+    // actually has visible dimensions during the entity-fetch await window.
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/**', async (route) => {
+      await new Promise(r => setTimeout(r, 2000));
+      await route.fallback();
+    });
+    await page.goto('/candidate.html?id=H2WA03217', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(200);
+    const dims = await page.evaluate(() => {
+      const skel = document.querySelector('#candidate-name .skeleton');
+      if (!skel) return null;
+      const r = skel.getBoundingClientRect();
+      return { width: r.width, height: r.height };
+    });
+    expect(dims).not.toBeNull();
+    expect(dims.width).toBeGreaterThan(100);
+    expect(dims.height).toBeGreaterThan(20);
+  });
 });
 
 // ── T-load-3: skeleton stats-grid placeholders ─────────────────────────────
