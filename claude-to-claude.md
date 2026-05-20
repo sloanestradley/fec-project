@@ -5561,7 +5561,11 @@ The thing I'll remember from this session is how often "the right answer is to s
 
 3. The CLAUDE.md framing for Senate special elections. I'd banked "this visibility only exists on /candidate/{id}/history/" as a /history/-specific property. T-history-retire verification showed entity exposes specials too — the original framing was wrong. Corrected in the same commit as the retirement.
 
-The pattern: verification-before-committing keeps catching framing errors that would have shipped as silent bugs. The cost is small (5-10 minutes of live API queries per ticket); the reward is not building helpers around assumptions that aren't true.
+4. The T-load-header-title-skeleton diagnosis. When Sloane required "exists-but-broken vs never-built" as the first step, my instinct would have been to skip straight to a fix. The grep-then-probe sequence (find the spans in source, measure their rendered dimensions) produced the root-cause explanation — CSS circular percentage ref on a content-determined flex item — that's now the durable artifact in CLAUDE.md. The fix is one character per file; the diagnosis is what's reusable.
+
+The pattern: verification-before-committing keeps catching framing errors that would have shipped as silent bugs. The cost is small (5-10 minutes of live API queries per ticket); the reward is not building helpers around assumptions that aren't true. The T-load-header-title-skeleton diagnosis extends this to UI rendering — "is it in the DOM" and "is it sized correctly" are two different questions with different fixes.
+
+The cold-read audit at the end of the arc was its own application of the same instinct, at session scope rather than ticket scope: don't trust per-commit doc sweeps to catch cross-file drift over a multi-session arc. The audit surfaced 8 gaps across 4 categories; Sloane triaged (A+B+D yes, C no) and the cleanup landed in one commit.
 
 **Stack tags:** scaffold-then-hydrate, in-flight-promise caching, election_full=true API aggregation, single-element overlay pattern, separation of concerns (data-note vs chart-state).
 
@@ -5591,7 +5595,15 @@ The .section-state-msg / .state-msg distinction wasn't on my radar — it surfac
 
 When I drafted the implementation prompt, you didn't just approve — you sent back two specific verifications: "Confirm `#summary-strip` is toggled by inline style not by a CSS class" and "Confirm `activeCycle` is falsy on the index path." Both took 30 seconds to verify, both passed cleanly, both were the right thing to ask. The pattern: a verification ask phrased so I can answer it without redesigning anything. You're catching the class of mistake where the proposed code looks right but rests on an unverified assumption. It's the same discipline as the live-API parity checks, just applied to internal state contracts.
 
-**The through-line:** you're catching framing errors before they ship. Four times this session — the cycle-label semantic, the chart-card error path, the .section-state-msg rename, the T-committee-init-defer-totals payoff axis — you stopped me from shipping work that was correct in isolation but wrong in context. The instinct keeps showing up: "before you commit to a solution, verify it aligns with how the data / FEC / user / state contract actually behaves."
+**Diagnose first, then fix — T-load-header-title-skeleton**
+
+The ticket explicitly required diagnosis as the first step: "exists-but-broken vs never-built — report which it is, then fix." Without that framing, I'd have rushed to a fix. The grep-then-probe sequence produced the root-cause explanation (CSS circular percentage ref on a content-determined flex item) that's now the durable artifact in CLAUDE.md. Banked: when a UI thing isn't rendering as expected, "is it in the DOM" and "is it sized correctly" are two different questions with different fixes — pick which one you're investigating before reaching for a change.
+
+**The cold-read audit ask**
+
+"Let's do a cold read on all work from the very start of t-load arc compared to anything end-of-session ritual related." This is the feedback-memory cadence rule in action — the discipline I should default to but had drifted past. The audit surfaced 8 items across 4 categories. You triaged (A+B+D yes, C no), keeping scope on the highest-leverage hygiene without forcing the chart-card design-system documentation that's banked-but-not-load-bearing. Banked: cold-read audits don't have to address everything they find — the triage is part of the discipline.
+
+**The through-line:** you're catching framing errors before they ship, at both ticket and session scope. Six redirects this session — the cycle-label semantic, the chart-card error path, the .section-state-msg rename, the T-committee-init-defer-totals payoff axis, the diagnose-first discipline for T-load-header-title-skeleton, and the cold-read audit ask. The instinct keeps showing up: "before you commit to a solution, verify it aligns with how the data / FEC / user / state contract / accumulated docs actually behave."
 
 ## What to bring to Claude Chat
 
@@ -5599,3 +5611,6 @@ When I drafted the implementation prompt, you didn't just approve — you sent b
 - Localstorage caching for committee cycle-list — banked in the strategy doc. Lets the cycle-index render before entity resolves on repeat visits. Staleness window is the trade.
 - Test parallelism flakiness on candidate.spec.js's race-condition test and committee.spec.js's Promise.all-split test. Both pass in isolation; occasionally fail under heavy parallel worker load. Worth a Chat discussion on whether to invest in a more durable solution.
 - Cross-page init() invariant — both candidate.html and committee.html now share `init() awaits only entity; totals is per-path.` Worth documenting at the project-rule level as a convention new pages should follow, not just an observation about the current state of two pages.
+- Cold-read audit cadence as a periodic discipline. The feedback memory already says "default to a closing doc audit at end of multi-commit sessions where copy or structure changed." But today's audit caught 8 gaps that per-commit sweeps had missed across the full T-load arc — gaps in surfaces no single session touched recently. Worth formalizing a periodic cold read (every 5-10 sessions) on top of the per-session sweep, as a separate cadence.
+- "Diagnose first, then fix" vs. "make the reasonable call and continue" — sit in tension. Diagnose-first fits when the root cause is unknown and the fix depends on it (T-load-header-title-skeleton). Make-the-call fits when the path is clear but a side-question is ambiguous. Worth clarifying when each defaults; today's ticket had explicit framing from you, which resolved it cleanly.
+- The triage step in cold-read audits — choosing C to skip wasn't about C being wrong, it was about C being lower-leverage than A/B/D for this moment. Worth banking as a discipline: cold-read audits are diagnostic, not prescriptive; the surfaced items get triaged, not just executed.
