@@ -1,5 +1,9 @@
 # Retiring `/candidate/{id}/history/` — investigation + recommendation
 
+**EXECUTED 2026-05-19 (commit `c992ea7`)** — Shipped as T-history-retire. `/candidate/{id}/history/` no longer called on candidate.html. All three fields previously read from it (`first_file_date`, `election_years`, `cycles`) are sourced from `/candidate/{id}/` entity — verified 100% field match across Marie, Gillibrand, Trump, Kamala, Kellogg samples. Gillibrand entity `election_years` exposes the 2010 special election distinctly, correcting the CLAUDE.md framing of special-election visibility as a `/history/`-specific property. Implementation: removed `cachedHistoryP`, `fetchHistory()`, `/history/`-path branch in retryIndexTotals; simplified `fetchIndexData` to return `{ totalsP }` only; simplified `renderIndexFromData` signature to `(allTotalsJson)`; stashed `CAND_FIRST_FILE_DATE` module var. Helper `renderIndex` callback updated to single-arg shape. Tests +2 net (582 → 584) — regression-locks that `/history/` is NOT called on cycle-index landing or cycle-detail landing.
+
+---
+
 **Status:** Diagnostic / proposal. Sloane review before implementation scoping.
 **Date:** 2026-05-19
 **Banked from:** T-load-4a follow-ups (CLAUDE.md "Banked future work" + test-cases.md row)

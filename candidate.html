@@ -1899,7 +1899,7 @@ async function loadCycle(cycle) {
 
     // ── Step 3: populate stats ──
     // raised/spent/coh/debt/covDate already computed from allTotalsArr in Step 1.
-    // #stat-cycle was set synchronously before the await (so the cycle range
+    // #stat-cycle was set synchronously before the await (so the election year
     // shows immediately on cycle-switch); no need to re-write it here.
     var cycleStartYear = cycle - getCycleSpanYears() + 1;
     if (raised > 0 || spent > 0) {
@@ -1999,11 +1999,12 @@ async function loadCycle(cycle) {
 }
 
 // ── Index view renderers ─────────────────────────────
-// History value combines first-filed year (from /history/ first_file_date) with
-// the last-activity year (from latest /totals/ coverage_end_date — Option A per
-// T14 investigation). coverage_end_date is the strategist's "books reported
-// through" signal and is already in-hand from fetchIndexData (zero extra API
-// calls). For a candidate who filed F2 but never filed a quarterly,
+// History value combines first-filed year (from entity first_file_date, stashed
+// as CAND_FIRST_FILE_DATE — T-history-retire) with the last-activity year (from
+// latest /totals/ coverage_end_date — Option A per T14 investigation).
+// coverage_end_date is the strategist's "books reported through" signal and is
+// already in-hand from fetchIndexData (zero extra API calls). For a candidate
+// who filed F2 but never filed a quarterly,
 // fullTotals is empty → fall back to the single-year form "2025" rather than a
 // misleading "2025–2025" range.
 function renderHistoryStrip(firstFiledYear, fullTotals) {

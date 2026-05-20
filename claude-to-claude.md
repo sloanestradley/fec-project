@@ -5541,6 +5541,7 @@ T-load-4b closed the T-load-4 arc with a chart-card skeleton on candidate.html. 
 Then shipped T-committee-init-defer-totals at the end of the session: the committee.html init() refactor banked from T-load-4a. Sloane reframed the win — cross-page convention is the load-bearing payoff, not latency. Before: committee awaited entity then totals before view.switchTo; candidate awaited only entity, totals fired per-path. After: both pages share `init() awaits only entity; totals is per-path` (helper's fetchIndexData on index, loadCycle on candidate detail, init's conditional await on committee detail). ~20 LOC + 3 tests + cross-page invariant established.
 
 **Changelog bullets:**
+- T-load-3: skeleton stats-grid placeholders — 14 stat cells across both pages and both views converted from initial `—` to inline skeleton spans (ch-unit widths sized to typical resolved values; scales with Oswald 600 font); `setStatSkeleton` helper for the cycle-switch reset path; empty-cycle resolve writes `—` to all 4 raised/spent/coh/ratio cells; +10 tests (563 → 573)
 - T-cycle-semantics: candidate.html cycle labels now display as single election years ("2024") matching FEC.gov's "Election" convention; resolves a pre-existing inconsistency between index and detail and fixes Senate-special detail-label bugs along the way
 - T-load-4a: progressive cycle-index hydration — strips render with skeletons after entity resolves and hydrate when /totals/ arrives; partial-data retry UI on /totals/-only failures
 - .section-state-msg → .inline-status-msg rename with new component-card distinction in the design system
@@ -5548,6 +5549,7 @@ Then shipped T-committee-init-defer-totals at the end of the session: the commit
 - T-loadcycle-single-fetch: replaced iterate-and-sum totals with single election_full=true call on candidate.html (3 Senate calls → 1)
 - T-load-4b: candidate chart-card skeleton overlay + "Unable to load chart" error state; chart-legend hidden during loading + error; data-note decoupled from chart-error state
 - T-committee-init-defer-totals: shipped — committee.html init() now awaits only entity, totals is per-path (detail-view conditional await + totalsP.then() populator + empty-ALL_TOTALS guard at top of renderStats); cross-page invariant established with candidate.html; +3 tests (588 → 591)
+- T-load-header-title-skeleton: fixed a latent zero-width bug in the T-load-1 name skeleton — `width:60%` inside `.page-title` (a flex item with content-determined width) resolved to 0 via CSS circular-percentage-ref; changed to `width:8em` on both candidate.html and committee.html; gotcha banked in CLAUDE.md (percentages inside flex items with content-determined widths resolve to 0); +2 tests (591 → 593)
 
 **Field notes:**
 

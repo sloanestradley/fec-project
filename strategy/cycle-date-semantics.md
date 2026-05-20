@@ -1,5 +1,9 @@
 # Cycle date semantics audit + revised treatment
 
+**EXECUTED 2026-05-19 (commit `3d8c725`)** — Shipped as T-cycle-semantics. candidate.html cycle labels render as single election years ("2024") matching FEC.gov's "Election" convention. Header text "Cycle" → "Election" in two places (Cycle card label + cycle-index column header). Sync URL-hash write to `#stat-cycle` in init() mirrors committee.html's T-load-3 pattern. `cycleRowHTML` `startYear` param dropped; dead `coverage_start_date` parsing removed. Committee.html unchanged — committee /totals/ records ARE 2-year reporting periods; year-range labels there match FEC.gov "Two-year period" convention. Incidental bug fixes: Senate special-election detail labels (Gillibrand 2010 was "2005–2010"; now "2010") and Presidential late-launcher labels (Trump 2024 detail was "2021–2024"; now "2024") corrected by the unification. Tests net 0 (3 existing updated, +1 new sync-hash-write; was 573, now 574). Banked future work — detail-view sub-note about coverage span; Senate "Two-year period" filter on detail; `/history/` call retirement (shipped subsequently in T-history-retire); loadCycle simplification to election_full=true single fetch (shipped subsequently in T-loadcycle-single-fetch).
+
+---
+
 **Status:** Diagnostic / proposal. Sloane review required before implementation scoping.
 **Date:** 2026-05-19 (revised after first proposal retired)
 **Pauses:** T-load-4a / T-load-4b (skeleton loading work resumes after this lands).

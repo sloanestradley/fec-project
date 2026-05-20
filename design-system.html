@@ -1717,7 +1717,7 @@
           <span class="skeleton" style="width:80px;height:1.5rem"></span>
         </div>
         <div class="ds-component-notes">
-          Inline placeholder for async content. Set <code>width</code> and <code>height</code> inline to approximate the content being replaced. Animation and appearance are provided by the class; sizing is always caller-supplied. Used at three scales today: page-header text (T-load-1 — <code>width:60%;height:1em</code> for the title, <code>width:40%;height:1.2rem</code> for meta-row), stats-grid primary values (T-load-3 — <code>width:4–6ch;height:2rem</code>, sized in <code>ch</code> units so the placeholder scales with the Oswald 600 font), and tab-cell sections (T12 — see <code>.tab-skeleton</code> variant below).
+          Inline placeholder for async content. Set <code>width</code> and <code>height</code> inline to approximate the content being replaced. Animation and appearance are provided by the class; sizing is always caller-supplied. Used at three scales today: page-header text (T-load-1 — <code>width:8em;height:1em</code> for the title, <code>width:40%;height:1.2rem</code> for meta-row; <strong>title uses <code>em</code> not <code>%</code></strong> because <code>.page-title</code> is a flex item whose width is content-determined, so a percentage reference resolves to 0 per CSS spec — meta-row's <code>%</code> works because <code>.meta-row</code> is a block-level sibling of <code>.profile-header-row</code> with a determined parent width), stats-grid primary values (T-load-3 — <code>width:4–6ch;height:2rem</code>, sized in <code>ch</code> units so the placeholder scales with the Oswald 600 font), and tab-cell sections (T12 — see <code>.tab-skeleton</code> variant below).
         </div>
       </div>
 
