@@ -1,5 +1,9 @@
 # committee.html init() refactor — scaffold visibility audit + proposal
 
+**EXECUTED 2026-05-20 (commit `72a0a23`)** — Implemented as T-committee-init-defer-totals. `await totalsP` moved into `if (isDetailView)` branch; `totalsP.then()` populator at init() sets `ALL_TOTALS` + re-fires `renderStats` on cycle-row-click-during-load; empty-ALL_TOTALS guard at top of `renderStats`. +3 tests (588 → 591). Cross-page invariant established: **init() awaits only entity; totals is per-path** (helper's fetchIndexData on index, loadCycle on candidate detail, init's conditional await on committee detail). Banked items (localStorage cycle-list caching; column-header pre-entity shell) retained as not-in-scope.
+
+---
+
 **Status:** Diagnostic / proposal. Sloane review before any implementation.
 **Date:** 2026-05-20
 **Builds on:** T-load-4 arc (complete and shipped). Banked follow-up from T-load-4a.
