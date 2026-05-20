@@ -12,13 +12,9 @@
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     /* Search bar — always visible at top */
-    .search-bar-wrap { padding:var(--space-40) var(--page-gutter) var(--space-32); border-bottom:1px solid var(--border); }
+    .search-bar-wrap { padding:var(--space-40) var(--page-gutter) var(--space-24); border-bottom:1px solid var(--border); }
     .search-bar { display:flex; gap:0; max-width:600px; }
     .search-bar .search-field { flex:1; }
-
-    /* Empty / hero state */
-    #state-empty .page-header { padding:5rem var(--page-gutter); /* 80px — no token above --space-64 */ max-width:560px; }
-    #state-empty .search-sub { font-size:0.75rem; color:var(--muted); line-height:var(--lh-normal); }
 
     /* No results */
     .no-results { padding:var(--space-48) var(--page-gutter); color:var(--muted); font-size:0.75rem; }
@@ -28,7 +24,6 @@
 
     @media (max-width:860px) {
       .search-bar-wrap { padding:var(--page-gutter); }
-      #state-empty .page-header { padding:var(--space-48) var(--page-gutter) var(--space-32); }
       .no-results { padding:var(--space-32) var(--page-gutter); }
     }
   </style>
@@ -85,7 +80,7 @@
 
 <!-- Main -->
   <div class="main">
-  <div class="main-inner">
+  <div class="main-inner main-inner-narrow">
 
     <!-- Search bar — always visible -->
     <div class="search-bar-wrap">
@@ -105,12 +100,7 @@
     </div>
 
     <!-- State: empty (pre-search) -->
-    <div id="state-empty">
-      <div class="page-header">
-        <h1 class="page-title">Search</h1>
-        <p class="search-sub">Enter a name to search candidates and committees. Results include all FEC-registered entities from all election cycles.</p>
-      </div>
-    </div>
+    <div id="state-empty"></div>
 
     <!-- State: loading -->
     <div id="state-loading" style="display:none">

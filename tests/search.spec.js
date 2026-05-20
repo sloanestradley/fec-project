@@ -48,10 +48,6 @@ test.describe('search.html — initial state (no query)', () => {
     await expect(btn).toHaveAttribute('type', 'submit');
   });
 
-  test('search hero / empty state is visible without a query', async ({ page }) => {
-    await expect(page.locator('#state-empty .page-header')).toBeVisible();
-  });
-
   test('Amplitude Page Viewed fires with page: search', async ({ page }) => {
     const event = await findTrackEvent(page, 'Page Viewed');
     expect(event).toBeDefined();

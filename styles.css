@@ -120,6 +120,7 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .layout { min-height:100vh; }
 .main { overflow-x:clip; min-width:0; }
 .main-inner { max-width:1600px; margin-left:auto; margin-right:auto; width:100%; }
+.main-inner-narrow { max-width:800px; }
 
 /* ── Top nav ── */
 /* position:relative (not static) so the mobile-search panel and mobile-nav
@@ -730,7 +731,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .results-view-all:hover { text-decoration:underline; }
 
 /* ── R: Browse page chrome ── */
-.filter-bar-wrap { padding:var(--space-24) var(--page-gutter); border-bottom:1px solid var(--border); }
+.filter-bar-wrap { padding:var(--space-40) var(--page-gutter) var(--space-24); border-bottom:1px solid var(--border); }
 .filter-bar { display:flex; gap:var(--space-8); flex-wrap:wrap; align-items:flex-end; max-width:860px; }
 .form-field { display:flex; flex-direction:column; gap:var(--space-4); }
 .form-label { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;

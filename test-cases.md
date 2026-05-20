@@ -265,9 +265,6 @@
 
 **Test URL:** `localhost:8080/search.html`
 
-### Nav active state
-- [ ] "Search" nav item is active
-
 ### Amplitude events
 - [ ] `Page Viewed` fires with `page: 'search'`
 - [ ] `Candidate Searched` fires on search submit with `query` property
@@ -615,9 +612,6 @@
 
 **Test URL:** `localhost:8080/candidates.html`
 
-### Nav active state
-- [ ] "Candidates" nav item is active
-
 ### Amplitude events
 - [ ] ✅ `Page Viewed` fires with `page: 'candidates'`
 - [ ] `Candidates Browsed` fires on auto-load and filter changes with filter properties
@@ -680,9 +674,6 @@
 ## committees.html
 
 **Test URL:** `localhost:8080/committees.html`
-
-### Nav active state
-- [ ] "Committees" nav item is active
 
 ### Amplitude events
 - [ ] ✅ `Page Viewed` fires with `page: 'committees'`
