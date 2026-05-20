@@ -754,10 +754,23 @@ async function init() {
   var pageTimers = initPageLoadingTimers(document.getElementById('state-msg'));
 
   // Fire both fetches in parallel — both return promises immediately.
-  // We await the entity call first to hydrate the skeleton header; totals
-  // is awaited later before view.switchTo (which depends on ALL_TOTALS).
+  // Convention (T-committee-init-defer-totals): init() awaits only entity;
+  // totals is awaited per-path (detail-view branch below; helper's
+  // fetchIndexData on the index path). Mirrors candidate.html's init() shape.
   var entityP = fetchEntity();
   var totalsP = fetchAllTotals();
+
+  // Populate ALL_TOTALS as soon as totals resolves, regardless of view path.
+  // If detail view is currently rendered (cycle-row click landed before
+  // totals resolved), re-fire renderStats with fresh data — the empty-
+  // ALL_TOTALS guard at top of renderStats holds T-load-3 skeletons in
+  // place until this fires.
+  totalsP.then(function(res) {
+    ALL_TOTALS = res.results || [];
+    if (activeCycle && document.getElementById('summary-strip').style.display !== 'none') {
+      renderStats(activeCycle);
+    }
+  }).catch(function() { /* helper's onPartialError surfaces real failures */ });
 
   try {
     var metaRes = await entityP;
@@ -778,11 +791,14 @@ async function init() {
     var hashCycle = parseInt(hashParts[0], 10);
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
-    // Now await totals — needed for renderStats / view.switchTo below.
-    // Typically already resolved by this point since it fired in parallel
-    // with the entity call.
-    var totalsRes = await totalsP;
-    ALL_TOTALS = totalsRes.results || [];
+    // Detail view: renderStats needs ALL_TOTALS sync before view.switchTo →
+    // loadCycle → renderStats. Block here on cold cache where totals
+    // wasn't already resolved. Index view: don't await — scaffold doesn't
+    // read ALL_TOTALS, and the helper's fetchIndexData re-uses the cached
+    // promise inside view.switchTo's Promise.all.
+    if (isDetailView) {
+      await totalsP;
+    }
 
     // Relationship type detection — moved out of the detail-view branch in T10
     // so in-place transitions to detail (cycle-row clicks) don't need to re-run
@@ -1088,6 +1104,11 @@ document.addEventListener('click', function(e) {
 
 function renderStats(cycleOrAll) {
   activeCycle = cycleOrAll;
+  // T-committee-init-defer-totals — if totalsP hasn't resolved yet (cycle-
+  // row click during cold-cache load), hold T-load-3 skeletons in place.
+  // The totalsP.then() populator in init() re-fires renderStats once totals
+  // lands.
+  if (!ALL_TOTALS || !ALL_TOTALS.length) return;
   // Single fetch-race token covers both raised + spent passes — both kick off
   // immediately below, both invalidate together when the next cycle change arrives.
   cycleFetchToken = view.claimToken();

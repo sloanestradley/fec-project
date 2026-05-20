@@ -1507,3 +1507,75 @@ test.describe('committee.html — T-load-4a progressive cycle-index', () => {
     await expect(page.locator('#cycle-index a.cycle-row')).toHaveCount(0);
   });
 });
+
+// ── T-committee-init-defer-totals: per-path totals await ──────────────────────
+// init() awaits only entityP; totalsP is awaited on the detail-view branch
+// (renderStats needs ALL_TOTALS sync), not on the index branch (helper's
+// fetchIndexData re-uses the cached promise). A totalsP.then() populator
+// sets ALL_TOTALS as soon as it lands AND re-fires renderStats when the user
+// clicked a cycle row during a cold-cache totals load.
+test.describe('committee.html — T-committee-init-defer-totals per-path totals await', () => {
+  test('cycle-index scaffold renders independent of /totals/ (init awaits only entity on index path)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Delay /totals/ by 1500ms — scaffold (career-strip + cycle-index) should
+    // be visible well before that since init() no longer awaits totalsP on the
+    // index path. With the prior eager await this test would time out.
+    await page.route('**/api/fec/committee/*/totals/**', async (route) => {
+      await new Promise(r => setTimeout(r, 1500));
+      await route.fallback();
+    });
+    const t0 = Date.now();
+    await page.goto(COMMITTEE_INDEX_URL);
+    await page.waitForSelector('#cycle-index.visible', { timeout: 1200 });
+    const elapsed = Date.now() - t0;
+    expect(elapsed).toBeLessThan(1500);
+    // cstat-history is entity-hydrated and present immediately on scaffold
+    await expect(page.locator('#cstat-history')).toHaveText(/^\d{4}([–\-]\d{4})?$/);
+    // Career raised/spent cells still skeletoned during the await window
+    await expect(page.locator('#cstat-career-raised .skeleton')).toHaveCount(1);
+    // After totals resolves, career cells hydrate
+    await expect(page.locator('#cstat-career-raised .skeleton')).toHaveCount(0, { timeout: 3000 });
+  });
+
+  test('cycle-row click during /totals/ load shows stat skeletons until totals resolves, then hydrates', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Delay /totals/ — gives the test a window to click a cycle row before
+    // ALL_TOTALS is populated.
+    await page.route('**/api/fec/committee/*/totals/**', async (route) => {
+      await new Promise(r => setTimeout(r, 1500));
+      await route.fallback();
+    });
+    await page.goto(COMMITTEE_INDEX_URL);
+    await page.waitForSelector('#cycle-index.visible', { timeout: 1200 });
+    // Click a cycle row while totals is still pending
+    await page.locator('a.cycle-row[href="#2024#summary"]').click();
+    // Detail view entered — summary-strip is visible, but renderStats short-
+    // circuited via the empty-ALL_TOTALS guard. T-load-3 skeleton still
+    // occupies #stat-raised.
+    await page.waitForSelector('#summary-strip', { state: 'visible', timeout: 1000 });
+    await expect(page.locator('#stat-raised .skeleton')).toHaveCount(1);
+    // After totals resolves, the totalsP.then() populator re-fires renderStats
+    // and the cell hydrates to a real value.
+    await expect(page.locator('#stat-raised')).toHaveText(/\$/, { timeout: 3000 });
+    await expect(page.locator('#stat-raised .skeleton')).toHaveCount(0);
+  });
+
+  test('detail-URL cold load still awaits totals before view.switchTo (no dashed stats)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Delay /totals/ — on the detail path init must still await totalsP, so
+    // when summary-strip becomes visible, ALL_TOTALS is populated and
+    // renderStats hydrates real values (not dashes from an empty array).
+    await page.route('**/api/fec/committee/*/totals/**', async (route) => {
+      await new Promise(r => setTimeout(r, 800));
+      await route.fallback();
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#summary-strip', { state: 'visible', timeout: 3000 });
+    // #stat-raised resolves to the mocked money value, not dashes from
+    // empty ALL_TOTALS (which would indicate init didn't await on the detail path).
+    await expect(page.locator('#stat-raised')).toHaveText(/\$/, { timeout: 2000 });
+  });
+});
