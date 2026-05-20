@@ -5516,3 +5516,80 @@ Yesterday's commit shipped the implementation; today's verification pass ran the
 - **The "freshly visible but longstanding" debugging framing.** The investigation surfaced that the perceived "feels slower now" wasn't a regression — it was longstanding architecture that became more salient after T-nav-scroll's revert removed adjacent motion. Worth banking as a third frame distinct from "regression" or "longstanding inefficiency" when diagnosing future user-perception complaints. The trace before fixing discipline applies double when the symptom is "feels" — could be code or could be context.
 
 - **Implementation-prompt review pass as a project pattern.** This session surfaced that even with a strategy doc as diagnostic, the implementation prompt benefits from a separate review pass. The five clarification questions in this session's prompt produced concrete decisions before any line was coded, and the implementation landed in one commit with no rework. Worth formalizing as project practice: strategy doc → implementation prompt → review → code.
+
+---
+2026-05-20
+
+## Process log draft
+
+**Title:** Loading states all the way down
+
+Spent the session methodically closing the loading-state gaps the T-load-1 / T-load-3 work surfaced — first ripping up a flawed cycle-date strategy, then progressive cycle-index hydration, then a cascade of follow-ups that ended with the chart card.
+
+The arc started by realizing the cycle-label proposal Claude had drafted was solving the wrong problem. Spent 20 minutes verifying FEC.gov's own convention (single election years labeled "Election") and pivoted the strategy doc entirely — the helper / gap-analysis / sub-note machinery in the original direction was compensating for misleading primary labels. The single-year treatment dropped implementation scope from ~165 LOC to ~55 LOC and incidentally fixed two pre-existing bugs (Senate special-election detail labels were wrong; Presidential late-launcher labels diverged between index and detail).
+
+Once that landed, the progressive-hydration ticket (T-load-4a) made the cycle-index scaffold question trivial — single-year labels are URL-derivable, no flash, no skeleton needed on the year column. The architectural shift was changing initViewSwitcher from "hide everything until data resolves" to "show with skeletons, hydrate after." Added a partial-data retry UI for the case where entity resolves but /totals/ fails.
+
+Then a quick rename: `.section-state-msg` → `.inline-status-msg`. Surfaced when documenting T-load-4a — the prior name suggested a variant of `.state-msg` but they're structurally different primitives (block + text-align vs flex container). Renamed for clarity, added a new component card to the design system distinguishing them.
+
+The T-history-retire follow-up retired the /candidate/{id}/history/ API call after verifying entity returns the same data (including Gillibrand's 2010 special election cycle, which I had previously banked in CLAUDE.md as a /history/-specific property — turns out the entity exposes it too; corrected the framing in the same commit).
+
+T-loadcycle-single-fetch then replaced the iterate-and-sum totals pattern on candidate.html with a single ?cycle=Y&election_full=true call. 3 calls → 1 on Senate cycle detail. Data parity verified live across H/S/P samples before swap.
+
+T-load-4b closed the T-load-4 arc with a chart-card skeleton on candidate.html. Sloane asked to bundle the error-path fix (chart-error overlay with "Unable to load chart") rather than banking it, and to hide the chart-legend during loading + error states. Final polish: decoupled the data-note from chart-error state — data-note represents cycle-level metadata, not chart state.
+
+Banked one more proposal at the end of the session: a committee.html init() refactor to defer the eager totals await on index path. Strategy doc shows honest-but-modest payoff (~200ms typical warm-cache win; 0ms when totals is the bottleneck).
+
+**Changelog bullets:**
+- T-cycle-semantics: candidate.html cycle labels now display as single election years ("2024") matching FEC.gov's "Election" convention; resolves a pre-existing inconsistency between index and detail and fixes Senate-special detail-label bugs along the way
+- T-load-4a: progressive cycle-index hydration — strips render with skeletons after entity resolves and hydrate when /totals/ arrives; partial-data retry UI on /totals/-only failures
+- .section-state-msg → .inline-status-msg rename with new component-card distinction in the design system
+- T-history-retire: dropped /candidate/{id}/history/ from candidate.html — entity returns the same data including Senate special-election cycles
+- T-loadcycle-single-fetch: replaced iterate-and-sum totals with single election_full=true call on candidate.html (3 Senate calls → 1)
+- T-load-4b: candidate chart-card skeleton overlay + "Unable to load chart" error state; chart-legend hidden during loading + error; data-note decoupled from chart-error state
+- T-committee-init-defer-totals: banked as a strategy doc at strategy/committee-init-scaffold.md — awaiting Sloane's review
+
+**Field notes:**
+
+The thing I'll remember from this session is how often "the right answer is to scrap the proposal and start over." Three times today:
+
+1. The cycle-date strategy doc — I drafted a resolveCycleRange helper with Senate-special gap-analysis logic. Verified data first, found the gap analysis was reverse-engineered from one candidate (Gillibrand). When Sloane reframed using FEC.gov's own single-year convention, the whole helper went away.
+
+2. The committee.html scaffold-visibility refactor banked from T-load-4a — I'd described committee.html's init() as "more tangled than candidate.html's." Today's audit showed the two pages have similar shapes; the meaningful difference is one extra await on committee, and the honest payoff is modest. The strategy doc concludes with "ship if you want; defer if you don't" rather than forcing the refactor.
+
+3. The CLAUDE.md framing for Senate special elections. I'd banked "this visibility only exists on /candidate/{id}/history/" as a /history/-specific property. T-history-retire verification showed entity exposes specials too — the original framing was wrong. Corrected in the same commit as the retirement.
+
+The pattern: verification-before-committing keeps catching framing errors that would have shipped as silent bugs. The cost is small (5-10 minutes of live API queries per ticket); the reward is not building helpers around assumptions that aren't true.
+
+**Stack tags:** scaffold-then-hydrate, in-flight-promise caching, election_full=true API aggregation, single-element overlay pattern, separation of concerns (data-note vs chart-state).
+
+## How Sloane steered the work
+
+**The cycle-date reframe — your insistence on FEC.gov's own convention**
+
+The original proposal had a resolveCycleRange helper + gap analysis + sub-notes — solving the symptom (year-label divergence) by building infrastructure to compensate. You said "show me FEC.gov's convention" and the answer was so much simpler: single election years labeled "Election." Scope dropped 65%. The original direction would have shipped working code that papered over a deeper alignment with how FEC organizes the data.
+
+**Bundling fixes instead of banking them — T-load-4b error path**
+
+I proposed banking the chart-card error fix (skeleton-pulsing-forever) as a separate ticket. You said: bundle it. The chart-card pulsing forever was a NEW failure mode my work would introduce, and shipping that as a banked-follow-up would mean shipping a regression and trusting future-us to fix it. Including it in the same commit as the work that introduced it is the correct discipline.
+
+**The data-note decoupling intuition**
+
+When you said "we wouldn't want the data-note to accidentally be hidden if this chart errored out, but the other didn't," that's design-system-level thinking about layer separation. The chart-error overlay owns chart-card failure messaging; data-note owns cycle-metadata; they shouldn't be coupled. Future me would have shipped the coupling without thinking about future chart additions.
+
+**Verification-before-implementation as a steady cadence**
+
+You asked for explicit verification on several substantive questions: Trump 1988 edge case, debt field semantic across non-zero-debt candidates, election_full vs subcycle parity across H/S/P. Each verification took 2-5 minutes; each surfaced confidence in the data-parity claim that backed the refactor. You're consistent on this: don't propose a swap until the data lines up live.
+
+**Reframing the rename direction**
+
+The .section-state-msg / .state-msg distinction wasn't on my radar — it surfaced because you asked "is .section-state-msg just text styling?" The investigation showed they were two different primitives with confusingly similar names. The rename + design-system documentation pass was your call.
+
+**The through-line:** you're catching framing errors before they ship. Three times this session — the cycle-label semantic, the chart-card error path, the .section-state-msg rename — you stopped me from shipping work that was correct in isolation but wrong in context. The instinct keeps showing up: "before you commit to a solution, verify it aligns with how the data / FEC / user actually behaves."
+
+## What to bring to Claude Chat
+
+- T-committee-init-defer-totals decision — is the modest payoff worth shipping? Strategy doc has the honest framing.
+- The "verification-before-implementation" pattern is consistent enough to formalize. Worth banking as a project rule? Something like: "any data-layer claim about FEC API behavior or field semantics requires a live API probe in the strategy doc before implementation."
+- Localstorage caching for committee cycle-list — banked in the strategy doc. Lets the cycle-index render before entity resolves on repeat visits. Staleness window is the trade.
+- Test parallelism flakiness on candidate.spec.js's race-condition test and committee.spec.js's Promise.all-split test. Both pass in isolation; occasionally fail under heavy parallel worker load. Worth a Chat discussion on whether to invest in a more durable solution.
