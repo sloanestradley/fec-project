@@ -714,12 +714,12 @@
 - [ ] Clicking a typeahead result navigates to `/committee/{id}`
 - [ ] Clicking outside closes dropdown
 
-### Show terminated toggle
-- [ ] Toggle is off by default; results exclude terminated committees (no `filing_frequency=T` or `A` rows)
-- [ ] Toggling on re-fetches and includes terminated committees; "Include terminated" chip appears
-- [ ] Clicking chip `×` turns toggle off, chip disappears, terminated excluded again
-- [ ] `?terminated=1` in URL pre-checks the toggle and loads with terminated included
-- [ ] Clear all filters resets toggle to off
+### Exclude terminated toggle
+- [ ] Toggle is off by default; results INCLUDE terminated committees (rows with `filing_frequency=T` or `A` appear)
+- [ ] Toggling on re-fetches and excludes terminated committees; "Exclude terminated" chip appears
+- [ ] Clicking chip `×` turns toggle off, chip disappears, terminated included again
+- [ ] `?terminated=1` in URL pre-checks the toggle and loads with terminated EXCLUDED (semantic inverted 2026-05-20)
+- [ ] Clear all filters resets toggle to off (terminated re-included)
 
 ### Infinite scroll
 - [ ] ✅ `#load-more-spinner` exists in DOM, hidden initially

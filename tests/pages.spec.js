@@ -496,7 +496,7 @@ test.describe('committees.html', () => {
     await expect(el).toBeHidden();
   });
 
-  test('Show terminated toggle is present and unchecked by default', async ({ page }) => {
+  test('Exclude terminated toggle is present and unchecked by default (terminated included by default)', async ({ page }) => {
     const toggle = page.locator('#f-terminated');
     await expect(toggle).toBeAttached();
     await expect(toggle).not.toBeChecked();

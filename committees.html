@@ -229,11 +229,11 @@
           </div>
         </div>
 
-        <!-- Show terminated toggle -->
+        <!-- Exclude terminated toggle -->
         <label class="toggle-switch">
           <input type="checkbox" id="f-terminated">
           <span class="toggle-track"><span class="toggle-knob"></span></span>
-          <span class="toggle-label">Show terminated</span>
+          <span class="toggle-label">Exclude terminated</span>
         </label>
 
       </form>
@@ -284,7 +284,7 @@
 // ── State ────────────────────────────────────────────────────────────────────
 
 var activeQ       = '';
-var activeFilters = { state: '', type: '', showTerminated: false };
+var activeFilters = { state: '', type: '', excludeTerminated: false };
 var currentPage   = 1;
 var totalPages    = 1;
 
@@ -349,7 +349,7 @@ async function doFetch(isLoadMore) {
   }
   if (activeFilters.state) params.state          = activeFilters.state;
   if (activeFilters.type)  params.committee_type  = activeFilters.type;
-  if (!activeFilters.showTerminated) params.filing_frequency = ['-T', '-A'];
+  if (activeFilters.excludeTerminated) params.filing_frequency = ['-T', '-A'];
 
   try {
     var data       = await apiFetch('/committees/', params);
@@ -405,7 +405,7 @@ function updateURL() {
   if (activeQ)             u.searchParams.set('q',     activeQ);
   if (activeFilters.state)         u.searchParams.set('state',      activeFilters.state);
   if (activeFilters.type)          u.searchParams.set('type',       activeFilters.type);
-  if (activeFilters.showTerminated) u.searchParams.set('terminated', '1');
+  if (activeFilters.excludeTerminated) u.searchParams.set('terminated', '1');
   window.history.pushState({}, '', u.toString());
 }
 
@@ -421,7 +421,7 @@ function renderChips() {
   if (activeQ)             chips.push({ key: 'q',     label: '\u201c' + activeQ + '\u201d' });
   if (activeFilters.state) chips.push({ key: 'state', label: 'State: ' + activeFilters.state });
   if (activeFilters.type)          chips.push({ key: 'type',          label: TYPE_LABELS[activeFilters.type] || activeFilters.type });
-  if (activeFilters.showTerminated) chips.push({ key: 'showTerminated', label: 'Include terminated' });
+  if (activeFilters.excludeTerminated) chips.push({ key: 'excludeTerminated', label: 'Exclude terminated' });
 
   var wrap = document.getElementById('filter-chips');
   if (!chips.length) { wrap.style.display = 'none'; return; }
@@ -448,8 +448,8 @@ function clearFilter(key) {
   } else if (key === 'type') {
     activeFilters.type = '';
     typeCombo.setValue('');
-  } else if (key === 'showTerminated') {
-    activeFilters.showTerminated = false;
+  } else if (key === 'excludeTerminated') {
+    activeFilters.excludeTerminated = false;
     document.getElementById('f-terminated').checked = false;
   }
   doFetch(false);
@@ -457,7 +457,7 @@ function clearFilter(key) {
 
 function clearAllFilters() {
   activeQ = '';
-  activeFilters = { state: '', type: '', showTerminated: false };
+  activeFilters = { state: '', type: '', excludeTerminated: false };
   document.getElementById('f-search').value = '';
   stateCombo.setValue('');
   typeCombo.setValue('');
@@ -525,10 +525,10 @@ document.addEventListener('click', function(e) {
 });
 
 
-// ── Show terminated toggle ────────────────────────────────────────────────────
+// ── Exclude terminated toggle ─────────────────────────────────────────────────
 
 document.getElementById('f-terminated').addEventListener('change', function() {
-  activeFilters.showTerminated = this.checked;
+  activeFilters.excludeTerminated = this.checked;
   doFetch(false);
 });
 
@@ -561,7 +561,7 @@ window.addEventListener('scroll', function() {
     typeCombo.setValue(activeFilters.type);
   }
   if (p.get('terminated') === '1') {
-    activeFilters.showTerminated = true;
+    activeFilters.excludeTerminated = true;
     document.getElementById('f-terminated').checked = true;
   }
 
