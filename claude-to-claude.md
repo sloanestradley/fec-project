@@ -5538,7 +5538,7 @@ T-loadcycle-single-fetch then replaced the iterate-and-sum totals pattern on can
 
 T-load-4b closed the T-load-4 arc with a chart-card skeleton on candidate.html. Sloane asked to bundle the error-path fix (chart-error overlay with "Unable to load chart") rather than banking it, and to hide the chart-legend during loading + error states. Final polish: decoupled the data-note from chart-error state — data-note represents cycle-level metadata, not chart state.
 
-Banked one more proposal at the end of the session: a committee.html init() refactor to defer the eager totals await on index path. Strategy doc shows honest-but-modest payoff (~200ms typical warm-cache win; 0ms when totals is the bottleneck).
+Then shipped T-committee-init-defer-totals at the end of the session: the committee.html init() refactor banked from T-load-4a. Sloane reframed the win — cross-page convention is the load-bearing payoff, not latency. Before: committee awaited entity then totals before view.switchTo; candidate awaited only entity, totals fired per-path. After: both pages share `init() awaits only entity; totals is per-path` (helper's fetchIndexData on index, loadCycle on candidate detail, init's conditional await on committee detail). ~20 LOC + 3 tests + cross-page invariant established.
 
 **Changelog bullets:**
 - T-cycle-semantics: candidate.html cycle labels now display as single election years ("2024") matching FEC.gov's "Election" convention; resolves a pre-existing inconsistency between index and detail and fixes Senate-special detail-label bugs along the way
@@ -5547,7 +5547,7 @@ Banked one more proposal at the end of the session: a committee.html init() refa
 - T-history-retire: dropped /candidate/{id}/history/ from candidate.html — entity returns the same data including Senate special-election cycles
 - T-loadcycle-single-fetch: replaced iterate-and-sum totals with single election_full=true call on candidate.html (3 Senate calls → 1)
 - T-load-4b: candidate chart-card skeleton overlay + "Unable to load chart" error state; chart-legend hidden during loading + error; data-note decoupled from chart-error state
-- T-committee-init-defer-totals: banked as a strategy doc at strategy/committee-init-scaffold.md — awaiting Sloane's review
+- T-committee-init-defer-totals: shipped — committee.html init() now awaits only entity, totals is per-path (detail-view conditional await + totalsP.then() populator + empty-ALL_TOTALS guard at top of renderStats); cross-page invariant established with candidate.html; +3 tests (588 → 591)
 
 **Field notes:**
 
@@ -5555,7 +5555,7 @@ The thing I'll remember from this session is how often "the right answer is to s
 
 1. The cycle-date strategy doc — I drafted a resolveCycleRange helper with Senate-special gap-analysis logic. Verified data first, found the gap analysis was reverse-engineered from one candidate (Gillibrand). When Sloane reframed using FEC.gov's own single-year convention, the whole helper went away.
 
-2. The committee.html scaffold-visibility refactor banked from T-load-4a — I'd described committee.html's init() as "more tangled than candidate.html's." Today's audit showed the two pages have similar shapes; the meaningful difference is one extra await on committee, and the honest payoff is modest. The strategy doc concludes with "ship if you want; defer if you don't" rather than forcing the refactor.
+2. The committee.html scaffold-visibility refactor — I'd described committee.html's init() as "more tangled than candidate.html's." Today's audit showed the two pages have similar shapes; the meaningful difference is one extra await on committee, and the honest payoff is modest. Sloane reframed: cross-page convention IS the load-bearing win (not latency). Same code change, different framing — the invariant "init() awaits only entity; totals is per-path" matters more than the ~200ms warm-cache improvement. The strategy doc's "honest payoff is modest" framing held; what changed was which axis to value the work on.
 
 3. The CLAUDE.md framing for Senate special elections. I'd banked "this visibility only exists on /candidate/{id}/history/" as a /history/-specific property. T-history-retire verification showed entity exposes specials too — the original framing was wrong. Corrected in the same commit as the retirement.
 
@@ -5585,11 +5585,15 @@ You asked for explicit verification on several substantive questions: Trump 1988
 
 The .section-state-msg / .state-msg distinction wasn't on my radar — it surfaced because you asked "is .section-state-msg just text styling?" The investigation showed they were two different primitives with confusingly similar names. The rename + design-system documentation pass was your call.
 
-**The through-line:** you're catching framing errors before they ship. Three times this session — the cycle-label semantic, the chart-card error path, the .section-state-msg rename — you stopped me from shipping work that was correct in isolation but wrong in context. The instinct keeps showing up: "before you commit to a solution, verify it aligns with how the data / FEC / user actually behaves."
+**The two-question check before approving T-committee-init-defer-totals**
+
+When I drafted the implementation prompt, you didn't just approve — you sent back two specific verifications: "Confirm `#summary-strip` is toggled by inline style not by a CSS class" and "Confirm `activeCycle` is falsy on the index path." Both took 30 seconds to verify, both passed cleanly, both were the right thing to ask. The pattern: a verification ask phrased so I can answer it without redesigning anything. You're catching the class of mistake where the proposed code looks right but rests on an unverified assumption. It's the same discipline as the live-API parity checks, just applied to internal state contracts.
+
+**The through-line:** you're catching framing errors before they ship. Four times this session — the cycle-label semantic, the chart-card error path, the .section-state-msg rename, the T-committee-init-defer-totals payoff axis — you stopped me from shipping work that was correct in isolation but wrong in context. The instinct keeps showing up: "before you commit to a solution, verify it aligns with how the data / FEC / user / state contract actually behaves."
 
 ## What to bring to Claude Chat
 
-- T-committee-init-defer-totals decision — is the modest payoff worth shipping? Strategy doc has the honest framing.
-- The "verification-before-implementation" pattern is consistent enough to formalize. Worth banking as a project rule? Something like: "any data-layer claim about FEC API behavior or field semantics requires a live API probe in the strategy doc before implementation."
+- The "verification-before-implementation" pattern is consistent enough to formalize. Worth banking as a project rule? Something like: "any data-layer claim about FEC API behavior or field semantics requires a live API probe in the strategy doc before implementation." T-committee-init-defer-totals extended this to internal state contracts (the two-question check on `#summary-strip` toggle + `activeCycle` index-path behavior) — worth recognizing both axes when formalizing.
 - Localstorage caching for committee cycle-list — banked in the strategy doc. Lets the cycle-index render before entity resolves on repeat visits. Staleness window is the trade.
 - Test parallelism flakiness on candidate.spec.js's race-condition test and committee.spec.js's Promise.all-split test. Both pass in isolation; occasionally fail under heavy parallel worker load. Worth a Chat discussion on whether to invest in a more durable solution.
+- Cross-page init() invariant — both candidate.html and committee.html now share `init() awaits only entity; totals is per-path.` Worth documenting at the project-rule level as a convention new pages should follow, not just an observation about the current state of two pages.
