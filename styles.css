@@ -673,10 +673,10 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .search-bar { position:relative; }
 .typeahead-dropdown {
   position:absolute; top:calc(100% + 1px); left:0; max-width:600px; width:100%;
-  background:var(--surface); border:1px solid var(--border-strong);
-  border-top:none; z-index:150; display:none;
+  background:var(--surface); border-radius:2px;
+  z-index:150; display:none;
   max-height:240px; overflow-y:auto;
-  box-shadow:0 4px 12px rgba(26,21,16,0.12); }
+  box-shadow:0 0 8px rgba(26,21,16,0.2); }
 .typeahead-dropdown.open { display:block; }
 .typeahead-group-label {
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
@@ -685,7 +685,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   background:var(--surface2); }
 .typeahead-row {
   display:flex; align-items:center; justify-content:space-between;
-  gap:var(--space-8); padding:var(--space-8) var(--space-16); cursor:pointer;
+  gap:var(--space-8); min-height:40px; padding:var(--space-8) var(--space-16); cursor:pointer;
   border-bottom:1px solid var(--border); transition:background 0.1s;
   text-decoration:none; color:inherit; }
 .typeahead-row:last-child { border-bottom:none; }
@@ -711,7 +711,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   border-bottom:1px solid var(--border); font-style:italic; }
 .typeahead-loading {
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
-  color:var(--muted); padding:var(--space-8) var(--space-16);
+  color:var(--muted); min-height:40px; padding:var(--space-8) var(--space-16);
   text-transform:uppercase; letter-spacing:var(--ls-expanded); }
 
 /* ── P: Browse results list container ── */
