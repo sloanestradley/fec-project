@@ -2,8 +2,10 @@
  * search.spec.js — Structural tests for search.html.
  *
  * Uses mocked FEC API and Amplitude.
- * Tests cover: initial hero state, typeahead dropdown, two-group results
- * preview, no-results state, and Amplitude events.
+ * Tests cover: initial state, live inline results (debounced query rendered
+ * in the page body — T-search-inline-results retired the floating
+ * #typeahead-dropdown), the submit path, View all links, ?q= auto-search,
+ * no-results and error states, and Amplitude events.
  */
 
 import { test, expect } from '@playwright/test';
@@ -22,13 +24,23 @@ test.describe('search.html — initial state (no query)', () => {
     await expect(page.locator('#search-input')).toBeVisible();
   });
 
-  test('#search-input has combobox ARIA attributes', async ({ page }) => {
+  test('#search-input is a plain search input (no combobox ARIA)', async ({ page }) => {
+    // T-search-inline-results: results render inline, not in a popup listbox,
+    // so the combobox-with-popup ARIA was dropped.
     const input = page.locator('#search-input');
-    await expect(input).toHaveAttribute('role', 'combobox');
-    await expect(input).toHaveAttribute('aria-haspopup', 'listbox');
-    await expect(input).toHaveAttribute('aria-expanded', 'false');
-    await expect(input).toHaveAttribute('aria-controls', 'typeahead-dropdown');
-    await expect(input).toHaveAttribute('aria-autocomplete', 'list');
+    await expect(input).toHaveAttribute('type', 'search');
+    await expect(input).not.toHaveAttribute('role', 'combobox');
+    await expect(input).not.toHaveAttribute('aria-controls', 'typeahead-dropdown');
+  });
+
+  test('an aria-live results status region is present', async ({ page }) => {
+    // initSearchPanel creates a visually-hidden polite live region for a
+    // concise count summary.
+    await expect(page.locator('.sr-only[aria-live="polite"]')).toHaveCount(1);
+  });
+
+  test('the floating typeahead dropdown is gone', async ({ page }) => {
+    await expect(page.locator('#typeahead-dropdown')).toHaveCount(0);
   });
 
   test('nav search handler is registered on search.html', async ({ page }) => {
@@ -53,109 +65,84 @@ test.describe('search.html — initial state (no query)', () => {
     expect(event).toBeDefined();
     expect(event.args[1]).toMatchObject({ page: 'search' });
   });
-
 });
 
-// ── Typeahead dropdown ────────────────────────────────────────────────────────
+// ── Live inline results ───────────────────────────────────────────────────────
 
-test.describe('search.html — typeahead dropdown', () => {
+test.describe('search.html — live inline results', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.goto('/search.html');
   });
 
-  test('fewer than 2 chars does not show typeahead', async ({ page }) => {
+  test('fewer than 2 chars does not show results', async ({ page }) => {
     await page.locator('#search-input').fill('g');
-    await page.waitForTimeout(400);
-    await expect(page.locator('#typeahead-dropdown')).not.toBeVisible();
+    await page.waitForTimeout(500);
+    await expect(page.locator('#state-results')).not.toBeVisible();
   });
 
-  test('2+ chars shows typeahead dropdown', async ({ page }) => {
+  test('2+ chars shows inline results in the page body', async ({ page }) => {
     await page.locator('#search-input').fill('gl');
-    await expect(page.locator('#typeahead-dropdown')).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('#state-results')).toBeVisible({ timeout: 2000 });
   });
 
-  test('dropdown shows Candidates group label', async ({ page }) => {
+  test('candidates group renders', async ({ page }) => {
     await page.locator('#search-input').fill('gl');
-    await page.locator('#typeahead-dropdown').waitFor({ state: 'visible', timeout: 2000 });
-    const labels = await page.locator('.typeahead-group-label').allTextContents();
-    const upper = labels.map(t => t.toUpperCase());
-    expect(upper.some(t => t.includes('CANDIDATES'))).toBe(true);
+    await expect(page.locator('.results-group[data-group="candidates"]'))
+      .toBeVisible({ timeout: 2000 });
   });
 
-  test('dropdown shows Committees group label', async ({ page }) => {
+  test('committees group renders', async ({ page }) => {
     await page.locator('#search-input').fill('gl');
-    await page.locator('#typeahead-dropdown').waitFor({ state: 'visible', timeout: 2000 });
-    const labels = await page.locator('.typeahead-group-label').allTextContents();
-    const upper = labels.map(t => t.toUpperCase());
-    expect(upper.some(t => t.includes('COMMITTEES'))).toBe(true);
+    await expect(page.locator('.results-group[data-group="committees"]'))
+      .toBeVisible({ timeout: 2000 });
   });
 
-  test('candidate row links to /candidate/{id}', async ({ page }) => {
+  test('candidate result links to /candidate/{id}', async ({ page }) => {
     await page.locator('#search-input').fill('gl');
-    await page.locator('#typeahead-dropdown').waitFor({ state: 'visible', timeout: 2000 });
-    const link = page.locator('.typeahead-row[href*="/candidate/"]').first();
-    await expect(link).toBeVisible();
+    const link = page.locator('.results-group[data-group="candidates"] a[href*="/candidate/"]').first();
+    await expect(link).toBeVisible({ timeout: 2000 });
     const href = await link.getAttribute('href');
     expect(href).toMatch(/\/candidate\/[A-Z0-9]+/);
     expect(href).not.toContain('#');
   });
 
-  test('committee row links to /committee/{id}', async ({ page }) => {
+  test('committee result links to /committee/{id}', async ({ page }) => {
     await page.locator('#search-input').fill('gl');
-    await page.locator('#typeahead-dropdown').waitFor({ state: 'visible', timeout: 2000 });
-    const link = page.locator('.typeahead-row[href*="/committee/"]').first();
-    await expect(link).toBeVisible();
+    const link = page.locator('.results-group[data-group="committees"] a[href*="/committee/"]').first();
+    await expect(link).toBeVisible({ timeout: 2000 });
     const href = await link.getAttribute('href');
     expect(href).toMatch(/\/committee\/[A-Z0-9]+/);
   });
 
-  test('Escape key closes the dropdown', async ({ page }) => {
-    await page.locator('#search-input').fill('gl');
-    await page.locator('#typeahead-dropdown').waitFor({ state: 'visible', timeout: 2000 });
-    await page.locator('#search-input').press('Escape');
-    await expect(page.locator('#typeahead-dropdown')).not.toBeVisible();
-  });
-
-  test('Enter key closes dropdown and runs search', async ({ page }) => {
+  test('Enter after live results does not blank the results', async ({ page }) => {
     await page.locator('#search-input').fill('gluesenkamp');
-    await page.locator('#typeahead-dropdown').waitFor({ state: 'visible', timeout: 2000 });
+    await expect(page.locator('.results-group[data-group="candidates"]'))
+      .toBeVisible({ timeout: 2000 });
     await page.locator('#search-input').press('Enter');
-    await expect(page.locator('#typeahead-dropdown')).not.toBeVisible();
-    await expect(page.locator('#candidates-list')).toBeVisible({ timeout: 5000 });
-  });
-
-  test('clicking outside closes the dropdown', async ({ page }) => {
-    await page.locator('#search-input').fill('gl');
-    await page.locator('#typeahead-dropdown').waitFor({ state: 'visible', timeout: 2000 });
-    await page.mouse.click(10, 400);
-    await expect(page.locator('#typeahead-dropdown')).not.toBeVisible();
+    // query() dedups on lastQuery, so Enter after live results is a panel
+    // no-op — results stay, no flash to the loading/blank state.
+    await expect(page.locator('#state-results')).toBeVisible();
+    await expect(page.locator('.results-group[data-group="candidates"]')).toBeVisible();
+    await expect(page).toHaveURL(/\/search\?q=gluesenkamp/);
   });
 });
 
-// ── Two-group results ─────────────────────────────────────────────────────────
+// ── Submit path ───────────────────────────────────────────────────────────────
 
-test.describe('search.html — two-group results', () => {
+test.describe('search.html — submit path', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.goto('/search.html');
     await page.locator('#search-input').fill('gluesenkamp');
     await page.locator('#search-input').press('Enter');
-    await page.waitForSelector('#candidates-list', { timeout: 5000 });
-  });
-
-  test('Candidates group is visible after submit', async ({ page }) => {
-    await expect(page.locator('#group-candidates')).toBeVisible();
-  });
-
-  test('Committees group is visible after submit', async ({ page }) => {
-    await expect(page.locator('#group-committees')).toBeVisible();
+    await page.waitForSelector('.results-group[data-group="candidates"]', { timeout: 5000 });
   });
 
   test('candidate results link to /candidate/{id}', async ({ page }) => {
-    const link = page.locator('#candidates-list a[href*="/candidate/"]').first();
+    const link = page.locator('.results-group[data-group="candidates"] a[href*="/candidate/"]').first();
     await expect(link).toBeVisible();
     const href = await link.getAttribute('href');
     expect(href).toMatch(/\/candidate\/[A-Z0-9]+/);
@@ -163,7 +150,7 @@ test.describe('search.html — two-group results', () => {
   });
 
   test('committee results link to /committee/{id}', async ({ page }) => {
-    const link = page.locator('#committees-list a[href*="/committee/"]').first();
+    const link = page.locator('.results-group[data-group="committees"] a[href*="/committee/"]').first();
     await expect(link).toBeVisible();
     const href = await link.getAttribute('href');
     expect(href).toMatch(/\/committee\/[A-Z0-9]+/);
@@ -179,7 +166,7 @@ test.describe('search.html — two-group results', () => {
 // ── View all links ────────────────────────────────────────────────────────────
 
 test.describe('search.html — View all links', () => {
-  test('"View all candidates" link contains /candidates?q= when count > 5', async ({ page }) => {
+  test('"View all" candidates link contains /candidates?q= when count > 5', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     // Override to return count > 5 for candidate search
@@ -199,15 +186,14 @@ test.describe('search.html — View all links', () => {
     });
     await page.goto('/search.html');
     await page.locator('#search-input').fill('gluesenkamp');
-    await page.locator('#search-input').press('Enter');
-    await page.waitForSelector('#candidates-list', { timeout: 5000 });
-    const viewAll = page.locator('#candidates-view-all');
+    await page.waitForSelector('.results-group[data-group="candidates"]', { timeout: 5000 });
+    const viewAll = page.locator('.results-group[data-group="candidates"] .results-view-all');
     await expect(viewAll).toBeVisible();
     const href = await viewAll.getAttribute('href');
     expect(href).toContain('/candidates?q=');
   });
 
-  test('"View all committees" link contains /committees?q= when count > 5', async ({ page }) => {
+  test('"View all" committees link contains /committees?q= when count > 5', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     // Override to return count > 5 for committee search
@@ -227,9 +213,8 @@ test.describe('search.html — View all links', () => {
     });
     await page.goto('/search.html');
     await page.locator('#search-input').fill('gluesenkamp');
-    await page.locator('#search-input').press('Enter');
-    await page.waitForSelector('#committees-list', { timeout: 5000 });
-    const viewAll = page.locator('#committees-view-all');
+    await page.waitForSelector('.results-group[data-group="committees"]', { timeout: 5000 });
+    const viewAll = page.locator('.results-group[data-group="committees"] .results-view-all');
     await expect(viewAll).toBeVisible();
     const href = await viewAll.getAttribute('href');
     expect(href).toContain('/committees?q=');
@@ -243,11 +228,12 @@ test.describe('search.html — ?q= auto-search', () => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.goto('/search.html?q=gluesenkamp');
-    await expect(page.locator('#candidates-list')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.results-group[data-group="candidates"]'))
+      .toBeVisible({ timeout: 5000 });
   });
 });
 
-// ── No-results state ──────────────────────────────────────────────────────────
+// ── Empty / error states ──────────────────────────────────────────────────────
 
 test.describe('search.html — empty / error states', () => {
   test('query with no results shows no-results state', async ({ page }) => {
@@ -261,5 +247,15 @@ test.describe('search.html — empty / error states', () => {
     );
     await page.goto('/search.html?q=zzznomatch');
     await expect(page.locator('.no-results')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('fetch failure shows the error state with a retry button', async ({ page }) => {
+    await mockAmplitude(page);
+    await page.route('**/api/fec/**', route =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
+    );
+    await page.goto('/search.html?q=gluesenkamp');
+    await expect(page.locator('#state-error')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#state-error .retry-btn')).toBeVisible();
   });
 });

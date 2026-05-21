@@ -955,3 +955,178 @@ function initTabSection(rootEl) {
     }
   };
 }
+
+// ── initSearchPanel ──────────────────────────────────────────────────────────
+// Live, debounced, as-you-type search rendering two result groups (candidates +
+// committees) inline. Single source of truth for the search-results UI — built
+// two-consumer-ready (T-search-inline-results, Phase 1 of the search-overlay
+// arc; /search is the sole consumer this ticket, the Ticket-2 overlay is the
+// second).
+//
+// Single-funnel design: every entry point — the internal debounced input
+// listener, Enter-submit, ?q= init, __navSearchHandler — calls query(q).
+// query(q) dedups on lastQuery (the most recent dispatched query string), so
+// repeated entry points for the same string never double-fetch or double-
+// render. This makes Enter-after-results a structural no-op, not a special
+// case. lastQuery is reset to '' on fetch error so a retry / re-Enter of the
+// same string can re-attempt.
+//
+// config:
+//   inputEl     — the search <input>; factory attaches its own debounced listener
+//   resultsEl   — shown in the results state; factory writes the group markup in
+//   loadingEl   — shown only on a cold query (no prior results visible)
+//   noResultsEl — shown when both result sets are empty
+//   errorEl     — shown on fetch failure
+//   fromPage    — string → candidateCardHTML/committeeRowHTML opts.fromPage
+//
+// Soft-update: on a query fired while results are already visible, the prior
+// results stay on screen and `resultsEl` gets a `refetching` class (a 2px
+// progress affordance) instead of flashing the cold loading state.
+//
+// Returns { query(q), clear(), destroy() }.
+function initSearchPanel(config) {
+  var inputEl     = config.inputEl;
+  var resultsEl   = config.resultsEl;
+  var loadingEl   = config.loadingEl;
+  var noResultsEl = config.noResultsEl;
+  var errorEl     = config.errorEl;
+  var fromPage    = config.fromPage || 'search';
+
+  var DEBOUNCE_MS = 300;
+  var MIN_CHARS   = 2;
+  var debounceTimer = null;
+  var token = 0;
+  var lastQuery = '';
+
+  // Visually-hidden polite live region — concise count summary, not the list.
+  var liveRegion = document.createElement('div');
+  liveRegion.className = 'sr-only';
+  liveRegion.setAttribute('aria-live', 'polite');
+  resultsEl.parentNode.insertBefore(liveRegion, resultsEl.nextSibling);
+
+  function showState(name) {
+    loadingEl.style.display   = name === 'loading'    ? 'block' : 'none';
+    resultsEl.style.display   = name === 'results'    ? 'block' : 'none';
+    noResultsEl.style.display = name === 'no-results' ? 'block' : 'none';
+    errorEl.style.display     = name === 'error'      ? 'block' : 'none';
+  }
+
+  function groupHTML(groupKey, items, total, q, rowFn) {
+    var rows = items.map(function(item, i) { return rowFn(item, i); }).join('');
+    var noun = groupKey === 'candidates' ? 'candidate' : 'committee';
+    var countText = total + ' ' + noun + (total !== 1 ? 's' : '')
+      + ' for “' + q + '”';
+    var viewAll = '';
+    if (total > 5) {
+      var browse = groupKey === 'candidates' ? '/candidates' : '/committees';
+      viewAll = '<a class="results-view-all" href="' + browse + '?q='
+        + encodeURIComponent(q) + '">View all ' + total + ' →</a>';
+    }
+    return '<div class="results-group" data-group="' + groupKey + '">'
+      + '<div class="results-group-header"><span>' + countText + '</span>'
+      + viewAll + '</div>'
+      + '<div class="results-list">' + rows + '</div></div>';
+  }
+
+  function render(q, cands, comms, cTotal, coTotal) {
+    var html = '<div class="results-area">';
+    if (cands.length) {
+      html += groupHTML('candidates', cands, cTotal, q, function(c, i) {
+        return candidateCardHTML(c, { fromPage: fromPage, resultPosition: i, query: q });
+      });
+    }
+    if (comms.length) {
+      html += groupHTML('committees', comms, coTotal, q, function(c, i) {
+        return committeeRowHTML(c, { fromPage: fromPage, resultPosition: i, query: q });
+      });
+    }
+    html += '</div>';
+    resultsEl.innerHTML = html;
+  }
+
+  function summaryText(cTotal, coTotal) {
+    var parts = [];
+    if (cTotal)  parts.push(cTotal  + ' candidate' + (cTotal  !== 1 ? 's' : ''));
+    if (coTotal) parts.push(coTotal + ' committee' + (coTotal !== 1 ? 's' : ''));
+    return parts.length ? parts.join(' and ') + ' found' : 'No results found';
+  }
+
+  function query(q) {
+    clearTimeout(debounceTimer);
+    q = (q || '').trim();
+
+    if (q.length < MIN_CHARS) {
+      lastQuery = '';
+      token++;
+      resultsEl.classList.remove('refetching');
+      resultsEl.innerHTML = '';
+      liveRegion.textContent = '';
+      showState('bare');
+      return;
+    }
+    if (q === lastQuery) return; // already dispatched/showing this string
+
+    lastQuery = q;
+    var myToken = ++token;
+
+    // Soft-update: keep visible results on screen during refetch; only show the
+    // cold loading state when there are no prior results to keep.
+    if (resultsEl.style.display !== 'none' && resultsEl.innerHTML) {
+      resultsEl.classList.add('refetching');
+    } else {
+      showState('loading');
+    }
+
+    Promise.all([
+      apiFetch('/candidates/', { q: q, per_page: 5, sort: '-receipts' }),
+      apiFetch('/committees/', { q: q, per_page: 5, sort: '-receipts' })
+    ]).then(function(res) {
+      if (myToken !== token) return; // superseded by a newer query
+      resultsEl.classList.remove('refetching');
+      var cands = res[0].results || [];
+      var comms = res[1].results || [];
+      var cTotal  = (res[0].pagination && res[0].pagination.count)  || cands.length;
+      var coTotal = (res[1].pagination && res[1].pagination.count) || comms.length;
+      if (!cands.length && !comms.length) {
+        resultsEl.innerHTML = '';
+        showState('no-results');
+        liveRegion.textContent = summaryText(0, 0);
+        return;
+      }
+      render(q, cands, comms, cTotal, coTotal);
+      showState('results');
+      liveRegion.textContent = summaryText(cTotal, coTotal);
+    }).catch(function(err) {
+      if (myToken !== token) return; // superseded by a newer query
+      resultsEl.classList.remove('refetching');
+      lastQuery = ''; // allow retry / re-Enter of the same string to re-attempt
+      showState('error');
+      liveRegion.textContent = 'Couldn’t load search results.';
+      console.error('search error:', err);
+    });
+  }
+
+  function clear() {
+    clearTimeout(debounceTimer);
+    lastQuery = '';
+    token++;
+    resultsEl.classList.remove('refetching');
+    resultsEl.innerHTML = '';
+    liveRegion.textContent = '';
+    showState('bare');
+  }
+
+  function onInput() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function() { query(inputEl.value); }, DEBOUNCE_MS);
+  }
+  inputEl.addEventListener('input', onInput);
+
+  function destroy() {
+    clearTimeout(debounceTimer);
+    inputEl.removeEventListener('input', onInput);
+    if (liveRegion.parentNode) liveRegion.parentNode.removeChild(liveRegion);
+  }
+
+  return { query: query, clear: clear, destroy: destroy };
+}

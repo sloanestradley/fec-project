@@ -89,13 +89,9 @@
           <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="search" class="form-input" id="search-input"
             placeholder="Search candidates and committees" autocomplete="off" spellcheck="false"
-            aria-label="Search candidates and committees"
-            role="combobox" aria-haspopup="listbox" aria-expanded="false"
-            aria-controls="typeahead-dropdown" aria-autocomplete="list"/>
+            aria-label="Search candidates and committees"/>
         </div>
         <button type="submit" class="form-search-btn sr-only" aria-label="Search"></button>
-        <div id="typeahead-dropdown" class="typeahead-dropdown" style="display:none"
-             role="listbox" aria-label="Search suggestions"></div>
       </form>
     </div>
 
@@ -104,31 +100,23 @@
       <div class="state-msg"><div class="loader"></div><span>Searching FEC records…</span></div>
     </div>
 
-    <!-- State: results -->
-    <div id="state-results" style="display:none">
-      <div class="results-area">
-        <div class="results-group" id="group-candidates">
-          <div class="results-group-header">
-            <span id="candidates-count"></span>
-            <a id="candidates-view-all" class="results-view-all" href="#" style="display:none">View all →</a>
-          </div>
-          <div id="candidates-list"></div>
-        </div>
-        <div class="results-group" id="group-committees">
-          <div class="results-group-header">
-            <span id="committees-count"></span>
-            <a id="committees-view-all" class="results-view-all" href="#" style="display:none">View all →</a>
-          </div>
-          <div id="committees-list"></div>
-        </div>
-      </div>
-    </div>
+    <!-- State: results — factory (initSearchPanel) renders the two groups here -->
+    <div id="state-results" style="display:none"></div>
 
     <!-- State: no results -->
     <div id="state-no-results" style="display:none">
       <div class="no-results">
         <strong>No results found</strong>
         No candidates or committees matched your search. Try a different name or spelling.
+      </div>
+    </div>
+
+    <!-- State: error -->
+    <div id="state-error" style="display:none">
+      <div class="error-prompt">
+        <strong>Couldn't load results</strong>
+        There was a problem fetching data from the FEC API.
+        <div><button class="retry-btn">Retry</button></div>
       </div>
     </div>
 
@@ -139,163 +127,52 @@
 <script src="main.js"></script>
 <script src="utils.js"></script>
 <script>
-var currentQuery = '';
-var typeaheadTimer = null;
+// Live inline search. initSearchPanel (utils.js) owns the debounced typeahead,
+// the stale-response guard, the soft-update loading treatment, the aria-live
+// status region, and the results/loading/no-results/error state machine.
+var panel = initSearchPanel({
+  inputEl:     document.getElementById('search-input'),
+  resultsEl:   document.getElementById('state-results'),
+  loadingEl:   document.getElementById('state-loading'),
+  noResultsEl: document.getElementById('state-no-results'),
+  errorEl:     document.getElementById('state-error'),
+  fromPage:    'search'
+});
 
-function showState(name) {
-  document.getElementById('state-loading').style.display     = name === 'loading'    ? 'block' : 'none';
-  document.getElementById('state-results').style.display     = name === 'results'    ? 'block' : 'none';
-  document.getElementById('state-no-results').style.display  = name === 'no-results' ? 'block' : 'none';
-}
-
-function showTypeahead(html) {
-  var d = document.getElementById('typeahead-dropdown');
-  d.innerHTML = html;
-  d.style.display = 'block';
-  document.getElementById('search-input').setAttribute('aria-expanded', 'true');
-}
-
-function hideTypeahead() {
-  var d = document.getElementById('typeahead-dropdown');
-  d.style.display = 'none';
-  d.innerHTML = '';
-  document.getElementById('search-input').setAttribute('aria-expanded', 'false');
-}
-
-async function doTypeahead(query) {
-  if (query.length < 2) { hideTypeahead(); return; }
-  var d = document.getElementById('typeahead-dropdown');
-  d.innerHTML = '<div class="typeahead-loading">Searching…</div>';
-  d.style.display = 'block';
-  document.getElementById('search-input').setAttribute('aria-expanded', 'true');
-  try {
-    var results = await Promise.all([
-      apiFetch('/candidates/', { q: query, per_page: 5, sort: '-receipts' }),
-      apiFetch('/committees/', { q: query, per_page: 5, sort: '-receipts' }),
-    ]);
-    showTypeahead(buildTypeaheadHTML(results[0].results || [], results[1].results || []));
-  } catch(e) {
-    hideTypeahead();
-  }
-}
-
-function renderCandidateGroup(candidates, total, query) {
-  var list = document.getElementById('candidates-list');
-  if (!candidates.length) {
-    list.innerHTML = '<div style="font-size:0.75rem;color:var(--muted);padding:0.75rem 0;font-style:italic">No candidates found</div>';
-    document.getElementById('candidates-count').textContent = '';
-    return;
-  }
-  list.innerHTML = candidates.map(function(c, i) {
-    return candidateCardHTML(c, {
-      fromPage: 'search',
-      resultPosition: i,
-      query: query
-    });
-  }).join('');
-
-  var n = total;
-  document.getElementById('candidates-count').textContent =
-    n + ' candidate' + (n !== 1 ? 's' : '') + ' for \u201c' + query + '\u201d';
-  var viewAll = document.getElementById('candidates-view-all');
-  if (total > 5) {
-    viewAll.href = '/candidates?q=' + encodeURIComponent(query);
-    viewAll.textContent = 'View all ' + total + ' \u2192';
-    viewAll.style.display = 'inline';
-  } else {
-    viewAll.style.display = 'none';
-  }
-}
-
-function renderCommitteeGroup(committees, total, query) {
-  var list = document.getElementById('committees-list');
-  if (!committees.length) {
-    list.innerHTML = '<div style="font-size:0.75rem;color:var(--muted);padding:0.75rem 0;font-style:italic">No committees found</div>';
-    document.getElementById('committees-count').textContent = '';
-    return;
-  }
-  list.innerHTML = committees.map(function(c, i) {
-    return committeeRowHTML(c, { fromPage: 'search', resultPosition: i, query: query });
-  }).join('');
-
-  var n = total;
-  document.getElementById('committees-count').textContent =
-    n + ' committee' + (n !== 1 ? 's' : '') + ' for \u201c' + query + '\u201d';
-  var viewAll = document.getElementById('committees-view-all');
-  if (total > 5) {
-    viewAll.href = '/committees?q=' + encodeURIComponent(query);
-    viewAll.textContent = 'View all ' + total + ' \u2192';
-    viewAll.style.display = 'inline';
-  } else {
-    viewAll.style.display = 'none';
-  }
-}
-
-async function doSearch(query) {
-  if (!query.trim()) return;
-  currentQuery = query.trim();
-  hideTypeahead();
-  showState('loading');
-  amplitude.track('Candidate Searched', { query: currentQuery });
-  try {
-    var results = await Promise.all([
-      apiFetch('/candidates/', { q: currentQuery, per_page: 5, sort: '-receipts' }),
-      apiFetch('/committees/', { q: currentQuery, per_page: 5, sort: '-receipts' }),
-    ]);
-    var cands  = results[0].results || [];
-    var comms  = results[1].results || [];
-    var cTotal = (results[0].pagination && results[0].pagination.count) || cands.length;
-    var coTotal = (results[1].pagination && results[1].pagination.count) || comms.length;
-    if (!cands.length && !comms.length) { showState('no-results'); return; }
-    renderCandidateGroup(cands, cTotal, currentQuery);
-    renderCommitteeGroup(comms, coTotal, currentQuery);
-    showState('results');
-  } catch(e) {
-    showState('empty');
-    console.error('search error:', e);
-  }
-}
-
+// Enter / submit-button — an explicit search. Push a shareable ?q= URL, fire
+// the Amplitude event, then run the query. panel.query() dedups on lastQuery,
+// so an Enter after live results already rendered for this string is a
+// structural no-op (only the pushState + event run).
 function handleSubmit(e) {
   e.preventDefault();
-  var q = document.getElementById('search-input').value;
-  if (!q.trim()) return;
-  history.pushState(null, '', '/search?q=' + encodeURIComponent(q.trim()));
-  doSearch(q);
+  var q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  history.pushState(null, '', '/search?q=' + encodeURIComponent(q));
+  amplitude.track('Candidate Searched', { query: q });
+  panel.query(q);
 }
 
 (function init() {
   amplitude.track('Page Viewed', { page: 'search' });
-  var params = new URLSearchParams(window.location.search);
-  var q = params.get('q');
+  var q = new URLSearchParams(window.location.search).get('q');
   if (q) {
     document.getElementById('search-input').value = q;
-    doSearch(q);
-  } else {
-    showState('empty');
+    amplitude.track('Candidate Searched', { query: q });
+    panel.query(q);
   }
-
-  var input = document.getElementById('search-input');
-  input.addEventListener('input', function() {
-    clearTimeout(typeaheadTimer);
-    var v = input.value.trim();
-    typeaheadTimer = setTimeout(function() { doTypeahead(v); }, 300);
-  });
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') hideTypeahead();
-  });
-  document.addEventListener('click', function(e) {
-    var d = document.getElementById('typeahead-dropdown');
-    if (d && !d.contains(e.target) && e.target !== input) hideTypeahead();
+  document.querySelector('#state-error .retry-btn').addEventListener('click', function() {
+    panel.query(document.getElementById('search-input').value);
   });
 })();
 
-// On search.html, nav submit fires inline search instead of redirecting
+// On search.html, a nav-search submit runs the inline search instead of
+// redirecting. (Phase 1: the nav input still exists; retired in Ticket 2.)
 window.__navSearchHandler = function(q) {
   hideNavTypeahead();
   document.getElementById('search-input').value = q;
   history.pushState(null, '', '/search?q=' + encodeURIComponent(q));
-  doSearch(q);
+  amplitude.track('Candidate Searched', { query: q });
+  panel.query(q);
 };
 </script>
 
