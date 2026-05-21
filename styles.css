@@ -648,7 +648,8 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 
 /* ── P2: Toggle switch ── */
 .toggle-switch {
-  display:inline-flex; align-items:center; gap:var(--space-8); cursor:pointer; user-select:none; }
+  display:inline-flex; align-items:center; gap:var(--space-8); height:34px;
+  cursor:pointer; user-select:none; }
 .toggle-switch input[type="checkbox"] { opacity:0; width:0; height:0; position:absolute; }
 .toggle-track {
   position:relative; display:inline-block; flex-shrink:0;
@@ -776,10 +777,10 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   gap:var(--space-8); text-align:left; cursor:pointer; white-space:nowrap; }
 .combo-trigger::after { content:'▾'; font-size:0.75em; opacity:0.6; flex-shrink:0; }
 
-.filter-chips-wrap { padding:var(--space-8) var(--page-gutter);
+.filter-chips-wrap { padding:var(--space-16) var(--page-gutter) 0;
   display:flex; flex-wrap:wrap; gap:var(--space-8); align-items:center; }
 .filter-chip { display:inline-flex; align-items:center; gap:var(--space-4); padding:var(--space-4) var(--space-8);
-  background:var(--bg); border:1px solid var(--border-strong);
+  background:var(--surface2); border:1px solid var(--border); border-radius:2px;
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); }
 .chip-x { background:none; border:none; cursor:pointer; font-size:0.875rem;
   color:var(--muted); padding:0 var(--space-2); /* micro: minimal hit-area padding on × button */ line-height:var(--lh-tight); display:flex; align-items:center; }
