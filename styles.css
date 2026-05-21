@@ -833,7 +833,15 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .tab-section-panel .donors-table th:nth-child(4),
 .tab-section-panel .donors-table td:nth-child(4) { width:7rem; }
 
-.results-area { padding:var(--space-32) var(--page-gutter); border-top:1px solid var(--border); }
+.results-area { padding:var(--space-32) var(--page-gutter); }
+
+/* One divider beneath the filter chrome — owned by whichever state container is currently visible
+   (loading, results-via-.results-area, no-results, error). #state-empty intentionally omitted —
+   it's the pre-search landing state on /search and shouldn't carry a stranded divider. */
+.results-area,
+#state-loading,
+#state-no-results,
+#state-error { border-top:1px solid var(--border); }
 .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
   text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--muted); padding-bottom:var(--space-8); }
 .end-of-results { display:none; padding:var(--space-16) var(--page-gutter);
