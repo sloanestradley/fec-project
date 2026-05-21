@@ -710,6 +710,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   font-size:0.75rem; color:var(--muted); padding:var(--space-8) var(--space-16);
   border-bottom:1px solid var(--border); font-style:italic; }
 .typeahead-loading {
+  display:flex; align-items:center;
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
   color:var(--muted); min-height:40px; padding:var(--space-8) var(--space-16);
   text-transform:uppercase; letter-spacing:var(--ls-expanded); }
