@@ -734,7 +734,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 
 /* ── R: Browse page chrome ── */
 .filter-bar-wrap { padding:var(--space-40) var(--page-gutter) var(--space-24); border-bottom:1px solid var(--border); }
-.filter-bar { display:flex; gap:var(--space-16) var(--space-8); flex-wrap:wrap; align-items:flex-end; max-width:860px; }
+.filter-bar { display:flex; gap:var(--space-16) var(--space-8); flex-wrap:wrap; align-items:flex-end; }
 .filter-bar .form-field-full { flex-basis:100%; }
 .form-field { display:flex; flex-direction:column; gap:var(--space-4); }
 .form-label { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
@@ -752,7 +752,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .search-field .form-input { padding-left:calc(var(--space-8) + 14px + var(--space-8)); }
 
 .search-combo { position:relative; display:flex; }
-.search-combo .form-input { flex:1; min-width:160px; }
+.search-combo .form-input { flex:1; min-width:0; }
 .search-combo .search-field { flex:1; min-width:0; }
 
 /* search.html input fill — parallel to .search-combo .form-input above.

@@ -99,9 +99,6 @@
       </form>
     </div>
 
-    <!-- State: empty (pre-search) -->
-    <div id="state-empty"></div>
-
     <!-- State: loading -->
     <div id="state-loading" style="display:none">
       <div class="state-msg"><div class="loader"></div><span>Searching FEC records…</span></div>
@@ -146,7 +143,6 @@ var currentQuery = '';
 var typeaheadTimer = null;
 
 function showState(name) {
-  document.getElementById('state-empty').style.display       = name === 'empty'      ? 'block' : 'none';
   document.getElementById('state-loading').style.display     = name === 'loading'    ? 'block' : 'none';
   document.getElementById('state-results').style.display     = name === 'results'    ? 'block' : 'none';
   document.getElementById('state-no-results').style.display  = name === 'no-results' ? 'block' : 'none';
