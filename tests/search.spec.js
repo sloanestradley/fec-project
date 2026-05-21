@@ -35,8 +35,10 @@ test.describe('search.html — initial state (no query)', () => {
 
   test('an aria-live results status region is present', async ({ page }) => {
     // initSearchPanel creates a visually-hidden polite live region for a
-    // concise count summary.
-    await expect(page.locator('.sr-only[aria-live="polite"]')).toHaveCount(1);
+    // concise count summary, inserted right after the results element.
+    // Scoped to #state-results because the global search overlay (injected on
+    // every page) carries its own initSearchPanel instance + live region.
+    await expect(page.locator('#state-results + .sr-only[aria-live="polite"]')).toHaveCount(1);
   });
 
   test('the floating typeahead dropdown is gone', async ({ page }) => {
@@ -249,7 +251,9 @@ test.describe('search.html — empty / error states', () => {
       })
     );
     await page.goto('/search.html?q=zzznomatch');
-    await expect(page.locator('.no-results')).toBeVisible({ timeout: 5000 });
+    // Scoped to #state-no-results — the global overlay also carries a hidden
+    // .no-results inside #overlay-no-results.
+    await expect(page.locator('#state-no-results .no-results')).toBeVisible({ timeout: 5000 });
   });
 
   test('fetch failure shows the error state with a retry button', async ({ page }) => {

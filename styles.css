@@ -765,6 +765,43 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 /* padding-left: left-gap + icon-width + right-gap = 8px + 14px + 8px */
 .search-field .form-input { padding-left:calc(var(--space-8) + 14px + var(--space-8)); }
 
+/* ── Search overlay (T-search-overlay) ──────────────────────────────────────
+   Full-bleed parchment layer hosting the search experience over the current
+   page. Opens from the nav search button; closes via the X / Escape / browser-
+   back. Inner content reuses .search-field + .form-input and the factory-
+   rendered .results-area (initSearchPanel). Injected once by main.js. */
+.search-overlay {
+  display:none; position:fixed; inset:0; z-index:300;
+  background:var(--bg); overflow-y:auto; }
+.search-overlay.open {
+  display:block; animation:search-overlay-in 0.16s ease-out; }
+@keyframes search-overlay-in { from { opacity:0; } to { opacity:1; } }
+
+/* Top bar — the close affordance sits where the nav controls were; sticky so
+   it stays reachable while results scroll. */
+.search-overlay-head {
+  position:sticky; top:0; display:flex; justify-content:flex-end;
+  align-items:center; height:var(--header-h); padding:0 var(--page-gutter);
+  background:var(--bg); }
+.search-overlay-close {
+  display:flex; align-items:center; justify-content:center;
+  width:40px; height:40px; background:none;
+  border:1px solid var(--border-strong); border-radius:2px;
+  color:var(--color-navy-950); font-size:1rem; line-height:1; cursor:pointer;
+  transition:border-color 0.12s, background 0.12s; }
+.search-overlay-close:hover {
+  border-color:var(--color-navy-950); background:var(--surface2); }
+.search-overlay-close:focus-visible {
+  outline:2px solid var(--accent); outline-offset:2px; }
+
+/* Centered content column — 800px echoes .main-inner-narrow so the overlay
+   reads as the same surface as the /search page. */
+.search-overlay-inner { max-width:800px; margin:0 auto; }
+.search-overlay-search {
+  padding:var(--space-24) var(--page-gutter);
+  border-bottom:1px solid var(--border); }
+.search-overlay-search .form-input { flex:1; min-width:0; }
+
 .search-combo { position:relative; display:flex; }
 .search-combo .form-input { flex:1; min-width:0; }
 .search-combo .search-field { flex:1; min-width:0; }

@@ -153,3 +153,61 @@ async function doNavTypeahead(query) {
     });
   }
 })();
+
+// ── Search overlay (T-search-overlay) ─────────────────────────────────────
+// Commit A: the overlay chrome is injected (hidden) and wired to
+// initSearchPanel. Dormant this commit — the open/close machinery, the
+// nav-button trigger, focus management, and history integration land in
+// Commit B. Injected on every nav page; never opened until B. Overlay-prefixed
+// IDs (#overlay-search-input etc.) avoid colliding with /search's page-mode IDs.
+(function() {
+  var OVERLAY_HTML = `
+    <div id="search-overlay" class="search-overlay" role="dialog" aria-modal="true" aria-labelledby="search-overlay-title">
+      <div class="search-overlay-head">
+        <h2 id="search-overlay-title" class="sr-only">Search candidates and committees</h2>
+        <button type="button" class="search-overlay-close" id="search-overlay-close" aria-label="Close search">✕</button>
+      </div>
+      <div class="search-overlay-inner">
+        <div class="search-overlay-search">
+          <div class="search-field">
+            <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" class="form-input" id="overlay-search-input" placeholder="Search candidates and committees" autocomplete="off" spellcheck="false" aria-label="Search candidates and committees"/>
+          </div>
+        </div>
+        <div id="overlay-loading" style="display:none">
+          <div class="state-msg"><div class="loader"></div><span>Searching FEC records…</span></div>
+        </div>
+        <div id="overlay-results" style="display:none"></div>
+        <div id="overlay-no-results" style="display:none">
+          <div class="no-results"><strong>No results found</strong> No candidates or committees matched your search. Try a different name or spelling.</div>
+        </div>
+        <div id="overlay-error" style="display:none">
+          <div class="error-prompt"><strong>Couldn't load results</strong> There was a problem fetching data from the FEC API. <div><button class="retry-btn">Retry</button></div></div>
+        </div>
+      </div>
+    </div>`;
+
+  var overlayPanel = null;
+
+  function injectSearchOverlay() {
+    if (document.getElementById('search-overlay')) return;
+    document.body.insertAdjacentHTML('beforeend', OVERLAY_HTML);
+    overlayPanel = initSearchPanel({
+      inputEl:     document.getElementById('overlay-search-input'),
+      resultsEl:   document.getElementById('overlay-results'),
+      loadingEl:   document.getElementById('overlay-loading'),
+      noResultsEl: document.getElementById('overlay-no-results'),
+      errorEl:     document.getElementById('overlay-error'),
+      fromPage:    'search'
+    });
+    var retry = document.querySelector('#overlay-error .retry-btn');
+    if (retry) {
+      retry.addEventListener('click', function() {
+        overlayPanel.query(document.getElementById('overlay-search-input').value);
+      });
+    }
+  }
+
+  // DOMContentLoaded — by then utils.js has loaded, so initSearchPanel exists.
+  document.addEventListener('DOMContentLoaded', injectSearchOverlay);
+})();

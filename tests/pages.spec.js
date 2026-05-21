@@ -383,7 +383,9 @@ test.describe('candidates.html', () => {
     await page.route('**/api/fec/**', route => route.fulfill({ status: 500, body: 'error' }));
     await page.reload();
     await page.waitForSelector('#state-error', { state: 'visible', timeout: 8000 });
-    await expect(page.locator('.retry-btn')).toBeVisible();
+    // Scoped to #state-error — the global overlay also carries a hidden
+    // .retry-btn inside #overlay-error.
+    await expect(page.locator('#state-error .retry-btn')).toBeVisible();
   });
 
   test('#load-more-spinner exists in DOM (hidden initially)', async ({ page }) => {
@@ -481,7 +483,9 @@ test.describe('committees.html', () => {
     await page.route('**/api/fec/**', route => route.fulfill({ status: 500, body: 'error' }));
     await page.reload();
     await page.waitForSelector('#state-error', { state: 'visible', timeout: 8000 });
-    await expect(page.locator('.retry-btn')).toBeVisible();
+    // Scoped to #state-error — the global overlay also carries a hidden
+    // .retry-btn inside #overlay-error.
+    await expect(page.locator('#state-error .retry-btn')).toBeVisible();
   });
 
   test('#load-more-spinner exists in DOM (hidden initially)', async ({ page }) => {
