@@ -760,10 +760,13 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    inside its .search-field flex container instead of filling .search-bar. */
 .search-bar .form-input { flex:1; min-width:0; }
 
-/* Typeahead width override for the wider page-level search inputs on /search /candidates /committees.
-   Scoped via parent class so the global nav typeahead (different ancestor) keeps its 600px cap. */
+/* Search-typeahead overrides: no width or height cap on the four search dropdowns
+   (nav, /search, /candidates search field, /committees search field). The other typeahead
+   consumers (state-combo and click-combos) keep the default 600px / 240px caps.
+   Nav typeahead's `min-width:360px` inline still applies — it's the size floor for that anchor. */
 .search-bar .typeahead-dropdown,
-.search-combo .typeahead-dropdown { max-width:none; }
+.search-combo .typeahead-dropdown,
+.top-nav-search .typeahead-dropdown { max-width:none; max-height:none; }
 
 .combo-wrap { position:relative; }
 .combo-wrap .typeahead-dropdown { min-width:max-content; }
