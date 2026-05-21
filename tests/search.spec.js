@@ -76,31 +76,34 @@ test.describe('search.html — live inline results', () => {
     await page.goto('/search.html');
   });
 
-  test('fewer than 2 chars does not show results', async ({ page }) => {
-    await page.locator('#search-input').fill('g');
+  test('2-character query fires no fetch and shows no error (FEC requires 3+ chars)', async ({ page }) => {
+    // The FEC API rejects keyword queries < 3 chars; initSearchPanel must not
+    // fetch below MIN_QUERY_LENGTH. 2 chars stays bare — never #state-error.
+    await page.locator('#search-input').fill('ma');
     await page.waitForTimeout(500);
     await expect(page.locator('#state-results')).not.toBeVisible();
+    await expect(page.locator('#state-error')).not.toBeVisible();
   });
 
-  test('2+ chars shows inline results in the page body', async ({ page }) => {
-    await page.locator('#search-input').fill('gl');
+  test('3+ chars shows inline results in the page body', async ({ page }) => {
+    await page.locator('#search-input').fill('glu');
     await expect(page.locator('#state-results')).toBeVisible({ timeout: 2000 });
   });
 
   test('candidates group renders', async ({ page }) => {
-    await page.locator('#search-input').fill('gl');
+    await page.locator('#search-input').fill('glu');
     await expect(page.locator('.results-group[data-group="candidates"]'))
       .toBeVisible({ timeout: 2000 });
   });
 
   test('committees group renders', async ({ page }) => {
-    await page.locator('#search-input').fill('gl');
+    await page.locator('#search-input').fill('glu');
     await expect(page.locator('.results-group[data-group="committees"]'))
       .toBeVisible({ timeout: 2000 });
   });
 
   test('candidate result links to /candidate/{id}', async ({ page }) => {
-    await page.locator('#search-input').fill('gl');
+    await page.locator('#search-input').fill('glu');
     const link = page.locator('.results-group[data-group="candidates"] a[href*="/candidate/"]').first();
     await expect(link).toBeVisible({ timeout: 2000 });
     const href = await link.getAttribute('href');
@@ -109,7 +112,7 @@ test.describe('search.html — live inline results', () => {
   });
 
   test('committee result links to /committee/{id}', async ({ page }) => {
-    await page.locator('#search-input').fill('gl');
+    await page.locator('#search-input').fill('glu');
     const link = page.locator('.results-group[data-group="committees"] a[href*="/committee/"]').first();
     await expect(link).toBeVisible({ timeout: 2000 });
     const href = await link.getAttribute('href');

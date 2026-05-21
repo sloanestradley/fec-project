@@ -48,6 +48,8 @@ The three phases ship as **three separate tickets**, not one ticket with phased 
 
 **SHIPPED 2026-05-21.** `initSearchPanel` in utils.js + search.html rewired to it; floating `#typeahead-dropdown` retired; `#state-error` added; `.refetching` soft-update indicator. 571/571 Track 1 green. Verified in-session via headless browser against live FEC data (golden path, soft-update, mobile, error). Sub-decisions confirmed as built: `onQuery` omitted; `#state-error` in scope; `.refetching` = 2px traveling-accent bar; `aria-live` polite count-summary region; `inert` deferred to Phase 2 (overlay scope). The factory works cleanly as /search's sole consumer — Phase 2 can build the overlay on it.
 
+**Follow-up fix 2026-05-21:** the query-length threshold is **3, not 2** — the FEC API rejects keyword queries shorter than 3 characters (`q=ma` → "Invalid keyword…"). `MIN_QUERY_LENGTH = 3`; below it, `query()` goes straight to the bare state and fires no fetch. Phase 2's overlay reuses `initSearchPanel` and inherits the corrected threshold for free.
+
 **Goal:** /search page renders live, debounced, as-you-type results inline in the page body (`#state-results`), retiring the floating `#typeahead-dropdown`. Establishes the shared search-panel renderer that Phase 2's overlay reuses.
 
 ### The shared factory — `initSearchPanel(config)`

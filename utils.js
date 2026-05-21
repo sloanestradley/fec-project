@@ -993,7 +993,11 @@ function initSearchPanel(config) {
   var fromPage    = config.fromPage || 'search';
 
   var DEBOUNCE_MS = 300;
-  var MIN_CHARS   = 2;
+  // The FEC API rejects keyword queries shorter than 3 characters (`q=ma` →
+  // "Invalid keyword. The keyword must be at least 3 characters in length.").
+  // Below this, query() goes straight to the bare state and fires no fetch —
+  // do not lower to 2.
+  var MIN_QUERY_LENGTH = 3;
   var debounceTimer = null;
   var token = 0;
   var lastQuery = '';
@@ -1055,7 +1059,7 @@ function initSearchPanel(config) {
     clearTimeout(debounceTimer);
     q = (q || '').trim();
 
-    if (q.length < MIN_CHARS) {
+    if (q.length < MIN_QUERY_LENGTH) {
       lastQuery = '';
       token++;
       resultsEl.classList.remove('refetching');
