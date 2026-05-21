@@ -639,7 +639,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 /* ── P: Form controls ── */
 .form-select, .form-input { height:34px; padding:var(--space-8); font-family:'IBM Plex Sans',sans-serif;
   font-size:0.75rem; background:var(--bg); border:1px solid var(--border-strong);
-  color:var(--text); outline:none; transition:border-color 0.15s; border-radius:0; }
+  color:var(--text); outline:none; transition:border-color 0.15s; border-radius:2px; }
 .form-select:focus, .form-input:focus { border-color:var(--accent); }
 .form-input:disabled, .form-select:disabled { opacity:0.45; cursor:not-allowed; }
 .form-search-btn { padding:var(--space-8) var(--space-16); background:var(--text); color:var(--bg);
