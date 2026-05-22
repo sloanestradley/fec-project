@@ -846,25 +846,11 @@ test.describe('mobile nav toggle behavior', () => {
     await expect(page.locator('#mobile-nav')).not.toHaveClass(/open/);
   });
 
-  test('search toggle click opens mobile search panel', async ({ page }) => {
+  test('mobile search toggle opens the search overlay', async ({ page }) => {
+    // T-search-overlay: the mobile search-toggle now opens the full-page
+    // overlay (the old #top-nav-mobile-search panel was retired).
     await page.click('#top-nav-search-toggle');
-    await expect(page.locator('#top-nav-mobile-search')).toHaveClass(/open/);
-  });
-
-  test('opening hamburger closes search panel', async ({ page }) => {
-    await page.click('#top-nav-search-toggle');
-    await expect(page.locator('#top-nav-mobile-search')).toHaveClass(/open/);
-    await page.click('#hamburger');
-    await expect(page.locator('#top-nav-mobile-search')).not.toHaveClass(/open/);
-    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
-  });
-
-  test('opening search panel closes hamburger drawer', async ({ page }) => {
-    await page.click('#hamburger');
-    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
-    await page.click('#top-nav-search-toggle');
-    await expect(page.locator('#mobile-nav')).not.toHaveClass(/open/);
-    await expect(page.locator('#top-nav-mobile-search')).toHaveClass(/open/);
+    await expect(page.locator('#search-overlay')).toHaveClass(/open/);
   });
 });
 

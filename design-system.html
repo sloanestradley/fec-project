@@ -185,35 +185,20 @@
       <a class="nav-link" href="/races">Races</a>
       <a class="nav-link" href="/feed">Feed</a>
     </div>
-    <div class="top-nav-search" style="position:relative">
-      <form class="top-nav-search-form" id="top-nav-search-form">
-        <div class="search-field">
-          <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-search-input" aria-label="Search candidates and committees">
-        </div>
-        <button class="form-search-btn sr-only" type="submit" aria-label="Search"></button>
-      </form>
-      <div id="nav-typeahead-dropdown" class="typeahead-dropdown"
-           style="right:0;left:auto;min-width:360px"
-           role="listbox" aria-label="Search suggestions"></div>
+    <div class="top-nav-search">
+      <button type="button" class="top-nav-search-btn" id="nav-search-btn" aria-label="Open search">
+        <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Search</span>
+      </button>
     </div>
     <div class="top-nav-mobile-controls">
-      <button class="top-nav-search-toggle" id="top-nav-search-toggle" aria-label="Toggle search">
+      <button class="top-nav-search-toggle" id="top-nav-search-toggle" aria-label="Open search">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
       <button class="hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
     </div>
-  </div>
-  <div class="top-nav-mobile-search" id="top-nav-mobile-search">
-    <form class="top-nav-mobile-search-form" id="top-nav-mobile-search-form">
-      <div class="search-field">
-        <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="form-input" type="search" placeholder="Search candidates and committees" id="top-nav-mobile-search-input" aria-label="Search candidates and committees">
-      </div>
-      <button class="form-search-btn sr-only" type="submit" aria-label="Search"></button>
-    </form>
   </div>
   <!-- Mobile nav drawer -->
   <nav class="mobile-nav" id="mobile-nav">
@@ -641,7 +626,7 @@
           <span class="ds-component-name">Top Nav</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.top-nav · .top-nav-logo · .top-nav-links · .nav-link · .top-nav-search · .top-nav-mobile-controls · .mobile-nav · .nav-item</div>
+        <div class="ds-component-classes">.top-nav · .top-nav-logo · .top-nav-links · .nav-link · .top-nav-search · .top-nav-search-btn · .top-nav-mobile-controls · .mobile-nav · .nav-item</div>
         <div class="ds-component-demo">
           <div style="background:var(--bg);border:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:1rem;border-radius:2px">
             <span class="top-nav-logo"><span class="logo-fec">FEC</span><span class="logo-ledger">Ledger</span></span>
@@ -649,7 +634,16 @@
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Feed</a>
           </div>
         </div>
-        <div class="ds-component-notes">Desktop: logo + nav links (Races, Feed) + search bar. Mobile ≤860px: logo + search icon + hamburger. <strong>No active-state treatment</strong> — every page treats its nav links identically; the `.active` class and its CSS rules were retired (T-IA-candidate-committees-nav-removal follow-up, 2026-05-20). <strong>DOM structure:</strong> <code>#mobile-nav</code> (.mobile-nav) and <code>#top-nav-mobile-search</code> are direct children of <code>&lt;nav class="top-nav"&gt;</code> — siblings of <code>.top-nav-inner</code>, not siblings of the nav itself. Both use <code>position:absolute; top:100%</code> so they hang directly below the nav's bottom edge regardless of scroll state. Being inside .top-nav's stacking context (z-index:200) automatically elevates them above all page elements — profile headers (195), tabs bar (185), etc. Do not move them outside .top-nav. <strong>.mobile-nav</strong> uses <code>padding: var(--space-8) 0 0</code> (no bottom padding — last item sits flush against the bottom border). <strong>.nav-item</strong> uses <code>padding: var(--space-16) var(--space-24)</code> for a 48px minimum tap target height. Note: .top-nav-logo uses Oswald 600 — explicit deviation from the heading type style (400). Weight set directly on the component rule.</div>
+        <div class="ds-component-notes">Desktop: logo + nav links (Races, Feed) + search button (<code>.top-nav-search-btn</code> / <code>#nav-search-btn</code> — opens the full-page search overlay; on /search it carries <code>aria-current="page"</code> + <code>.top-nav-search-btn--current</code> and is a muted no-op). Mobile ≤860px: logo + search-toggle icon + hamburger; the toggle also opens the overlay. <strong>No active-state treatment</strong> — every page treats its nav links identically; the `.active` class and its CSS rules were retired (T-IA-candidate-committees-nav-removal follow-up, 2026-05-20). <strong>DOM structure:</strong> <code>#mobile-nav</code> (.mobile-nav) is a direct child of <code>&lt;nav class="top-nav"&gt;</code> — a sibling of <code>.top-nav-inner</code>, not of the nav itself. It uses <code>position:absolute; top:100%</code> so it hangs directly below the nav's bottom edge regardless of scroll state. Being inside .top-nav's stacking context (z-index:200) automatically elevates it above all page elements — profile headers (195), tabs bar (185), etc. Do not move it outside .top-nav. (The old <code>#top-nav-mobile-search</code> panel was retired in T-search-overlay.) <strong>.mobile-nav</strong> uses <code>padding: var(--space-8) 0 0</code> (no bottom padding — last item sits flush against the bottom border). <strong>.nav-item</strong> uses <code>padding: var(--space-16) var(--space-24)</code> for a 48px minimum tap target height. Note: .top-nav-logo uses Oswald 600 — explicit deviation from the heading type style (400). Weight set directly on the component rule.</div>
+      </div>
+
+      <div class="ds-component" id="comp-search-overlay" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Search Overlay</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.search-overlay · .search-overlay-head · .search-overlay-close · .search-overlay-inner · .search-overlay-search</div>
+        <div class="ds-component-notes">Full-page search layer (T-search-overlay), injected once by <code>main.js</code> on every nav page and reused via <code>initSearchPanel</code>. <code>position:fixed; inset:0; z-index:300</code>, opaque <code>--bg</code>; <code>display:none</code> by default, <code>.open</code> shows it with a 0.16s fade-in. Opened by the desktop nav search button or the mobile search-toggle; closed via the X / Escape / browser-back — all routed through <code>history.back()</code>. <strong>State-only history:</strong> opening pushes one <code>{overlay:true}</code> entry at the same url (fragment included) so it never fires <code>hashchange</code>. <strong>Structure:</strong> sticky <code>.search-overlay-head</code> (the gutter-inset X close button) + <code>.search-overlay-inner</code> (800px centered column echoing <code>.main-inner-narrow</code>) + <code>.search-overlay-search</code> (the input row). Inner state divs reuse <code>.state-msg</code> / <code>.results-area</code> / <code>.no-results</code> / <code>.error-prompt</code>. Background is made <code>inert</code> while open; focus is trapped and restored to the trigger on close.</div>
       </div>
 
       <!-- 5. Global banner -->
@@ -1364,7 +1358,7 @@
             <div class="typeahead-loading">Searching…</div>
           </div>
         </div>
-        <div class="ds-component-notes">Used on <code>candidates.html</code>, <code>committees.html</code>, and <code>search.html</code>. <strong>Visual treatment (2026-05-21):</strong> border-less, all-side <code>box-shadow:0 0 8px rgba(26,21,16,0.2)</code>, <code>border-radius:2px</code> matching form controls. Rows + loading carry <code>min-height:40px</code> for a comfortable floor. <strong>Width / height caps:</strong> base rule has <code>max-width:600px; max-height:240px</code> (suitable for filter combos). Scoped override removes both caps for the four search-typeahead consumers — <code>.search-bar .typeahead-dropdown</code>, <code>.search-combo .typeahead-dropdown</code>, <code>.top-nav-search .typeahead-dropdown</code> — so search suggestions can grow to the input's full width and show more rows without inner scrolling. Nav typeahead's inline <code>min-width:360px</code> still floors its width. <strong>Triple duty (banked refactor):</strong> the class today wraps search-typeahead, state-combo (typed filter), and click-combos (button-triggered filter) — three distinct interaction patterns. A future ticket may split into <code>.dropdown-search</code> + <code>.dropdown-input</code>. Toggle mechanism differs by page: browse pages use <code>classList.add/remove('open')</code> with <code>.typeahead-dropdown.open { display:block }</code>; search.html uses <code>style.display</code> directly. Right-side content differs by page: candidates = office word only (House/Senate/President); committees = status dot only (no label); search.html uses both patterns depending on result type. All three pages handle Escape key to close. Critical: the <code>.map()</code> callback in <code>renderTypeahead()</code> on browse pages must be <code>function(c, i)</code> — the <code>i</code> index is used in the Amplitude onclick string; if omitted, a ReferenceError silently kills the typeahead.</div>
+        <div class="ds-component-notes">Used on <code>candidates.html</code> and <code>committees.html</code> — the filter-field typeahead. (The search.html floating typeahead and the global nav typeahead were retired in T-search-inline-results / T-search-overlay; the full <code>.typeahead-dropdown</code>-class sweep is scoped to T-search-typeahead-retire.) <strong>Visual treatment (2026-05-21):</strong> border-less, all-side <code>box-shadow:0 0 8px rgba(26,21,16,0.2)</code>, <code>border-radius:2px</code> matching form controls. Rows + loading carry <code>min-height:40px</code> for a comfortable floor. <strong>Width / height caps:</strong> base rule has <code>max-width:600px; max-height:240px</code> (suitable for filter combos). Scoped override <code>.search-combo .typeahead-dropdown</code> removes both caps so the /candidates and /committees search-field suggestions can grow to the input's full width. <strong>Dual duty (banked refactor):</strong> the class wraps the search-field typeahead and the combo dropdowns (state-combo typed filter + click-combos) — distinct interaction patterns. A future ticket may split the names. Toggle mechanism: browse pages use <code>classList.add/remove('open')</code> with <code>.typeahead-dropdown.open { display:block }</code>. Right-side content: candidates = office word only (House/Senate/President); committees = status dot only (no label). Both pages handle Escape to close. Critical: the <code>.map()</code> callback in <code>renderTypeahead()</code> on browse pages must be <code>function(c, i)</code> — the <code>i</code> index is used in the Amplitude onclick string; if omitted, a ReferenceError silently kills the typeahead.</div>
       </div>
 
       <!-- Status Dot -->
@@ -1850,6 +1844,7 @@
 </div>
 
 <script src="main.js"></script>
+<script src="utils.js"></script>
 <script>
 (function() {
   // Tab bar toggle

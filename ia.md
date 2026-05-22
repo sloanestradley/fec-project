@@ -37,11 +37,12 @@ Nav links (desktop, always visible)
 ├── Races       → /races        (browse landing)
 └── Feed        → /feed         (filing feed)
 
-Search bar (desktop, inline right of nav links)
-└── text input → submits to /search?q=
+Search button (desktop, inline right of nav links)
+└── #nav-search-btn → opens the full-page search overlay
+    (on /search: aria-current="page", muted, no-op — you're already there)
 
 Mobile controls (hidden at desktop)
-├── Search toggle icon → expands inline search panel
+├── Search toggle icon → opens the full-page search overlay
 └── Hamburger → opens .mobile-nav drawer
 
 Mobile nav drawer (.mobile-nav)
@@ -49,7 +50,7 @@ Mobile nav drawer (.mobile-nav)
 └── Feed
 ```
 
-Top-level nav exposes only the curated/contextual experiences (Races + Feed). **Search, Candidates browse, Committees browse, Process Log, Design System, and all profile pages are not nav link items.** Search is accessible via the inline search bar (desktop) or search toggle (mobile); the `/candidates` and `/committees` browse pages are reached from search results' "View all" affordances or directly via URL.
+Top-level nav exposes only the curated/contextual experiences (Races + Feed). **Search, Candidates browse, Committees browse, Process Log, Design System, and all profile pages are not nav link items.** Search is a full-page overlay (`#search-overlay`, T-search-overlay) opened from the desktop nav search button or the mobile search-toggle — it layers over the current page and closes via the X, Escape, or browser-back. `/search` also remains a real page (reached by direct URL / bookmark / shared link). The `/candidates` and `/committees` browse pages are reached from search results' "View all" affordances or directly via URL.
 
 **No active-state treatment:** Every page renders its nav links identically. The `.nav-link.active` / `.nav-item.active` CSS rules and their markup application were retired in T-IA-candidate-committees-nav-removal (2026-05-20) — they had been visual no-ops (same color as base) and were not load-bearing for any UX affordance.
 

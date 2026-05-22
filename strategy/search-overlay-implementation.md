@@ -105,6 +105,8 @@ Behavior:
 
 ## Phase 2 — Ticket: T-search-overlay
 
+**SHIPPED 2026-05-21** in two commits — A (dormant chrome, `066ce34`) + B (activation). The plan's 2a/2b/2c didn't survive the interdependencies; the dormant-chrome → activation seam was used instead. Commit B: nav input→button swap across 10 files; open/close + state-only history (popstate/pageshow); focus management (trap + `inert` + restore); `Search Opened` event; nav-typeahead retirement; `/search` current-state button. `utils.js` added to process-log.html + design-system.html (the overlay needs `initSearchPanel` on every nav page). 565/565 Track 1 green; verified live (desktop open/type/results/close, /search no-op, mobile, profile-page hashchange-safe). Banked follow-ups (Races/Feed nav pairing, search-input prominence) remain out of scope.
+
 **Goal:** Build the overlay; replace the nav search input with a nav button; retire the global nav typeahead. Overlay reuses `initSearchPanel`.
 
 ### History model (precise spec)

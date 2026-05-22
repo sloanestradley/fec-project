@@ -45,11 +45,6 @@ test.describe('search.html — initial state (no query)', () => {
     await expect(page.locator('#typeahead-dropdown')).toHaveCount(0);
   });
 
-  test('nav search handler is registered on search.html', async ({ page }) => {
-    const registered = await page.evaluate(() => typeof window.__navSearchHandler === 'function');
-    expect(registered).toBe(true);
-  });
-
   test('page-level search input is wrapped in .search-field with icon', async ({ page }) => {
     const searchField = page.locator('#search-form .search-field');
     await expect(searchField).toHaveCount(1);

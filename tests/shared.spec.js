@@ -99,13 +99,11 @@ for (const pageConfig of PAGES) {
       await expect(logo.locator('.logo-ledger')).toHaveCount(1);
     });
 
-    test('mobile nav and search panel are children of .top-nav', async ({ page }) => {
+    test('mobile nav drawer is a child of .top-nav', async ({ page }) => {
       const result = await page.evaluate(() => {
         const topNav = document.querySelector('.top-nav');
         const mobileNav = document.querySelector('#mobile-nav');
-        const mobileSearch = document.querySelector('#top-nav-mobile-search');
-        return topNav && mobileNav && mobileSearch &&
-          topNav.contains(mobileNav) && topNav.contains(mobileSearch);
+        return !!(topNav && mobileNav && topNav.contains(mobileNav));
       });
       expect(result).toBe(true);
     });
@@ -130,22 +128,12 @@ for (const pageConfig of PAGES) {
       expect(bannerBeforeNav).toBe(true);
     });
 
-    test('desktop nav search input is wrapped in .search-field with icon', async ({ page }) => {
-      const searchField = page.locator('.top-nav-search .search-field');
-      await expect(searchField).toHaveCount(1);
-      await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
-    });
-
-    test('desktop nav search submit button is sr-only (visually hidden, accessible)', async ({ page }) => {
-      const btn = page.locator('.top-nav-search .form-search-btn.sr-only');
+    test('desktop nav has a search button', async ({ page }) => {
+      // T-search-overlay: the nav search input was replaced by a button that
+      // opens the full-page search overlay.
+      const btn = page.locator('.top-nav-search #nav-search-btn');
       await expect(btn).toHaveCount(1);
-      await expect(btn).toHaveAttribute('type', 'submit');
-      await expect(btn).toHaveAttribute('aria-label', 'Search');
-    });
-
-    test('nav typeahead dropdown container is present', async ({ page }) => {
-      await expect(page.locator('#nav-typeahead-dropdown')).toHaveCount(1);
-      await expect(page.locator('#nav-typeahead-dropdown')).toHaveAttribute('role', 'listbox');
+      await expect(btn).toHaveAttribute('type', 'button');
     });
 
     test('no uncaught JS errors on load', async ({ page }) => {

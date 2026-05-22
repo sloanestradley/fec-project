@@ -142,26 +142,22 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
   transition:color 0.15s; white-space:nowrap; }
 .nav-link:hover { color:var(--muted); }
 .top-nav-search { margin-left:auto; display:flex; align-items:center; }
-.top-nav-search-form { display:flex; }
-.top-nav-search .form-input { width:240px; font-size:0.75rem;
-  padding:var(--space-4) var(--space-8); border:none; background:transparent; }
-.top-nav-search .form-search-btn { padding:var(--space-4) var(--space-8); font-size:0.75rem;
-  background:none; border:none; color:var(--muted); }
+/* Desktop nav search button — opens the search overlay. Echoes .nav-link
+   (IBM Plex Sans 0.75rem, --header-h tall) with a leading search icon. */
+.top-nav-search-btn { display:flex; align-items:center; gap:var(--space-8);
+  height:var(--header-h); padding:0 var(--space-16);
+  background:none; border:none; cursor:pointer;
+  font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem;
+  color:var(--text); white-space:nowrap; transition:color 0.15s; }
+.top-nav-search-btn:hover { color:var(--muted); }
+.top-nav-search-btn svg { flex-shrink:0; }
+/* Current-section variant — on /search the affordance is non-actioning. */
+.top-nav-search-btn--current,
+.top-nav-search-btn--current:hover { color:var(--muted); cursor:default; }
 .top-nav-mobile-controls { display:none; align-items:center; gap:var(--space-8); margin-left:auto; }
 .top-nav-search-toggle { background:none; border:none; cursor:pointer;
   color:var(--subtle); padding:var(--space-4); line-height:0; transition:color 0.15s; }
 .top-nav-search-toggle:hover { color:var(--text); }
-.top-nav-mobile-search { position:absolute; top:100%;
-  left:0; right:0; background:var(--bg);
-  border-bottom:1px solid var(--border); padding:var(--space-8) var(--space-16); z-index:198;
-  transform:translateY(-8px); opacity:0;
-  visibility:hidden; pointer-events:none;
-  transition:transform 0.2s ease, opacity 0.2s ease, visibility 0.2s; }
-.top-nav-mobile-search.open { transform:translateY(0); opacity:1;
-  visibility:visible; pointer-events:auto; }
-.top-nav-mobile-search-form { display:flex; gap:var(--space-8); }
-.top-nav-mobile-search-form .form-input { flex:1; }
-.top-nav-mobile-search-form .search-field { flex:1; }
 
 /* ── Hamburger ── */
 .hamburger { background:none; border:none; cursor:pointer; padding:var(--space-4);
@@ -811,12 +807,10 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    inside its .search-field flex container instead of filling .search-bar. */
 .search-bar .form-input { flex:1; min-width:0; }
 
-/* Search-typeahead overrides: no width or height cap on the search dropdowns
-   (nav, /candidates search field, /committees search field). The other typeahead
-   consumers (state-combo and click-combos) keep the default 600px / 240px caps.
-   Nav typeahead's `min-width:360px` inline still applies — it's the size floor for that anchor. */
-.search-combo .typeahead-dropdown,
-.top-nav-search .typeahead-dropdown { max-width:none; max-height:none; }
+/* Search-typeahead override: no width or height cap on the /candidates and
+   /committees search-field typeaheads. The combo dropdowns (state, office,
+   party, cycle, type, year) keep the default 600px / 240px caps. */
+.search-combo .typeahead-dropdown { max-width:none; max-height:none; }
 
 .combo-wrap { position:relative; }
 .combo-wrap .typeahead-dropdown { min-width:max-content; }

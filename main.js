@@ -8,12 +8,10 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
   var btn = document.getElementById('hamburger');
   if (!btn) return;
   var nav = document.getElementById('mobile-nav');
-  var searchPanel = document.getElementById('top-nav-mobile-search');
   btn.addEventListener('click', function() {
     var open = nav.classList.toggle('open');
     btn.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', String(open));
-    if (open && searchPanel) searchPanel.classList.remove('open');
   });
   nav.querySelectorAll('.nav-item').forEach(function(el) {
     el.addEventListener('click', function() {
@@ -24,142 +22,20 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
   });
 })();
 
-// ── Search icon toggle (mobile) ──────────────────────
-(function() {
-  var toggle = document.getElementById('top-nav-search-toggle');
-  if (!toggle) return;
-  var panel = document.getElementById('top-nav-mobile-search');
-  var nav = document.getElementById('mobile-nav');
-  var hamburger = document.getElementById('hamburger');
-  toggle.addEventListener('click', function() {
-    var open = panel.classList.toggle('open');
-    if (open && nav) {
-      nav.classList.remove('open');
-      if (hamburger) { hamburger.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); }
-    }
-    if (open) {
-      var inp = document.getElementById('top-nav-mobile-search-input');
-      if (inp) inp.focus();
-    }
-  });
-})();
-
-// ── Nav search typeahead ──────────────────────────────
-
-function officeWord(code) {
-  return { H: 'House', S: 'Senate', P: 'President' }[code] || code || '';
-}
-
-function buildTypeaheadHTML(candidates, committees) {
-  var html = '';
-  html += '<div class="typeahead-group-label">Candidates</div>';
-  if (candidates.length) {
-    html += candidates.map(function(c) {
-      var name = formatCandidateName(c.name);
-      return '<a class="typeahead-row" href="/candidate/' + c.candidate_id + '">'
-        + '<span class="typeahead-row-left">' + name
-        + ' <span class="typeahead-row-id">(' + c.candidate_id + ')</span></span>'
-        + '<span class="typeahead-row-right">' + officeWord(c.office) + '</span>'
-        + '</a>';
-    }).join('');
-  } else {
-    html += '<div class="typeahead-empty">No candidates found</div>';
-  }
-  html += '<div class="typeahead-group-label">Committees</div>';
-  if (committees.length) {
-    html += committees.map(function(c) {
-      var dotCls = filingFrequencyDotClass(c.filing_frequency);
-      return '<a class="typeahead-row" href="/committee/' + c.committee_id + '">'
-        + '<span class="typeahead-row-left">' + c.name
-        + ' <span class="typeahead-row-id">(' + c.committee_id + ')</span></span>'
-        + '<span class="typeahead-row-right">'
-        + '<span class="typeahead-status-dot ' + dotCls + '"></span>'
-        + '</span>'
-        + '</a>';
-    }).join('');
-  } else {
-    html += '<div class="typeahead-empty">No committees found</div>';
-  }
-  return html;
-}
-
-var navTypeaheadTimer = null;
-
-function showNavTypeahead(html) {
-  var d = document.getElementById('nav-typeahead-dropdown');
-  if (!d) return;
-  d.innerHTML = html;
-  d.style.display = 'block';
-}
-
-function hideNavTypeahead() {
-  var d = document.getElementById('nav-typeahead-dropdown');
-  if (!d) return;
-  d.style.display = 'none';
-  d.innerHTML = '';
-}
-
-async function doNavTypeahead(query) {
-  if (query.length < 2) { hideNavTypeahead(); return; }
-  var d = document.getElementById('nav-typeahead-dropdown');
-  if (!d) return;
-  d.innerHTML = '<div class="typeahead-loading">Searching…</div>';
-  d.style.display = 'block';
-  try {
-    var results = await Promise.all([
-      apiFetch('/candidates/', { q: query, per_page: 5, sort: '-receipts' }),
-      apiFetch('/committees/', { q: query, per_page: 5, sort: '-receipts' }),
-    ]);
-    showNavTypeahead(buildTypeaheadHTML(results[0].results || [], results[1].results || []));
-  } catch(e) {
-    hideNavTypeahead();
-  }
-}
-
-// ── Global search form submit ─────────────────────────
-(function() {
-  function bindSearchForm(formId) {
-    var form = document.getElementById(formId);
-    if (!form) return;
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      var inp = form.querySelector('input[type="search"]');
-      var q = inp ? inp.value.trim() : '';
-      if (!q) return;
-      if (typeof window.__navSearchHandler === 'function') {
-        window.__navSearchHandler(q);
-      } else {
-        window.location.href = '/search?q=' + encodeURIComponent(q);
-      }
-    });
-  }
-  bindSearchForm('top-nav-search-form');
-  bindSearchForm('top-nav-mobile-search-form');
-
-  // ── Nav input typeahead wiring ──────────────────────
-  var navInput = document.getElementById('top-nav-search-input');
-  if (navInput) {
-    navInput.addEventListener('input', function() {
-      clearTimeout(navTypeaheadTimer);
-      var v = navInput.value.trim();
-      navTypeaheadTimer = setTimeout(function() { doNavTypeahead(v); }, 300);
-    });
-    navInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') hideNavTypeahead();
-    });
-    document.addEventListener('click', function(e) {
-      var d = document.getElementById('nav-typeahead-dropdown');
-      if (d && !d.contains(e.target) && e.target !== navInput) hideNavTypeahead();
-    });
-  }
-})();
-
 // ── Search overlay (T-search-overlay) ─────────────────────────────────────
-// Commit A: the overlay chrome is injected (hidden) and wired to
-// initSearchPanel. Dormant this commit — the open/close machinery, the
-// nav-button trigger, focus management, and history integration land in
-// Commit B. Injected on every nav page; never opened until B. Overlay-prefixed
-// IDs (#overlay-search-input etc.) avoid colliding with /search's page-mode IDs.
+// The search experience as a layer over the current page. Opened from the nav
+// search button (desktop) or the mobile search-toggle; closed via the X,
+// Escape, or browser-back — all routed through history.back() so the popstate
+// handler is the single close path.
+//
+// State-only pushState: opening pushes ONE history entry at the SAME url
+// (fragment included), so it never fires hashchange — the profile-page
+// hashchange listeners (candidate.html / committee.html) stay dormant. Refresh
+// closes the overlay (init never opens it; history.state is not consulted on
+// load). bfcache restore of an overlay-open page is snapped closed via pageshow.
+//
+// Injected once on every nav page; the panel reuses initSearchPanel (utils.js)
+// with overlay-prefixed IDs so it never collides with /search's page-mode IDs.
 (function() {
   var OVERLAY_HTML = `
     <div id="search-overlay" class="search-overlay" role="dialog" aria-modal="true" aria-labelledby="search-overlay-title">
@@ -188,9 +64,76 @@ async function doNavTypeahead(query) {
     </div>`;
 
   var overlayPanel = null;
+  var lastFocused = null;
+
+  function overlayEl()     { return document.getElementById('search-overlay'); }
+  function overlayIsOpen() { var el = overlayEl(); return !!el && el.classList.contains('open'); }
+
+  // from_page for the Search Opened event — derived from the URL path.
+  function pageName() {
+    return (location.pathname.split('/')[1] || 'index').replace(/\.html$/, '');
+  }
+
+  // Every direct child of <body> except the overlay — made inert while open.
+  function backgroundEls() {
+    var ov = overlayEl();
+    return Array.prototype.filter.call(document.body.children, function(c) { return c !== ov; });
+  }
+
+  function openOverlay() {
+    var el = overlayEl();
+    if (!el || overlayIsOpen()) return;
+    lastFocused = document.activeElement;
+    // State-only: same url, fragment included → no hashchange.
+    history.pushState({ overlay: true }, '', location.href);
+    var input = document.getElementById('overlay-search-input');
+    input.value = '';                 // Decision 5 — overlay opens empty
+    if (overlayPanel) overlayPanel.clear();
+    backgroundEls().forEach(function(c) { c.setAttribute('inert', ''); });
+    document.body.style.overflow = 'hidden';
+    el.classList.add('open');
+    input.focus();
+    amplitude.track('Search Opened', { from_page: pageName() });
+  }
+
+  // Reset the overlay DOM to closed. Does NOT touch history — the popstate
+  // that triggered this already moved the history pointer.
+  function closeOverlayDOM() {
+    var el = overlayEl();
+    if (!el || !overlayIsOpen()) return;
+    el.classList.remove('open');
+    backgroundEls().forEach(function(c) { c.removeAttribute('inert'); });
+    document.body.style.overflow = '';
+    if (overlayPanel) overlayPanel.clear();   // also discards any in-flight fetch
+    if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    lastFocused = null;
+  }
+
+  // X / Escape / browser-back all close the same way: pop the history entry.
+  // The popstate handler is the sole closeOverlayDOM caller during normal use.
+  function requestClose() { if (overlayIsOpen()) history.back(); }
+
+  // Focus trap — Tab cycles within the overlay's visible focusables. The inert
+  // background already removes everything else from the tab order; this wraps
+  // the ends so focus never leaves the overlay.
+  function trapFocus(e) {
+    if (e.key !== 'Tab' || !overlayIsOpen()) return;
+    var f = Array.prototype.filter.call(
+      overlayEl().querySelectorAll('button, a[href], input, [tabindex]:not([tabindex="-1"])'),
+      function(n) { return n.offsetParent !== null; }
+    );
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
 
   function injectSearchOverlay() {
     if (document.getElementById('search-overlay')) return;
+    // The overlay reuses initSearchPanel (utils.js). Every nav page loads
+    // utils.js — guard anyway so a future page that forgets it degrades to
+    // "no overlay" rather than a half-injected, broken one.
+    if (typeof initSearchPanel !== 'function') return;
     document.body.insertAdjacentHTML('beforeend', OVERLAY_HTML);
     overlayPanel = initSearchPanel({
       inputEl:     document.getElementById('overlay-search-input'),
@@ -201,13 +144,33 @@ async function doNavTypeahead(query) {
       fromPage:    'search'
     });
     var retry = document.querySelector('#overlay-error .retry-btn');
-    if (retry) {
-      retry.addEventListener('click', function() {
-        overlayPanel.query(document.getElementById('overlay-search-input').value);
-      });
+    if (retry) retry.addEventListener('click', function() {
+      overlayPanel.query(document.getElementById('overlay-search-input').value);
+    });
+    document.getElementById('search-overlay-close').addEventListener('click', requestClose);
+    overlayEl().addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { e.preventDefault(); requestClose(); }
+      else trapFocus(e);
+    });
+    // Triggers — desktop nav button + mobile search-toggle. The /search nav
+    // button carries aria-current="page" and is left unwired (no-op there).
+    var navBtn = document.getElementById('nav-search-btn');
+    if (navBtn && navBtn.getAttribute('aria-current') !== 'page') {
+      navBtn.addEventListener('click', openOverlay);
     }
+    var mobileToggle = document.getElementById('top-nav-search-toggle');
+    if (mobileToggle) mobileToggle.addEventListener('click', openOverlay);
   }
 
   // DOMContentLoaded — by then utils.js has loaded, so initSearchPanel exists.
   document.addEventListener('DOMContentLoaded', injectSearchOverlay);
+
+  // Browser-back (and X / Escape, routed through history.back()) → close.
+  window.addEventListener('popstate', function(e) {
+    if (overlayIsOpen() && !(e.state && e.state.overlay)) closeOverlayDOM();
+  });
+  // bfcache restore of an overlay-open page → snap closed deterministically.
+  window.addEventListener('pageshow', function(e) {
+    if (e.persisted && overlayIsOpen()) closeOverlayDOM();
+  });
 })();
