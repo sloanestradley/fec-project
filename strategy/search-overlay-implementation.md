@@ -196,11 +196,43 @@ Overlay live globally. Nav button everywhere. /search = inline results + current
 | `tests/pages.spec.js` | Retire the ~12 typeahead-referencing lines for /candidates + /committees. |
 | Docs | CLAUDE.md typeahead notes; test-cases.md; TESTING.md count. |
 
+### Carried-in items — must be verified in Phase 3
+
+Two items folded in from the T-search-overlay follow-up investigation (2026-05-21):
+
+1. **3-char FEC keyword minimum — enter-to-search must enforce it.** The investigation found `fetchTypeahead`'s input listener on /candidates + /committees fires a fetch at **2** characters, but the FEC API rejects keyword queries shorter than **3** (`/committees/?q=ma` → 422, confirmed; 3-char queries → 200). Deleting `fetchTypeahead` removes the live-typing path that exposed this — but Phase 3 keeps **enter-to-search**, and the submit path still needs the guard. Wherever the browse pages' submit handler builds its FEC query (`doFetch` / `submitSearch` setting `params.q = activeQ`), it must not dispatch a request when `activeQ` is 1–2 chars. **Verification:** console clean on /candidates and /committees — zero sub-threshold (<3-char) requests reach `/api/fec/` — tested at 0/1/2/3 characters via the in-page search field's submit and any remaining input path. (Don't let the `MIN_QUERY_LENGTH=3` lesson get dropped just because the typeahead that exposed it is being deleted.)
+
+2. **`?q=` pre-fill on the browse pages — UX continuity.** When the in-page typeahead is removed and /candidates + /committees move to enter-to-search, verify the in-page search field **pre-fills from the `?q=` URL param** on load. A user arriving via a "View all N →" click lands on `/candidates?q=mar` — the field should show "mar". This also covers the overlay back-button asymmetry: a user who opens the overlay, clicks "View all", then presses browser-back lands on the page that was under the overlay (expected — the overlay is ephemeral per Decision 1, not reconstructable). The `?q=` pre-fill is what keeps the browse pages' search visible across that transition rather than silently lost. (The browse pages already read `?q=` into `activeQ` on init — confirm the input element's `.value` is set too, and that this still holds after the typeahead removal.)
+
 ### Shippability — Phase 3
 
 /candidates + /committees are enter-to-search only; combo dropdowns unaffected. Final CSS cleaned. **Coherent.**
 
 **Effort:** ~0.5–1 day.
+
+### Approved implementation prompt — T-search-typeahead-retire
+
+*Surfaced + approved 2026-05-21. All three clarifications resolved (below). One commit, no phased split — no interdependencies.*
+
+**Goal:** /candidates + /committees become enter-to-search only; remove the in-page filter typeahead; final `.typeahead-dropdown` inner-class CSS sweep. Touches no shared behavioral code (the overlay / `initSearchPanel` are untouched).
+
+**Confirmed code state (both files structurally identical):** `#search-typeahead` div (line 68); `submitSearch` (515 / 454, calls `closeTypeahead()`); keydown listener — Enter→`submitSearch`, Escape→`closeTypeahead` (522–523 / 461–462); `#search-btn` click→`submitSearch` (525 / 464); debounced `input` listener with `if (val.length < 2)` (534 / 473); `fetchTypeahead` (538 / 477); `renderTypeahead` + the `Typeahead Result Clicked` event (545 / 484); `closeTypeahead` (562 / 503); document click-outside listener (567 / 508); `init()` already pre-fills the field from `?q=` via `f-search').value = activeQ` (613 / 537).
+
+**1. candidates.html + committees.html — identical change to both.** Remove: the `#search-typeahead` div; `typeaheadTimer`; the debounced `input` listener; `fetchTypeahead`; `renderTypeahead` (+ `Typeahead Result Clicked`); `closeTypeahead`; the click-outside listener. Keep: `submitSearch`, the `#search-btn` click listener, the keydown `Enter → submitSearch` branch. Drop the keydown `Escape → closeTypeahead()` branch and the `closeTypeahead()` call inside `submitSearch` (both now dead).
+
+**2. The 3-char FEC keyword guard (carried-in item 1).** The FEC API rejects keyword queries < 3 chars (`/committees/?q=ma` → 422; 3-char → 200). Removing `fetchTypeahead` kills the live-typing path, but enter-to-search still builds an FEC query from `activeQ`, and `?q=` can carry a 1–2 char value. **Resolved (Clarification 1): sub-3-char submit → browse mode.** A 1–2 char `activeQ` is normalized to `''` so `doFetch` goes the browse path (`sort:'name'`, no `params.q`) and chips/header read as "showing all" — *not* "results for 'ma'". No 422, no error UI, no new hint state to design. **Resolved (Clarification 2): add a shared `FEC_MIN_KEYWORD_LENGTH = 3` constant to `utils.js`**, referenced by both `initSearchPanel`'s guard and the browse-page guard — single named source for the FEC rule (it has been the same off-by-one twice). Guard the point where `activeQ` is consumed so it covers both the `submitSearch` path and the `?q=` init path.
+
+**3. `?q=` pre-fill — VERIFY, do not rebuild (carried-in item 2 — the subtlest risk in this ticket).** `init()` on both pages already sets `f-search'.value = activeQ` when `?q=` is present — a "View all N →" arrival at `/candidates?q=mar` shows "mar" in the field today. The failure mode is **mechanical**: that pre-fill line sits in the *same `init()` region* as the typeahead code being removed and can get swept out alongside the deletion because it is adjacent. **Treat the `?q=` pre-fill as a non-negotiable verification item** — if it regresses, the overlay → "View all" → browser-back search continuity silently breaks and nothing else in the ticket catches it. Confirm the `f-search'.value = activeQ` line survives, on both files, and is exercised by a test.
+
+**4. styles.css — final inner-class sweep.** All four search-typeahead instances now gone. Retire: `.typeahead-row-left`, `.typeahead-row-right`, `.typeahead-row-id`, `.typeahead-status-dot` (+ its `.dot-active`/`.dot-terminated` compound selectors — keep the non-prefixed `.status-dot` + variants, used by `committeeRowHTML`), `.typeahead-group-label`, `.typeahead-empty`, `.typeahead-loading`. Keep `.typeahead-row` + the `.typeahead-dropdown` base rule (combo dropdowns still use them). The `.typeahead-dropdown` → `.combo-dropdown` rename stays banked (Decision 6).
+
+**5. design-system.html.** Revise the Typeahead Dropdown card — after this ticket the class is combo-dropdown-only. Retire specimen-list references to the swept inner classes.
+
+**6. Tests.** Retire the `candidates.html — typeahead` / `committees.html — typeahead` describe blocks in `pages.spec.js`. Add: enter-to-search works (3+ chars + Enter → results); the **3-char guard regression-lock** — a 1–2 char submit fires zero `/api/fec/` requests and shows no error, tested at 0/1/2/3 chars; **`?q=` pre-fills the field on load** (the carried-in regression-lock for the pre-fill line).
+
+**7. Verification.** `npx playwright test` green. `npm run dev` browser check on /candidates + /committees: console clean — **zero sub-threshold (<3-char) requests reach `/api/fec/`** at 0/1/2/3 chars via the search field's submit; 3-char fetches + renders; **`?q=mar` URL pre-fills the field (non-negotiable — verify on both pages)**; sub-3-char submit visibly shows browse mode (chips/header say "showing all", not "results for 'ma'"); combo filters (state/office/party/cycle/type) unregressed.
+
+**One commit** (Clarification 3 — no interdependencies, no broken intermediate state). Standard per-commit wrap-up + docs.
 
 ---
 

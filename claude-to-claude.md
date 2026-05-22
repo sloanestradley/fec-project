@@ -5683,3 +5683,44 @@ When I extended the search-typeahead scope override for max-height, you noticed 
 - **The `?terminated=1` URL param "silent flip" decision** worth banking as a general pattern: when graceful-degradation options exist but the actual risk surface is approximately zero, the simpler future wins. Worth flagging next time a similar decision comes up (e.g. when other filter params get renamed).
 - **Border architecture for filter chrome.** The iteration arrived at "filter-chrome owns its own bottom border, results don't." Worth thinking about how this generalizes — is the principle "bordered sections own the border below them" or is the original .search-bar-wrap / .filter-bar-wrap treatment specific to these three pages? Other pages (profile pages with stats-grid borders, race.html, etc.) have their own border-ownership patterns. If we ever try to unify, this session's iteration is the relevant history.
 - **The "section-extension page" framing as a product concept.** /search, /candidates, /committees became distinctly less "destination-page" this session. Could other pages benefit from the same treatment? /races and /race feel more destination-y (race-page is a distinct surface). /feed is genuinely a destination (filing monitoring is its own affordance). Worth a product-think on what other pages might be re-classed as "support pages" in the IA — and whether that classification is becoming a load-bearing concept in the design system.
+
+---
+2026-05-21 — search-overlay arc: Tickets 1 & 2 shipped, Ticket 3 scoped
+
+## Process log draft
+
+**Title:** Search becomes a layer, not a destination
+
+This session took the search-overlay arc from a feasibility question to two shipped tickets. /search now renders live results inline; search itself is a full-page overlay that opens over any page. The third phase — retiring the browse-page typeahead — is scoped and ready. A late bug report turned out to be a diagnosis win: the reported "initSearchPanel bug" wasn't in initSearchPanel at all, and proving that before touching code is what kept a wrong fix from shipping.
+
+**Changelog:**
+- T-search-inline-results: /search renders live, debounced, as-you-type results inline in the page body; new shared initSearchPanel factory; floating typeahead retired. Plus a same-day follow-up raising the query threshold to 3 (the FEC API rejects shorter keyword queries).
+- T-search-overlay (Commits A + B): a full-page search overlay, opened from a nav search button, closed by X / Escape / browser-back. State-only history so it never disturbs profile-page URL fragments; focus trap + inert background; the nav search input and global nav typeahead retired across 10 files.
+- The 422 follow-up: a reported console error was diagnosed — code read + 30 reproductions + a curl matrix — to NOT be in the overlay. Located instead in the /candidates + /committees in-page typeahead (a stale 2-char threshold vs the API's 3-char minimum). Folded into Ticket 3 rather than patched ahead of the ticket that deletes that code anyway.
+- Ticket 3 (T-search-typeahead-retire) scoped: implementation prompt approved and recorded in the strategy doc, with two carried-in items — the 3-char guard for enter-to-search, and ?q= pre-fill continuity.
+
+**Field notes:**
+The thing worth remembering: "diagnose before fixing" earned its keep twice this session. The 3-char threshold follow-up was a real one-line fix found by verifying API behavior. The 422 report looked like the same class of bug — and the instinct would have been to apply the same fix to initSearchPanel. Instead: read the code (the guard is provably sound), reproduce 30 times (zero sub-threshold requests), run a curl matrix (3-char always 200, 2-char always 422). The bug was real but somewhere else entirely. A confident wrong fix was one keystroke away; the discipline of confirming the mechanism caught it.
+
+The other note: Ticket 2's plan called for a 2a/2b/2c commit split, and it didn't survive contact with the code — the nav input and its JS have to die in one edit, the button and its handler are born together. The honest move was to say so and use the only real seam (dormant chrome → activation). Plans are hypotheses; the code gets a veto.
+
+**Stack tags:** full-page overlay (role=dialog + inert + focus trap), state-only pushState (hashchange-safe history), shared factory as two-consumer component, diagnose-before-fix (curl matrix as proof).
+
+## How Sloane steered the work
+
+**The diagnose-first mandate on the 422.** The follow-up prompt was emphatic — "don't fix before the mechanism is confirmed" — and explicitly put the honest-finding outcome on the table. That framing is the entire reason the session didn't ship a wrong fix. Sloane built the permission to NOT fix into the instruction.
+
+**Fold into Ticket 3, don't patch now.** Once the bug was located in the browse-page typeahead, the easy move was a 2-line threshold bump. Sloane's call: that's throwaway code ahead of the ticket that deletes the file — and the bug is fully swallowed, console-only, no user symptom. Don't spend a commit on it. Correct prioritization over reflexive tidying.
+
+**Make "folded in" durable, not just intended.** Sloane didn't just say "defer it" — they specified exactly how to make the deferral safe: record both items in the strategy doc's Phase 3 section AND thread them into the Ticket 3 prompt as explicit verification items. A deferral that isn't written down is a deferral that gets lost.
+
+**The ?q= pre-fill continuity catch.** Sloane added a second Phase 3 item that wasn't a bug at all — a UX-continuity point: when the browse-page typeahead is removed, the search field must still pre-fill from ?q= so "View all" arrivals and overlay-back navigation don't silently lose the user's query. And then named the precise failure mode: the pre-fill line is adjacent to the deleted code and could get swept out mechanically. That's the kind of risk that only gets caught by someone thinking about the whole user journey, not just the diff.
+
+**Through-line:** Sloane steers for the version that does what the symptom needs — and steers hard on making sure the right thing is also the recorded thing. Diagnose before fixing; defer deliberately; write the deferral down.
+
+## What to bring to Claude Chat
+
+- Ticket 3 (T-search-typeahead-retire) is fully scoped — the approved implementation prompt is recorded in strategy/search-overlay-implementation.md (§Phase 3). It can be implemented directly next session; no further scoping needed. One commit, ~0.5–1 day.
+- The closing cold-read doc sweep for the whole search-overlay arc was deferred under context budget. Worth doing at the start of the Ticket 3 session — five commits of structural change (nav input retired, typeahead retired, overlay added) is exactly the drift profile the sweep is for.
+- The search-overlay arc's banked follow-ups remain open and un-scoped: (a) visually pairing Races/Feed with the search button in the nav; (b) making the overlay's search input more prominent. Both were explicitly deferred until the overlay landed — it has. Worth deciding whether either is worth a ticket.
+- The diagnose-before-fix pattern proved its value twice this session (the 3-char threshold fix; the 422 mis-attribution). Possibly worth a memory or a CLAUDE.md note formalizing "verify FEC API behavior with a curl/probe before fixing anything that looks like an API-contract bug."
