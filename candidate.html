@@ -2299,7 +2299,10 @@ async function init() {
       hostEl: document.getElementById('profile-menu-btn'),
       items: [
         { id: 'profile',    label: 'Profile',                    icon: 'trending_flat',
-          href: '/candidate/' + CANDIDATE_ID,
+          onClick: function() {
+            history.replaceState('', '', location.pathname);
+            view.switchTo(false, NaN);
+          },
           disabled: !isDetailView },
         { id: 'race',       label: 'Race (' + raceYearInit + ')', icon: 'trending_flat',
           href: raceHref(CAND_OFFICE, CAND_STATE, CAND_DIST, raceYearInit) },

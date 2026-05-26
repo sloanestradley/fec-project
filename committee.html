@@ -783,7 +783,10 @@ async function init() {
       hostEl: document.getElementById('committee-menu-btn'),
       items: [
         { id: 'profile', label: 'Profile', icon: 'trending_flat',
-          href: '/committee/' + COMMITTEE_ID,
+          onClick: function() {
+            history.replaceState('', '', location.pathname);
+            view.switchTo(false, NaN);
+          },
           disabled: !isDetailView },
         { id: 'compare', label: 'Compare', icon: 'compare_arrows',
           onClick: function() { openInfoModal(document.querySelector('#committee-menu-btn .menu-btn')); } },

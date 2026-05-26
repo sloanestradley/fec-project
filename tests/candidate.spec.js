@@ -2144,13 +2144,37 @@ test.describe('candidate.html — profile menu-btn', () => {
     expect(ids).toEqual(['profile', 'race', 'committees', 'compare', 'follow']);
   });
 
-  test('Profile item href = /candidate/{id}; enabled on detail view', async ({ page }) => {
+  test('Profile item is <button> with no href; enabled on detail view', async ({ page }) => {
+    // Regression lock: Profile's destination is a view state of the current
+    // page, not a navigation. It must render as <button> (onClick handler)
+    // not <a href> — an href would trigger a full document reload instead
+    // of the chevron's in-place view.switchTo path.
     await setup(page);  // setup uses #2024#summary → detail view
     await page.locator('#profile-menu-btn .menu-btn').click();
     const profile = page.locator('.menu-item[data-item-id="profile"]');
-    await expect(profile).toHaveAttribute('href', '/candidate/H2WA03217');
+    const tag = await profile.evaluate(el => el.tagName);
+    expect(tag).toBe('BUTTON');
+    const href = await profile.getAttribute('href');
+    expect(href).toBeNull();
     const disabled = await profile.getAttribute('aria-disabled');
     expect(disabled).toBeNull();
+  });
+
+  test('Profile item triggers in-place view.switchTo (no full reload)', async ({ page }) => {
+    // Regression lock for the menu-btn-arc follow-up: clicking Profile in
+    // detail view must mirror the cycle-back-btn chevron — clear the hash
+    // via history.replaceState + call view.switchTo(false, NaN) — NOT
+    // navigate via <a href>. Sentinel survives an in-place swap and would
+    // be wiped by a full document reload.
+    await setup(page);  // #2024#summary → detail view
+    await page.evaluate(() => { window.__noReloadSentinel = 'kept'; });
+    await page.locator('#profile-menu-btn .menu-btn').click();
+    await page.locator('.menu-item[data-item-id="profile"]').click();
+    await expect(page.locator('#cycle-index')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#content')).toBeHidden();
+    expect(new URL(page.url()).hash).toBe('');
+    const sentinel = await page.evaluate(() => window.__noReloadSentinel);
+    expect(sentinel).toBe('kept');
   });
 
   test('Profile item is aria-disabled on index view (bare URL)', async ({ page }) => {
