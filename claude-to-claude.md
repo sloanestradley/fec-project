@@ -5769,3 +5769,69 @@ You treat verification as a load-bearing step, not a formality. Three times this
 - The search-overlay arc is closed. Next call: Phase 4 (early signal / 48-24hr reports, AI insights, transaction-level search) or any pending architectural cleanup that's been queueing up? The `.typeahead-dropdown` → `.combo-dropdown` rename is banked — small enough to do anytime, worth a half-session?
 - Diagnose-before-fix cadence: this arc saw three "honest finding" outcomes (422 follow-up = bug not in initSearchPanel; .error-prompt = standard wrapper pattern; Ticket 3's `?q=` line = survived intact). Three for three on "the suspected fix wasn't the right move." Worth establishing as a named pattern, or is it already implicit enough that naming it would be overkill?
 - The Bash classifier intermittency: did the session's productivity actually hold up across the gap, or did the disconnected ordering (docs first, browser verification later) create any friction worth designing around?
+
+---
+2026-05-26 — end of T-menu-btn arc
+
+## Process log draft
+
+### Title
+Two pieces of furniture, then the room behind them
+
+### Summary (2–3 sentences, Sloane's voice)
+This session shipped the profile-page action menu — a single navy split-button that replaced the standalone "Committees →" trigger and added Profile / Race / Compare / Follow as next-step affordances. But the work the menu surfaced was as interesting as the menu itself: a long-dormant title-wrap bug only visible once the button was pinned right, a Safari mobile touch-tap quirk that turned the first item into a permanent "you are here" highlight, and three separate modals (committees, info, search overlay) whose a11y contracts were all subtly different. Each one got a more honest answer — and one of them, the modal helper, is the new convention.
+
+### Changelog
+- **T-menu-btn** — built `initMenuButton` factory, `iconSvg` helper (5 Material Symbols glyphs, inline SVG only), `raceHref` helper (4-case URL builder for President/at-large/Senate/House), info-modal teaser. Inert in production this commit, but verifiable via design-system.html.
+- **T-menu-btn-profile-header** — mounted the menu-btn on candidate.html (5 items) and committee.html (3 items). Retired `.committees-link` and its comma-grouped shared rule entirely — no compatibility shim. Compact-header `min-height` raised 48→56px so the 40px menu-btn fits with vertical padding. Page-specific text labels ("Candidate" / "Committee" — not "Menu") so the trigger reads as identity, not category. Race item label + href update on cycle change via `trackPageViewed`. Folded in the Amplitude stale-cycle bug fix — `trackPageViewed` now reads cycle from `location.hash` instead of trusting page state.
+- **T-modal-a11y** — built shared `openAccessibleModal` / `closeAccessibleModal` helpers in utils.js. Both the committees modal and the info modal adopted them. Focus trap, body scroll-lock, background `inert`, modal-scoped Escape, outside-click on overlay backdrop, return-focus-to-trigger, auto-applied `role="dialog"` + `aria-modal="true"` + `aria-labelledby`. AbortController for batch listener teardown — first codebase consumer. Search overlay stays separate (history-driven, structurally distinct).
+- **T-menu-btn-focus-on-open** — Safari mobile bug fix: first menu item showed persistent `--accent-dim` highlight after touch-tap. The browser's `:focus-visible` heuristic was firing on the first item after a touch event. Fix: focus the dropdown container on open instead of the first item; `tabindex="0"` on dropdownEl. First ArrowDown enters at item 0, first ArrowUp at last item, no wrap.
+- **T-menu-btn-profile-header-title-wrap-fix** — pre-existing layout bug exposed by the menu-btn: long candidate name forced the button onto its own line. Fix: `.profile-header-row` declares `flex-wrap:nowrap`, `.page-title` becomes the squeeze-absorbing item via `flex:1; min-width:0`, `.menu-btn-wrap` declares `flex-shrink:0; align-self:flex-start; margin-left:auto`. Inline styles from the mount sites lifted to shared CSS. Compact's `align-self:center` declared as a peer rule, not an override.
+
+### Field notes
+The menu-btn was sold as "a place to put more affordances later" but its first job was retiring an awkward standalone "Committees →" button. That swap forced six other questions to surface in sequence — none of which would have been visible without the swap. The title-wrap bug was already in the codebase; only the button pinned to the right exposed it. The Safari touch-tap highlight is a property of `:focus-visible`; only a touch-driven menu pattern surfaces it. The committees modal's a11y gaps weren't new either — focus trap, scroll-lock, return-to-trigger were all absent — but only when the info modal landed as the second modal with the same gaps did "build a helper" become the right answer instead of "patch this one modal."
+
+The CSS philosophy moment was small but durable. The compact-state rule for the menu-btn's `align-self` could have been an override on top of the base rule (`align-self:flex-start` lifted, then `compact` overrides to `center`). Sloane corrected: peer rules. Each state declares its own truth. That's a generalization of "lift before override" — when the difference between two states is meaningful, both should be visible at the same level of the cascade, not one declared as the exception to the other.
+
+Three modals on the page now, three different a11y postures. Committees modal: full helper. Info modal: full helper. Search overlay: stays separate because its history-driven close path is structurally different (back-button as the single close path, hashchange suppression). The helper isn't the universal answer; it's the right answer for the dialog-level contract. Knowing when to share and when not to share is the actual judgment.
+
+### Stack tags
+- AbortController (new project convention)
+- Material Symbols Outlined (inline SVG, 960×960 negative-Y viewBox, Apache 2.0)
+- WAI-ARIA menu pattern (role=menu + role=menuitem + roving tabindex)
+- `inert` attribute (background a11y for modals)
+- `matchMedia` for page-level responsive JS
+
+## How Sloane steered the work
+
+### "Lift before override" — corrected mid-stream on T-menu-btn-profile-header-title-wrap-fix
+The fix I proposed lifted `align-self:flex-start` to the base `.profile-header-row .menu-btn-wrap` rule, then overrode it to `center` in the `.compact` rule. Sloane corrected: don't lift then override. Restructure as peer rules — each state declares its own truth. The default state owns `align-self:flex-start`; the compact state owns `align-self:center`. Both visible at the same level of the cascade, neither defined as an exception to the other. This is a generalization of "lift before override" applied to state-rule structure: state semantics live where the state lives, not in an override chain.
+
+### Page-specific menu labels — "Candidate" / "Committee", not "Menu"
+The initial mount used a generic "Menu" label. Mid-stream Sloane clarified: candidate.html should read "Candidate", committee.html should read "Committee". The button labels the *identity of what you're on*, not the category of action. This is a small word choice that changes how the affordance reads — less hamburger-menu, more "here's what's possible with this candidate." It also unlocked the regression-lock test for `setShowText` to preserve the page label across resize toggling (not revert to "Menu").
+
+### Verification A discipline (the scroll-lock history check)
+When the T-modal-a11y prompt landed, I would have defaulted to "add scroll-lock to the committees modal — every modal should have one." Sloane required a history check first: was there a documented reason scroll-lock had been deliberately avoided? (There wasn't, but the question was the point.) The pattern: don't add a feature whose absence might be load-bearing without checking why it's absent. Especially for compatibility with the sticky compact-header — scroll-lock could have broken pin-to-top behavior; the check confirmed it didn't.
+
+### Diagnose-first on the menu-btn focus-on-open bug
+The Safari touch-tap highlight bug had multiple plausible fixes: remove `:focus-visible`, blur the first item, use a different ARIA pattern, switch from `role=menu` to `combobox`. Sloane required diagnosis first — what is actually happening, why, and which fix preserves the most coherence with the rest of the codebase. The diagnosis (`:focus-visible` heuristic fires on first menuitem after touch) led to the smallest fix (focus the container instead) instead of a structural rewrite.
+
+### Truncated-prompt resolution
+One implementation prompt landed cut off mid-sentence. The default move would be to infer what the missing half probably said and proceed. Sloane interrupted with the full prompt instead. The cost was a few seconds of typing; the cost of inferring wrong is a course-correction commit. This reinforces a rule that holds even when the missing text *seems* obvious: ask, don't infer.
+
+### Visual UX iteration on the design-system demo
+The first cut of the menu-btn demo stacked the three cards vertically. Sloane pushed back: on desktop they can sit side-by-side or in 3 columns. Then: the second card is cut off past the page gutter. Then: simplify labels ("showText:true · click to open"). Then: add `padding-bottom:var(--space-8); border-bottom:1px solid var(--border)` to `.ds-demo-label`. Then: have mobile mimic desktop. Each iteration was small, but the cumulative effect is a demo that actually communicates the three configurations the helper supports — not just "here's the component."
+
+### Fix-first not buried-flag (the .committees-link migration)
+The cleanup question — should `.committees-link` retirement land atomically with the menu-btn mount, or in a follow-up — was decided as: atomic. No compatibility shim, no `.committees-trigger` selector still in code, no "remove this after we're sure." The migration is the commit. If the menu-btn mounts, the old class is gone in the same commit. This is the inverse of feature-flag thinking; it forces the migration's success to be visible in the same diff.
+
+### Through-line
+You're using each ticket as a forcing function to clean up the *adjacent* problem that's actually the more important one. The menu-btn was the headline; the title-wrap bug, the modal a11y helper, and the Safari touch-tap fix were the side-channel work that wouldn't have surfaced without the menu-btn pulling them up. And the way you steer — Verification A, peer rules over overrides, diagnose-first, ask-don't-infer, atomic migration — is the discipline that turns a 6-commit session into 6 commits that each stand on their own instead of one big mass.
+
+## What to bring to Claude Chat
+
+- **Search overlay vs modal helper unification** — the search overlay (history-driven close, hashchange suppression, single close path via `history.back`) is structurally different from the dialog-level contract `openAccessibleModal` provides. But the focus trap, scroll-lock, inert, and return-to-trigger pieces are duplicated between them. Worth a design conversation: is there a "modal primitives" layer beneath both, or are they two truly distinct patterns?
+- **Race-context-bar "View race →" link vs menu-btn's Race(YYYY) item** — both targets resolve to the same /race URL via `raceHref`. Both update on cycle change. The race-context-bar's link is contextual (lives in the sentence); the menu item is global (always reachable). Is the redundancy intentional discovery or accidental drift? Worth a UX decision before either is retired.
+- **race.html compact strip parity gap** — race.html shares the `min-height:56px` rule with the two profile pages (combined CSS selector), but doesn't have a menu-btn — its strip gained 8px without an in-scope reason. Either give race.html its own profile-style menu-btn, or split the compact rule so race.html stays at 48px. Lean toward the first answer (parity across profile pages once race.html promotes from scaffold).
+- **Formalize AbortController as a project convention** — first consumer (T-modal-a11y) used it for batch listener teardown. Worth documenting the rationale in CLAUDE.md alongside other shared-helper conventions, so future helpers reach for it instead of inventing their own teardown pattern.
+- **Audit other modal-like surfaces for the a11y contract** — committees modal and info modal both now use the helper. Search overlay opts out for documented reasons. Are there other modal-like surfaces (drawers, popovers, full-page overlays) that should be auditing themselves against `openAccessibleModal`'s contract? A pass through the codebase could surface any latent a11y gaps similar to what the info modal exposed.

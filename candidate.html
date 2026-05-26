@@ -554,9 +554,11 @@ async function fetchAndRenderCommittees() {
     document.querySelector('#committees-modal .modal-tabs').style.display = 'flex';
     document.querySelector('#committees-modal .data-note').style.display  = 'block';
 
-    // In-modal tab badges — populate after fetch resolves. The trigger button
-    // label is intentionally NOT updated; it stays "Committees →" by design (T11).
-    // Both labels always carry a count (including (0)) — the count is the signal.
+    // In-modal tab badges — populate after fetch resolves. The menu-btn's
+    // Committees item label is intentionally NOT updated; it stays "Committees"
+    // by design (T11 retired the (N) count; T-menu-btn-profile-header migrated
+    // the trigger from .committees-link to the menu item, 2026-05-26).
+    // Both in-modal tab labels always carry a count (including (0)) — the count is the signal.
     document.getElementById('modal-active-count').textContent  = ' (' + active.length + ')';
     document.getElementById('modal-history-count').textContent = ' (' + terminated.length + ')';
   } catch(err) {
