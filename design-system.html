@@ -87,7 +87,8 @@
 
     /* ── Demo helpers ── */
     .ds-demo-label { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted);
-      text-transform:uppercase; letter-spacing:var(--ls-expanded); margin-bottom:var(--space-8); }
+      text-transform:uppercase; letter-spacing:var(--ls-expanded); margin-bottom:var(--space-8);
+      padding-bottom:var(--space-8); border-bottom:1px solid var(--border); }
     .ds-demo-row { display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
     .ds-demo-col { display:flex; flex-direction:column; gap:var(--space-8); }
     .ds-state-controls { display:flex; gap:var(--space-8); margin-bottom:var(--space-16); flex-wrap:wrap; }
@@ -119,6 +120,36 @@
     /* Banner — demo: drop production gutter so banner content sits flush in the
        constrained demo card (production aligns to .main-inner gutter). */
     .ds-component-demo .banner { padding-left:0; padding-right:0; }
+
+    /* Menu-btn — demo:
+       (1) .ds-component-demo's overflow-x:auto implicitly sets overflow-y:auto
+           per CSS Overflow spec, which clips the absolutely-positioned dropdown.
+           Force visible on this card only.
+       (2) Lay out the demos as a 3-column grid at desktop, stacked at mobile.
+       (3) Triggers always left-aligned (flex-start). Live demos open the
+           dropdown rightward (left:0; right:auto) so the left-aligned trigger
+           doesn't push the default right:0-anchored dropdown past the page
+           edge — .main / body have overflow-x:clip, which clips even though
+           .ds-component-demo is overflow:visible. Demo C is static
+           (position:static via inline style) so right:0 doesn't apply there.
+           Menus opening over neighboring content is acceptable per the demo's
+           intent. */
+    #comp-menu-btn .ds-component-demo { overflow:visible; }
+    .ds-menu-btn-demos-grid {
+      display:grid; grid-template-columns:1fr; gap:var(--space-24);
+    }
+    @media (min-width:861px) {
+      .ds-menu-btn-demos-grid { grid-template-columns:repeat(3, 1fr); }
+    }
+    .ds-menu-btn-demo-row {
+      display:flex; flex-direction:column; align-items:flex-start;
+      gap:var(--space-8);
+    }
+    .ds-menu-btn-demo-row .ds-demo-label { align-self:stretch; }
+    #ds-menu-btn-demo-a .menu-btn-dropdown,
+    #ds-menu-btn-demo-b .menu-btn-dropdown {
+      left:0; right:auto;
+    }
 
     /* Raised tab grid — demo: suppress margin-bottom */
     .raised-grid { margin-bottom:0; }
@@ -526,7 +557,7 @@
         </div>
         <div class="ds-type-row">
           <span class="stat-label" style="margin-bottom:0">Cycle</span>
-          <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .committees-link · .candidate-card-stat-lbl · .button-group-btn · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
+          <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .committees-link · .candidate-card-stat-lbl · .button-group-btn · .menu-btn-text · .menu-item-label · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
         </div>
         <div class="ds-type-row">
           <span class="legend-item" style="gap:0">Final coverage: Mar 31, 2024</span>
@@ -546,7 +577,7 @@
         </div>
         <div class="ds-type-row">
           <span class="race-context-line"><span class="race-context-line-text">Smith is the incumbent with 2 challengers.</span> <a href="#" style="color:var(--subtle);white-space:nowrap">View race →</a></span>
-          <span class="ds-type-meta"><strong>prose</strong><br>IBM Plex Serif 400 · 0.875rem<br>.race-context-line · .banner-desc — sentence-format editorial content</span>
+          <span class="ds-type-meta"><strong>prose</strong><br>IBM Plex Serif 400 · 0.875rem<br>.race-context-line · .banner-desc · .modal-prose — sentence-format editorial content</span>
         </div>
         <div class="ds-type-row">
           <span style="font-family:'IBM Plex Serif','Georgia',serif;font-size:0.875rem;font-weight:700">US House: Washington’s 3rd District</span>
@@ -637,15 +668,6 @@
         <div class="ds-component-notes">Desktop: logo + nav links (Races, Feed) + search button (<code>.top-nav-search-btn</code> / <code>#nav-search-btn</code> — opens the full-page search overlay; on /search it carries <code>aria-current="page"</code> + <code>.top-nav-search-btn--current</code> and is a muted no-op). Mobile ≤860px: logo + search-toggle icon + hamburger; the toggle also opens the overlay. <strong>No active-state treatment</strong> — every page treats its nav links identically; the `.active` class and its CSS rules were retired (T-IA-candidate-committees-nav-removal follow-up, 2026-05-20). <strong>DOM structure:</strong> <code>#mobile-nav</code> (.mobile-nav) is a direct child of <code>&lt;nav class="top-nav"&gt;</code> — a sibling of <code>.top-nav-inner</code>, not of the nav itself. It uses <code>position:absolute; top:100%</code> so it hangs directly below the nav's bottom edge regardless of scroll state. Being inside .top-nav's stacking context (z-index:200) automatically elevates it above all page elements — profile headers (195), tabs bar (185), etc. Do not move it outside .top-nav. (The old <code>#top-nav-mobile-search</code> panel was retired in T-search-overlay.) <strong>.mobile-nav</strong> uses <code>padding: var(--space-8) 0 0</code> (no bottom padding — last item sits flush against the bottom border). <strong>.nav-item</strong> uses <code>padding: var(--space-16) var(--space-24)</code> for a 48px minimum tap target height. Note: .top-nav-logo uses Oswald 600 — explicit deviation from the heading type style (400). Weight set directly on the component rule.</div>
       </div>
 
-      <div class="ds-component" id="comp-search-overlay" data-status="stable">
-        <div class="ds-component-header">
-          <span class="ds-component-name">Search Overlay</span>
-          <span class="ds-status stable">stable</span>
-        </div>
-        <div class="ds-component-classes">.search-overlay · .search-overlay-head · .search-overlay-close · .search-overlay-inner · .search-overlay-search</div>
-        <div class="ds-component-notes">Full-page search layer (T-search-overlay), injected once by <code>main.js</code> on every nav page and reused via <code>initSearchPanel</code>. <code>position:fixed; inset:0; z-index:300</code>, opaque <code>--bg</code>; <code>display:none</code> by default, <code>.open</code> shows it with a 0.16s fade-in. Opened by the desktop nav search button or the mobile search-toggle; closed via the X / Escape / browser-back — all routed through <code>history.back()</code>. <strong>State-only history:</strong> opening pushes one <code>{overlay:true}</code> entry at the same url (fragment included) so it never fires <code>hashchange</code>. <strong>Structure:</strong> sticky <code>.search-overlay-head</code> (the gutter-inset X close button) + <code>.search-overlay-inner</code> (800px centered column echoing <code>.main-inner-narrow</code>) + <code>.search-overlay-search</code> (the input row). Inner state divs reuse <code>.state-msg</code> / <code>.results-area</code> / <code>.no-results</code> / <code>.error-prompt</code>. Background is made <code>inert</code> while open; focus is trapped and restored to the trigger on close.</div>
-      </div>
-
       <!-- 5. Global banner -->
       <div class="ds-component" id="comp-global-banner" data-status="stable">
         <div class="ds-component-header">
@@ -706,6 +728,66 @@
           </div>
         </div>
         <div class="ds-component-notes">The meta-row is a uniform strip of <code>.tag</code>-style elements below the page title. Canonical order: <strong>FEC ID → race → party → incumbent</strong>. Race is a <code>.tag.tag-neutral</code> rendered via <code>formatRaceName(office, state, district)</code> (short form, "House • WA-03") — the long form ("US House: Washington's 3rd District") lives in the race-context-bar's prose-emphasis label below. Incumbent (<code>.tag-inc</code>) is cycle-dependent and appended dynamically by <code>loadCycle()</code>. <code>.profile-header-row</code> contains the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> sits as a sibling below. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic. <strong>T14.5 (2026-05-14) retired the <code>.back-affordance-slot</code> chevron</strong> that previously sat above <code>.profile-header-row</code> — the back path now lives inside the Cycle card in the stats-grid (see <a href="#comp-stats-grid">Stats Grid</a>).</div>
+      </div>
+
+      <!-- Menu button (action menu — split button + dropdown) -->
+      <div class="ds-component" id="comp-menu-btn" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Menu Button</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.menu-btn-wrap · .menu-btn · .menu-btn-text · .menu-btn-icon · .menu-btn-dropdown · .menu-item · .menu-item-label · .menu-item-icon — split-button action menu used in the profile-page header. Trigger toggles the dropdown; items are either link (<code>&lt;a href&gt;</code>) or action (<code>&lt;button&gt;</code>). Built via <code>initMenuButton(config)</code> in utils.js.</div>
+        <div class="ds-component-demo">
+          <div class="ds-menu-btn-demos-grid">
+
+            <!-- Demo A: showText:true, live trigger -->
+            <div class="ds-menu-btn-demo-row">
+              <div class="ds-demo-label">showText:true · click to open</div>
+              <div class="menu-btn-wrap" id="ds-menu-btn-demo-a"></div>
+            </div>
+
+            <!-- Demo B: showText:false, live trigger -->
+            <div class="ds-menu-btn-demo-row">
+              <div class="ds-demo-label">showText:false · icon-only — mobile</div>
+              <div class="menu-btn-wrap" id="ds-menu-btn-demo-b"></div>
+            </div>
+
+            <!-- Demo C: static open dropdown with one disabled item -->
+            <div class="ds-menu-btn-demo-row">
+              <div class="ds-demo-label">Open dropdown · static reference</div>
+              <div class="menu-btn-wrap">
+                <button type="button" class="menu-btn" aria-haspopup="true" aria-expanded="true" aria-label="Menu">
+                  <span class="menu-btn-text">Menu</span>
+                  <span class="menu-btn-icon"><svg class="icon-svg" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="M207.86-432Q188-432 174-446.14t-14-34Q160-500 174.14-514t34-14Q228-528 242-513.86t14 34Q256-460 241.86-446t-34 14Zm272 0Q460-432 446-446.14t-14-34Q432-500 446.14-514t34-14Q500-528 514-513.86t14 34Q528-460 513.86-446t-34 14Zm272 0Q732-432 718-446.14t-14-34Q704-500 718.14-514t34-14Q772-528 786-513.86t14 34Q800-460 785.86-446t-34 14Z"/></svg></span>
+                </button>
+                <div class="menu-btn-dropdown open" role="menu" style="position:static;display:block;margin-top:var(--space-4)">
+                  <button type="button" class="menu-item" role="menuitem" tabindex="-1" aria-disabled="true">
+                    <span class="menu-item-label">Profile</span>
+                    <span class="menu-item-icon"><svg class="icon-svg" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="m702-301-43-42 106-106H120v-60h646L660-615l42-42 178 178-178 178Z"/></svg></span>
+                  </button>
+                  <a href="#" class="menu-item" role="menuitem" tabindex="-1">
+                    <span class="menu-item-label">Race (2024)</span>
+                    <span class="menu-item-icon"><svg class="icon-svg" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="m702-301-43-42 106-106H120v-60h646L660-615l42-42 178 178-178 178Z"/></svg></span>
+                  </a>
+                  <button type="button" class="menu-item" role="menuitem" tabindex="-1">
+                    <span class="menu-item-label">Committees</span>
+                    <span class="menu-item-icon"><svg class="icon-svg" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="M200-200v-240h60v180h180v60H200Zm500-320v-180H520v-60h240v240h-60Z"/></svg></span>
+                  </button>
+                  <button type="button" class="menu-item" role="menuitem" tabindex="-1">
+                    <span class="menu-item-label">Compare</span>
+                    <span class="menu-item-icon"><svg class="icon-svg" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="m317-160-42-42 121-121H80v-60h316L275-504l42-42 193 193-193 193Zm326-254L450-607l193-193 42 42-121 121h316v60H564l121 121-42 42Z"/></svg></span>
+                  </button>
+                  <button type="button" class="menu-item" role="menuitem" tabindex="-1">
+                    <span class="menu-item-label">Follow</span>
+                    <span class="menu-item-icon"><svg class="icon-svg" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="M142-142.04q-22-22.05-22-53Q120-226 142.04-248q22.05-22 53-22Q226-270 248-247.96q22 22.05 22 53Q270-164 247.96-142q-22.05 22-53 22Q164-120 142-142.04ZM710-120q0-123-46-229.5T537-537q-81-81-187.58-127Q242.85-710 120-710v-90q142 0 265 53t216 146q93 93 146 216t53 265h-90Zm-258 0q0-70-25.8-131.48Q400.4-312.96 355-360q-45-47-105.03-73.5Q189.95-460 120-460v-90q89 0 165.5 33.5t133.64 92.42q57.15 58.93 90 137Q542-209 542-120h-90Z"/></svg></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="ds-component-notes">An <strong>action menu</strong> (not a value-selector) — items dispatch and close, no <code>aria-selected</code>. Trigger uses <code>aria-haspopup="true"</code> + <code>aria-expanded</code>; dropdown is <code>role="menu"</code>, items are <code>role="menuitem"</code>. Click toggles; outside-click closes; Escape closes and returns focus to the trigger. ArrowUp/Down move focus through enabled items and <strong>clamp at the ends</strong> (do not wrap — matches <a href="#comp-form-controls">comb-dropdown</a> behavior; one keyboard model for all popup-style dropdowns). Home/End jump to first/last enabled item. The navy fill is the site's shared "primary action / selected" treatment (same color family as <a href="#comp-candidate-header">.committees-link</a> and <a href="#comp-button-group">.button-group-btn.active</a>) but kept as its own identity class — different sizing (40px height, off the 8px scale by design) and a different interaction model. The dropdown's <code>box-shadow:0 0 4px rgba(0,0,0,0.2)</code> is intentionally distinct from <code>.typeahead-dropdown</code>'s (<code>0 0 8px rgba(26,21,16,0.2)</code>) for now. <strong>showText:false</strong> drops the MENU text segment to icon-only — used at mobile breakpoint by callers (the breakpoint switch itself is the caller's concern). The component is mounted on candidate.html + committee.html profile headers in T-menu-btn-profile-header. Disabled menu-item state uses <code>aria-disabled="true"</code> (not the native <code>disabled</code> attribute) so the item stays in the DOM for visual consistency — color flips to <code>--text</code> at 50% opacity, parity with <a href="#comp-form-controls">.form-input:disabled</a>.</div>
       </div>
 
       <!-- 7. Health banner (interactive) -->
@@ -769,7 +851,7 @@
           <span class="ds-component-name">Form Controls</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.form-input · .form-select · .form-search-btn (sr-only) — base. States: :focus (accent border), :disabled (opacity 0.45). Variants: .cycle-select · .search-field · .search-field-icon · .search-combo · .search-combo .form-input · .combo-wrap · .combo-trigger · .state-combo</div>
+        <div class="ds-component-classes">.form-input · .form-select · .form-search-btn (sr-only) — base. States: :focus (accent border), :disabled (opacity 0.50). Variants: .cycle-select · .search-field · .search-field-icon · .search-combo · .search-combo .form-input · .combo-wrap · .combo-trigger · .state-combo</div>
         <div class="ds-component-demo">
           <div style="display:flex;flex-direction:column;gap:1.5rem">
 
@@ -1748,10 +1830,23 @@
           <span class="ds-component-name">Modal</span>
           <span class="ds-status candidate-only">candidate-only</span>
         </div>
-        <div class="ds-component-classes">.modal-overlay · .modal-panel · .modal-header · .modal-title · .modal-close · .modal-tabs · .modal-tab-btn · .modal-tab-btn.active · .modal-body · .committees-link (trigger)</div>
+        <div class="ds-component-classes">.modal-overlay · .modal-panel · .modal-header · .modal-title · .modal-close · .modal-tabs · .modal-tab-btn · .modal-tab-btn.active · .modal-body · .committees-link (trigger) — the committees variant (tabs-equipped). Width <code>min(680px,92vw)</code>. For a short-copy info modal, see <a href="#comp-info-modal">comp-info-modal</a>.</div>
         <div class="ds-component-demo">
           <button class="committees-link" id="ds-modal-trigger">Committees (4) →</button>
         </div>
+      </div>
+
+      <!-- Info modal — short-copy variant of the modal -->
+      <div class="ds-component" id="comp-info-modal" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Info Modal</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">Reuses the modal shell (<a href="#comp-modal">.modal-overlay · .modal-panel · .modal-header · .modal-title · .modal-close · .modal-body</a>) plus the <code>.modal-panel--narrow</code> width modifier (<code>min(440px,92vw)</code>) and <code>.modal-prose</code> for the body paragraph. No <code>.modal-tabs</code>. Built via <code>openInfoModal()</code> / <code>closeInfoModal()</code> in utils.js — singleton, lazy-injected on first call.</div>
+        <div class="ds-component-demo">
+          <button type="button" class="committees-link" id="ds-info-modal-trigger">Open info modal →</button>
+        </div>
+        <div class="ds-component-notes">A stripped-back modal for short prose copy — currently the teaser surface for the Compare / Follow menu-btn items (wired in T-menu-btn-profile-header). The <code>.modal-panel--narrow</code> width is right-sized for a single editorial paragraph; the committees modal stays at the 680px default for its longer tabbed content. Mechanics are deliberately minimal: overlay scrim, Escape, outside-click, and close button — no focus trap, no scroll lock (those are explicitly out of scope for this variant). Body copy uses <code>.modal-prose</code> (Plex Serif 0.875rem) — the editorial register that matches <a href="#comp-banner">.banner-desc</a> and the race-context line.</div>
       </div>
 
     </section><!-- /components -->
@@ -1862,6 +1957,31 @@
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') document.getElementById('ds-modal-demo').style.display = 'none';
   });
+
+  // Menu-btn demos (T-menu-btn) — items dispatch nowhere; this is purely for
+  // exercising the interaction shape in design-system.html.
+  var demoItems = [
+    { id: 'profile',    label: 'Profile',     icon: 'trending_flat',  onClick: function() {} },
+    { id: 'race',       label: 'Race (2024)', icon: 'trending_flat',  href:    '#' },
+    { id: 'committees', label: 'Committees',  icon: 'expand_content', onClick: function() {} },
+    { id: 'compare',    label: 'Compare',     icon: 'compare_arrows', onClick: openInfoModal },
+    { id: 'follow',     label: 'Follow',      icon: 'rss_feed',       onClick: openInfoModal }
+  ];
+  initMenuButton({
+    hostEl:    document.getElementById('ds-menu-btn-demo-a'),
+    items:     demoItems,
+    showText:  true,
+    ariaLabel: 'Menu'
+  });
+  initMenuButton({
+    hostEl:    document.getElementById('ds-menu-btn-demo-b'),
+    items:     demoItems,
+    showText:  false,
+    ariaLabel: 'Open profile menu'
+  });
+
+  // Info modal demo trigger
+  document.getElementById('ds-info-modal-trigger').addEventListener('click', openInfoModal);
 
   // Amplitude pageview
   amplitude.track('Page Viewed', { page: 'design-system' });

@@ -201,6 +201,26 @@ function formatRaceLabelLong(office, state, district) {
   return 'US House: ' + stateName + '\u2019s ' + toOrdinal(district) + ' District';
 }
 
+// Build a /race URL. Two cases that the prior inline construction
+// (candidate.html ~1824) got wrong are encoded here:
+//   - Presidential: state must be 'US' (race.html otherwise reports
+//     "No race specified" with an empty state param)
+//   - At-large House (district === '00'): district MUST be sent
+//     explicitly \u2014 race.html's /elections/ call 422s when it's omitted
+//     for a House race
+function raceHref(office, state, district, year) {
+  if (office === 'P') {
+    return '/race?state=US&office=P&year=' + year;
+  }
+  var url = '/race?state=' + encodeURIComponent(state || '')
+          + '&office='   + encodeURIComponent(office || '')
+          + '&year='     + year;
+  if (office === 'H') {
+    url += '&district=' + (district || '00');
+  }
+  return url;
+}
+
 // ── Committee utilities ──────────────────────────────────────────────────────
 
 function filingFrequencyLabel(code) {
@@ -370,6 +390,30 @@ function purposeBucket(desc) {
     }
   }
   return 'Other';
+}
+
+// ── Inline-SVG icons (Material Symbols Outlined, weight 400) ─────────────────
+// Five glyphs used by the menu-btn component. Paths copied verbatim from
+// @material-symbols/svg-400/outlined/{name}.svg (Apache 2.0). 960×960 negative-Y
+// viewBox is Google's standard for this family. Site convention is inline SVG
+// for every icon (search button, hamburger, cycle-back chevron); no icon font
+// is loaded and none is added by this helper.
+var ICON_PATHS = {
+  more_horiz:     'M207.86-432Q188-432 174-446.14t-14-34Q160-500 174.14-514t34-14Q228-528 242-513.86t14 34Q256-460 241.86-446t-34 14Zm272 0Q460-432 446-446.14t-14-34Q432-500 446.14-514t34-14Q500-528 514-513.86t14 34Q528-460 513.86-446t-34 14Zm272 0Q732-432 718-446.14t-14-34Q704-500 718.14-514t34-14Q772-528 786-513.86t14 34Q800-460 785.86-446t-34 14Z',
+  trending_flat:  'm702-301-43-42 106-106H120v-60h646L660-615l42-42 178 178-178 178Z',
+  expand_content: 'M200-200v-240h60v180h180v60H200Zm500-320v-180H520v-60h240v240h-60Z',
+  compare_arrows: 'm317-160-42-42 121-121H80v-60h316L275-504l42-42 193 193-193 193Zm326-254L450-607l193-193 42 42-121 121h316v60H564l121 121-42 42Z',
+  rss_feed:       'M142-142.04q-22-22.05-22-53Q120-226 142.04-248q22.05-22 53-22Q226-270 248-247.96q22 22.05 22 53Q270-164 247.96-142q-22.05 22-53 22Q164-120 142-142.04ZM710-120q0-123-46-229.5T537-537q-81-81-187.58-127Q242.85-710 120-710v-90q142 0 265 53t216 146q93 93 146 216t53 265h-90Zm-258 0q0-70-25.8-131.48Q400.4-312.96 355-360q-45-47-105.03-73.5Q189.95-460 120-460v-90q89 0 165.5 33.5t133.64 92.42q57.15 58.93 90 137Q542-209 542-120h-90Z'
+};
+
+// Return inline SVG markup for a named glyph. Returns empty string + warns
+// for unknown names so an item render never throws on a typo.
+function iconSvg(name) {
+  var path = ICON_PATHS[name];
+  if (!path) { try { console.warn('iconSvg: unknown glyph ' + name); } catch (e) {} return ''; }
+  return '<svg class="icon-svg icon-' + name + '" aria-hidden="true" focusable="false" '
+       + 'width="20" height="20" viewBox="0 -960 960 960" fill="currentColor">'
+       + '<path d="' + path + '"/></svg>';
 }
 
 // ── initComboDropdown ────────────────────────────────────────────────────────
@@ -1134,4 +1178,288 @@ function initSearchPanel(config) {
   }
 
   return { query: query, clear: clear, destroy: destroy };
+}
+
+// ── initMenuButton ───────────────────────────────────────────────────────────
+// Action menu: a navy split button (MENU text + more_horiz icon) that toggles a
+// dropdown of links/actions. Used in profile-page headers (candidate.html,
+// committee.html) starting in T-menu-btn-profile-header.
+//
+// Not a value-selector — does NOT use aria-selected / aria-activedescendant.
+// role="menu" on the dropdown, role="menuitem" on items. ArrowUp/Down CLAMP at
+// the ends (do not wrap — matches initComboDropdown). Escape closes and returns
+// focus to the trigger. Click outside closes (lifted from initComboDropdown).
+//
+// The factory owns the markup: pass an empty container as hostEl; factory
+// injects the trigger button and the dropdown into it. The site call site
+// stays a single <div class="menu-btn-wrap" id="…"></div>.
+//
+// config:
+//   hostEl     — empty container element (gets .menu-btn-wrap class)
+//   items      — array of item descriptors (see below)
+//   showText   — bool, default true; false = icon-only variant (mobile)
+//   ariaLabel  — string; aria-label on the trigger button (required when
+//                showText:false, recommended otherwise to override the default
+//                'Menu' reading)
+//   onOpen     — optional () => void; fires after the dropdown opens
+//   onClose    — optional () => void; fires after the dropdown closes
+//
+// Item descriptor:
+//   { id, label, icon, disabled?, href?, onClick? }
+//   Exactly one of href / onClick. href items render as <a>, action items as
+//   <button>. Disabled items render as <button aria-disabled="true"> regardless
+//   (a disabled <a> has no semantic equivalent).
+//
+// Returns: { open, close, isOpen, updateItem, destroy }
+//   updateItem(id, patch) — patch a subset of { disabled, label, href, onClick,
+//     icon }. The single item's DOM node is rebuilt in place; other items and
+//     focus state are untouched.
+//   destroy() — removes the document-level outside-click listener and clears
+//     hostEl. Required for test cleanup so listeners don't leak across tests.
+function initMenuButton(config) {
+  var hostEl    = config.hostEl;
+  var items     = (config.items || []).slice();   // shallow clone — patches mutate per-item state
+  var showText  = config.showText !== false;
+  var ariaLabel = config.ariaLabel || 'Menu';
+  var onOpen    = config.onOpen;
+  var onClose   = config.onClose;
+
+  hostEl.innerHTML = '';
+  hostEl.classList.add('menu-btn-wrap');
+
+  // ── Trigger ──────────────────────────────────────────────────────────
+  var triggerEl = document.createElement('button');
+  triggerEl.type = 'button';
+  triggerEl.className = 'menu-btn';
+  triggerEl.setAttribute('aria-haspopup', 'true');
+  triggerEl.setAttribute('aria-expanded', 'false');
+  triggerEl.setAttribute('aria-label', ariaLabel);
+  if (showText) {
+    triggerEl.innerHTML =
+      '<span class="menu-btn-text">Menu</span>' +
+      '<span class="menu-btn-icon">' + iconSvg('more_horiz') + '</span>';
+  } else {
+    triggerEl.innerHTML = '<span class="menu-btn-icon">' + iconSvg('more_horiz') + '</span>';
+  }
+
+  // ── Dropdown ─────────────────────────────────────────────────────────
+  var dropdownEl = document.createElement('div');
+  dropdownEl.className = 'menu-btn-dropdown';
+  dropdownEl.setAttribute('role', 'menu');
+
+  // Item DOM nodes keyed by id; rebuilt in-place by updateItem.
+  var itemNodes = {};
+
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  function buildItemNode(item) {
+    var isLink = !!item.href && !item.disabled;
+    var el = document.createElement(isLink ? 'a' : 'button');
+    if (isLink) {
+      el.href = item.href;
+    } else {
+      el.type = 'button';
+    }
+    el.className = 'menu-item';
+    el.setAttribute('role', 'menuitem');
+    el.dataset.itemId = item.id;
+    el.tabIndex = -1;   // roving focus: arrow keys call .focus() directly
+    if (item.disabled) {
+      el.setAttribute('aria-disabled', 'true');
+    }
+    el.innerHTML =
+      '<span class="menu-item-label">' + escHtml(item.label) + '</span>' +
+      '<span class="menu-item-icon">'  + iconSvg(item.icon)  + '</span>';
+
+    if (item.disabled) {
+      // Swallow clicks on disabled items — preventDefault keeps an
+      // accidentally-disabled <a> from navigating.
+      el.addEventListener('click', function(e) { e.preventDefault(); });
+    } else if (isLink) {
+      // Links navigate naturally; close menu on the same tick so a same-page
+      // link doesn't leave the dropdown open.
+      el.addEventListener('click', function() { close(); });
+    } else if (typeof item.onClick === 'function') {
+      el.addEventListener('click', function(e) {
+        item.onClick.call(el, e);
+        close();
+      });
+    }
+    return el;
+  }
+
+  function renderItems() {
+    dropdownEl.innerHTML = '';
+    itemNodes = {};
+    items.forEach(function(item) {
+      var node = buildItemNode(item);
+      dropdownEl.appendChild(node);
+      itemNodes[item.id] = node;
+    });
+  }
+
+  function getEnabledItemNodes() {
+    return items.filter(function(i) { return !i.disabled; })
+                .map(function(i)    { return itemNodes[i.id]; });
+  }
+
+  // CLAMP behavior (Q4): at the ends, focus stays put — do not wrap.
+  function focusItemByDelta(delta) {
+    var enabled = getEnabledItemNodes();
+    if (!enabled.length) return;
+    var idx = enabled.indexOf(document.activeElement);
+    var target;
+    if (idx === -1) {
+      target = delta > 0 ? 0 : enabled.length - 1;
+    } else {
+      target = idx + delta;
+      if (target < 0) target = 0;
+      if (target >= enabled.length) target = enabled.length - 1;
+    }
+    enabled[target].focus();
+  }
+
+  // ── State ────────────────────────────────────────────────────────────
+  function open() {
+    if (dropdownEl.classList.contains('open')) return;
+    dropdownEl.classList.add('open');
+    triggerEl.setAttribute('aria-expanded', 'true');
+    var enabled = getEnabledItemNodes();
+    if (enabled.length) enabled[0].focus();
+    if (typeof onOpen === 'function') onOpen();
+  }
+
+  function close() {
+    if (!dropdownEl.classList.contains('open')) return;
+    dropdownEl.classList.remove('open');
+    triggerEl.setAttribute('aria-expanded', 'false');
+    if (typeof onClose === 'function') onClose();
+  }
+
+  function isOpen() { return dropdownEl.classList.contains('open'); }
+
+  // ── Trigger interaction ──────────────────────────────────────────────
+  triggerEl.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (isOpen()) { close(); triggerEl.focus(); } else { open(); }
+  });
+
+  triggerEl.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isOpen()) open();
+      else focusItemByDelta(e.key === 'ArrowDown' ? 1 : -1);
+    }
+    // Enter / Space on a button trigger fires click via the browser default.
+  });
+
+  // ── Dropdown interaction ─────────────────────────────────────────────
+  dropdownEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+      triggerEl.focus();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusItemByDelta(1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusItemByDelta(-1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      var enabledH = getEnabledItemNodes();
+      if (enabledH.length) enabledH[0].focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      var enabledE = getEnabledItemNodes();
+      if (enabledE.length) enabledE[enabledE.length - 1].focus();
+    }
+    // Enter / Space on a focused menuitem fires click via browser default.
+  });
+
+  // Outside-click closes — lifted from initComboDropdown:473–476 pattern.
+  function outsideClickHandler(e) {
+    if (!isOpen()) return;
+    if (!dropdownEl.contains(e.target) && !triggerEl.contains(e.target)) close();
+  }
+  document.addEventListener('click', outsideClickHandler);
+
+  // ── Initial render ───────────────────────────────────────────────────
+  renderItems();
+  hostEl.appendChild(triggerEl);
+  hostEl.appendChild(dropdownEl);
+
+  // ── Public API ───────────────────────────────────────────────────────
+  return {
+    open:   function() { open(); },
+    close:  function() { close(); },
+    isOpen: isOpen,
+    updateItem: function(id, patch) {
+      var item = items.find(function(i) { return i.id === id; });
+      if (!item || !patch) return;
+      Object.keys(patch).forEach(function(k) { item[k] = patch[k]; });
+      var oldNode = itemNodes[id];
+      if (!oldNode || !oldNode.parentNode) return;
+      var newNode = buildItemNode(item);
+      oldNode.parentNode.replaceChild(newNode, oldNode);
+      itemNodes[id] = newNode;
+    },
+    destroy: function() {
+      document.removeEventListener('click', outsideClickHandler);
+      hostEl.innerHTML = '';
+      hostEl.classList.remove('menu-btn-wrap');
+    }
+  };
+}
+
+// ── Info modal — singleton, lazy-injected on first open ──────────────────────
+// One modal DOM instance for the whole app, injected on first openInfoModal()
+// call. Used as the teaser for the Compare / Follow menu-btn items (wired in
+// T-menu-btn-profile-header). Copy is static.
+//
+// Mechanics deliberately minimal: overlay scrim + Escape + outside-click +
+// X button. NO focus trap, NO scroll lock — explicitly out of scope. Does NOT
+// touch the committees modal.
+var INFO_MODAL_HTML =
+  '<div id="info-modal" class="modal-overlay" style="display:none">' +
+    '<div class="modal-panel modal-panel--narrow">' +
+      '<div class="modal-header">' +
+        '<div class="modal-title">Wouldn’t that be nice...</div>' +
+        '<button type="button" class="modal-close" id="info-modal-close" aria-label="Close">✕</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        '<p class="modal-prose">FECLedger is an experimental build. ‘Compare’ and ‘Follow’ features are the future of this app. We’ll let you know when they’re available!</p>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+function injectInfoModal() {
+  if (document.getElementById('info-modal')) return;
+  document.body.insertAdjacentHTML('beforeend', INFO_MODAL_HTML);
+  var modalEl = document.getElementById('info-modal');
+  modalEl.addEventListener('click', function(e) {
+    if (e.target === modalEl) closeInfoModal();   // outside-click closes
+  });
+  document.getElementById('info-modal-close').addEventListener('click', closeInfoModal);
+  // Escape listener installed once at injection; guarded by visibility check
+  // so it's a no-op when the modal is closed.
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    var el = document.getElementById('info-modal');
+    if (el && el.style.display !== 'none') closeInfoModal();
+  });
+}
+
+function openInfoModal() {
+  injectInfoModal();
+  document.getElementById('info-modal').style.display = 'flex';
+}
+
+function closeInfoModal() {
+  var el = document.getElementById('info-modal');
+  if (el) el.style.display = 'none';
 }

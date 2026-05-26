@@ -781,6 +781,269 @@ test.describe('design-system.html', () => {
   });
 });
 
+// ── T-menu-btn ────────────────────────────────────────────────────────────────
+// Tests for the component + helpers shipped in T-menu-btn. The design-system.html
+// page hosts live demos (Demo A: showText:true; Demo B: showText:false) wired
+// to initMenuButton in its inline script — that's the surface these tests
+// exercise. No FEC API mocking needed; the page makes no FEC calls.
+
+test.describe('T-menu-btn — design-system demo (showText:true)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await page.goto('/design-system.html');
+  });
+
+  test('trigger renders + dropdown closed initially', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-a');
+    await expect(wrap).toBeVisible();
+    await expect(wrap.locator('.menu-btn')).toBeVisible();
+    const expanded = await wrap.locator('.menu-btn').getAttribute('aria-expanded');
+    expect(expanded).toBe('false');
+    await expect(wrap.locator('.menu-btn-dropdown.open')).toHaveCount(0);
+  });
+
+  test('click trigger opens the dropdown', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-a');
+    await wrap.locator('.menu-btn').click();
+    await expect(wrap.locator('.menu-btn-dropdown.open')).toHaveCount(1);
+    const expanded = await wrap.locator('.menu-btn').getAttribute('aria-expanded');
+    expect(expanded).toBe('true');
+  });
+
+  test('outside-click closes the dropdown', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-a');
+    await wrap.locator('.menu-btn').click();
+    await expect(wrap.locator('.menu-btn-dropdown.open')).toHaveCount(1);
+    // Click far away from both the trigger and any other interactive demo.
+    await page.locator('h2.ds-section-title').first().click();
+    await expect(wrap.locator('.menu-btn-dropdown.open')).toHaveCount(0);
+  });
+
+  test('Escape closes and returns focus to the trigger', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-a');
+    await wrap.locator('.menu-btn').click();
+    await expect(wrap.locator('.menu-btn-dropdown.open')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(wrap.locator('.menu-btn-dropdown.open')).toHaveCount(0);
+    const focusedOnTrigger = await page.evaluate(() =>
+      document.activeElement === document.querySelector('#ds-menu-btn-demo-a .menu-btn'));
+    expect(focusedOnTrigger).toBe(true);
+  });
+
+  test('ArrowDown moves focus to next item; first item gets focus on open', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-a');
+    await wrap.locator('.menu-btn').click();
+    const firstId = await page.evaluate(() =>
+      document.activeElement && document.activeElement.dataset
+        ? document.activeElement.dataset.itemId : null);
+    expect(firstId).toBe('profile');
+    await page.keyboard.press('ArrowDown');
+    const secondId = await page.evaluate(() => document.activeElement.dataset.itemId);
+    expect(secondId).toBe('race');
+  });
+
+  test('ArrowDown CLAMPS at last item (does NOT wrap)', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-a');
+    await wrap.locator('.menu-btn').click();
+    await page.keyboard.press('End');
+    const lastId = await page.evaluate(() => document.activeElement.dataset.itemId);
+    expect(lastId).toBe('follow');
+    // ArrowDown on the last enabled item keeps focus on the last item — no wrap.
+    await page.keyboard.press('ArrowDown');
+    const stillLast = await page.evaluate(() => document.activeElement.dataset.itemId);
+    expect(stillLast).toBe('follow');
+  });
+
+  test('ArrowUp CLAMPS at first item (does NOT wrap)', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-a');
+    await wrap.locator('.menu-btn').click();
+    // First item is focused on open. ArrowUp on the first enabled item keeps focus on the first — no wrap.
+    const firstId = await page.evaluate(() => document.activeElement.dataset.itemId);
+    expect(firstId).toBe('profile');
+    await page.keyboard.press('ArrowUp');
+    const stillFirst = await page.evaluate(() => document.activeElement.dataset.itemId);
+    expect(stillFirst).toBe('profile');
+  });
+
+  test('Home / End jump to first / last enabled item', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-a');
+    await wrap.locator('.menu-btn').click();
+    await page.keyboard.press('End');
+    expect(await page.evaluate(() => document.activeElement.dataset.itemId)).toBe('follow');
+    await page.keyboard.press('Home');
+    expect(await page.evaluate(() => document.activeElement.dataset.itemId)).toBe('profile');
+  });
+
+  test('disabled items are skipped during arrow nav; updateItem flips state in place', async ({ page }) => {
+    // Build a transient menu in the page to assert disabled-skip + updateItem
+    // contract without touching the demo's static items.
+    const result = await page.evaluate(() => {
+      const host = document.createElement('div');
+      host.id = 'tmp-menu-btn-host';
+      document.body.appendChild(host);
+      const ctrl = initMenuButton({
+        hostEl: host,
+        items: [
+          { id: 'a', label: 'A', icon: 'trending_flat', onClick: function() {} },
+          { id: 'b', label: 'B', icon: 'trending_flat', disabled: true, onClick: function() {} },
+          { id: 'c', label: 'C', icon: 'trending_flat', onClick: function() {} }
+        ]
+      });
+      ctrl.open();
+      // First focused = 'a'
+      const focusBefore = document.activeElement.dataset.itemId;
+      // ArrowDown should skip 'b' (disabled) and land on 'c'
+      document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+      const focusAfterSkip = document.activeElement.dataset.itemId;
+
+      // updateItem flips 'b' to enabled
+      const bBefore = host.querySelector('[data-item-id="b"]').getAttribute('aria-disabled');
+      ctrl.updateItem('b', { disabled: false });
+      const bAfter  = host.querySelector('[data-item-id="b"]').getAttribute('aria-disabled');
+
+      ctrl.destroy();
+      host.remove();
+      return { focusBefore, focusAfterSkip, bBefore, bAfter };
+    });
+    expect(result.focusBefore).toBe('a');
+    expect(result.focusAfterSkip).toBe('c'); // 'b' skipped because disabled
+    expect(result.bBefore).toBe('true');
+    expect(result.bAfter).toBeNull();
+  });
+
+  test('destroy() removes outside-click listener', async ({ page }) => {
+    // After destroy, opening a sibling menu and clicking elsewhere should not
+    // re-trigger the destroyed menu's outside-click handler (the destroyed
+    // menu's DOM is gone, so this is mostly a sanity check that destroy clears
+    // hostEl and is idempotent).
+    const result = await page.evaluate(() => {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const ctrl = initMenuButton({ hostEl: host, items: [{ id: 'x', label: 'X', icon: 'trending_flat', onClick: function() {} }] });
+      ctrl.open();
+      ctrl.destroy();
+      const hasWrap   = host.classList.contains('menu-btn-wrap');
+      const hasMarkup = !!host.querySelector('.menu-btn');
+      host.remove();
+      return { hasWrap, hasMarkup };
+    });
+    expect(result.hasWrap).toBe(false);
+    expect(result.hasMarkup).toBe(false);
+  });
+});
+
+test.describe('T-menu-btn — design-system demo (showText:false)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await page.goto('/design-system.html');
+  });
+
+  test('icon-only variant has no .menu-btn-text', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-b');
+    await expect(wrap.locator('.menu-btn-text')).toHaveCount(0);
+    await expect(wrap.locator('.menu-btn-icon')).toHaveCount(1);
+  });
+
+  test('icon-only variant carries the configured aria-label', async ({ page }) => {
+    const label = await page.locator('#ds-menu-btn-demo-b .menu-btn').getAttribute('aria-label');
+    expect(label).toBe('Open profile menu');
+  });
+});
+
+test.describe('raceHref helper', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await page.goto('/design-system.html');
+  });
+
+  test('House non-at-large includes district', async ({ page }) => {
+    const url = await page.evaluate(() => raceHref('H', 'WA', '03', 2024));
+    expect(url).toBe('/race?state=WA&office=H&year=2024&district=03');
+  });
+
+  test('House at-large (district 00) sends district=00 explicitly', async ({ page }) => {
+    const url = await page.evaluate(() => raceHref('H', 'AK', '00', 2024));
+    expect(url).toBe('/race?state=AK&office=H&year=2024&district=00');
+  });
+
+  test('Senate omits district', async ({ page }) => {
+    const url = await page.evaluate(() => raceHref('S', 'NY', '', 2024));
+    expect(url).toBe('/race?state=NY&office=S&year=2024');
+  });
+
+  test('Presidential uses state=US', async ({ page }) => {
+    const url = await page.evaluate(() => raceHref('P', '', '', 2024));
+    expect(url).toBe('/race?state=US&office=P&year=2024');
+  });
+});
+
+test.describe('iconSvg helper', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await page.goto('/design-system.html');
+  });
+
+  for (const name of ['more_horiz', 'trending_flat', 'expand_content', 'compare_arrows', 'rss_feed']) {
+    test(`iconSvg('${name}') returns 20px SVG markup`, async ({ page }) => {
+      const html = await page.evaluate((n) => iconSvg(n), name);
+      expect(html).toContain('<svg');
+      expect(html).toContain('width="20"');
+      expect(html).toContain('viewBox="0 -960 960 960"');
+      expect(html).toContain('<path');
+      expect(html.length).toBeGreaterThan(50);
+    });
+  }
+
+  test('iconSvg() with an unknown glyph returns empty string', async ({ page }) => {
+    const html = await page.evaluate(() => iconSvg('not_a_real_glyph'));
+    expect(html).toBe('');
+  });
+});
+
+test.describe('info modal', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await page.goto('/design-system.html');
+  });
+
+  test('not in DOM until openInfoModal is called (lazy injection)', async ({ page }) => {
+    const count = await page.locator('#info-modal').count();
+    expect(count).toBe(0);
+  });
+
+  test('openInfoModal injects and shows the modal with the expected copy', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    const modal = page.locator('#info-modal');
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('.modal-title')).toContainText('Wouldn');
+    await expect(modal.locator('.modal-body .modal-prose')).toContainText('experimental build');
+  });
+
+  test('uses the .modal-panel--narrow width modifier', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    await expect(page.locator('#info-modal .modal-panel--narrow')).toHaveCount(1);
+  });
+
+  test('close button closes the modal', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    await page.locator('#info-modal-close').click();
+    await expect(page.locator('#info-modal')).toBeHidden();
+  });
+
+  test('Escape closes the modal', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#info-modal')).toBeHidden();
+  });
+
+  test('outside-click on the overlay closes the modal', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    // Click the overlay backdrop near the top-left corner — well outside the panel.
+    await page.locator('#info-modal').click({ position: { x: 5, y: 5 } });
+    await expect(page.locator('#info-modal')).toBeHidden();
+  });
+});
+
 // ── index.html ────────────────────────────────────────────────────────────────
 
 test.describe('index.html', () => {

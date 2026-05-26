@@ -1821,11 +1821,11 @@ async function loadCycle(cycle) {
       var raceCtx = document.getElementById('race-context');
       if (!raceCtx) return;
 
-      var distParam = (CAND_OFFICE === 'H' && CAND_DIST && CAND_DIST !== '00')
-        ? '&district=' + CAND_DIST : '';
-      var raceHref = '/race?state=' + encodeURIComponent(CAND_STATE)
-        + distParam + '&office=' + encodeURIComponent(CAND_OFFICE) + '&year=' + cycle;
-      var viewRaceLink = '<a href="' + raceHref + '">View race \u2192</a>';
+      // raceHref() (utils.js) handles the two edge cases the prior inline
+      // construction got wrong: Presidential \u2192 state=US (not empty), at-large
+      // House (district '00') \u2192 district sent explicitly (race.html 422s if
+      // it's omitted for a House race).
+      var viewRaceLink = '<a href="' + raceHref(CAND_OFFICE, CAND_STATE, CAND_DIST, cycle) + '">View race \u2192</a>';
 
       var labelHtml = '<span class="race-context-line-label">' + formatRaceLabelLong(CAND_OFFICE, CAND_STATE, CAND_DIST) + '</span>';
 

@@ -111,6 +111,81 @@ test.describe('candidate.html — profile header', () => {
     await expect(page.locator('#profile-header-sentinel')).toBeAttached();
   });
 
+  // ── T-menu-btn — race-context link repoint ─────────────────────────────────
+  // The race-context-bar "View race →" link previously built its href inline
+  // with a broken construction (Presidential → empty state=, at-large House →
+  // missing district). Now uses raceHref() which fixes both cases.
+
+  test('race-context "View race →" href is correct for a Presidential candidate (state=US)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Override only the entity endpoint to return a Presidential profile.
+    // Regex matches the bare /candidate/{id}/ entity URL (followed by '?' from
+    // apiFetch's querystring), not the /totals/ or /history/ sub-paths.
+    await page.route(/\/api\/fec\/candidate\/H2WA03217\/\?/, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [{
+            candidate_id: 'H2WA03217',
+            name: 'GLUESENKAMP PEREZ, MARIE',
+            party: 'DEM',
+            party_full: 'DEMOCRATIC PARTY',
+            office: 'P',
+            office_full: 'President',
+            state: '',
+            district: '',
+            election_years: [2024],
+            incumbent_challenge: 'C',
+            incumbent_challenge_full: 'Challenger',
+            first_file_date: '2022-02-22',
+          }],
+          pagination: { count: 1, pages: 1, per_page: 20, page: 1 },
+        }),
+      });
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    // Wait for the race-context link to be populated by loadCycle
+    await page.waitForSelector('#race-context .race-context-line a', { timeout: 12000 });
+    const href = await page.locator('#race-context .race-context-line a').getAttribute('href');
+    expect(href).toBe('/race?state=US&office=P&year=2024');
+  });
+
+  test('race-context "View race →" href is correct for an at-large House candidate (district=00)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route(/\/api\/fec\/candidate\/H2WA03217\/\?/, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [{
+            candidate_id: 'H2WA03217',
+            name: 'GLUESENKAMP PEREZ, MARIE',
+            party: 'DEM',
+            party_full: 'DEMOCRATIC PARTY',
+            office: 'H',
+            office_full: 'House',
+            state: 'AK',
+            district: '00',          // at-large
+            election_years: [2024],
+            incumbent_challenge: 'C',
+            incumbent_challenge_full: 'Challenger',
+            first_file_date: '2022-02-22',
+          }],
+          pagination: { count: 1, pages: 1, per_page: 20, page: 1 },
+        }),
+      });
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.waitForSelector('#race-context .race-context-line a', { timeout: 12000 });
+    const href = await page.locator('#race-context .race-context-line a').getAttribute('href');
+    expect(href).toBe('/race?state=AK&office=H&year=2024&district=00');
+  });
+
   test('Cycle card with back chevron renders on cycle-detail view (T14.5)', async ({ page }) => {
     await setup(page); // setup uses #2024#summary URL — detail view
     await expect(page.locator('#summary-strip .stat-card-cycle')).toBeVisible();
