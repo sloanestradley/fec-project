@@ -576,7 +576,10 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .page-header { padding:var(--space-40) var(--page-gutter) var(--space-32); }
 .page-header-reveal { opacity:0; transition:opacity 0.4s ease; }
 .page-header-reveal.visible { opacity:1; }
-.profile-header-row { display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
+/* flex-wrap:nowrap so the menu-btn never breaks onto its own line below a
+   wrapped title. The title absorbs the squeeze (see .profile-header-row
+   .page-title below — flex:1; min-width:0 — text wraps internally). */
+.profile-header-row { display:flex; align-items:center; gap:var(--space-24); flex-wrap:nowrap; }
 .page-header > .meta-row { margin-top:var(--space-4); }
 .profile-content { padding:var(--space-32) var(--page-gutter); opacity:0; transition:opacity 0.3s ease; }
 .profile-content.visible { opacity:1; }
@@ -585,7 +588,18 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   font-size:clamp(2rem,5vw,4.5rem); font-weight:600; line-height:var(--lh-tight);
   letter-spacing:var(--ls-tight); text-transform:uppercase;
   color:var(--color-navy-950); }
-.profile-header-row .page-title { min-width:0; }
+/* Title is the flex-grow item inside the profile-header-row; min-width:0 lets
+   it shrink below its content size so long titles wrap internally rather than
+   forcing the menu-btn to a second line. */
+.profile-header-row .page-title { flex:1; min-width:0; }
+/* Menu-btn host positioning inside the profile-header-row.
+   T-menu-btn-profile-header-title-wrap-fix (2026-05-26) lifted these from
+   inline styles on each page's host element. margin-left:auto pushes the
+   menu-btn to the right edge; align-self:flex-start pins it to the TOP of the
+   row so it doesn't vertically center against a wrapped multi-line title;
+   flex-shrink:0 keeps it at its natural width. The host's `display:none`
+   stays inline because JS toggles it to 'block' on reveal. */
+.profile-header-row .menu-btn-wrap { margin-left:auto; align-self:flex-start; flex-shrink:0; }
 
 /* ── Sticky profile headers (candidate, committee, race) ─────────────────── */
 /* Full mode: sticky but position only engages when scrolled to threshold.
@@ -620,12 +634,20 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 /* T14.5 retired the profile-header back-affordance — the back chevron now lives
    inside the Cycle card in the stats-grid (see .stat-card-cycle / .cycle-back-btn
    above). The .detail-view header class also retired; it had no other consumer. */
-#profile-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; gap:0; }
+#profile-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; gap:var(--space-16); }
 #profile-header.compact .meta-row { display:none; }
 
 /* Committee compact: name only */
-#committee-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; }
+#committee-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; gap:var(--space-16); }
 #committee-header.compact .meta-row { display:none; }
+
+/* Menu-btn vertical alignment in compact — positive statement of what compact
+   wants (center), peer of the default-state align-self:flex-start declared on
+   .profile-header-row .menu-btn-wrap above. Default wants flex-start so a
+   wrapped multi-line title doesn't drag the menu-btn down; compact's title is
+   single-line ellipsis so center is the right alignment for the slim strip. */
+#profile-header.compact .menu-btn-wrap,
+#committee-header.compact .menu-btn-wrap { align-self:center; }
 
 /* Race compact: title only (no meta-row in race header) */
 
