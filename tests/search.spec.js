@@ -75,7 +75,7 @@ test.describe('search.html — live inline results', () => {
 
   test('2-character query fires no fetch and shows no error (FEC requires 3+ chars)', async ({ page }) => {
     // The FEC API rejects keyword queries < 3 chars; initSearchPanel must not
-    // fetch below MIN_QUERY_LENGTH. 2 chars stays bare — never #state-error.
+    // fetch below FEC_MIN_KEYWORD_LENGTH. 2 chars stays bare — never #state-error.
     await page.locator('#search-input').fill('ma');
     await page.waitForTimeout(500);
     await expect(page.locator('#state-results')).not.toBeVisible();

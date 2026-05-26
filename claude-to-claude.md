@@ -5724,3 +5724,48 @@ The other note: Ticket 2's plan called for a 2a/2b/2c commit split, and it didn'
 - The closing cold-read doc sweep for the whole search-overlay arc was deferred under context budget. Worth doing at the start of the Ticket 3 session — five commits of structural change (nav input retired, typeahead retired, overlay added) is exactly the drift profile the sweep is for.
 - The search-overlay arc's banked follow-ups remain open and un-scoped: (a) visually pairing Races/Feed with the search button in the nav; (b) making the overlay's search input more prominent. Both were explicitly deferred until the overlay landed — it has. Worth deciding whether either is worth a ticket.
 - The diagnose-before-fix pattern proved its value twice this session (the 3-char threshold fix; the 422 mis-attribution). Possibly worth a memory or a CLAUDE.md note formalizing "verify FEC API behavior with a curl/probe before fixing anything that looks like an API-contract bug."
+
+---
+2026-05-26
+
+## Process log draft
+
+# Closing out the arc — the last typeahead retires
+
+The search-overlay arc is done. With Ticket 3 shipped, /candidates and /committees join /search and the global nav in being typeahead-free: type three or more characters, hit Enter (or the icon), see results. Three tickets, one constant, no more live-typing typeaheads anywhere on the site.
+
+## Changelog
+- /candidates and /committees: the in-page filter-field typeahead is retired. Submit via Enter or the icon button only — no live as-you-type.
+- New shared `FEC_MIN_KEYWORD_LENGTH = 3` constant in `utils.js` — replaces a per-helper local constant. Both browse pages now consult the same named source for the FEC API's 3-char keyword minimum.
+- `doFetch` guards sub-3-char queries: anything shorter than 3 characters normalizes to browse mode rather than firing a request the FEC API would reject with 422. No error UI, no surprise — just "showing all," as if no query had been typed.
+- Final CSS sweep: eight dead inner classes retired (`.typeahead-group-label`, `.typeahead-row-left/-id/-right`, `.typeahead-status-dot` + compounds, `.typeahead-empty`, `.typeahead-loading`). The `.typeahead-dropdown` class is now combo-dropdown-only — it backs the state / office / party / cycle / type / year filters and nothing else.
+- `design-system.html` Typeahead Dropdown card revised to combo-dropdown-only; Status Dot card drops the `.typeahead-status-dot` variant.
+- Tests: eight typeahead describe-block tests retired, four enter-to-search tests added — the new ones include a regression-lock that captures every `/api/fec/` request and asserts none carries a `q=` value shorter than three characters. 565 → 561 (net −4).
+
+## Field notes
+The session ran into intermittent Bash classifier downtime, which separated the doc edits from the browser verification by a few hours. That separation turned out to be a useful pressure test of the Track 1 suite: by the time the dev server was back, structural-side correctness was already evidence-locked (561 green, including the no-console-errors check on every page), and the headless browser run was confirmation rather than discovery. For a pure-removal ticket with self-contained call sites, that order works fine.
+
+The session's second moment was the `.error-prompt` display-state follow-up — a minor observation that turned out to be standard wrapper-toggles-display architecture. Outer `#state-error` carries the inline `display:none`; inner `.error-prompt` is the styled card with browser-default block. A 30-second diagnosis, no code change. The diagnose-first cadence paid for itself again — the same shape as the 422 follow-up earlier in the arc.
+
+## Stack tags
+None new — `FEC_MIN_KEYWORD_LENGTH` is a constant rename, not a stack addition.
+
+## How Sloane steered the work
+
+### "Diagnose first, then decide" on the `.error-prompt` follow-up
+You explicitly framed the follow-up as diagnosis-led — "if the diagnosis takes longer than the fix would, that itself is a signal it's not worth a dedicated change." That framing kept me from reaching for a CSS edit before checking what was actually happening. The diagnosis showed it was standard wrapper-toggles pattern, not a stuck state, and the answer was "no change." A confirmed non-issue ended up being the correct outcome.
+
+### The non-negotiable on `?q=` pre-fill
+In the Ticket 3 prompt you'd flagged the `?q=mar` pre-fill as "the subtlest risk in this ticket" — the line that could get swept out mechanically alongside the typeahead deletion. That framing set the verification bar high enough that I checked it explicitly in the headless run, twice (`/candidates?q=mar` and `/committees?q=mar`), rather than relying on the existing search-mode tests alone. The line survived intact — but the way the prompt named the risk by file location and failure mode made sure I couldn't accidentally skip the check.
+
+### "Verify it in the browser and commit"
+After Track 1 went green at 561 and the doc edits were in, you held the verification step as a separate precondition for commit — not bundled into "tests pass." This is the UI-touching protocol working as intended: structural correctness and rendered correctness are different gates, and the second one needs a real browser. The headless run added value (it caught the `networkidle` timeout edge that no structural test would surface).
+
+### Through-line
+You treat verification as a load-bearing step, not a formality. Three times this arc — the 422 diagnosis, the `.error-prompt` follow-up, the browser check before push — the value came from holding that line.
+
+## What to bring to Claude Chat
+
+- The search-overlay arc is closed. Next call: Phase 4 (early signal / 48-24hr reports, AI insights, transaction-level search) or any pending architectural cleanup that's been queueing up? The `.typeahead-dropdown` → `.combo-dropdown` rename is banked — small enough to do anytime, worth a half-session?
+- Diagnose-before-fix cadence: this arc saw three "honest finding" outcomes (422 follow-up = bug not in initSearchPanel; .error-prompt = standard wrapper pattern; Ticket 3's `?q=` line = survived intact). Three for three on "the suspected fix wasn't the right move." Worth establishing as a named pattern, or is it already implicit enough that naming it would be overkill?
+- The Bash classifier intermittency: did the session's productivity actually hold up across the gap, or did the disconnected ordering (docs first, browser verification later) create any friction worth designing around?
