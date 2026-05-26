@@ -1254,6 +1254,12 @@ function initMenuButton(config) {
   var dropdownEl = document.createElement('div');
   dropdownEl.className = 'menu-btn-dropdown';
   dropdownEl.setAttribute('role', 'menu');
+  // tabindex=0 makes the dropdown container focusable so open() can focus it
+  // (instead of the first menuitem). Focus-on-container avoids Safari mobile's
+  // :focus-visible heuristic firing on the first item after a touch-tap-open,
+  // which previously painted the --accent-dim background and read as "current
+  // item." T-menu-btn-focus-on-open (2026-05-26).
+  dropdownEl.setAttribute('tabindex', '0');
 
   // Item DOM nodes keyed by id; rebuilt in-place by updateItem.
   var itemNodes = {};
@@ -1336,8 +1342,15 @@ function initMenuButton(config) {
     if (dropdownEl.classList.contains('open')) return;
     dropdownEl.classList.add('open');
     triggerEl.setAttribute('aria-expanded', 'true');
-    var enabled = getEnabledItemNodes();
-    if (enabled.length) enabled[0].focus();
+    // Focus the dropdown CONTAINER (not the first item) — T-menu-btn-focus-
+    // on-open (2026-05-26). Avoids Safari mobile's :focus-visible firing on
+    // the first item after a touch tap, which painted the --accent-dim
+    // background and read as "current item." First arrow-key press lands
+    // the user on item 0 (ArrowDown) or last item (ArrowUp) — handled in
+    // focusItemByDelta's idx===-1 branch. Keyboard trade: no focus
+    // indicator on any item until first arrow press; the menu opening is
+    // the feedback.
+    dropdownEl.focus();
     if (typeof onOpen === 'function') onOpen();
   }
 

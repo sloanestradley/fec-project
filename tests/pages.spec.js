@@ -830,21 +830,43 @@ test.describe('T-menu-btn — design-system demo (showText:true)', () => {
     expect(focusedOnTrigger).toBe(true);
   });
 
-  test('ArrowDown moves focus to next item; first item gets focus on open', async ({ page }) => {
+  test('on open, focus is on the dropdown container (not an item); first ArrowDown lands on item 0', async ({ page }) => {
     const wrap = page.locator('#ds-menu-btn-demo-a');
     await wrap.locator('.menu-btn').click();
-    const firstId = await page.evaluate(() =>
-      document.activeElement && document.activeElement.dataset
-        ? document.activeElement.dataset.itemId : null);
+    // T-menu-btn-focus-on-open: focus the container on open, not the first
+    // item. Avoids Safari mobile's :focus-visible firing on the first item
+    // after a touch tap.
+    const focusedOnContainer = await page.evaluate(() => {
+      return document.activeElement === document.querySelector('#ds-menu-btn-demo-a .menu-btn-dropdown');
+    });
+    expect(focusedOnContainer).toBe(true);
+    // First ArrowDown enters at item 0 (focusItemByDelta's idx===-1 branch).
+    await page.keyboard.press('ArrowDown');
+    const firstId = await page.evaluate(() => document.activeElement.dataset.itemId);
     expect(firstId).toBe('profile');
+    // Second ArrowDown moves to item 1.
     await page.keyboard.press('ArrowDown');
     const secondId = await page.evaluate(() => document.activeElement.dataset.itemId);
     expect(secondId).toBe('race');
   });
 
+  test('first ArrowUp from container enters at the last item', async ({ page }) => {
+    const wrap = page.locator('#ds-menu-btn-demo-a');
+    await wrap.locator('.menu-btn').click();
+    // From container-focus, ArrowUp enters at last item (idx===-1 branch in
+    // focusItemByDelta). This is the natural keyboard model when no item
+    // has focus yet — ArrowDown enters at top, ArrowUp enters at bottom.
+    await page.keyboard.press('ArrowUp');
+    const lastId = await page.evaluate(() => document.activeElement.dataset.itemId);
+    expect(lastId).toBe('follow');
+  });
+
   test('ArrowDown CLAMPS at last item (does NOT wrap)', async ({ page }) => {
     const wrap = page.locator('#ds-menu-btn-demo-a');
     await wrap.locator('.menu-btn').click();
+    // End jumps to last item from container-focus (Home/End paths in the
+    // dropdown listener focus first/last directly, independent of current
+    // focus position).
     await page.keyboard.press('End');
     const lastId = await page.evaluate(() => document.activeElement.dataset.itemId);
     expect(lastId).toBe('follow');
@@ -857,9 +879,11 @@ test.describe('T-menu-btn — design-system demo (showText:true)', () => {
   test('ArrowUp CLAMPS at first item (does NOT wrap)', async ({ page }) => {
     const wrap = page.locator('#ds-menu-btn-demo-a');
     await wrap.locator('.menu-btn').click();
-    // First item is focused on open. ArrowUp on the first enabled item keeps focus on the first — no wrap.
+    // Move to first item via Home (open lands on container, not item).
+    await page.keyboard.press('Home');
     const firstId = await page.evaluate(() => document.activeElement.dataset.itemId);
     expect(firstId).toBe('profile');
+    // ArrowUp on the first enabled item keeps focus on the first — no wrap.
     await page.keyboard.press('ArrowUp');
     const stillFirst = await page.evaluate(() => document.activeElement.dataset.itemId);
     expect(stillFirst).toBe('profile');
@@ -890,9 +914,14 @@ test.describe('T-menu-btn — design-system demo (showText:true)', () => {
         ]
       });
       ctrl.open();
-      // First focused = 'a'
-      const focusBefore = document.activeElement.dataset.itemId;
-      // ArrowDown should skip 'b' (disabled) and land on 'c'
+      // T-menu-btn-focus-on-open: open lands focus on the dropdown container.
+      const dropdownEl = host.querySelector('.menu-btn-dropdown');
+      const focusedOnContainer = document.activeElement === dropdownEl;
+      // First ArrowDown enters at first enabled item ('a' — 'b' is disabled
+      // but 'a' is the first item; getEnabledItemNodes skips disabled).
+      dropdownEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+      const focusAfterEntry = document.activeElement.dataset.itemId;
+      // Next ArrowDown skips 'b' (disabled) and lands on 'c'.
       document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
       const focusAfterSkip = document.activeElement.dataset.itemId;
 
@@ -903,9 +932,10 @@ test.describe('T-menu-btn — design-system demo (showText:true)', () => {
 
       ctrl.destroy();
       host.remove();
-      return { focusBefore, focusAfterSkip, bBefore, bAfter };
+      return { focusedOnContainer, focusAfterEntry, focusAfterSkip, bBefore, bAfter };
     });
-    expect(result.focusBefore).toBe('a');
+    expect(result.focusedOnContainer).toBe(true);
+    expect(result.focusAfterEntry).toBe('a');
     expect(result.focusAfterSkip).toBe('c'); // 'b' skipped because disabled
     expect(result.bBefore).toBe('true');
     expect(result.bAfter).toBeNull();
