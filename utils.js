@@ -1243,14 +1243,9 @@ function initMenuButton(config) {
   triggerEl.setAttribute('aria-haspopup', 'true');
   triggerEl.setAttribute('aria-expanded', 'false');
   triggerEl.setAttribute('aria-label', ariaLabel);
-  function escText(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
-      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
-    });
-  }
   function renderTriggerInner() {
     triggerEl.innerHTML = showText
-      ? '<span class="menu-btn-text">' + escText(text) + '</span><span class="menu-btn-icon">' + iconSvg('more_horiz') + '</span>'
+      ? '<span class="menu-btn-text">' + escHtml(text) + '</span><span class="menu-btn-icon">' + iconSvg('more_horiz') + '</span>'
       : '<span class="menu-btn-icon">' + iconSvg('more_horiz') + '</span>';
   }
   renderTriggerInner();
