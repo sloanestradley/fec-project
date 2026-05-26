@@ -183,6 +183,8 @@ Overlay live globally. Nav button everywhere. /search = inline results + current
 
 ## Phase 3 — Ticket: T-search-typeahead-retire
 
+**SHIPPED 2026-05-21.** One commit. /candidates + /committees are enter-to-search only — the in-page filter-field typeahead is retired (`#search-typeahead` div, `fetchTypeahead`/`renderTypeahead`/`closeTypeahead`, the debounced `input` listener, the click-outside listener, and the keydown `Escape` branch all removed). Shared `FEC_MIN_KEYWORD_LENGTH = 3` constant added to utils.js (replaces `initSearchPanel`'s local `MIN_QUERY_LENGTH`); both browse pages guard the top of `doFetch` so a sub-3-char `activeQ` normalizes to `''` → browse mode rather than 422-ing. `?q=` pre-fill verified intact (the carried-in non-negotiable — covered by the existing "search input is populated with the query" search-mode tests). Final `.typeahead-dropdown` inner-class CSS sweep done (kept `.typeahead-dropdown` + `.typeahead-row` + `.status-dot` for the combo dropdowns). 561/561 Track 1 green (565 → 561, net −4: 8 typeahead tests → 4 enter-to-search tests). The search-overlay arc is complete.
+
 **Goal:** Remove the in-page typeahead from /candidates and /committees (enter-to-search only). Final `.typeahead-dropdown` inner-class CSS sweep.
 
 ### File changes — Phase 3

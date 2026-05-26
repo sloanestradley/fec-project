@@ -65,7 +65,6 @@
               <input class="form-input" type="text" id="f-search" placeholder="Candidate name or ID" aria-label="Search candidates" autocomplete="off"/>
               <button type="button" class="form-search-btn sr-only" id="search-btn" aria-label="Search"></button>
             </div>
-            <div id="search-typeahead" class="typeahead-dropdown"></div>
           </div>
         </div>
 
@@ -366,6 +365,10 @@ function buildCard(c, i, fromPage) {
 
 async function doFetch(isLoadMore) {
   if (loading) return;
+  // The FEC API rejects keyword queries shorter than FEC_MIN_KEYWORD_LENGTH.
+  // Normalize a sub-threshold query to empty so this falls back to browse mode
+  // rather than dispatching a request that 422s.
+  if (activeQ && activeQ.length < FEC_MIN_KEYWORD_LENGTH) activeQ = '';
   loading = true;
   lastFetch = function() { doFetch(false); };
   if (isLoadMore) {
@@ -514,58 +517,13 @@ function clearAllFilters() {
 
 function submitSearch() {
   activeQ = document.getElementById('f-search').value.trim();
-  closeTypeahead();
   doFetch(false);
 }
 
 document.getElementById('f-search').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { submitSearch(); }
-  if (e.key === 'Escape') { closeTypeahead(); }
 });
 document.getElementById('search-btn').addEventListener('click', submitSearch);
-
-// ── Typeahead ─────────────────────────────────────────────────────────────────
-
-var typeaheadTimer = null;
-
-document.getElementById('f-search').addEventListener('input', function() {
-  clearTimeout(typeaheadTimer);
-  var val = this.value.trim();
-  if (val.length < 2) { closeTypeahead(); return; }
-  typeaheadTimer = setTimeout(function() { fetchTypeahead(val); }, 300);
-});
-
-async function fetchTypeahead(q) {
-  try {
-    var data = await apiFetch('/candidates/', { q: q, per_page: 6, sort: '-receipts' });
-    renderTypeahead(data.results || []);
-  } catch(e) { closeTypeahead(); }
-}
-
-function renderTypeahead(results) {
-  var dd = document.getElementById('search-typeahead');
-  if (!results.length) { closeTypeahead(); return; }
-  dd.innerHTML = results.map(function(c, i) {
-    var right = c.office_full || c.office || '';
-    return '<a class="typeahead-row" href="/candidate/' + c.candidate_id + '?from=typeahead"'
-      + ' onclick="amplitude.track(\'Typeahead Result Clicked\',{result_type:\'candidate\',candidate_id:'
-      + JSON.stringify(c.candidate_id) + ',candidate_name:' + JSON.stringify(formatCandidateName(c.name))
-      + ',result_position:' + i + ',from_page:\'candidates\'})">'
-      + '<span class="typeahead-row-left">' + formatCandidateName(c.name)
-      + ' <span class="typeahead-row-id">(' + c.candidate_id + ')</span></span>'
-      + (right ? '<span class="typeahead-row-right">' + right + '</span>' : '')
-      + '</a>';
-  }).join('');
-  dd.classList.add('open');
-}
-
-function closeTypeahead() {
-  document.getElementById('search-typeahead').classList.remove('open');
-}
-
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.search-combo')) closeTypeahead();
-});
 
 
 // ── Infinite scroll ───────────────────────────────────────────────────────────

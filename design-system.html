@@ -526,11 +526,11 @@
         </div>
         <div class="ds-type-row">
           <span class="stat-label" style="margin-bottom:0">Cycle</span>
-          <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .committees-link · .candidate-card-stat-lbl · .button-group-btn · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .typeahead-group-label · .typeahead-loading · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
+          <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .committees-link · .candidate-card-stat-lbl · .button-group-btn · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
         </div>
         <div class="ds-type-row">
           <span class="legend-item" style="gap:0">Final coverage: Mar 31, 2024</span>
-          <span class="ds-type-meta"><strong>caption</strong><br>IBM Plex Mono 400 · 0.625rem · var(--muted)<br>.legend-item · .banner-note · .typeahead-row-id · .typeahead-row-right · .filter-chip · .feed-office · .feed-money · .feed-date · .feed-fec · .designation-label · .table-cell-sm</span>
+          <span class="ds-type-meta"><strong>caption</strong><br>IBM Plex Mono 400 · 0.625rem · var(--muted)<br>.legend-item · .banner-note · .filter-chip · .feed-office · .feed-money · .feed-date · .feed-fec · .designation-label · .table-cell-sm</span>
         </div>
         <div class="ds-type-row">
           <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem">Navigate to Candidates</span>
@@ -1331,34 +1331,16 @@
           <span class="ds-component-name">Typeahead Dropdown</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.typeahead-dropdown · .typeahead-dropdown.open · .typeahead-group-label · .typeahead-row · .typeahead-row-left · .typeahead-row-id · .typeahead-row-right · .typeahead-status-dot · .typeahead-empty · .typeahead-loading</div>
+        <div class="ds-component-classes">.typeahead-dropdown · .typeahead-dropdown.open · .typeahead-row</div>
         <div class="ds-component-demo">
-          <!-- Results (grouped, search.html pattern) -->
-          <div class="typeahead-dropdown" style="position:static;display:block;max-width:420px">
-            <div class="typeahead-group-label">Candidates</div>
-            <a class="typeahead-row" href="#">
-              <span class="typeahead-row-left">Gluesenkamp Perez, Marie <span class="typeahead-row-id">(H2WA03217)</span></span>
-              <span class="typeahead-row-right">House</span>
-            </a>
-            <div class="typeahead-group-label">Committees</div>
-            <a class="typeahead-row" href="#">
-              <span class="typeahead-row-left">MGP for Congress</span>
-              <span class="typeahead-row-right"><span class="typeahead-status-dot dot-active"></span></span>
-            </a>
-          </div>
-          <!-- Empty states -->
-          <div class="typeahead-dropdown" style="position:static;display:block;max-width:420px;margin-top:1rem">
-            <div class="typeahead-group-label">Candidates</div>
-            <div class="typeahead-empty">No candidates found</div>
-            <div class="typeahead-group-label">Committees</div>
-            <div class="typeahead-empty">No committees found</div>
-          </div>
-          <!-- Loading state -->
-          <div class="typeahead-dropdown" style="position:static;display:block;max-width:420px;margin-top:1rem">
-            <div class="typeahead-loading">Searching…</div>
+          <div class="typeahead-dropdown" role="listbox" style="position:static;display:block;max-width:280px">
+            <div class="typeahead-row" role="option" aria-selected="true">All offices</div>
+            <div class="typeahead-row" role="option" aria-selected="false">House</div>
+            <div class="typeahead-row" role="option" aria-selected="false">Senate</div>
+            <div class="typeahead-row" role="option" aria-selected="false">President</div>
           </div>
         </div>
-        <div class="ds-component-notes">Used on <code>candidates.html</code> and <code>committees.html</code> — the filter-field typeahead. (The search.html floating typeahead and the global nav typeahead were retired in T-search-inline-results / T-search-overlay; the full <code>.typeahead-dropdown</code>-class sweep is scoped to T-search-typeahead-retire.) <strong>Visual treatment (2026-05-21):</strong> border-less, all-side <code>box-shadow:0 0 8px rgba(26,21,16,0.2)</code>, <code>border-radius:2px</code> matching form controls. Rows + loading carry <code>min-height:40px</code> for a comfortable floor. <strong>Width / height caps:</strong> base rule has <code>max-width:600px; max-height:240px</code> (suitable for filter combos). Scoped override <code>.search-combo .typeahead-dropdown</code> removes both caps so the /candidates and /committees search-field suggestions can grow to the input's full width. <strong>Dual duty (banked refactor):</strong> the class wraps the search-field typeahead and the combo dropdowns (state-combo typed filter + click-combos) — distinct interaction patterns. A future ticket may split the names. Toggle mechanism: browse pages use <code>classList.add/remove('open')</code> with <code>.typeahead-dropdown.open { display:block }</code>. Right-side content: candidates = office word only (House/Senate/President); committees = status dot only (no label). Both pages handle Escape to close. Critical: the <code>.map()</code> callback in <code>renderTypeahead()</code> on browse pages must be <code>function(c, i)</code> — the <code>i</code> index is used in the Amplitude onclick string; if omitted, a ReferenceError silently kills the typeahead.</div>
+        <div class="ds-component-notes">The listbox container for the custom combo dropdowns — state / office / party / cycle on <code>candidates.html</code>, type on <code>committees.html</code>, year / office on <code>races.html</code>. <strong>As of T-search-typeahead-retire (2026-05-21) this is combo-dropdown-only</strong> — every search-field typeahead has been retired: search.html's floating dropdown (T-search-inline-results) and the global nav typeahead (T-search-overlay) earlier in the search-overlay arc, and the /candidates + /committees filter-field typeaheads in this ticket (those pages are now enter-to-search). <strong>Visual treatment:</strong> border-less, all-side <code>box-shadow:0 0 8px rgba(26,21,16,0.2)</code>, <code>border-radius:2px</code> matching form controls. <code>.typeahead-row</code> carries <code>min-height:40px</code> for a comfortable floor. Base rule caps at <code>max-width:600px; max-height:240px</code>. Toggle: <code>classList.add/remove('open')</code> with <code>.typeahead-dropdown.open { display:block }</code>; at ≤860px the dropdown is hidden and the native <code>&lt;select&gt;</code> shows. <code>initComboDropdown(config)</code> in utils.js owns the behavior — ARIA combobox/listbox/option roles, keyboard navigation, outside-click dismissal, mobile native-select fallback. <strong>Banked:</strong> the <code>.typeahead-dropdown</code> → <code>.combo-dropdown</code> rename — the name no longer describes a typeahead — is deferred to its own ticket.</div>
       </div>
 
       <!-- Status Dot -->
@@ -1367,7 +1349,7 @@
           <span class="ds-component-name">Status Dot</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.status-dot · .typeahead-status-dot · .dot-active · .dot-terminated</div>
+        <div class="ds-component-classes">.status-dot · .dot-active · .dot-terminated</div>
         <div class="ds-component-demo">
           <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
             <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--subtle)">
@@ -1376,15 +1358,9 @@
             <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--subtle)">
               <span class="status-dot dot-terminated"></span>Terminated
             </span>
-            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--subtle)">
-              <span class="typeahead-status-dot dot-active"></span>Typeahead active
-            </span>
-            <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;color:var(--subtle)">
-              <span class="typeahead-status-dot dot-terminated"></span>Typeahead terminated
-            </span>
           </div>
         </div>
-        <div class="ds-component-notes"><code>.status-dot</code> is used in tags and committee rows. <code>.typeahead-status-dot</code> is the inline variant inside typeahead rows — same visual size but with <code>vertical-align:middle</code> for inline flow. Two state modifiers — <code>.dot-active</code> and <code>.dot-terminated</code> — each apply to both wrappers via comma-grouped rules. The previous <code>.dot-gray</code> class was consolidated into <code>.dot-terminated</code> on 2026-05-13 — semantic naming over appearance-based naming.</div>
+        <div class="ds-component-notes"><code>.status-dot</code> is used in tags and committee rows. Two state modifiers — <code>.dot-active</code> and <code>.dot-terminated</code>. The previous <code>.dot-gray</code> class was consolidated into <code>.dot-terminated</code> on 2026-05-13 — semantic naming over appearance-based naming. The <code>.typeahead-status-dot</code> inline variant was retired in T-search-typeahead-retire (2026-05-21) along with the search-field typeahead it lived in.</div>
       </div>
 
       <!-- 13. Table -->

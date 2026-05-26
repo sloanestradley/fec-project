@@ -65,7 +65,6 @@
               <input class="form-input" type="text" id="f-search" placeholder="Committee name or ID" aria-label="Search committees" autocomplete="off"/>
               <button type="button" class="form-search-btn sr-only" id="search-btn" aria-label="Search"></button>
             </div>
-            <div id="search-typeahead" class="typeahead-dropdown"></div>
           </div>
         </div>
 
@@ -312,6 +311,10 @@ function buildRow(c, i, fromPage) {
 
 async function doFetch(isLoadMore) {
   if (loading) return;
+  // The FEC API rejects keyword queries shorter than FEC_MIN_KEYWORD_LENGTH.
+  // Normalize a sub-threshold query to empty so this falls back to browse mode
+  // rather than dispatching a request that 422s.
+  if (activeQ && activeQ.length < FEC_MIN_KEYWORD_LENGTH) activeQ = '';
   loading = true;
   lastFetch = function() { doFetch(false); };
   if (isLoadMore) {
@@ -453,60 +456,13 @@ function clearAllFilters() {
 
 function submitSearch() {
   activeQ = document.getElementById('f-search').value.trim();
-  closeTypeahead();
   doFetch(false);
 }
 
 document.getElementById('f-search').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { submitSearch(); }
-  if (e.key === 'Escape') { closeTypeahead(); }
 });
 document.getElementById('search-btn').addEventListener('click', submitSearch);
-
-// ── Typeahead ─────────────────────────────────────────────────────────────────
-
-var typeaheadTimer = null;
-
-document.getElementById('f-search').addEventListener('input', function() {
-  clearTimeout(typeaheadTimer);
-  var val = this.value.trim();
-  if (val.length < 2) { closeTypeahead(); return; }
-  typeaheadTimer = setTimeout(function() { fetchTypeahead(val); }, 300);
-});
-
-async function fetchTypeahead(q) {
-  try {
-    var data = await apiFetch('/committees/', { q: q, per_page: 6, sort: '-receipts' });
-    renderTypeahead(data.results || []);
-  } catch(e) { closeTypeahead(); }
-}
-
-function renderTypeahead(results) {
-  var dd = document.getElementById('search-typeahead');
-  if (!results.length) { closeTypeahead(); return; }
-  dd.innerHTML = results.map(function(c, i) {
-    var dotCls = filingFrequencyDotClass(c.filing_frequency);
-    return '<a class="typeahead-row" href="/committee/' + c.committee_id + '?from=typeahead"'
-      + ' onclick="amplitude.track(\'Typeahead Result Clicked\',{result_type:\'committee\',committee_id:'
-      + JSON.stringify(c.committee_id) + ',committee_name:' + JSON.stringify(c.name || '')
-      + ',result_position:' + i + ',from_page:\'committees\'})">'
-      + '<span class="typeahead-row-left">' + (c.name || '—')
-      + ' <span class="typeahead-row-id">(' + c.committee_id + ')</span></span>'
-      + '<span class="typeahead-row-right">'
-      + '<span class="typeahead-status-dot ' + dotCls + '"></span>'
-      + '</span>'
-      + '</a>';
-  }).join('');
-  dd.classList.add('open');
-}
-
-function closeTypeahead() {
-  document.getElementById('search-typeahead').classList.remove('open');
-}
-
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.search-combo')) closeTypeahead();
-});
 
 
 // ── Exclude terminated toggle ─────────────────────────────────────────────────

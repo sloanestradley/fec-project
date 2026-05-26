@@ -555,41 +555,42 @@ test.describe('candidates.html — search mode (?q=)', () => {
   });
 });
 
-// ── candidates.html — typeahead ───────────────────────────────────────────────
+// ── candidates.html — enter-to-search ─────────────────────────────────────────
 
-test.describe('candidates.html — typeahead', () => {
+test.describe('candidates.html — enter-to-search', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.goto('/candidates.html');
+    await page.waitForSelector('#state-results', { state: 'visible', timeout: 8000 });
   });
 
-  test('fewer than 2 chars does not show typeahead', async ({ page }) => {
-    await page.locator('#f-search').fill('g');
-    await page.waitForTimeout(400);
-    await expect(page.locator('#search-typeahead')).not.toHaveClass(/open/);
+  test('Enter with a 3+ char query runs a search', async ({ page }) => {
+    await page.locator('#f-search').fill('marie');
+    await page.locator('#f-search').press('Enter');
+    await expect(page.locator('#results-header')).toContainText('marie', { timeout: 5000 });
   });
 
-  test('2+ chars shows typeahead dropdown', async ({ page }) => {
-    await page.locator('#f-search').fill('gl');
-    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
-  });
-
-  test('typeahead row links to /candidate/{id}', async ({ page }) => {
-    await page.locator('#f-search').fill('gl');
-    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
-    const link = page.locator('#search-typeahead .typeahead-row').first();
-    await expect(link).toBeVisible();
-    const href = await link.getAttribute('href');
-    expect(href).toMatch(/\/candidate\/[A-Z0-9]+/);
-    expect(href).not.toContain('#');
-  });
-
-  test('Escape key closes the typeahead', async ({ page }) => {
-    await page.locator('#f-search').fill('gl');
-    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
-    await page.locator('#f-search').press('Escape');
-    await expect(page.locator('#search-typeahead')).not.toHaveClass(/open/);
+  test('sub-3-char submit dispatches no <3-char keyword request and shows no error', async ({ page }) => {
+    // The FEC API rejects keyword queries shorter than 3 chars — the submit
+    // path must normalize them to browse mode, never dispatch a q=<1-2 char>.
+    const subThresholdQ = [];
+    page.on('request', req => {
+      const u = req.url();
+      if (!u.includes('/api/fec/')) return;
+      const q = new URL(u).searchParams.get('q');
+      if (q !== null && q.length < 3) subThresholdQ.push(q);
+    });
+    for (const v of ['m', 'ma', '']) {
+      await page.locator('#f-search').fill(v);
+      await page.locator('#f-search').press('Enter');
+      await page.waitForTimeout(500);
+    }
+    await page.locator('#f-search').fill('mar');
+    await page.locator('#f-search').press('Enter');
+    await page.waitForTimeout(500);
+    expect(subThresholdQ).toEqual([]);
+    await expect(page.locator('#state-error')).toBeHidden();
   });
 });
 
@@ -639,40 +640,42 @@ test.describe('committees.html — search mode (?q=)', () => {
   });
 });
 
-// ── committees.html — typeahead ───────────────────────────────────────────────
+// ── committees.html — enter-to-search ─────────────────────────────────────────
 
-test.describe('committees.html — typeahead', () => {
+test.describe('committees.html — enter-to-search', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.goto('/committees.html');
+    await page.waitForSelector('#state-results', { state: 'visible', timeout: 8000 });
   });
 
-  test('fewer than 2 chars does not show typeahead', async ({ page }) => {
-    await page.locator('#f-search').fill('g');
-    await page.waitForTimeout(400);
-    await expect(page.locator('#search-typeahead')).not.toHaveClass(/open/);
+  test('Enter with a 3+ char query runs a search', async ({ page }) => {
+    await page.locator('#f-search').fill('marie');
+    await page.locator('#f-search').press('Enter');
+    await expect(page.locator('#results-header')).toContainText('marie', { timeout: 5000 });
   });
 
-  test('2+ chars shows typeahead dropdown', async ({ page }) => {
-    await page.locator('#f-search').fill('gl');
-    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
-  });
-
-  test('typeahead row links to /committee/{id}', async ({ page }) => {
-    await page.locator('#f-search').fill('gl');
-    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
-    const link = page.locator('#search-typeahead .typeahead-row').first();
-    await expect(link).toBeVisible();
-    const href = await link.getAttribute('href');
-    expect(href).toMatch(/\/committee\/[A-Z0-9]+/);
-  });
-
-  test('Escape key closes the typeahead', async ({ page }) => {
-    await page.locator('#f-search').fill('gl');
-    await expect(page.locator('#search-typeahead')).toHaveClass(/open/, { timeout: 2000 });
-    await page.locator('#f-search').press('Escape');
-    await expect(page.locator('#search-typeahead')).not.toHaveClass(/open/);
+  test('sub-3-char submit dispatches no <3-char keyword request and shows no error', async ({ page }) => {
+    // The FEC API rejects keyword queries shorter than 3 chars — the submit
+    // path must normalize them to browse mode, never dispatch a q=<1-2 char>.
+    const subThresholdQ = [];
+    page.on('request', req => {
+      const u = req.url();
+      if (!u.includes('/api/fec/')) return;
+      const q = new URL(u).searchParams.get('q');
+      if (q !== null && q.length < 3) subThresholdQ.push(q);
+    });
+    for (const v of ['m', 'ma', '']) {
+      await page.locator('#f-search').fill(v);
+      await page.locator('#f-search').press('Enter');
+      await page.waitForTimeout(500);
+    }
+    await page.locator('#f-search').fill('mar');
+    await page.locator('#f-search').press('Enter');
+    await page.waitForTimeout(500);
+    expect(subThresholdQ).toEqual([]);
+    await expect(page.locator('#state-error')).toBeHidden();
   });
 });
 
