@@ -1434,14 +1434,159 @@ function initMenuButton(config) {
   };
 }
 
+// ── Modal a11y helper (T-modal-a11y) ─────────────────────────────────────────
+// Function pair that wraps a static or lazy-injected modal element with the
+// dialog-level accessibility contract: role + aria-modal + aria-labelledby,
+// focus trap, initial focus, return-focus-to-trigger on close, background
+// inert, body scroll-lock, modal-scoped Escape, outside-click on the overlay.
+//
+// Consumers (T-modal-a11y): committees modal (candidate.html), info modal
+// (this file, below). The search overlay (main.js) does NOT use the helper —
+// it's history-driven (pushState / popstate / pageshow) and structurally
+// distinct from a click-opened modal.
+//
+// Listener teardown uses AbortController — one .abort() removes the Escape,
+// outside-click, and focus-trap listeners attached during open. This is a new
+// convention in this codebase; introducing it here because it's dramatically
+// cleaner than tracking individual removeEventListener calls for a batch of
+// listeners with the same lifetime. Browser support is universal in modern
+// browsers (Chrome 88+ / Safari 14.1+ / Firefox 78+).
+//
+// Scroll-lock note: body.style.overflow = 'hidden' sets both overflow-x and
+// overflow-y to hidden during the modal-open window. CLAUDE.md flags that
+// the CSS rule `body { overflow:hidden }` (full-time) breaks position:sticky
+// for children — but the JS toggle is temporary, and during modal-open the
+// sticky elements are visually irrelevant (page is inert behind the scrim).
+// On close, scroll restores and sticky resumes. The search overlay does this
+// and works; the live UX check on the modals confirms parity.
+//
+// The helper owns the dialog-level contract — it does NOT modify the labels
+// of buttons inside the modal (each modal's markup carries its own
+// aria-label on .modal-close).
+//
+// Initial focus targets the first focusable inside modalEl. Modal authors
+// should order their DOM so the most useful focus target is first
+// (typically the close button is acceptable; the search overlay puts its
+// input first as the most useful target).
+//
+// openAccessibleModal(modalEl, opts)
+//   opts: { trigger?: Element, onClose?: () => void }
+//   - trigger:  receives focus on close. Caller must pass explicitly —
+//               document.activeElement is unreliable when the modal is opened
+//               from a menu-btn item (the dropdown closes before the modal
+//               opens, so activeElement is the trigger button by then anyway,
+//               but explicit > implicit).
+//   - onClose:  optional callback fired after teardown.
+//
+// closeAccessibleModal(modalEl)
+//   Idempotent — no-op if not currently open via the helper.
+function openAccessibleModal(modalEl, opts) {
+  opts = opts || {};
+  // Idempotent: already open via the helper → no-op
+  if (modalEl._a11yController) return;
+
+  var controller = new AbortController();
+  var signal = controller.signal;
+  modalEl._a11yController     = controller;
+  modalEl._a11yTrigger        = opts.trigger || null;
+  modalEl._a11yOnClose        = opts.onClose || null;
+  modalEl._a11yPriorOverflow  = document.body.style.overflow;
+
+  // ── ARIA attributes ──────────────────────────────────────────────────
+  modalEl.setAttribute('role', 'dialog');
+  modalEl.setAttribute('aria-modal', 'true');
+  // aria-labelledby: ensure .modal-title has an id, then wire.
+  var titleEl = modalEl.querySelector('.modal-title');
+  if (titleEl) {
+    if (!titleEl.id) titleEl.id = (modalEl.id || 'modal') + '-title';
+    modalEl.setAttribute('aria-labelledby', titleEl.id);
+  }
+
+  // ── Scroll lock ──────────────────────────────────────────────────────
+  document.body.style.overflow = 'hidden';
+
+  // ── Background inert ─────────────────────────────────────────────────
+  Array.prototype.forEach.call(document.body.children, function(c) {
+    if (c !== modalEl) c.setAttribute('inert', '');
+  });
+
+  // ── Modal-scoped listeners (all torn down via controller.abort()) ────
+  // Escape — focus is always inside modal after open (initial focus + inert
+  // background → focus can't leak out), so modal-scoped works.
+  modalEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { e.preventDefault(); closeAccessibleModal(modalEl); }
+  }, { signal: signal });
+
+  // Outside-click — overlay backdrop (modalEl itself, not its descendants).
+  modalEl.addEventListener('click', function(e) {
+    if (e.target === modalEl) closeAccessibleModal(modalEl);
+  }, { signal: signal });
+
+  // Focus trap — Tab / Shift+Tab wrap. Pattern lifted from the search
+  // overlay's trapFocus (main.js); inert background does the heavy lifting
+  // of removing other focusables from the tab order, the wrap handler just
+  // bookends the ends.
+  modalEl.addEventListener('keydown', function(e) {
+    if (e.key !== 'Tab') return;
+    var f = Array.prototype.filter.call(
+      modalEl.querySelectorAll('button, a[href], input, [tabindex]:not([tabindex="-1"])'),
+      function(n) { return n.offsetParent !== null; }
+    );
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }, { signal: signal });
+
+  // ── Show + initial focus ─────────────────────────────────────────────
+  modalEl.style.display = 'flex';
+  var firstFocusable = Array.prototype.filter.call(
+    modalEl.querySelectorAll('button, a[href], input, [tabindex]:not([tabindex="-1"])'),
+    function(n) { return n.offsetParent !== null; }
+  )[0];
+  if (firstFocusable) firstFocusable.focus();
+}
+
+function closeAccessibleModal(modalEl) {
+  // Idempotent — not currently open via the helper
+  if (!modalEl || !modalEl._a11yController) return;
+
+  // Tear down all helper-attached listeners in one call
+  modalEl._a11yController.abort();
+  modalEl._a11yController = null;
+
+  // Restore scroll
+  document.body.style.overflow = modalEl._a11yPriorOverflow || '';
+  modalEl._a11yPriorOverflow = null;
+
+  // Remove background inert
+  Array.prototype.forEach.call(document.body.children, function(c) {
+    if (c !== modalEl) c.removeAttribute('inert');
+  });
+
+  // Hide
+  modalEl.style.display = 'none';
+
+  // Return focus to stored trigger
+  var trigger = modalEl._a11yTrigger;
+  modalEl._a11yTrigger = null;
+  if (trigger && typeof trigger.focus === 'function') trigger.focus();
+
+  // onClose callback
+  var onClose = modalEl._a11yOnClose;
+  modalEl._a11yOnClose = null;
+  if (typeof onClose === 'function') onClose();
+}
+
 // ── Info modal — singleton, lazy-injected on first open ──────────────────────
 // One modal DOM instance for the whole app, injected on first openInfoModal()
-// call. Used as the teaser for the Compare / Follow menu-btn items (wired in
-// T-menu-btn-profile-header). Copy is static.
+// call. Used as the teaser for the Compare / Follow menu-btn items.
 //
-// Mechanics deliberately minimal: overlay scrim + Escape + outside-click +
-// X button. NO focus trap, NO scroll lock — explicitly out of scope. Does NOT
-// touch the committees modal.
+// A11y mechanics owned by openAccessibleModal / closeAccessibleModal
+// (T-modal-a11y): focus trap, scroll-lock, background inert, role + aria-modal
+// + aria-labelledby, modal-scoped Escape, outside-click, return-to-trigger.
+// injectInfoModal only injects markup + attaches the X button's click handler;
+// the helper handles the rest on open.
 var INFO_MODAL_HTML =
   '<div id="info-modal" class="modal-overlay" style="display:none">' +
     '<div class="modal-panel modal-panel--narrow">' +
@@ -1458,26 +1603,17 @@ var INFO_MODAL_HTML =
 function injectInfoModal() {
   if (document.getElementById('info-modal')) return;
   document.body.insertAdjacentHTML('beforeend', INFO_MODAL_HTML);
-  var modalEl = document.getElementById('info-modal');
-  modalEl.addEventListener('click', function(e) {
-    if (e.target === modalEl) closeInfoModal();   // outside-click closes
-  });
+  // The helper owns Escape + outside-click; only the X button's click handler
+  // stays at this level (it's the explicit close affordance).
   document.getElementById('info-modal-close').addEventListener('click', closeInfoModal);
-  // Escape listener installed once at injection; guarded by visibility check
-  // so it's a no-op when the modal is closed.
-  document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Escape') return;
-    var el = document.getElementById('info-modal');
-    if (el && el.style.display !== 'none') closeInfoModal();
-  });
 }
 
-function openInfoModal() {
+function openInfoModal(triggerEl) {
   injectInfoModal();
-  document.getElementById('info-modal').style.display = 'flex';
+  openAccessibleModal(document.getElementById('info-modal'), { trigger: triggerEl });
 }
 
 function closeInfoModal() {
   var el = document.getElementById('info-modal');
-  if (el) el.style.display = 'none';
+  if (el) closeAccessibleModal(el);
 }

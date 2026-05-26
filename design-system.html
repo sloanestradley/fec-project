@@ -1824,7 +1824,7 @@
           <span class="ds-component-name">Modal</span>
           <span class="ds-status candidate-only">candidate-only</span>
         </div>
-        <div class="ds-component-classes">.modal-overlay · .modal-panel · .modal-header · .modal-title · .modal-close · .modal-tabs · .modal-tab-btn · .modal-tab-btn.active · .modal-body — the committees variant (tabs-equipped). Width <code>min(680px,92vw)</code>. Trigger in production is the <a href="#comp-menu-btn">menu-btn</a>'s Committees item; demo below uses <code>.form-search-btn</code>. For a short-copy info modal, see <a href="#comp-info-modal">comp-info-modal</a>.</div>
+        <div class="ds-component-classes">.modal-overlay · .modal-panel · .modal-header · .modal-title · .modal-close · .modal-tabs · .modal-tab-btn · .modal-tab-btn.active · .modal-body — the committees variant (tabs-equipped). Width <code>min(680px,92vw)</code>. Trigger in production is the <a href="#comp-menu-btn">menu-btn</a>'s Committees item; demo below uses <code>.form-search-btn</code>. A11y mechanics (focus trap, scroll-lock, background inert, role/aria-modal/aria-labelledby, modal-scoped Escape, outside-click, return-focus-to-trigger) are owned by <code>openAccessibleModal</code> / <code>closeAccessibleModal</code> in utils.js (T-modal-a11y, 2026-05-26). For a short-copy info modal, see <a href="#comp-info-modal">comp-info-modal</a>.</div>
         <div class="ds-component-demo">
           <button class="form-search-btn" id="ds-modal-trigger">Open committees modal</button>
         </div>
@@ -1840,7 +1840,7 @@
         <div class="ds-component-demo">
           <button type="button" class="form-search-btn" id="ds-info-modal-trigger">Open info modal</button>
         </div>
-        <div class="ds-component-notes">A stripped-back modal for short prose copy — currently the teaser surface for the Compare / Follow menu-btn items (wired in T-menu-btn-profile-header). The <code>.modal-panel--narrow</code> width is right-sized for a single editorial paragraph; the committees modal stays at the 680px default for its longer tabbed content. Mechanics are deliberately minimal: overlay scrim, Escape, outside-click, and close button — no focus trap, no scroll lock (those are explicitly out of scope for this variant). Body copy uses <code>.modal-prose</code> (Plex Serif 0.875rem) — the editorial register that matches <a href="#comp-banner">.banner-desc</a> and the race-context line.</div>
+        <div class="ds-component-notes">A stripped-back modal for short prose copy — currently the teaser surface for the Compare / Follow menu-btn items (wired in T-menu-btn-profile-header). The <code>.modal-panel--narrow</code> width is right-sized for a single editorial paragraph; the committees modal stays at the 680px default for its longer tabbed content. <strong>A11y mechanics</strong> (T-modal-a11y, 2026-05-26): owned by <code>openAccessibleModal</code> / <code>closeAccessibleModal</code> in utils.js — focus trap, body scroll-lock, background inert, modal-scoped Escape, outside-click, return-focus-to-trigger, <code>role="dialog"</code> + <code>aria-modal="true"</code> + <code>aria-labelledby</code>. Same a11y contract as the committees modal; both modals consume the shared helper. <code>injectInfoModal</code> only injects markup + the ✕ button's click handler. Body copy uses <code>.modal-prose</code> (Plex Serif 0.875rem) — the editorial register that matches <a href="#comp-banner">.banner-desc</a> and the race-context line.</div>
       </div>
 
     </section><!-- /components -->
@@ -1958,8 +1958,10 @@
     { id: 'profile',    label: 'Profile',     icon: 'trending_flat',  onClick: function() {} },
     { id: 'race',       label: 'Race (2024)', icon: 'trending_flat',  href:    '#' },
     { id: 'committees', label: 'Committees',  icon: 'expand_content', onClick: function() {} },
-    { id: 'compare',    label: 'Compare',     icon: 'compare_arrows', onClick: openInfoModal },
-    { id: 'follow',     label: 'Follow',      icon: 'rss_feed',       onClick: openInfoModal }
+    { id: 'compare',    label: 'Compare',     icon: 'compare_arrows',
+      onClick: function() { openInfoModal(document.querySelector('#ds-menu-btn-demo-a .menu-btn')); } },
+    { id: 'follow',     label: 'Follow',      icon: 'rss_feed',
+      onClick: function() { openInfoModal(document.querySelector('#ds-menu-btn-demo-a .menu-btn')); } }
   ];
   // Demos use 'Candidate' as a representative page-integration label rather
   // than the factory's 'Menu' fallback — production never renders 'Menu'.
@@ -1979,7 +1981,9 @@
   });
 
   // Info modal demo trigger
-  document.getElementById('ds-info-modal-trigger').addEventListener('click', openInfoModal);
+  document.getElementById('ds-info-modal-trigger').addEventListener('click', function() {
+    openInfoModal(document.getElementById('ds-info-modal-trigger'));
+  });
 
   // Amplitude pageview
   amplitude.track('Page Viewed', { page: 'design-system' });

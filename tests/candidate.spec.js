@@ -2257,3 +2257,87 @@ test.describe('candidate.html — profile menu-btn', () => {
     await expect(page.locator('#profile-menu-btn')).toBeVisible();
   });
 });
+
+// ── T-modal-a11y — committees modal accessibility ───────────────────────────
+
+test.describe('candidate.html — committees modal a11y', () => {
+  test('role=dialog + aria-modal + aria-labelledby set on open', async ({ page }) => {
+    await setup(page);
+    await openCommittees(page);
+    const modal = page.locator('#committees-modal');
+    await expect(modal).toHaveAttribute('role', 'dialog');
+    await expect(modal).toHaveAttribute('aria-modal', 'true');
+    const labelledBy = await modal.getAttribute('aria-labelledby');
+    expect(labelledBy).toBeTruthy();
+    // Referenced element exists and is the modal title
+    const title = page.locator('#' + labelledBy);
+    await expect(title).toHaveText('Associated Committees');
+  });
+
+  test('initial focus moves to first focusable inside modal (the ✕ close button)', async ({ page }) => {
+    await setup(page);
+    await openCommittees(page);
+    await expect(page.locator('#committees-modal .modal-close')).toBeFocused();
+  });
+
+  test('focus returns to the menu-btn trigger on close', async ({ page }) => {
+    await setup(page);
+    await openCommittees(page);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#committees-modal')).not.toBeVisible();
+    await expect(page.locator('#profile-menu-btn .menu-btn')).toBeFocused();
+  });
+
+  test('background .main has inert while open; removed on close', async ({ page }) => {
+    await setup(page);
+    await openCommittees(page);
+    const inertOpen = await page.evaluate(() => document.querySelector('.main').hasAttribute('inert'));
+    expect(inertOpen).toBe(true);
+    await page.keyboard.press('Escape');
+    const inertClosed = await page.evaluate(() => document.querySelector('.main').hasAttribute('inert'));
+    expect(inertClosed).toBe(false);
+  });
+
+  test('body overflow:hidden while open; restored on close', async ({ page }) => {
+    await setup(page);
+    const priorOverflow = await page.evaluate(() => document.body.style.overflow);
+    await openCommittees(page);
+    const overflowOpen = await page.evaluate(() => document.body.style.overflow);
+    expect(overflowOpen).toBe('hidden');
+    await page.keyboard.press('Escape');
+    const overflowClosed = await page.evaluate(() => document.body.style.overflow);
+    expect(overflowClosed).toBe(priorOverflow);
+  });
+
+  test('Shift+Tab from first focusable wraps to last (focus trap)', async ({ page }) => {
+    await setup(page);
+    await openCommittees(page);
+    // Wait for the lazy fetch to resolve — modal-tabs become visible AND
+    // committee-row links render. Without this wait, only the ✕ button is
+    // focusable and the focus-trap wrap is degenerate (stays on it).
+    await expect(page.locator('#committees-modal .modal-tabs')).toBeVisible();
+    await expect(page.locator('#committees-modal .committee-row').first()).toBeVisible();
+    // Initial focus is the ✕ close button (first focusable in DOM order).
+    await expect(page.locator('#committees-modal .modal-close')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    // Focus should have moved off the close button to the last focusable
+    // inside the modal — and stayed inside the modal.
+    const focusedInModal = await page.evaluate(() => {
+      const modal = document.getElementById('committees-modal');
+      return modal.contains(document.activeElement);
+    });
+    expect(focusedInModal).toBe(true);
+    const stillOnClose = await page.evaluate(() => {
+      return document.activeElement === document.querySelector('#committees-modal .modal-close');
+    });
+    expect(stillOnClose).toBe(false);
+  });
+
+  test('outside-click on the overlay backdrop closes the modal', async ({ page }) => {
+    await setup(page);
+    await openCommittees(page);
+    // Click at the top-left of the overlay where the backdrop is exposed
+    await page.locator('#committees-modal').click({ position: { x: 5, y: 5 } });
+    await expect(page.locator('#committees-modal')).not.toBeVisible();
+  });
+});

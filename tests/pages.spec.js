@@ -1048,6 +1048,82 @@ test.describe('info modal', () => {
   });
 });
 
+// ── T-modal-a11y — info modal accessibility ─────────────────────────────────
+
+test.describe('info modal a11y', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await page.goto('/design-system.html');
+  });
+
+  test('role=dialog + aria-modal + aria-labelledby set on open', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    const modal = page.locator('#info-modal');
+    await expect(modal).toHaveAttribute('role', 'dialog');
+    await expect(modal).toHaveAttribute('aria-modal', 'true');
+    const labelledBy = await modal.getAttribute('aria-labelledby');
+    expect(labelledBy).toBeTruthy();
+    const title = page.locator('#' + labelledBy);
+    await expect(title).toContainText('Wouldn');
+  });
+
+  test('initial focus moves to first focusable inside modal (the ✕ close button)', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    await expect(page.locator('#info-modal-close')).toBeFocused();
+  });
+
+  test('focus returns to the trigger element on close', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#info-modal')).toBeHidden();
+    await expect(page.locator('#ds-info-modal-trigger')).toBeFocused();
+  });
+
+  test('background body children have inert while open; removed on close', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    // .main is a body child and should carry inert while the modal is open
+    const inertOpen = await page.evaluate(() => document.querySelector('.main').hasAttribute('inert'));
+    expect(inertOpen).toBe(true);
+    await page.keyboard.press('Escape');
+    const inertClosed = await page.evaluate(() => document.querySelector('.main').hasAttribute('inert'));
+    expect(inertClosed).toBe(false);
+  });
+
+  test('body overflow:hidden while open; restored on close', async ({ page }) => {
+    const priorOverflow = await page.evaluate(() => document.body.style.overflow);
+    await page.locator('#ds-info-modal-trigger').click();
+    const overflowOpen = await page.evaluate(() => document.body.style.overflow);
+    expect(overflowOpen).toBe('hidden');
+    await page.keyboard.press('Escape');
+    const overflowClosed = await page.evaluate(() => document.body.style.overflow);
+    expect(overflowClosed).toBe(priorOverflow);
+  });
+
+  test('Tab from last focusable wraps to first (focus trap)', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    // info-modal has exactly one focusable: the ✕ close button. Tab on a
+    // single-focusable modal stays put.
+    await expect(page.locator('#info-modal-close')).toBeFocused();
+    await page.keyboard.press('Tab');
+    // Focus stays on the close button (single focusable, wraps to itself)
+    const stillInModal = await page.evaluate(() => {
+      const modal = document.getElementById('info-modal');
+      return modal.contains(document.activeElement);
+    });
+    expect(stillInModal).toBe(true);
+  });
+
+  test('outside-click closes via helper-attached listener (markup has no inline onclick)', async ({ page }) => {
+    await page.locator('#ds-info-modal-trigger').click();
+    // Verify the markup itself has no inline onclick — helper owns it
+    const inlineOnclick = await page.locator('#info-modal').getAttribute('onclick');
+    expect(inlineOnclick).toBeNull();
+    // And the close-on-backdrop-click still works
+    await page.locator('#info-modal').click({ position: { x: 5, y: 5 } });
+    await expect(page.locator('#info-modal')).toBeHidden();
+  });
+});
+
 // ── index.html ────────────────────────────────────────────────────────────────
 
 test.describe('index.html', () => {

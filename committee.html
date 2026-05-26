@@ -785,8 +785,10 @@ async function init() {
         { id: 'profile', label: 'Profile', icon: 'trending_flat',
           href: '/committee/' + COMMITTEE_ID,
           disabled: !isDetailView },
-        { id: 'compare', label: 'Compare', icon: 'compare_arrows', onClick: openInfoModal },
-        { id: 'follow',  label: 'Follow',  icon: 'rss_feed',       onClick: openInfoModal }
+        { id: 'compare', label: 'Compare', icon: 'compare_arrows',
+          onClick: function() { openInfoModal(document.querySelector('#committee-menu-btn .menu-btn')); } },
+        { id: 'follow',  label: 'Follow',  icon: 'rss_feed',
+          onClick: function() { openInfoModal(document.querySelector('#committee-menu-btn .menu-btn')); } }
       ],
       showText:  !window.matchMedia('(max-width:860px)').matches,
       text:      'Committee',

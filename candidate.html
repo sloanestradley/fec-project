@@ -353,11 +353,11 @@
   </div><!-- /main -->
 
 <!-- Committees modal — outside layout so it's not clipped -->
-<div id="committees-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeCommitteesModal()">
+<div id="committees-modal" class="modal-overlay" style="display:none">
   <div class="modal-panel">
     <div class="modal-header">
       <div class="modal-title">Associated Committees</div>
-      <button class="modal-close" onclick="closeCommitteesModal()">✕</button>
+      <button class="modal-close" onclick="closeCommitteesModal()" aria-label="Close">✕</button>
     </div>
     <div class="modal-tabs" style="display:none">
       <button class="modal-tab-btn active" data-tab="active" onclick="showModalTab('active');amplitude.track('Committees Tab Switched',{tab:'active',candidate_id:CANDIDATE_ID,candidate_name:CAND_NAME})">Active<span id="modal-active-count"></span></button>
@@ -457,18 +457,18 @@ function showModalTab(name) {
     b.classList.toggle('active', b.dataset.tab === name);
   });
 }
-function openCommitteesModal() {
+function openCommitteesModal(triggerEl) {
   amplitude.track('Committees Modal Opened', { candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME });
-  document.getElementById('committees-modal').style.display = 'flex';
   showModalTab('active');
   if (!committeesLoaded) fetchAndRenderCommittees();
+  openAccessibleModal(document.getElementById('committees-modal'), { trigger: triggerEl });
 }
 function closeCommitteesModal() {
-  document.getElementById('committees-modal').style.display = 'none';
+  closeAccessibleModal(document.getElementById('committees-modal'));
 }
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeCommitteesModal();
-});
+// T-modal-a11y (2026-05-26) retired the page-scope document Escape listener
+// here — the helper owns Escape (modal-scoped on the modal element). The X
+// button's inline onclick stays as the explicit close affordance.
 
 function renderCommitteeGroups(comms) {
   if (!comms.length) return '';
@@ -2302,11 +2302,11 @@ async function init() {
         { id: 'race',       label: 'Race (' + raceYearInit + ')', icon: 'trending_flat',
           href: raceHref(CAND_OFFICE, CAND_STATE, CAND_DIST, raceYearInit) },
         { id: 'committees', label: 'Committees',                 icon: 'expand_content',
-          onClick: openCommitteesModal },
+          onClick: function() { openCommitteesModal(document.querySelector('#profile-menu-btn .menu-btn')); } },
         { id: 'compare',    label: 'Compare',                    icon: 'compare_arrows',
-          onClick: openInfoModal },
+          onClick: function() { openInfoModal(document.querySelector('#profile-menu-btn .menu-btn')); } },
         { id: 'follow',     label: 'Follow',                     icon: 'rss_feed',
-          onClick: openInfoModal }
+          onClick: function() { openInfoModal(document.querySelector('#profile-menu-btn .menu-btn')); } }
       ],
       showText:  !window.matchMedia('(max-width:860px)').matches,
       text:      'Candidate',
