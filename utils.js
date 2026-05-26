@@ -1198,6 +1198,11 @@ function initSearchPanel(config) {
 //   hostEl     — empty container element (gets .menu-btn-wrap class)
 //   items      — array of item descriptors (see below)
 //   showText   — bool, default true; false = icon-only variant (mobile)
+//   text       — string; visible label inside the text segment when showText
+//                is true. Page integrations pass page-specific values
+//                ('Candidate' on candidate.html, 'Committee' on committee.html);
+//                defaults to 'Menu' for the design-system demo + any other
+//                generic caller
 //   ariaLabel  — string; aria-label on the trigger button (required when
 //                showText:false, recommended otherwise to override the default
 //                'Menu' reading)
@@ -1220,6 +1225,10 @@ function initMenuButton(config) {
   var hostEl    = config.hostEl;
   var items     = (config.items || []).slice();   // shallow clone — patches mutate per-item state
   var showText  = config.showText !== false;
+  // Visible label inside the text segment when showText:true. Page integrations
+  // pass page-specific values (candidate.html: 'Candidate'; committee.html:
+  // 'Committee'); design-system demos and any other caller fall back to 'Menu'.
+  var text      = config.text || 'Menu';
   var ariaLabel = config.ariaLabel || 'Menu';
   var onOpen    = config.onOpen;
   var onClose   = config.onClose;
@@ -1234,13 +1243,17 @@ function initMenuButton(config) {
   triggerEl.setAttribute('aria-haspopup', 'true');
   triggerEl.setAttribute('aria-expanded', 'false');
   triggerEl.setAttribute('aria-label', ariaLabel);
-  if (showText) {
-    triggerEl.innerHTML =
-      '<span class="menu-btn-text">Menu</span>' +
-      '<span class="menu-btn-icon">' + iconSvg('more_horiz') + '</span>';
-  } else {
-    triggerEl.innerHTML = '<span class="menu-btn-icon">' + iconSvg('more_horiz') + '</span>';
+  function escText(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
   }
+  function renderTriggerInner() {
+    triggerEl.innerHTML = showText
+      ? '<span class="menu-btn-text">' + escText(text) + '</span><span class="menu-btn-icon">' + iconSvg('more_horiz') + '</span>'
+      : '<span class="menu-btn-icon">' + iconSvg('more_horiz') + '</span>';
+  }
+  renderTriggerInner();
 
   // ── Dropdown ─────────────────────────────────────────────────────────
   var dropdownEl = document.createElement('div');
@@ -1407,6 +1420,16 @@ function initMenuButton(config) {
       var newNode = buildItemNode(item);
       oldNode.parentNode.replaceChild(newNode, oldNode);
       itemNodes[id] = newNode;
+    },
+    // Idempotent text/icon-variant swap. Rebuilds the trigger's innerHTML;
+    // does NOT touch dropdownEl (its open state, items, and item focus are
+    // preserved). Driven by a page-level matchMedia listener (see
+    // bindMenuBreakpoint on candidate.html / committee.html).
+    setShowText: function(newShowText) {
+      newShowText = !!newShowText;
+      if (newShowText === showText) return;
+      showText = newShowText;
+      renderTriggerInner();
     },
     destroy: function() {
       document.removeEventListener('click', outsideClickHandler);

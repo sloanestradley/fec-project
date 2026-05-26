@@ -545,17 +545,6 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .cycle-back-btn:hover { background:var(--surface2); }
 .cycle-back-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
-/* ── L: Committees trigger — primary action on candidate profile ── */
-/* Shares the navy-filled visual treatment with .button-group-btn.active
-   (see Button group section). The shared color/border rule lives below
-   the .button-group rules to keep both selectors co-located there. */
-.committees-link { height:34px; padding:var(--space-8);
-  font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
-  text-transform:uppercase; letter-spacing:var(--ls-expanded);
-  cursor:pointer; white-space:nowrap;
-  transition:opacity 0.15s; }
-.committees-link:hover { opacity:0.88; }
-
 /* ── M: Candidate card + race card (candidates/search/race browse rows) ── */
 /* .candidate-card: canonical 3-tag shape on candidates.html + search.html
    (via candidateCardHTML helper), plus a stats-equipped variant on race.html.
@@ -610,16 +599,18 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   padding-right:max(var(--page-gutter), calc((100% - 1600px) / 2 + var(--page-gutter))); }
 
 /* Compact mode — slim one-line strip, triggered by scroll listener.
-   min-height stabilizes compact header height across all profile pages and view
-   states (T15 derivation: 32px content + 8/8 vertical padding; preserved through
-   T14.5 even though the back-affordance that drove the 32 has retired — the
-   resulting strip height is the right answer for all four profile-page surfaces).
-   Content centers via align-items; tabs-bar pin position stays consistent.
-   Measurement-based — initCompactHeader's offsetHeight read picks up the
-   min-height value automatically. */
+   min-height stabilizes compact header height across all profile pages
+   (T-menu-btn-profile-header derivation: 8 + max(content, 40 menu-btn) + 8 =
+   56px floor; was 48px pre-menu-btn). Applied uniformly across
+   #profile-header.compact / #committee-header.compact / #race-header.compact
+   for cross-page consistency when comparing profile pages side-by-side;
+   race.html has no menu-btn yet and will reach profile-page parity in a
+   later ticket. Content centers via align-items; tabs-bar pin position
+   stays consistent. Measurement-based — initCompactHeader's offsetHeight
+   read picks up the min-height value automatically. */
 #profile-header.compact, #committee-header.compact, #race-header.compact {
   flex-direction:row; align-items:center;
-  padding-top:var(--space-8); padding-bottom:var(--space-8); min-height:48px; }
+  padding-top:var(--space-8); padding-bottom:var(--space-8); min-height:56px; }
 #profile-header.compact .page-title,
 #committee-header.compact .page-title,
 #race-header.compact .page-title {
@@ -631,7 +622,6 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    above). The .detail-view header class also retired; it had no other consumer. */
 #profile-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; gap:0; }
 #profile-header.compact .meta-row { display:none; }
-#profile-header.compact #committees-trigger { display:none !important; }
 
 /* Committee compact: name only */
 #committee-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; }
@@ -825,20 +815,19 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   color:var(--muted); transition:background 0.15s, color 0.15s, border-color 0.15s; }
 .button-group-btn + .button-group-btn { border-left:none; }
 .button-group-btn:hover { color:var(--text); }
-/* Shared navy-filled treatment: selected toggle AND primary page action (.committees-link). */
-.button-group-btn.active, .committees-link {
+/* Selected toggle navy fill. */
+.button-group-btn.active {
   background:var(--color-navy-950); color:var(--bg);
   border:1px solid var(--color-navy-950); }
 .button-group-btn.active + .button-group-btn { border-left:none; }
 
 /* ── Menu button (action menu — split button + dropdown) ── */
-/* Used in profile-page headers (candidate.html, committee.html — wired in
-   T-menu-btn-profile-header). Two segments — "MENU" text + more_horiz icon —
-   joined by a 1px var(--bg) divider; click toggles a dropdown of action/link
-   items below. The navy fill matches .committees-link and .button-group-btn.active
-   (the "primary action / selected" semantic), but kept as its own identity
-   class — different sizing (height:40px vs 34px) and a different interaction
-   model (toggle dropdown vs single press). */
+/* Used in profile-page headers (candidate.html, committee.html). Two segments —
+   "MENU" text + more_horiz icon — joined by a 1px var(--bg) divider; click
+   toggles a dropdown of action/link items below. The navy fill matches
+   .button-group-btn.active (the "selected" semantic) but kept as its own
+   identity class — different sizing (height:40px vs 34px) and a different
+   interaction model (toggle dropdown vs single press). */
 .menu-btn-wrap { position:relative; display:inline-block; }
 .menu-btn { display:inline-flex; align-items:stretch;
   background:var(--color-navy-950); color:var(--bg);

@@ -29,6 +29,14 @@ async function setupWithContent(page) {
   await page.waitForSelector('#content.visible', { timeout: 12000 });
 }
 
+// Open the committees modal via the profile menu-btn (T-menu-btn-profile-header
+// replaced the .committees-link trigger). Two clicks: open the menu, click the
+// Committees item.
+async function openCommittees(page) {
+  await page.locator('#profile-menu-btn .menu-btn').click();
+  await page.locator('.menu-item[data-item-id="committees"]').click();
+}
+
 // ── Profile header ────────────────────────────────────────────────────────────
 
 test.describe('candidate.html — profile header', () => {
@@ -266,15 +274,20 @@ test.describe('candidate.html — profile header', () => {
     await expect(tag).toHaveText('Incumbent');
   });
 
-  test('committees trigger shows no count, ready immediately', async ({ page }) => {
+  test('profile menu-btn is revealed, ready immediately', async ({ page }) => {
     await setup(page);
-    // T11: committees fetch is deferred to modal-open. The trigger is revealed
-    // unconditionally on init and reads "Committees →" with no parenthetical.
-    const trigger = page.locator('#committees-trigger');
-    await expect(trigger).toBeVisible({ timeout: 8000 });
-    const btn = trigger.locator('.committees-link');
-    const text = await btn.textContent();
-    expect(text?.trim()).toBe('Committees →');
+    // T-menu-btn-profile-header: the .committees-link trigger was retired in
+    // favor of the profile menu-btn. T11's committees fetch is still deferred
+    // to modal-open — exercised by the openCommittees helper. Here we just
+    // assert the menu-btn host is visible and renders the Committees item
+    // (no count parenthetical, T11 behavior preserved).
+    const host = page.locator('#profile-menu-btn');
+    await expect(host).toBeVisible({ timeout: 8000 });
+    await host.locator('.menu-btn').click();
+    const item = page.locator('.menu-item[data-item-id="committees"]');
+    await expect(item).toBeVisible();
+    const text = await item.locator('.menu-item-label').textContent();
+    expect(text?.trim()).toBe('Committees');
     expect(text).not.toMatch(/\(\d+\)/);
   });
 });
@@ -514,8 +527,8 @@ test.describe('candidate.html — Raised tab sections', () => {
 test.describe('candidate.html — committees modal', () => {
   test.beforeEach(async ({ page }) => {
     await setup(page);
-    await page.waitForSelector('#committees-trigger', { timeout: 10000 });
-    await page.locator('.committees-link').click();
+    await page.waitForSelector('#profile-menu-btn', { state: 'visible', timeout: 10000 });
+    await openCommittees(page);
     // Modal opens by setting display:flex on #committees-modal
     await page.waitForFunction(
       () => {
@@ -661,7 +674,7 @@ test.describe('candidate.html — off-office PCC tag (*Active from a prior candi
     await mockOffOfficeCommittees(page);
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
     const rows = page.locator('#committees-modal #modal-active-list .committee-row');
     await expect(rows).toHaveCount(2);
@@ -680,7 +693,7 @@ test.describe('candidate.html — off-office PCC tag (*Active from a prior candi
     await mockOffOfficeCommittees(page);
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
     // The mock returns the off-office PCC FIRST; the intra-group sort should swap them
     // so the true-office row renders first in DOM order.
@@ -733,7 +746,7 @@ test.describe('candidate.html — committees modal always-paired tabs + empty st
     await mockOnlyActive(page);
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
     // Click into the Terminated tab and confirm the empty-state copy renders.
     await page.locator('#modal-history-tab-btn').click();
@@ -748,7 +761,7 @@ test.describe('candidate.html — committees modal always-paired tabs + empty st
     await mockOnlyActive(page);
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
     // Both tab buttons should be visible (the Terminated tab is no longer
     // conditionally hidden when there are no terminated committees).
@@ -764,7 +777,7 @@ test.describe('candidate.html — committees modal always-paired tabs + empty st
     await mockOnlyActive(page);
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
     // Active label has the count; Terminated label explicitly carries (0).
     const activeLabel = await page.locator('#committees-modal .modal-tab-btn[data-tab="active"]').textContent();
@@ -779,7 +792,7 @@ test.describe('candidate.html — committees modal always-paired tabs + empty st
     await mockOnlyTerminated(page);
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     // Wait for tabs to reveal (the natural post-fetch signal — terminated rows
     // exist but live inside the hidden Terminated panel until the user clicks).
     await page.waitForFunction(
@@ -811,7 +824,7 @@ test.describe('candidate.html — committees modal always-paired tabs + empty st
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     // Immediately after click — tab bar should be hidden (mid-load).
     const tabsDisplayDuringLoad = await page.locator('#committees-modal .modal-tabs').evaluate(el => getComputedStyle(el).display);
     expect(tabsDisplayDuringLoad).toBe('none');
@@ -839,7 +852,7 @@ test.describe('candidate.html — committees modal always-paired tabs + empty st
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     const noteDisplayDuringLoad = await page.locator('#committees-modal .modal-body .data-note').evaluate(el => getComputedStyle(el).display);
     expect(noteDisplayDuringLoad).toBe('none');
     await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
@@ -879,7 +892,7 @@ test.describe('candidate.html — modal section-title spacing (adjacent sibling 
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     await page.waitForSelector('#committees-modal .committee-row', { timeout: 8000 });
     const titleMargins = await page.locator('#committees-modal .modal-body .section-title').evaluateAll(els =>
       els.map(el => parseFloat(getComputedStyle(el).marginTop))
@@ -930,9 +943,9 @@ test.describe('candidate.html — committees modal network (T11 deferral)', () =
     await mockFecApi(page);
     attachCommitteesListener(page, captured);
     await page.goto(CANDIDATE_URL);
-    await page.waitForSelector('#committees-trigger', { timeout: 12000 });
+    await page.waitForSelector('#profile-menu-btn', { state: 'visible', timeout: 12000 });
     expect(captured).toEqual([]);
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     await page.waitForSelector('.committee-row', { timeout: 8000 });
     expect(captured.some(u => /\/candidate\/[^/]+\/committees\//.test(u))).toBe(true);
     expect(captured.some(u => /sponsor_candidate_id=/.test(u))).toBe(true);
@@ -944,8 +957,8 @@ test.describe('candidate.html — committees modal network (T11 deferral)', () =
     await mockFecApi(page);
     attachCommitteesListener(page, captured);
     await page.goto(CANDIDATE_URL);
-    await page.waitForSelector('#committees-trigger', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await page.waitForSelector('#profile-menu-btn', { state: 'visible', timeout: 12000 });
+    await openCommittees(page);
     await page.waitForSelector('.committee-row', { timeout: 8000 });
     const firstCount = captured.length;
     expect(firstCount).toBeGreaterThanOrEqual(2);
@@ -954,7 +967,7 @@ test.describe('candidate.html — committees modal network (T11 deferral)', () =
       () => document.getElementById('committees-modal').style.display === 'none',
       { timeout: 3000 }
     );
-    await page.locator('.committees-link').click();
+    await openCommittees(page);
     await page.waitForFunction(
       () => document.getElementById('committees-modal').style.display === 'flex',
       { timeout: 3000 }
@@ -969,13 +982,13 @@ test.describe('candidate.html — committees modal network (T11 deferral)', () =
     await mockFecApi(page);
     attachCommitteesListener(page, captured);
     await page.goto(CANDIDATE_URL);
-    await page.waitForSelector('#committees-trigger', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await page.waitForSelector('#profile-menu-btn', { state: 'visible', timeout: 12000 });
+    await openCommittees(page);
     await page.waitForSelector('.committee-row', { timeout: 8000 });
     const firstCount = captured.length;
     await page.reload();
-    await page.waitForSelector('#committees-trigger', { timeout: 12000 });
-    await page.locator('.committees-link').click();
+    await page.waitForSelector('#profile-menu-btn', { state: 'visible', timeout: 12000 });
+    await openCommittees(page);
     await page.waitForSelector('.committee-row', { timeout: 8000 });
     expect(captured.length).toBeGreaterThan(firstCount);
   });
@@ -1022,8 +1035,8 @@ test.describe('candidate.html — Amplitude events', () => {
 
   test('Committees Modal Opened fires on trigger click', async ({ page }) => {
     await setup(page);
-    await page.waitForSelector('#committees-trigger', { timeout: 8000 });
-    await page.locator('.committees-link').click();
+    await page.waitForSelector('#profile-menu-btn', { state: 'visible', timeout: 8000 });
+    await openCommittees(page);
     const event = await findTrackEvent(page, 'Committees Modal Opened');
     expect(event).toBeDefined();
   });
@@ -1119,8 +1132,8 @@ test.describe('candidate.html — landing state (index view)', () => {
     expect(label?.trim()).toMatch(/^\d{4}$/);
   });
 
-  test('#committees-trigger is visible in index view', async ({ page }) => {
-    await expect(page.locator('#committees-trigger')).toBeVisible();
+  test('#profile-menu-btn is visible in index view', async ({ page }) => {
+    await expect(page.locator('#profile-menu-btn')).toBeVisible();
   });
 });
 
@@ -2101,5 +2114,146 @@ test.describe('candidate.html — T-load-4b chart-card skeleton', () => {
     await expect(page.locator('.chart-legend')).toBeHidden();
     // data-note empty on catch (not coupled to chart error state)
     await expect(page.locator('#data-note')).toBeEmpty();
+  });
+});
+
+// ── T-menu-btn-profile-header — profile menu-btn integration ─────────────────
+
+test.describe('candidate.html — profile menu-btn', () => {
+  test('menu-btn is visible after profile-header reveal', async ({ page }) => {
+    await setup(page);
+    const host = page.locator('#profile-menu-btn');
+    await expect(host).toBeVisible();
+    await expect(host.locator('.menu-btn')).toBeVisible();
+    const expanded = await host.locator('.menu-btn').getAttribute('aria-expanded');
+    expect(expanded).toBe('false');
+  });
+
+  test('menu-btn text label reads "Candidate" (page-specific override)', async ({ page }) => {
+    await setup(page);
+    const text = await page.locator('#profile-menu-btn .menu-btn-text').textContent();
+    expect(text?.trim()).toBe('Candidate');
+  });
+
+  test('dropdown has 5 items in canonical order', async ({ page }) => {
+    await setup(page);
+    await page.locator('#profile-menu-btn .menu-btn').click();
+    const ids = await page.locator('#profile-menu-btn .menu-item').evaluateAll(
+      nodes => nodes.map(n => n.dataset.itemId)
+    );
+    expect(ids).toEqual(['profile', 'race', 'committees', 'compare', 'follow']);
+  });
+
+  test('Profile item href = /candidate/{id}; enabled on detail view', async ({ page }) => {
+    await setup(page);  // setup uses #2024#summary → detail view
+    await page.locator('#profile-menu-btn .menu-btn').click();
+    const profile = page.locator('.menu-item[data-item-id="profile"]');
+    await expect(profile).toHaveAttribute('href', '/candidate/H2WA03217');
+    const disabled = await profile.getAttribute('aria-disabled');
+    expect(disabled).toBeNull();
+  });
+
+  test('Profile item is aria-disabled on index view (bare URL)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217');   // bare URL → index
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('#profile-menu-btn .menu-btn').click();
+    const profile = page.locator('.menu-item[data-item-id="profile"]');
+    await expect(profile).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  test('Race item label and href reflect the viewed cycle on detail view', async ({ page }) => {
+    await setup(page);  // #2024#summary
+    await page.locator('#profile-menu-btn .menu-btn').click();
+    const race = page.locator('.menu-item[data-item-id="race"]');
+    const label = await race.locator('.menu-item-label').textContent();
+    expect(label?.trim()).toBe('Race (2024)');
+    await expect(race).toHaveAttribute('href', '/race?state=WA&office=H&year=2024&district=03');
+  });
+
+  test('Race item uses defaultCycle on index view (bare URL)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.locator('#profile-menu-btn .menu-btn').click();
+    const race = page.locator('.menu-item[data-item-id="race"]');
+    // ALL_CYCLES = [2022, 2024] from the mock; defaultCycle = most-recent
+    // non-future = 2024.
+    const label = await race.locator('.menu-item-label').textContent();
+    expect(label?.trim()).toBe('Race (2024)');
+    await expect(race).toHaveAttribute('href', '/race?state=WA&office=H&year=2024&district=03');
+  });
+
+  test('Cycle change via hashchange updates Race item label + href', async ({ page }) => {
+    await setup(page);  // #2024#summary
+    // Direct within-detail hashchange — verifies trackPageViewed fires
+    // (Verification A from the investigation report).
+    await page.evaluate(() => { window.location.hash = '#2022#summary'; });
+    // Wait for the menu updater to run — checked via the rendered label.
+    await page.waitForFunction(() => {
+      const lbl = document.querySelector('.menu-item[data-item-id="race"] .menu-item-label');
+      return lbl && lbl.textContent.trim() === 'Race (2022)';
+    }, { timeout: 5000 });
+    await page.locator('#profile-menu-btn .menu-btn').click();
+    const race = page.locator('.menu-item[data-item-id="race"]');
+    await expect(race).toHaveAttribute('href', '/race?state=WA&office=H&year=2022&district=03');
+  });
+
+  test('Committees item opens the existing committees modal', async ({ page }) => {
+    await setup(page);
+    await openCommittees(page);
+    await expect(page.locator('#committees-modal')).toBeVisible();
+  });
+
+  test('Compare item opens the info modal', async ({ page }) => {
+    await setup(page);
+    await page.locator('#profile-menu-btn .menu-btn').click();
+    await page.locator('.menu-item[data-item-id="compare"]').click();
+    await expect(page.locator('#info-modal')).toBeVisible();
+  });
+
+  test('Follow item opens the info modal', async ({ page }) => {
+    await setup(page);
+    await page.locator('#profile-menu-btn .menu-btn').click();
+    await page.locator('.menu-item[data-item-id="follow"]').click();
+    await expect(page.locator('#info-modal')).toBeVisible();
+  });
+
+  test('menu-btn is icon-only at ≤860px viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await expect(page.locator('#profile-menu-btn .menu-btn-text')).toHaveCount(0);
+    await expect(page.locator('#profile-menu-btn .menu-btn-icon')).toHaveCount(1);
+  });
+
+  test('resize ≤860 → desktop preserves "Candidate" label (setShowText re-reads config text)', async ({ page }) => {
+    // Start at mobile to trigger initial showText:false render.
+    await page.setViewportSize({ width: 390, height: 800 });
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await expect(page.locator('#profile-menu-btn .menu-btn-text')).toHaveCount(0);
+    // Resize to desktop — matchMedia fires → setShowText(true) → renderTriggerInner
+    // re-injects the stored text value. If setShowText hardcoded 'Menu', the
+    // label would revert.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const text = await page.locator('#profile-menu-btn .menu-btn-text').textContent();
+    expect(text?.trim()).toBe('Candidate');
+  });
+
+  test('menu-btn stays visible in compact header (CSS rule, not scroll listener)', async ({ page }) => {
+    await setup(page);
+    // Apply .compact class directly — the test verifies the CSS rule (or
+    // absence of any .compact-keyed hide rule), not the scroll listener.
+    await page.evaluate(() => {
+      document.getElementById('profile-header').classList.add('compact');
+    });
+    await expect(page.locator('#profile-menu-btn')).toBeVisible();
   });
 });

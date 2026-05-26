@@ -86,9 +86,7 @@
   <div class="page-header page-header-reveal" id="profile-header">
     <div class="profile-header-row" id="profile-header-row">
       <div class="page-title" id="candidate-name"><span class="skeleton" style="width:8em;height:1em"></span></div>
-      <div id="committees-trigger" style="display:none;margin-left:auto;align-self:center">
-        <button class="committees-link" onclick="openCommitteesModal()">Committees →</button>
-      </div>
+      <div class="menu-btn-wrap" id="profile-menu-btn" style="display:none;margin-left:auto;align-self:center"></div>
     </div>
     <div class="meta-row" id="meta-row"><span class="skeleton" style="width:40%;height:1.2rem"></span></div>
   </div>
@@ -435,6 +433,8 @@ var compactHeaderInited = false; // compact scroll listener registered once on f
 var compactThreshold    = 0;     // scrollY at which compact mode engages; set in initCompactHeader()
 var view                = null;  // initViewSwitcher instance — created in init() before first switchTo
 var raisedTabSection    = null;  // initTabSection instance for #raised-tab-section — created in init()
+var menu                = null;  // initMenuButton instance — created in init() after entity-resolve (T-menu-btn-profile-header)
+var defaultCycle        = null;  // candidate's most-recent non-future cycle — set once in init(); read by updateMenuState for the index-view Race fallback
 
 var ARCHIVE_MIN_YEAR = { H: 2008, S: 2012, P: 2012 };
 
@@ -2266,11 +2266,14 @@ async function init() {
     var now = new Date().getFullYear();
     var hashParts = window.location.hash.replace(/^#/,'').split('#');
     var hashCycle = parseInt(hashParts[0]);
-    var defaultCycle = ALL_CYCLES.reduce(function(best, cy) {
+    // Page-scope `defaultCycle` — the candidate's most-recent non-future cycle.
+    // Used here for the initial activeCycle default and by updateMenuState as
+    // the Race-year fallback on the index view (where location.hash is empty).
+    defaultCycle = ALL_CYCLES.reduce(function(best, cy) {
       return cy <= now+1 && cy > best ? cy : best;
     }, ALL_CYCLES[0]);
-    if (ALL_CYCLES.indexOf(hashCycle) !== -1) defaultCycle = hashCycle;
-    activeCycle = defaultCycle;
+    var firstActiveCycle = ALL_CYCLES.indexOf(hashCycle) !== -1 ? hashCycle : defaultCycle;
+    activeCycle = firstActiveCycle;
     CAND_NAME = displayName;
 
     // Meta row — FEC ID + race tag + party (cycle-independent). Incumbent tag
@@ -2284,10 +2287,41 @@ async function init() {
       + '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>';
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
-    // Reveal Committees trigger unconditionally — every FEC-registered candidate
-    // has at least a Principal Campaign Committee, so the modal is always meaningful.
-    // The data fetch is deferred to modal-open (T11).
-    document.getElementById('committees-trigger').style.display = 'block';
+    // T-menu-btn-profile-header — mount the profile menu (replaces the prior
+    // #committees-trigger / .committees-link). Items: Profile / Race(YYYY) /
+    // Committees / Compare / Follow. Profile is disabled while on the cycle
+    // index view; the Race year reflects the viewed cycle (detail) or the
+    // most-recent-non-future cycle (index — defaultCycle fallback).
+    var raceYearInit = isDetailView ? hashCycle : defaultCycle;
+    menu = initMenuButton({
+      hostEl: document.getElementById('profile-menu-btn'),
+      items: [
+        { id: 'profile',    label: 'Profile',                    icon: 'trending_flat',
+          href: '/candidate/' + CANDIDATE_ID,
+          disabled: !isDetailView },
+        { id: 'race',       label: 'Race (' + raceYearInit + ')', icon: 'trending_flat',
+          href: raceHref(CAND_OFFICE, CAND_STATE, CAND_DIST, raceYearInit) },
+        { id: 'committees', label: 'Committees',                 icon: 'expand_content',
+          onClick: openCommitteesModal },
+        { id: 'compare',    label: 'Compare',                    icon: 'compare_arrows',
+          onClick: openInfoModal },
+        { id: 'follow',     label: 'Follow',                     icon: 'rss_feed',
+          onClick: openInfoModal }
+      ],
+      showText:  !window.matchMedia('(max-width:860px)').matches,
+      text:      'Candidate',
+      ariaLabel: 'Candidate menu'
+    });
+    document.getElementById('profile-menu-btn').style.display = 'block';
+
+    // Mobile-breakpoint listener: flip the menu to icon-only at ≤860px. The
+    // initial showText value comes from the same mql.matches read at
+    // initMenuButton time above — listener takes over from there. Inline
+    // (not lifted) — two consumers total (candidate + committee).
+    (function() {
+      var mql = window.matchMedia('(max-width:860px)');
+      mql.addEventListener('change', function() { menu.setShowText(!mql.matches); });
+    })();
 
     // Compact header scroll listener registered unconditionally — index-only visits
     // would never enter the detail view, so the listener must be active from init().
@@ -2327,9 +2361,23 @@ async function init() {
         if (['summary','raised','spent'].indexOf(tabHash) !== -1) showTab(tabHash);
       },
       trackPageViewed: function(viewName) {
+        // Read the target cycle from location.hash — activeCycle is stale at
+        // this moment (it's set later, inside loadCycle). Q1 fix: Amplitude's
+        // `cycle` field now reports the new cycle on cycle changes rather than
+        // the previous one. On index branch (empty hash), hashYear is NaN.
+        var hashYear = parseInt(location.hash.replace(/^#/, '').split('#')[0], 10);
         amplitude.track('Page Viewed', {
           page: 'candidate', candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME,
-          cycle: activeCycle, source: urlParams.get('from') || null, view: viewName
+          cycle: !isNaN(hashYear) ? hashYear : null,
+          source: urlParams.get('from') || null, view: viewName
+        });
+        // Update menu state — Race year follows the viewed cycle (detail) or
+        // the candidate's most-recent-non-future cycle (index fallback).
+        var raceYear = !isNaN(hashYear) ? hashYear : defaultCycle;
+        menu.updateItem('profile', { disabled: viewName === 'index' });
+        menu.updateItem('race', {
+          label: 'Race (' + raceYear + ')',
+          href:  raceHref(CAND_OFFICE, CAND_STATE, CAND_DIST, raceYear)
         });
       },
       onIndexError: function(err) {

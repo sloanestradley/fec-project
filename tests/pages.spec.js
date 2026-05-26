@@ -945,8 +945,12 @@ test.describe('T-menu-btn — design-system demo (showText:false)', () => {
   });
 
   test('icon-only variant carries the configured aria-label', async ({ page }) => {
+    // Demo updated to use 'Candidate menu' as a representative page-integration
+    // label (T-menu-btn-profile-header — production never renders the 'Menu'
+    // factory default; the demo mirrors what candidate.html / committee.html
+    // pass for their visible text + aria-label coherence).
     const label = await page.locator('#ds-menu-btn-demo-b .menu-btn').getAttribute('aria-label');
-    expect(label).toBe('Open profile menu');
+    expect(label).toBe('Candidate menu');
   });
 });
 

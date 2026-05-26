@@ -84,6 +84,7 @@
   <div class="committee-header page-header page-header-reveal" id="committee-header">
     <div class="profile-header-row">
       <div class="page-title" id="committee-name"><span class="skeleton" style="width:8em;height:1em"></span></div>
+      <div class="menu-btn-wrap" id="committee-menu-btn" style="display:none;margin-left:auto;align-self:center"></div>
     </div>
     <div class="meta-row" id="meta-row"><span class="skeleton" style="width:40%;height:1.2rem"></span></div>
   </div>
@@ -429,6 +430,7 @@ var compactHeaderInited = false; // compact scroll listener registered once at i
 var cycleFetchToken     = null;  // claimed in renderStats; checked in renderRaisedIfReady/renderSpentIfReady
 var view                = null;  // initViewSwitcher instance — created in init() before first switchTo
 var raisedTabSection    = null;  // initTabSection instance for #raised-tab-section — created in init()
+var menu                = null;  // initMenuButton instance — created in init() after renderHeader (T-menu-btn-profile-header)
 var raisedSlowStillLoading = false; // 10s timer fired and slow tier hasn't resolved/errored — used by applyIndicatorVisibility
 
 var FIPS_TO_ABBR = {
@@ -772,6 +774,32 @@ async function init() {
     var hashCycle = parseInt(hashParts[0], 10);
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
+    // T-menu-btn-profile-header — mount the profile menu. Committee variant
+    // has 3 items: Profile / Compare / Follow (no Race, no Committees). Profile
+    // is disabled while on the cycle index view. Mounted AFTER renderHeader
+    // (committee data hydrated) and BEFORE `await totalsP` (the menu must not
+    // be gated on totals).
+    menu = initMenuButton({
+      hostEl: document.getElementById('committee-menu-btn'),
+      items: [
+        { id: 'profile', label: 'Profile', icon: 'trending_flat',
+          href: '/committee/' + COMMITTEE_ID,
+          disabled: !isDetailView },
+        { id: 'compare', label: 'Compare', icon: 'compare_arrows', onClick: openInfoModal },
+        { id: 'follow',  label: 'Follow',  icon: 'rss_feed',       onClick: openInfoModal }
+      ],
+      showText:  !window.matchMedia('(max-width:860px)').matches,
+      text:      'Committee',
+      ariaLabel: 'Committee menu'
+    });
+    document.getElementById('committee-menu-btn').style.display = 'block';
+
+    // Mobile-breakpoint listener — see candidate.html for the parallel pattern.
+    (function() {
+      var mql = window.matchMedia('(max-width:860px)');
+      mql.addEventListener('change', function() { menu.setShowText(!mql.matches); });
+    })();
+
     // Detail view: renderStats needs ALL_TOTALS sync before view.switchTo →
     // loadCycle → renderStats. Block here on cold cache where totals
     // wasn't already resolved. Index view: don't await — scaffold doesn't
@@ -842,10 +870,17 @@ async function init() {
         if (['summary','raised','spent'].indexOf(tabHash) !== -1) showTab(tabHash);
       },
       trackPageViewed: function(viewName) {
+        // Read the target cycle from location.hash — activeCycle is stale at
+        // this moment (set inside renderStats, after this callback runs).
+        // Q1 fix: Amplitude's `cycle` field now reports the new cycle on cycle
+        // changes rather than the previous one.
+        var hashYear = parseInt(location.hash.replace(/^#/, '').split('#')[0], 10);
         amplitude.track('Page Viewed', {
-          page: 'committee', committee_id: COMMITTEE_ID, cycle: activeCycle,
+          page: 'committee', committee_id: COMMITTEE_ID,
+          cycle: !isNaN(hashYear) ? hashYear : null,
           source: urlParams.get('from') || null, view: viewName
         });
+        menu.updateItem('profile', { disabled: viewName === 'index' });
       },
       onIndexError: function(err) {
         var el = document.getElementById('state-msg');

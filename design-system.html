@@ -557,7 +557,7 @@
         </div>
         <div class="ds-type-row">
           <span class="stat-label" style="margin-bottom:0">Cycle</span>
-          <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .committees-link · .candidate-card-stat-lbl · .button-group-btn · .menu-btn-text · .menu-item-label · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
+          <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .candidate-card-stat-lbl · .button-group-btn · .menu-btn-text · .menu-item-label · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
         </div>
         <div class="ds-type-row">
           <span class="legend-item" style="gap:0">Final coverage: Mar 31, 2024</span>
@@ -565,7 +565,7 @@
         </div>
         <div class="ds-type-row">
           <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem">Navigate to Candidates</span>
-          <span class="ds-type-meta"><strong>body</strong><br>IBM Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .nav-item · .committees-link · .retry-btn · .tab-error-msg · .inline-status-msg · .map-tt-name</span>
+          <span class="ds-type-meta"><strong>body</strong><br>IBM Plex Sans 400 · 0.75rem<br>.nav-link · .form-input · .nav-item · .retry-btn · .tab-error-msg · .inline-status-msg · .map-tt-name</span>
         </div>
         <div class="ds-type-row">
           <span class="candidate-card-name" style="margin-bottom:0">Marie Gluesenkamp Perez</span>
@@ -710,14 +710,12 @@
           <span class="ds-component-name">Candidate Header</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">extends .page-header · .profile-header-row · .page-title · .committees-link · .meta-row</div>
+        <div class="ds-component-classes">extends .page-header · .profile-header-row · .page-title · .menu-btn-wrap · .meta-row</div>
         <div class="ds-component-demo">
           <div class="profile-header page-header" style="padding:2rem">
-            <div class="profile-header-row">
+            <div class="profile-header-row" style="display:flex;align-items:center;gap:var(--space-8);flex-wrap:wrap">
               <div class="page-title">Marie Gluesenkamp Perez</div>
-              <div style="margin-left:auto">
-                <button class="committees-link">Committees →</button>
-              </div>
+              <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted);text-transform:uppercase;letter-spacing:var(--ls-expanded)">menu-btn slot — see <a href="#comp-menu-btn" style="color:var(--accent)">Menu Button</a></div>
             </div>
             <div class="meta-row" style="margin-top:var(--space-4)">
               <span class="tag tag-neutral fec-id-tag">FEC ID · H2WA03217</span>
@@ -727,7 +725,7 @@
             </div>
           </div>
         </div>
-        <div class="ds-component-notes">The meta-row is a uniform strip of <code>.tag</code>-style elements below the page title. Canonical order: <strong>FEC ID → race → party → incumbent</strong>. Race is a <code>.tag.tag-neutral</code> rendered via <code>formatRaceName(office, state, district)</code> (short form, "House • WA-03") — the long form ("US House: Washington's 3rd District") lives in the race-context-bar's prose-emphasis label below. Incumbent (<code>.tag-inc</code>) is cycle-dependent and appended dynamically by <code>loadCycle()</code>. <code>.profile-header-row</code> contains the page title and the primary-action trigger (<code>.committees-link</code>); <code>.meta-row</code> sits as a sibling below. The navy-filled committees trigger shares its visual treatment with <code>.button-group-btn.active</code> — "primary action on this page" is the shared semantic. <strong>T14.5 (2026-05-14) retired the <code>.back-affordance-slot</code> chevron</strong> that previously sat above <code>.profile-header-row</code> — the back path now lives inside the Cycle card in the stats-grid (see <a href="#comp-stats-grid">Stats Grid</a>).</div>
+        <div class="ds-component-notes">The meta-row is a uniform strip of <code>.tag</code>-style elements below the page title. Canonical order: <strong>FEC ID → race → party → incumbent</strong>. Race is a <code>.tag.tag-neutral</code> rendered via <code>formatRaceName(office, state, district)</code> (short form, "House • WA-03") — the long form ("US House: Washington's 3rd District") lives in the race-context-bar's prose-emphasis label below. Incumbent (<code>.tag-inc</code>) is cycle-dependent and appended dynamically by <code>loadCycle()</code>. <code>.profile-header-row</code> contains the page title and the menu-btn host (<a href="#comp-menu-btn"><code>.menu-btn-wrap</code></a>); <code>.meta-row</code> sits as a sibling below. <strong>T-menu-btn-profile-header (2026-05-26) retired the <code>.committees-link</code> trigger</strong> in favor of the menu-btn (an action menu with Profile / Race / Committees / Compare / Follow items). <strong>T14.5 (2026-05-14) retired the <code>.back-affordance-slot</code> chevron</strong> that previously sat above <code>.profile-header-row</code> — the back path now lives inside the Cycle card in the stats-grid (see <a href="#comp-stats-grid">Stats Grid</a>).</div>
       </div>
 
       <!-- Menu button (action menu — split button + dropdown) -->
@@ -756,8 +754,8 @@
             <div class="ds-menu-btn-demo-row">
               <div class="ds-demo-label">Open dropdown · static reference</div>
               <div class="menu-btn-wrap">
-                <button type="button" class="menu-btn" aria-haspopup="true" aria-expanded="true" aria-label="Menu">
-                  <span class="menu-btn-text">Menu</span>
+                <button type="button" class="menu-btn" aria-haspopup="true" aria-expanded="true" aria-label="Candidate menu">
+                  <span class="menu-btn-text">Candidate</span>
                   <span class="menu-btn-icon"><svg class="icon-svg" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor"><path d="M207.86-432Q188-432 174-446.14t-14-34Q160-500 174.14-514t34-14Q228-528 242-513.86t14 34Q256-460 241.86-446t-34 14Zm272 0Q460-432 446-446.14t-14-34Q432-500 446.14-514t34-14Q500-528 514-513.86t14 34Q528-460 513.86-446t-34 14Zm272 0Q732-432 718-446.14t-14-34Q704-500 718.14-514t34-14Q772-528 786-513.86t14 34Q800-460 785.86-446t-34 14Z"/></svg></span>
                 </button>
                 <div class="menu-btn-dropdown open" role="menu" style="position:static;display:block;margin-top:var(--space-4)">
@@ -787,7 +785,7 @@
 
           </div>
         </div>
-        <div class="ds-component-notes">An <strong>action menu</strong> (not a value-selector) — items dispatch and close, no <code>aria-selected</code>. Trigger uses <code>aria-haspopup="true"</code> + <code>aria-expanded</code>; dropdown is <code>role="menu"</code>, items are <code>role="menuitem"</code>. Click toggles; outside-click closes; Escape closes and returns focus to the trigger. ArrowUp/Down move focus through enabled items and <strong>clamp at the ends</strong> (do not wrap — matches <a href="#comp-form-controls">comb-dropdown</a> behavior; one keyboard model for all popup-style dropdowns). Home/End jump to first/last enabled item. The navy fill is the site's shared "primary action / selected" treatment (same color family as <a href="#comp-candidate-header">.committees-link</a> and <a href="#comp-button-group">.button-group-btn.active</a>) but kept as its own identity class — different sizing (40px height, off the 8px scale by design) and a different interaction model. The dropdown's <code>box-shadow:0 0 4px rgba(0,0,0,0.2)</code> is intentionally distinct from <code>.typeahead-dropdown</code>'s (<code>0 0 8px rgba(26,21,16,0.2)</code>) for now. <strong>showText:false</strong> drops the MENU text segment to icon-only — used at mobile breakpoint by callers (the breakpoint switch itself is the caller's concern). The component is mounted on candidate.html + committee.html profile headers in T-menu-btn-profile-header. Disabled menu-item state uses <code>aria-disabled="true"</code> (not the native <code>disabled</code> attribute) so the item stays in the DOM for visual consistency — color flips to <code>--text</code> at 50% opacity, parity with <a href="#comp-form-controls">.form-input:disabled</a>.</div>
+        <div class="ds-component-notes">An <strong>action menu</strong> (not a value-selector) — items dispatch and close, no <code>aria-selected</code>. Trigger uses <code>aria-haspopup="true"</code> + <code>aria-expanded</code>; dropdown is <code>role="menu"</code>, items are <code>role="menuitem"</code>. Click toggles; outside-click closes; Escape closes and returns focus to the trigger. ArrowUp/Down move focus through enabled items and <strong>clamp at the ends</strong> (do not wrap — matches <a href="#comp-form-controls">comb-dropdown</a> behavior; one keyboard model for all popup-style dropdowns). Home/End jump to first/last enabled item. The navy fill matches the site's <a href="#comp-button-group">.button-group-btn.active</a> "selected" treatment but kept as its own identity class — different sizing (40px height, off the 8px scale by design) and a different interaction model. <strong>The text segment label is config-driven</strong> — page integrations pass a page-specific value (<code>text:'Candidate'</code> on candidate.html, <code>text:'Committee'</code> on committee.html). The demos above use <code>text:'Candidate'</code> as a representative page-integration label; the factory's <code>'Menu'</code> fallback is never rendered in production. The dropdown's <code>box-shadow:0 0 4px rgba(0,0,0,0.2)</code> is intentionally distinct from <code>.typeahead-dropdown</code>'s (<code>0 0 8px rgba(26,21,16,0.2)</code>) for now. <strong>showText:false</strong> drops the MENU text segment to icon-only — used at mobile breakpoint by callers (the breakpoint switch itself is the caller's concern). The component is mounted on candidate.html + committee.html profile headers in T-menu-btn-profile-header. Disabled menu-item state uses <code>aria-disabled="true"</code> (not the native <code>disabled</code> attribute) so the item stays in the DOM for visual consistency — color flips to <code>--text</code> at 50% opacity, parity with <a href="#comp-form-controls">.form-input:disabled</a>.</div>
       </div>
 
       <!-- 7. Health banner (interactive) -->
@@ -1292,7 +1290,7 @@
           <span class="ds-component-name">button-group</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.button-group · .button-group-btn — inline-flex toggle button group; mono label style, height:34px (matches .form-input/.form-select), collapsed borders, active state navy-950 fill. The navy-950 fill is the site's shared visual language for two semantic uses: "selected segment in a toggle group" (.button-group-btn.active) AND "primary action on this page" (.committees-link) — the color/border declarations are shared via a comma-grouped rule in styles.css.</div>
+        <div class="ds-component-classes">.button-group · .button-group-btn — inline-flex toggle button group; mono label style, height:34px (matches .form-input/.form-select), collapsed borders, active state navy-950 fill. Same navy-950 fill appears on the <a href="#comp-menu-btn">menu-btn</a> (the "selected / primary action" color family) but each component keeps its own identity class and sizing rule.</div>
         <div class="ds-component-demo">
           <div style="display:flex;gap:var(--space-16);align-items:flex-end;flex-wrap:wrap">
             <div class="form-field">
@@ -1312,13 +1310,9 @@
                 <button class="button-group-btn">7 days</button>
               </div>
             </div>
-            <div class="form-field">
-              <label class="form-label">Primary action (.committees-link)</label>
-              <button class="committees-link">Committees →</button>
-            </div>
           </div>
         </div>
-        <div class="ds-component-notes">Used on <code>feed.html</code> for office and time window filters, and on <code>candidate.html</code> as the <code>.committees-link</code> primary-action trigger in the profile header. Wraps in <code>.form-field</code> with <code>.form-label</code> above — same structure as other filter controls. <code>height:34px</code> explicitly matches <code>.form-select</code> and <code>.form-input</code>. Adjacent buttons collapse shared borders via <code>.button-group-btn + .button-group-btn { border-left:none }</code>. <code>.committees-link</code> is a standalone use of the navy-filled visual treatment — same color/border declarations, its own sizing rule, own identity class.</div>
+        <div class="ds-component-notes">Used on <code>feed.html</code> for office and time window filters. Wraps in <code>.form-field</code> with <code>.form-label</code> above — same structure as other filter controls. <code>height:34px</code> explicitly matches <code>.form-select</code> and <code>.form-input</code>. Adjacent buttons collapse shared borders via <code>.button-group-btn + .button-group-btn { border-left:none }</code>. The navy-950 active fill is the "selected" semantic — also appears on the <a href="#comp-menu-btn">menu-btn</a> with its own sizing rule.</div>
       </div>
 
       <!-- 12. End of results -->
@@ -1830,9 +1824,9 @@
           <span class="ds-component-name">Modal</span>
           <span class="ds-status candidate-only">candidate-only</span>
         </div>
-        <div class="ds-component-classes">.modal-overlay · .modal-panel · .modal-header · .modal-title · .modal-close · .modal-tabs · .modal-tab-btn · .modal-tab-btn.active · .modal-body · .committees-link (trigger) — the committees variant (tabs-equipped). Width <code>min(680px,92vw)</code>. For a short-copy info modal, see <a href="#comp-info-modal">comp-info-modal</a>.</div>
+        <div class="ds-component-classes">.modal-overlay · .modal-panel · .modal-header · .modal-title · .modal-close · .modal-tabs · .modal-tab-btn · .modal-tab-btn.active · .modal-body — the committees variant (tabs-equipped). Width <code>min(680px,92vw)</code>. Trigger in production is the <a href="#comp-menu-btn">menu-btn</a>'s Committees item; demo below uses <code>.form-search-btn</code>. For a short-copy info modal, see <a href="#comp-info-modal">comp-info-modal</a>.</div>
         <div class="ds-component-demo">
-          <button class="committees-link" id="ds-modal-trigger">Committees (4) →</button>
+          <button class="form-search-btn" id="ds-modal-trigger">Open committees modal</button>
         </div>
       </div>
 
@@ -1844,7 +1838,7 @@
         </div>
         <div class="ds-component-classes">Reuses the modal shell (<a href="#comp-modal">.modal-overlay · .modal-panel · .modal-header · .modal-title · .modal-close · .modal-body</a>) plus the <code>.modal-panel--narrow</code> width modifier (<code>min(440px,92vw)</code>) and <code>.modal-prose</code> for the body paragraph. No <code>.modal-tabs</code>. Built via <code>openInfoModal()</code> / <code>closeInfoModal()</code> in utils.js — singleton, lazy-injected on first call.</div>
         <div class="ds-component-demo">
-          <button type="button" class="committees-link" id="ds-info-modal-trigger">Open info modal →</button>
+          <button type="button" class="form-search-btn" id="ds-info-modal-trigger">Open info modal</button>
         </div>
         <div class="ds-component-notes">A stripped-back modal for short prose copy — currently the teaser surface for the Compare / Follow menu-btn items (wired in T-menu-btn-profile-header). The <code>.modal-panel--narrow</code> width is right-sized for a single editorial paragraph; the committees modal stays at the 680px default for its longer tabbed content. Mechanics are deliberately minimal: overlay scrim, Escape, outside-click, and close button — no focus trap, no scroll lock (those are explicitly out of scope for this variant). Body copy uses <code>.modal-prose</code> (Plex Serif 0.875rem) — the editorial register that matches <a href="#comp-banner">.banner-desc</a> and the race-context line.</div>
       </div>
@@ -1967,17 +1961,21 @@
     { id: 'compare',    label: 'Compare',     icon: 'compare_arrows', onClick: openInfoModal },
     { id: 'follow',     label: 'Follow',      icon: 'rss_feed',       onClick: openInfoModal }
   ];
+  // Demos use 'Candidate' as a representative page-integration label rather
+  // than the factory's 'Menu' fallback — production never renders 'Menu'.
   initMenuButton({
     hostEl:    document.getElementById('ds-menu-btn-demo-a'),
     items:     demoItems,
     showText:  true,
-    ariaLabel: 'Menu'
+    text:      'Candidate',
+    ariaLabel: 'Candidate menu'
   });
   initMenuButton({
     hostEl:    document.getElementById('ds-menu-btn-demo-b'),
     items:     demoItems,
     showText:  false,
-    ariaLabel: 'Open profile menu'
+    text:      'Candidate',
+    ariaLabel: 'Candidate menu'
   });
 
   // Info modal demo trigger

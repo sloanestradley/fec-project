@@ -1592,3 +1592,92 @@ test.describe('committee.html — T-committee-init-defer-totals per-path totals 
     await expect(page.locator('#stat-raised')).toHaveText(/\$/, { timeout: 2000 });
   });
 });
+
+// ── T-menu-btn-profile-header — profile menu-btn integration ─────────────────
+
+test.describe('committee.html — profile menu-btn', () => {
+  test('menu-btn is visible after committee-header reveal', async ({ page }) => {
+    await setupDetail(page);
+    const host = page.locator('#committee-menu-btn');
+    await expect(host).toBeVisible();
+    await expect(host.locator('.menu-btn')).toBeVisible();
+  });
+
+  test('menu-btn text label reads "Committee" (page-specific override)', async ({ page }) => {
+    await setupDetail(page);
+    const text = await page.locator('#committee-menu-btn .menu-btn-text').textContent();
+    expect(text?.trim()).toBe('Committee');
+  });
+
+  test('dropdown has 3 items only — no Race, no Committees', async ({ page }) => {
+    await setupDetail(page);
+    await page.locator('#committee-menu-btn .menu-btn').click();
+    const ids = await page.locator('#committee-menu-btn .menu-item').evaluateAll(
+      nodes => nodes.map(n => n.dataset.itemId)
+    );
+    expect(ids).toEqual(['profile', 'compare', 'follow']);
+    // Defensive: explicitly assert the absent items are absent
+    await expect(page.locator('.menu-item[data-item-id="race"]')).toHaveCount(0);
+    await expect(page.locator('.menu-item[data-item-id="committees"]')).toHaveCount(0);
+  });
+
+  test('Profile item href = /committee/{id}; enabled on detail view', async ({ page }) => {
+    await setupDetail(page);
+    await page.locator('#committee-menu-btn .menu-btn').click();
+    const profile = page.locator('.menu-item[data-item-id="profile"]');
+    await expect(profile).toHaveAttribute('href', '/committee/C00775668');
+    const disabled = await profile.getAttribute('aria-disabled');
+    expect(disabled).toBeNull();
+  });
+
+  test('Profile item is aria-disabled on index view (bare URL)', async ({ page }) => {
+    await setupIndex(page);
+    await page.locator('#committee-menu-btn .menu-btn').click();
+    const profile = page.locator('.menu-item[data-item-id="profile"]');
+    await expect(profile).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  test('Compare item opens the info modal', async ({ page }) => {
+    await setupDetail(page);
+    await page.locator('#committee-menu-btn .menu-btn').click();
+    await page.locator('.menu-item[data-item-id="compare"]').click();
+    await expect(page.locator('#info-modal')).toBeVisible();
+  });
+
+  test('Follow item opens the info modal', async ({ page }) => {
+    await setupDetail(page);
+    await page.locator('#committee-menu-btn .menu-btn').click();
+    await page.locator('.menu-item[data-item-id="follow"]').click();
+    await expect(page.locator('#info-modal')).toBeVisible();
+  });
+
+  test('menu-btn is icon-only at ≤860px viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await expect(page.locator('#committee-menu-btn .menu-btn-text')).toHaveCount(0);
+    await expect(page.locator('#committee-menu-btn .menu-btn-icon')).toHaveCount(1);
+  });
+
+  test('resize ≤860 → desktop preserves "Committee" label (setShowText re-reads config text)', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await expect(page.locator('#committee-menu-btn .menu-btn-text')).toHaveCount(0);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const text = await page.locator('#committee-menu-btn .menu-btn-text').textContent();
+    expect(text?.trim()).toBe('Committee');
+  });
+
+  test('menu-btn stays visible in compact header', async ({ page }) => {
+    await setupDetail(page);
+    await page.evaluate(() => {
+      document.getElementById('committee-header').classList.add('compact');
+    });
+    await expect(page.locator('#committee-menu-btn')).toBeVisible();
+  });
+});
