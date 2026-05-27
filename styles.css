@@ -832,7 +832,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   background:var(--surface2); border:1px solid var(--border); border-radius:2px;
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--subtle); }
 .chip-x { background:none; border:none; cursor:pointer; font-size:0.875rem;
-  color:var(--subtle); padding:0 var(--space-2); /* micro: minimal hit-area padding on × button */ line-height:var(--lh-tight); display:flex; align-items:center; }
+  color:var(--muted); padding:0 var(--space-2); /* micro: minimal hit-area padding on × button */ line-height:var(--lh-tight); display:flex; align-items:center; }
 .chip-x:hover { color:var(--text); }
 .chip-clear-all { background:none; border:1px solid var(--border-strong); cursor:pointer;
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted);
