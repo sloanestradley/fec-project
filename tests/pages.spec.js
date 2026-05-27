@@ -273,6 +273,63 @@ test.describe('race.html', () => {
   });
 });
 
+// ── T-profile-header-transition — cross-page invariants ────────────────────
+// The literal-56 compactHeaderH cache (utils.js, replaces a measurement
+// that would race the 220ms padding transition) and the .transitions-ready
+// gate on <html> (added via double-rAF in initCompactHeader after first
+// paint) apply uniformly to all three profile pages. This describe block
+// asserts both invariants across candidate / committee / race so any future
+// change that reintroduces a per-page measurement OR forgets to arm the
+// gate gets caught.
+test.describe('T-profile-header-transition — cross-page invariants', () => {
+  const profilePages = [
+    { name: 'candidate', url: '/candidate.html?id=H2WA03217#2024#summary' },
+    { name: 'committee', url: '/committee.html?id=C00775668#2024#summary' },
+    { name: 'race',      url: '/race.html?state=WA&district=03&year=2024&office=H' },
+  ];
+
+  for (const { name, url } of profilePages) {
+    test(`${name}: --compact-header-h equals 56px + .transitions-ready on <html> + aria-hidden on .meta-row`, async ({ page }) => {
+      await mockAmplitude(page);
+      await mockFecApi(page);
+      await page.goto(url);
+      // Wait for .transitions-ready on <html> — single signal that
+      // initCompactHeader has run + the double-rAF gate has armed.
+      await page.waitForSelector('html.transitions-ready', { timeout: 12000 });
+      // Force .main tall enough to scroll past threshold. Test surfaces vary
+      // in mock-fixture content height; without this, scrollTo() may be a
+      // no-op on pages whose mocked content doesn't exceed the viewport.
+      await page.evaluate(() => { document.querySelector('.main').style.minHeight = '2000px'; });
+      // Engage compact via scroll past the threshold.
+      await page.evaluate(() => window.scrollTo(0, 400));
+      await page.waitForTimeout(300); // past 250ms suppression
+      const cssVar = await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue('--compact-header-h').trim()
+      );
+      expect(cssVar).toBe('56px');
+      // A11y invariant: when compact, .meta-row carries aria-hidden="true"
+      // so screen readers don't announce the visually-hidden tags. Race.html
+      // has no .meta-row; skip the check there. CDP a11y-tree spot-check
+      // during T-profile-header-transition surfaced this regression — the
+      // .transitions-ready compact override keeps the meta-row in flow
+      // (opacity:0 + width:0 alone don't exclude content from the AX tree).
+      if (name !== 'race') {
+        const ariaHidden = await page.evaluate(() =>
+          document.querySelector('.meta-row').getAttribute('aria-hidden')
+        );
+        expect(ariaHidden).toBe('true');
+        // Scroll back to top, verify the attribute is removed on un-compact
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(300);
+        const ariaHiddenAfter = await page.evaluate(() =>
+          document.querySelector('.meta-row').getAttribute('aria-hidden')
+        );
+        expect(ariaHiddenAfter).toBeNull();
+      }
+    });
+  }
+});
+
 // ── candidates.html ───────────────────────────────────────────────────────────
 
 test.describe('candidates.html', () => {

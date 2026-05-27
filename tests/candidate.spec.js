@@ -241,9 +241,11 @@ test.describe('candidate.html — profile header', () => {
   test('scrolling back to top removes .compact from profile header', async ({ page }) => {
     await setupWithContent(page);
     await page.evaluate(() => window.scrollTo(0, 200));
-    await page.waitForTimeout(200);
+    // 300ms covers the 250ms suppression window so the second scrollTo
+    // isn't dropped (bumped from 200ms in T-profile-header-transition).
+    await page.waitForTimeout(300);
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
     await expect(page.locator('#profile-header')).not.toHaveClass(/compact/);
   });
 
@@ -260,9 +262,11 @@ test.describe('candidate.html — profile header', () => {
   test('.main paddingBottom is cleared when compact disengages', async ({ page }) => {
     await setupWithContent(page);
     await page.evaluate(() => window.scrollTo(0, 200));
-    await page.waitForTimeout(200);
+    // 300ms covers the 250ms suppression window so the second scrollTo
+    // isn't dropped (bumped from 200ms in T-profile-header-transition).
+    await page.waitForTimeout(300);
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
     const pb = await page.locator('.main').evaluate(el => el.style.paddingBottom);
     expect(pb).toBe('');
   });

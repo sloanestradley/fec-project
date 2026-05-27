@@ -633,21 +633,56 @@ function initCompactHeader(headerId) {
     var compact = sentinelEl.getBoundingClientRect().top < STICKY_TOP;
     if (compact === isCompact) return;
     isCompact = compact;
-    suppressUntil = Date.now() + 100;
+    // 250ms covers the 220ms padding transition + a small buffer.
+    // Pre-T-profile-header-transition this was 100ms (tuned for instant
+    // snap); the animated state needs the longer window so rapid scroll-
+    // flips at the threshold can't queue two toggles inside one transition.
+    suppressUntil = Date.now() + 250;
     if (compact) {
+      // fullH stays dynamic — feeds the clamped mainEl.paddingBottom guard
+      // (Math.min/max bounds prevent layout damage from a mid-transition
+      // read). Its sibling compactHeaderH below is a literal; the asymmetry
+      // is intentional. See T-profile-header-transition investigation G3.
       var fullH = headerEl.offsetHeight;
       headerEl.classList.add('compact');
-      if (compactHeaderH === null) compactHeaderH = headerEl.offsetHeight;
+      // Literal 56 (not offsetHeight) — the compact min-height floor across
+      // all three profile pages (8 + max(content, 40 menu-btn) + 8). Reading
+      // offsetHeight here would race the padding transition and cache a
+      // mid-flight value forever. See T-profile-header-transition
+      // investigation Item 1 — the literal is provably equal to the
+      // measurement in steady state.
+      if (compactHeaderH === null) compactHeaderH = 56;
       mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
       document.documentElement.style.setProperty('--compact-header-h', compactHeaderH + 'px');
+      // A11y: exclude the meta-row from the accessibility tree when compact.
+      // The .transitions-ready compact override keeps the meta-row in flow
+      // (display:flex + zeroed) so it can animate, but opacity:0 + width:0
+      // alone don't exclude content from the AX tree — screen readers would
+      // still announce the FEC ID / party / etc. tags. aria-hidden is the
+      // contract. Race.html has no .meta-row → querySelector returns null →
+      // the guard handles it cleanly. See T-profile-header-transition spot
+      // check 3 (CDP probe confirmed the regression + fix).
+      var compactMetaRow = headerEl.querySelector('.meta-row');
+      if (compactMetaRow) compactMetaRow.setAttribute('aria-hidden', 'true');
     } else {
       headerEl.classList.remove('compact');
       mainEl.style.paddingBottom = '';
       document.documentElement.style.setProperty('--compact-header-h', '0px');
+      var uncompactMetaRow = headerEl.querySelector('.meta-row');
+      if (uncompactMetaRow) uncompactMetaRow.removeAttribute('aria-hidden');
     }
   }
   window.addEventListener('scroll', update, { passive: true });
   update();
+  // Defer .transitions-ready by two frames so the initial paint (whether
+  // full or .compact via deep-linked scroll position) snaps to its state
+  // without any visible transition. Subsequent toggles animate.
+  // See T-profile-header-transition for the gate's CSS-scope contract.
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      document.documentElement.classList.add('transitions-ready');
+    });
+  });
   return compactThreshold;
 }
 

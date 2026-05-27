@@ -651,6 +651,111 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 
 /* Race compact: title only (no meta-row in race header) */
 
+/* ── T-profile-header-transition: animate full ↔ compact ─────────────────── */
+/* Gated by .transitions-ready (added to <html> via double-rAF in
+   initCompactHeader after first paint) so the initial render — whether
+   full-mode or .compact via deep-linked scroll position — snaps to its
+   state without animation. Subsequent toggles animate.
+
+   Existing reveal transitions (.page-header-reveal, .tabs-bar,
+   .profile-content) are intentionally NOT gated by .transitions-ready —
+   their opacity fade-ins fire on every load as before.
+
+   Three durations: 220ms header padding collapse (the dominant ~56px of
+   height change), 180ms meta-row max-height, 140ms meta-row opacity.
+   The opacity fade is intentionally SHORTER than the max-height collapse
+   so the row fades out before it finishes shrinking — hides the
+   flex-direction flip moment. */
+
+/* Header padding transition — uniform across all three profile pages.
+   Animates between full-mode .page-header padding (40/32 desktop, 24/24
+   mobile) and compact's 8/8. CSS transitions interpolate from current
+   to target regardless of starting value, so no mobile-specific rule. */
+.transitions-ready #profile-header,
+.transitions-ready #committee-header,
+.transitions-ready #race-header {
+  transition: padding-top 220ms ease, padding-bottom 220ms ease; }
+
+/* Meta-row sub-animation — candidate + committee only.
+   #race-header has no .meta-row element. */
+.transitions-ready #profile-header .meta-row,
+.transitions-ready #committee-header .meta-row {
+  transition: max-height 180ms ease, opacity 140ms ease; }
+
+/* Meta-row compact-state override — keeps the row in flow (display:flex)
+   while transitioning max-height + opacity to zero, then flex-zeros it
+   so it occupies no horizontal space in compact's flex-direction:row
+   layout. Pairs with the ungated `#<page>-header.compact .meta-row {
+   display:none }` rules above (lines 638, 642) — those stay as the
+   pre-.transitions-ready paint snap fallback. During the ~32ms window
+   before double-rAF arms .transitions-ready, the ungated rule fires
+   (display:none → invisible); after, this rule takes over (display:flex
+   + zeroed → still invisible). The visual stays "meta-row invisible"
+   through both states, so no flip is visible. The dual-rule arrangement
+   is deliberate; see T-profile-header-transition for context.
+
+   A11y note: opacity:0 + width:0 + min-width:0 hide the meta-row
+   visually but DO NOT exclude it from the accessibility tree (CDP
+   spot-check during T-profile-header-transition verified that screen
+   readers would still announce the tags). initCompactHeader pairs
+   this CSS block with a JS toggle that sets `aria-hidden="true"` on
+   the meta-row when compact engages and removes it on un-compact —
+   that's the contract for excluding content from assistive tech.
+
+   The 8 !important declarations carry their justifications below:
+
+     display:flex   — (override) defeats the default `.compact .meta-row
+                      { display:none }` so the element can animate.
+                      Load-bearing.
+     max-height:0   — (block cohesion) the animation target value. No
+                      competing rule today; carries !important so the
+                      override block reads as one unified intentional
+                      override, not a partial fix.
+     opacity:0      — (block cohesion) the animation target value. Same.
+     margin:0       — (override) defeats `.page-header > .meta-row {
+                      margin-top:var(--space-4) }` at line 583. Without
+                      zeroing margin, the collapsed row still takes 4px
+                      vertical, undermining the 56px floor.
+                      Load-bearing.
+     padding:0      — (block cohesion) no competing rule today; carries
+                      !important for block uniformity.
+     flex:0 0 0     — (load-bearing) in compact's flex-direction:row
+                      parent, .meta-row is a flex item. Zero grow, zero
+                      shrink, zero basis. Without it, the row's intrinsic
+                      content width would expand the box.
+     width:0        — (load-bearing) explicit zero-width belt-and-
+                      suspenders to flex-basis:0; defeats any flex-
+                      algorithm intrinsic-size fallback.
+     min-width:0    — (load-bearing) the single most important
+                      declaration. Flex items default to `min-width:auto`
+                      (= intrinsic content min-width), which would force
+                      the meta-row to ~140px wide regardless of width:0
+                      or flex:0 0 0. Setting min-width:0 explicitly
+                      defeats this default. */
+.transitions-ready #profile-header.compact .meta-row,
+.transitions-ready #committee-header.compact .meta-row {
+  display: flex !important;
+  max-height: 0 !important;
+  opacity: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 0 !important;
+  width: 0 !important;
+  min-width: 0 !important; }
+
+/* Reduced motion — disable all new compact transitions. Existing
+   reveal animations on .page-header-reveal / .tabs-bar / .profile-content
+   are out of scope here; their fade-ins are gentle enough that they don't
+   warrant the reduced-motion disable. */
+@media (prefers-reduced-motion: reduce) {
+  .transitions-ready #profile-header,
+  .transitions-ready #committee-header,
+  .transitions-ready #race-header,
+  .transitions-ready #profile-header .meta-row,
+  .transitions-ready #committee-header .meta-row {
+    transition: none !important; }
+}
+
 /* ── P: Form controls ── */
 .form-select, .form-input { height:34px; padding:var(--space-8); font-family:'IBM Plex Sans',sans-serif;
   font-size:0.75rem; background:var(--bg); border:1px solid var(--border-strong);
