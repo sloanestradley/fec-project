@@ -51,6 +51,47 @@ test.describe('search.html — initial state (no query)', () => {
     await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
   });
 
+  test('hero search input stays at 56px at mobile viewport (T-search-input-restyle)', async ({ page }) => {
+    // No mobile-specific override is in the proposed rule — hero height holds
+    // at narrow widths. Mobile-specific tightening (e.g. drop to 48px) is a
+    // banked follow-up if production traffic shows it reads cramped.
+    await page.setViewportSize({ width: 390, height: 800 });
+    const dims = await page.locator('#search-input').evaluate(el => {
+      const cs = window.getComputedStyle(el);
+      return { height: cs.height, fontSize: cs.fontSize };
+    });
+    expect(dims.height).toBe('56px');
+    expect(dims.fontSize).toBe('16px');
+  });
+
+  test('hero search input renders at 56px height + 1rem text + icon clears text start (T-search-input-restyle)', async ({ page }) => {
+    // Regression lock: .search-field .form-input must override the base
+    // .form-input (height:34px / 0.75rem) with the hero size. Documented
+    // type-system exception (1rem = 16px on the root font-size). Also checks
+    // icon left position resolves to 24px (var(--space-24)) and the input's
+    // padding-left clears the icon's right edge with a non-negative gap.
+    const measurements = await page.locator('#search-input').evaluate(el => {
+      const cs = window.getComputedStyle(el);
+      const inputBox = el.getBoundingClientRect();
+      const iconEl = el.parentElement.querySelector('.search-field-icon');
+      const iconBox = iconEl.getBoundingClientRect();
+      return {
+        height:          cs.height,
+        fontSize:        cs.fontSize,
+        iconLeft:        Math.round(iconBox.left - inputBox.left),
+        iconRight:       Math.round(iconBox.right - inputBox.left),
+        paddingLeft:     parseFloat(cs.paddingLeft),
+      };
+    });
+    expect(measurements.height).toBe('56px');
+    expect(measurements.fontSize).toBe('16px');
+    expect(measurements.iconLeft).toBe(24);          // var(--space-24)
+    expect(measurements.paddingLeft).toBe(46);       // 24 + 14 + 8
+    // Text starts at the input's paddingLeft offset; icon's right edge is
+    // iconLeft + 14. Gap = paddingLeft - iconRight should equal var(--space-8).
+    expect(measurements.paddingLeft - measurements.iconRight).toBe(8);
+  });
+
   test('page-level search submit button is sr-only', async ({ page }) => {
     const btn = page.locator('#search-form .form-search-btn.sr-only');
     await expect(btn).toHaveCount(1);

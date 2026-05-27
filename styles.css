@@ -751,10 +751,21 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 
 /* ── Icon-leading search field ── */
 .search-field { position:relative; display:flex; align-items:center; }
-.search-field-icon { position:absolute; left:var(--space-8); color:var(--muted);
+/* top:50% + translateY centers the icon explicitly so vertical centering does
+   NOT depend on flex's static-position rules (which absolute children inherit
+   only at layout time and don't re-apply when the input grows). */
+.search-field-icon { position:absolute; left:var(--space-24); top:50%;
+  transform:translateY(-50%); color:var(--muted);
   pointer-events:none; line-height:0; }
-/* padding-left: left-gap + icon-width + right-gap = 8px + 14px + 8px */
-.search-field .form-input { padding-left:calc(var(--space-8) + 14px + var(--space-8)); }
+/* Hero search input — sized larger than other form controls (.form-input
+   at 34px / 0.75rem base) to read as the primary action on the four
+   .search-field surfaces (/search, /candidates, /committees, search overlay).
+   56px is an off-scale hero exception, parallel to the menu-btn's
+   documented 40px exception.
+   padding-left: icon-left + icon-width + icon-text-gap = 24px + 14px + 8px = 46px */
+.search-field .form-input {
+  height:56px; font-size:1rem;
+  padding-left:calc(var(--space-24) + 14px + var(--space-8)); }
 
 /* ── Search overlay (T-search-overlay) ──────────────────────────────────────
    Full-bleed parchment layer hosting the search experience over the current

@@ -316,6 +316,23 @@ test.describe('candidates.html', () => {
     await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
   });
 
+  test('hero search input renders at 56px + 1rem; filter-bar siblings stay at 34px (T-search-input-restyle)', async ({ page }) => {
+    // Regression lock: hero override on /candidates search field, plus the
+    // intentional hero-vs-filter size contrast (search 56px, other filter
+    // controls stay at base 34px).
+    const dims = await page.locator('#f-search').evaluate(el => {
+      const cs = window.getComputedStyle(el);
+      return { height: cs.height, fontSize: cs.fontSize, paddingLeft: parseFloat(cs.paddingLeft) };
+    });
+    expect(dims.height).toBe('56px');
+    expect(dims.fontSize).toBe('16px');
+    expect(dims.paddingLeft).toBe(46);
+    // Hero-vs-filter contrast: the state-combo input is a sibling filter
+    // control and must stay at the base 34px.
+    const stateHeight = await page.locator('#f-state-filter').evaluate(el => window.getComputedStyle(el).height);
+    expect(stateHeight).toBe('34px');
+  });
+
   test('filter bar search submit button is sr-only (visually hidden, accessible)', async ({ page }) => {
     const btn = page.locator('.search-combo .search-field .form-search-btn.sr-only');
     await expect(btn).toHaveCount(1);
@@ -430,6 +447,20 @@ test.describe('committees.html', () => {
     const searchField = page.locator('.search-combo .search-field');
     await expect(searchField).toHaveCount(1);
     await expect(searchField.locator('.search-field-icon')).toHaveCount(1);
+  });
+
+  test('hero search input renders at 56px + 1rem; filter-bar siblings stay at 34px (T-search-input-restyle)', async ({ page }) => {
+    // Regression lock: hero override on /committees search field, plus the
+    // intentional hero-vs-filter size contrast.
+    const dims = await page.locator('#f-search').evaluate(el => {
+      const cs = window.getComputedStyle(el);
+      return { height: cs.height, fontSize: cs.fontSize, paddingLeft: parseFloat(cs.paddingLeft) };
+    });
+    expect(dims.height).toBe('56px');
+    expect(dims.fontSize).toBe('16px');
+    expect(dims.paddingLeft).toBe(46);
+    const stateHeight = await page.locator('#f-state-filter').evaluate(el => window.getComputedStyle(el).height);
+    expect(stateHeight).toBe('34px');
   });
 
   test('filter bar search submit button is sr-only (visually hidden, accessible)', async ({ page }) => {

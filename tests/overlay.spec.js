@@ -64,6 +64,18 @@ test.describe('search overlay — open / close', () => {
     await expect(page.locator('#search-overlay')).toHaveClass(/open/);
   });
 
+  test('hero search input in overlay renders at 56px + 1rem (T-search-input-restyle)', async ({ page }) => {
+    await page.click('#nav-search-btn');
+    await expect(page.locator('#search-overlay')).toHaveClass(/open/);
+    const dims = await page.locator('#overlay-search-input').evaluate(el => {
+      const cs = window.getComputedStyle(el);
+      return { height: cs.height, fontSize: cs.fontSize, paddingLeft: parseFloat(cs.paddingLeft) };
+    });
+    expect(dims.height).toBe('56px');
+    expect(dims.fontSize).toBe('16px');
+    expect(dims.paddingLeft).toBe(46);
+  });
+
   test('X button closes the overlay', async ({ page }) => {
     await page.click('#nav-search-btn');
     await expect(page.locator('#search-overlay')).toHaveClass(/open/);
