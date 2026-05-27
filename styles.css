@@ -702,7 +702,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    the meta-row when compact engages and removes it on un-compact —
    that's the contract for excluding content from assistive tech.
 
-   The 8 !important declarations carry their justifications below:
+   The 10 !important declarations carry their justifications below:
 
      display:flex   — (override) defeats the default `.compact .meta-row
                       { display:none }` so the element can animate.
@@ -731,7 +731,37 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
                       (= intrinsic content min-width), which would force
                       the meta-row to ~140px wide regardless of width:0
                       or flex:0 0 0. Setting min-width:0 explicitly
-                      defeats this default. */
+                      defeats this default.
+     flex-wrap:nowrap — (override + load-bearing) defeats the base
+                      .meta-row's `flex-wrap:wrap`. At width:0 the
+                      wrapping children CANNOT fit horizontally, so each
+                      wraps to its own line — stacking vertically at the
+                      right edge. During the mid-transition window
+                      (~150ms) the parent's max-height is still positive
+                      on its way to 0, so the vertically-stacked
+                      children remain visible as ghost tags before the
+                      collapse completes. nowrap forces a single
+                      horizontal line; children flow off the right edge
+                      of the zero-width parent. The reverse direction
+                      (compact → full) doesn't ghost because the box
+                      expands outward from 0×0 simultaneously with the
+                      fade-in; only the wrap→stack→positive-height
+                      sequence creates the bug.
+     overflow:hidden — (load-bearing) clips the children that flow off
+                      the right edge of the zero-width parent.
+                      Empirically required: the base .meta-row rule
+                      (styles.css:281) does NOT include overflow:hidden
+                      (the original flex-wrap:nowrap-only fix-prompt
+                      assumed otherwise). Without this declaration the
+                      flex-wrap:nowrap fix leaves a ~48px sliver of the
+                      first child's text visible at the right edge of
+                      the content area at wide viewports (verified via
+                      CDP probe + screenshot during the follow-up fix).
+                      The .main { overflow-x:clip } ancestor clips what
+                      spills past the viewport edge but not what falls
+                      inside the content area; this declaration
+                      completes the clip at the meta-row's own zero-
+                      width box. */
 .transitions-ready #profile-header.compact .meta-row,
 .transitions-ready #committee-header.compact .meta-row {
   display: flex !important;
@@ -741,7 +771,9 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   padding: 0 !important;
   flex: 0 0 0 !important;
   width: 0 !important;
-  min-width: 0 !important; }
+  min-width: 0 !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden !important; }
 
 /* Reduced motion — disable all new compact transitions. Existing
    reveal animations on .page-header-reveal / .tabs-bar / .profile-content
