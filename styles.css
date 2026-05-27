@@ -28,7 +28,7 @@
    * Named type styles (11 canonical styles — all component classes reference one of these):
    *
    *  display         Oswald          clamp(2–4.5rem)  600  uppercase  --ls-tight    --lh-tight
-   *  stat            Oswald          2rem             600  —          —             --lh-tight
+   *  stat            Oswald          2rem             400  —          —             --lh-tight
    *  heading         Oswald          1.25rem          400  uppercase  —             —
    *  tab             Oswald          1.25rem          400  none       —             —
    *  label           IBM Plex Mono   0.625rem         400  uppercase  --ls-expanded —
@@ -525,7 +525,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .stat-card:last-child { border-right:none; }
 .stat-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
   color:var(--muted); margin-bottom:var(--space-4); }
-.stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:600;
+.stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:400;
   line-height:var(--lh-tight); margin-bottom:var(--space-4); }
 .stat-sub { font-size:0.625rem; color:var(--muted); }
 .stat-sub.pos { color:var(--green); }
