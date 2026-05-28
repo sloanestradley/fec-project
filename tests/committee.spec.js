@@ -553,7 +553,7 @@ test.describe('committee.html — Raised tab sections', () => {
 // ── Raised tab: unavailable-state copy ───────────────────────────────────────
 
 test.describe('committee.html — Raised tab unavailable-state copy', () => {
-  test('individual contributors tbody shows "Unable to show due to high transaction volume." when Schedule A is over the page threshold', async ({ page }) => {
+  test('individual contributors tbody shows "Data not available due to high transaction volume." when Schedule A is over the page threshold', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
 
@@ -584,7 +584,7 @@ test.describe('committee.html — Raised tab unavailable-state copy', () => {
     // (Individuals is a non-default tab, but the tbody renders regardless of
     // panel visibility — content rendering is the load signal here, not tab activation.)
     const tbody = page.locator('#individual-donors-tbody');
-    await expect(tbody).toContainText('Unable to show due to high transaction volume.', { timeout: 15000 });
+    await expect(tbody).toContainText('Data not available due to high transaction volume.', { timeout: 15000 });
   });
 });
 

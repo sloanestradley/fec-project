@@ -1786,7 +1786,7 @@ function renderRaisedIfReady() {
       document.getElementById('individual-donors-content').style.display = 'block';
       if (d.topIndividualsSource === 'unavailable') {
         document.getElementById('individual-donors-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available due to high transaction volume.</td></tr>';
       } else if (d.topIndividualsAPI) {
         renderIndividualDonors(d.topIndividualsAPI);
       }
@@ -1797,10 +1797,10 @@ function renderRaisedIfReady() {
       document.getElementById('committee-donors-content').style.display = 'block';
       if (d.topCommitteesSource === 'unavailable-coverage-gap') {
         document.getElementById('committee-donors-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Committee contribution data is not available for this committee type.</td></tr>';
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available for this committee type.</td></tr>';
       } else if (d.topCommitteesSource === 'unavailable') {
         document.getElementById('committee-donors-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available due to high transaction volume.</td></tr>';
       } else if (d.topCommitteesAPI) {
         renderCommitteeDonors(d.topCommitteesAPI);
       }
@@ -1817,7 +1817,7 @@ function renderRaisedIfReady() {
       document.getElementById('conduits-content').style.display = 'block';
       if (d.topConduitsTooLarge) {
         document.getElementById('conduits-tbody').innerHTML =
-          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Unable to show due to high transaction volume.</td></tr>';
+          '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available due to high transaction volume.</td></tr>';
       } else {
         renderTopConduits(d.topConduits);
       }
