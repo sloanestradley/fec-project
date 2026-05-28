@@ -5835,3 +5835,69 @@ You're using each ticket as a forcing function to clean up the *adjacent* proble
 - **race.html compact strip parity gap** — race.html shares the `min-height:56px` rule with the two profile pages (combined CSS selector), but doesn't have a menu-btn — its strip gained 8px without an in-scope reason. Either give race.html its own profile-style menu-btn, or split the compact rule so race.html stays at 48px. Lean toward the first answer (parity across profile pages once race.html promotes from scaffold).
 - **Formalize AbortController as a project convention** — first consumer (T-modal-a11y) used it for batch listener teardown. Worth documenting the rationale in CLAUDE.md alongside other shared-helper conventions, so future helpers reach for it instead of inventing their own teardown pattern.
 - **Audit other modal-like surfaces for the a11y contract** — committees modal and info modal both now use the helper. Search overlay opts out for documented reasons. Are there other modal-like surfaces (drawers, popovers, full-page overlays) that should be auditing themselves against `openAccessibleModal`'s contract? A pass through the codebase could surface any latent a11y gaps similar to what the info modal exposed.
+
+---
+2026-05-28 — Animation, polish, and a miss-and-recover
+
+## Process log draft
+
+**Title:** Animating the header — and the half-dozen polish passes that followed
+
+This session was anchored by the profile-header transition animation — a long-banked design wish that finally got investigated, risk-checked, implemented, and shipped with an a11y fix the verification spot-check surfaced. Around it: a cluster of color and structural polish on the stats-grid, the search field, the meta-row, and the type system. The meta-row work hit a real miss-and-recover — first attempt didn't address the actual architectural problem, reverted, fresh investigation, structural DOM restructure landed.
+
+**Changelog:**
+- T-menu-btn-profile-in-place (yesterday's arc closer): Profile menu item swapped from `<a href>` (full reload) to `onClick` (in-place view.switchTo). Discovered during Chrome MCP verification of the menu-btn arc — the kind of regression that a "tests green + commits shipped" milestone wouldn't catch.
+- T-search-input-restyle: hero search field — 56px height, 1rem text, 24px icon-left, 46px text-clearance padding. Four production surfaces (search.html, candidates.html, committees.html, search overlay). Documented type-system exception for 1rem IBM Plex Sans 400 (the system normally allows only 11 named styles).
+- T-text-color-darken: data-note → subtle, banner-desc/note → subtle, race-context-line-label → text. Caption type specimen dropped its color claim for system consistency (the type-style definition is family/size/weight only, color is a per-component concern).
+- filter-chip color follow-up: chip text → subtle, chip-x stays at muted (after a one-commit flip then revert — visual pairing isn't always the right design call).
+- **T-profile-header-transition** (the centerpiece): full ↔ compact animates rather than snaps. 220ms padding-top/bottom on the header, 180ms meta-row max-height, 140ms meta-row opacity (intentionally shorter so the row fades before it finishes shrinking, hiding the flex-direction flip moment). Gated by `.transitions-ready` on `<html>` via double-rAF so initial paint snaps. Reduced-motion disables. compactHeaderH literal 56 (was offsetHeight — would have raced the new transition and cached a mid-flight value forever). Discovered an a11y regression during CDP spot-check (opacity:0 + width:0 don't exclude content from AX tree) — added aria-hidden JS toggle in the same commit per fix-first-not-buried-flag discipline. Then a wide-viewport ghost fix (10 !important declarations on the compact meta-row override, including a 9th + 10th declaration added empirically after the prompt's "ONE declaration" prescription proved incomplete).
+- stat type style → Oswald 400 (was 600). Mobile font-size override untouched.
+- Stats-grid restyle: navy stat-value, 16px stat-card padding (was 16/24), filled-navy cycle-back-btn mirroring menu-btn's "navy fill + bg-color content + opacity-shift hover" treatment. Pill corner-radius kept on the chevron despite menu-btn's sharp 2px — circular icon buttons read better as full pills.
+- T-meta-row-column arc: shipped Approach 3a (max-content), reverted because the menu-btn still didn't feel like its own column, fresh investigation, landed Approach A (DOM restructure with `.title-meta-stack` wrapper) after Sloane prototyped the fix via DevTools on the live committee page at 376px.
+
+**Field notes:**
+
+The session's pattern: big architectural fix, then polish, then a miss, then recovery. The polish work compounded — each restyle (search field, stats-grid, colors) bought clarity that made the next polish surface obvious. The meta-row miss was instructive: the first fix solved a CSS box-size problem but the actual ask was a column-architecture problem; reverting and re-investigating was the right move. Worth banking: when a fix ships and the user says it "doesn't solve the problem," the right diagnostic isn't "what's wrong with the fix" but "did I solve the right problem at all?"
+
+The animation arc surfaced the difference between in-session verification (Playwright headless Chromium computed styles, CDP probes, screenshots) and Sloane's Chrome MCP eyeballing on the deployed site. The in-session probes caught most things — but the menu-btn-profile-in-place regression and the meta-row-column architectural mismatch were both first surfaced by Sloane's live verification, not mine. The lesson: programmatic verification confirms structural fixes work; visual judgment on live builds catches the perception layer.
+
+The 10-`!important` block on the compact meta-row override is a small case study in concentrated complexity that's worth the cost. Each declaration carries an inline justification (load-bearing vs. block-cohesion). When the original prompt's "stick with 8" turned out to need a 9th declaration (flex-wrap:nowrap) and then a 10th (overflow:hidden) — discovered empirically through screenshot probes during verification — the same justification pattern absorbed the additions cleanly. The block reads as one intentional override, not a partial fix.
+
+The "Claude Chat steering astray" reframe on T-meta-row was honest acknowledgment that the original prompt's framing pointed at the wrong solution. The fix wasn't max-width on the meta-row; it was architectural containment. Worth banking the meta-lesson: prompt directives can confidently point at the wrong category of fix, and the right discipline is to verify the diagnosis before acting on the prescription.
+
+**Stack tags:** None new this session. Reusing: CSS transitions with prefers-reduced-motion handling, CDP accessibility probes for spot-check verification, double-rAF gating pattern, !important block-cohesion justification structure, DOM restructure as architectural fix (vs. CSS-only workaround), filled-navy identity treatment shared across menu-btn + cycle-back-btn.
+
+## How Sloane steered the work
+
+**The "Claude Chat might be steering us astray" reframe on T-meta-row.**
+After the first meta-row fix (max-content) shipped and visually fixed the empty-band, Sloane said it "didn't solve the problem" — the menu-btn still didn't feel like its own column. The reframe was explicit: stop building from the prompt's framing, start from what's actually wrong. The revert + fresh investigation + DOM restructure was the right shape. Worth banking: when a fix delivers what the prompt asked for and the result still feels off, the framing was probably wrong.
+
+**The DCCC@376px prototype validation before greenlighting T-meta-row-column.**
+Before approving Approach A (DOM restructure), Sloane prototyped the exact fix via DevTools injection on the live DCCC committee page at 376px mobile width — the actual user-visible bug case (5-tag meta-row where "Unauthorized" wrapped under the menu-btn). Confirmed the structural fix produced the right visual at the real failure point, not just the abstract. Then approved with two specific risk mitigations carried forward (margin-not-gap on the stack to avoid phantom 4px in compact; scope-narrow the title's flex:1 rule for legibility). Live-prototype verification before greenlight is the discipline pattern.
+
+**The "diagnose first, then decide" framings throughout.**
+The .error-prompt follow-up on the search-typeahead arc. The 422 follow-up earlier. The .cycle-back-btn border-removal UX question. The "is the goal architectural box-clamping or visible column separation" question on T-meta-row. Each time Sloane required me to surface the diagnostic before reaching for a change. The pattern shows up most when the fix is non-obvious — the diagnostic step often produces "no change needed" or "the prompt's premise was wrong" outcomes that save commits.
+
+**The "stick with 8 declarations" → "expand to 9 / now 10" arc on the meta-row override.**
+The original T-profile-header-transition prompt was emphatic about the 8 prototype-validated declarations and not adding more. When the empirical screenshot probe surfaced the wide-viewport ghost, Sloane's "ship B" call extended the block to a 9th (flex-wrap:nowrap), and then a 10th (overflow:hidden) when probe showed the 9th alone left a residual sliver — but only after the empirical evidence justified each addition. Worth banking: prompt prescriptions can be load-bearing when correct AND extensible when verification surfaces gaps.
+
+**The chip-x revert decision.**
+After my proactive proposal to move .chip-x along with .filter-chip to --subtle for visual pairing, Sloane reverted just the .chip-x change. The reasoning: the × should be a quieter affordance than the chip's text label, not a co-equal. Worth banking: when polish reaches for "everything matches," check whether the difference was intentional. The asymmetry of × being slightly lighter than the chip text is the designed-in cue that × is the action affordance, not part of the chip's content.
+
+**The Approach A vs Approach 3a call on T-meta-row.**
+The investigation laid out three approaches; I recommended 3a (max-content, smallest surface). Sloane shipped it. After it didn't deliver the felt outcome, the reframe to Approach 2 (DOM restructure) was the right escalation. Worth banking: the smallest-surface fix isn't always the right fix; sometimes architectural clarity is the actual ask and a non-trivial fix is the honest answer.
+
+**Through-line:** Sloane steers for honest fixes that match the actual ask, not for fixes that look like they should work from the prompt's framing. Live-prototype verification before greenlight; diagnose-first when the fix is non-obvious; let the right answer scope itself rather than constraining it to the smallest possible surface. The miss-and-recover on meta-row was the session's clearest expression of this — and the recovery was clean because the discipline held.
+
+## What to bring to Claude Chat
+
+- **The Claude-Chat-steering-astray meta-lesson is worth a separate discussion.** The T-meta-row arc surfaced that prompt framing can point confidently at the wrong category of solution. The recovery worked because Sloane caught it post-deploy. But: what's the project-level discipline that surfaces "prompt steers wrong" earlier? More rigorous pre-investigation? More empirical probing during the investigation? A "does this match the actual user complaint" check before writing the implementation prompt?
+
+- **The 10-!important block on the compact meta-row override** — concentrated complexity with per-declaration justification reads as a deliberate architectural pattern that future arcs could borrow. Worth naming as a pattern: when an override needs lots of !important declarations to defeat conflicting defaults, do them in ONE BLOCK with inline justification per declaration; don't scatter them. Could be a CLAUDE.md addition under "CSS scoping default" alongside the existing lift-before-override rule.
+
+- **In-session programmatic verification vs Sloane's Chrome MCP eyeball pass — division of labor.** Two patterns this session where the in-session probe missed what Sloane's live verification caught: the menu-btn-profile-in-place regression, the meta-row-column architectural mismatch. Both real bugs. In-session probes confirm structural fixes work; visual judgment on live deploys catches the perception layer. Worth formalizing: which fix categories warrant live-deploy verification BEFORE in-session approval, vs which can ship and verify after?
+
+- **Strategy docs vs inline-in-conversation investigations.** This session's investigations (T-profile-header-transition, T-meta-row-column) lived in conversation, not in `strategy/*.md`. Past sessions used `strategy/` for diagnostic + recommendation. Either pattern works, but conversation-based loses the artifact for future reference (the investigation's diagnostic isn't searchable later). Worth deciding which pattern is the project default.
+
+- **Architectural vs visible column separation as a design vocabulary.** The T-meta-row arc made the distinction load-bearing: "architectural box-clamping" (the structural fix, invisible at typical content) vs "visible column separation" (treatment that shows up in pixels). Worth a UX vocabulary discussion — when does the project care about which?
+
