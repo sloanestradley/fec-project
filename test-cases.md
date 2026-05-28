@@ -192,6 +192,8 @@
 - [ ] Active cycle: green/amber/red signal visible with descriptive text
 - [ ] Closed cycle: "Cycle Complete" label, desc reads "Cycle concluded with [X in outstanding debt | no outstanding debt reported]", note reads "Final coverage: {date}"
 - [ ] No-data cycle (T-cycle-empty-state, 2026-05-28): `#banner` is hidden (`display:none`). The prior "No Data" / "Cycle Complete" framings do NOT render. Banner-label and banner-desc do not flash placeholder content before being hidden.
+- [ ] Deferred reveal on initial detail-view entry (T-cycle-empty-state-jump-mitigation, 2026-05-28): `#banner` is hidden during the loadCycle fetch window — appears only after data resolves (data-present cycle) or stays hidden (no-data cycle). Race-context-bar stays put through the fetch window; no upward shift on no-data resolve.
+- [ ] Hash-driven cycle change between detail URLs (browser back/forward — the only path that re-enters detail without going through the index post-T16): on data→data hash nav, banner content updates atomically when the new cycle's data resolves (no vanish-then-reappear). Quick test: visit `/candidate/H2WA03217#2024#summary`, wait for banner to populate, browser-back to a previously-visited `#2022#summary` URL — banner content updates without flicker.
 - [ ] Label and desc render in prose type (IBM Plex Serif, not uppercase Oswald)
 - [ ] Navy top border visible above the banner
 

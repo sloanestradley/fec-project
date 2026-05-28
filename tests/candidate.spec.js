@@ -2487,4 +2487,49 @@ test.describe('candidate.html — T-cycle-empty-state', () => {
     await expect(page.locator('#content')).toBeVisible();
     await expect(page.locator('#banner')).toBeVisible();
   });
+
+  // T-cycle-empty-state-jump-mitigation (2026-05-28) — banner deferred reveal.
+  // On initial detail-view entry, #banner stays hidden through the loadCycle
+  // fetch window and appears only at Step 4's data-present branch. Locks the
+  // HTML default (style="display:none") + reset-block omission that defers
+  // banner reveal so race-context-bar doesn't shift upward during the fetch
+  // wait. Mock totals fetch with a delay long enough for Playwright to observe
+  // the hidden state before resolve.
+  test('banner is hidden during the loadCycle fetch window on a data-present cycle, revealed after data resolves', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Delay the cycle-detail /totals/?cycle= fetch by 1000ms so Playwright can
+    // observe banner hidden during the window. Bumped to 1000ms (over the 500ms
+    // baseline from the plan) for headroom against Playwright's poll cycle.
+    await page.route(/\/api\/fec\/candidate\/H2WA03217\/totals\/.*cycle=2024/, async (route) => {
+      await new Promise((r) => setTimeout(r, 1000));
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [{
+            receipts: 3500000,
+            disbursements: 3100000,
+            last_cash_on_hand_end_period: 450000,
+            coverage_end_date: '2024-12-31T00:00:00',
+            cycle: 2024,
+          }],
+          pagination: { count: 1 },
+        }),
+      });
+    });
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    // Wait for the profile header to reveal — signal that init/entity resolved
+    // and view.switchTo fired. At this moment, #summary-strip is visible (stats
+    // skeletons + race-context-bar) but the cycle-detail fetch is still
+    // pending. #banner should be hidden via the HTML default.
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await expect(page.locator('#summary-strip')).toBeVisible();
+    await expect(page.locator('#banner')).toBeHidden();
+    // Wait for the cycle-detail fetch to resolve and Step 4 to populate
+    // banner-label with non-placeholder content — signal that the data branch
+    // ran. Banner should now be visible.
+    await expect(page.locator('#banner-label')).not.toHaveText('—', { timeout: 12000 });
+    await expect(page.locator('#banner')).toBeVisible();
+  });
 });

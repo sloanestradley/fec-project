@@ -134,7 +134,7 @@
         </div>
       </div>
 
-      <div class="banner" id="banner">
+      <div class="banner" id="banner" style="display:none">
         <div class="banner-heading">
           <div class="health-signal" id="health-signal"></div>
           <div class="banner-label"  id="banner-label">—</div>
@@ -1735,11 +1735,17 @@ async function loadCycle(cycle) {
   emptyStateEl.style.display = 'none';
   document.getElementById('tabs-bar').style.display = 'flex';
   document.getElementById('content').style.display = 'block';
-  // Banner default-visible — Step 4 hides it on confirmed no-data. Reset
-  // here so cycle-switch from a prior no-data cycle restores visibility
-  // before Step 4 decides; catch branches (where Step 4 doesn't run) also
-  // get a default-visible banner with placeholder content.
-  document.getElementById('banner').style.display = '';
+  // Banner reveal is deferred to Step 4 below (T-cycle-empty-state-jump-mitigation,
+  // 2026-05-28). The HTML default of style="display:none" on #banner keeps it hidden
+  // during the loadCycle fetch window on initial detail-view entry, so the race-
+  // context-bar inside #summary-strip doesn't shift upward when the no-data branch
+  // later confirms no banner content. The reset block intentionally does NOT touch
+  // #banner — on hash-driven cycle change (browser back/forward between detail
+  // URLs), prior cycle's banner content stays visible during the new cycle's fetch
+  // window, then updates atomically when Step 4 fires. This preserves data→data
+  // continuity on that uncommon path; the alternative (reset to display:none) would
+  // cause a vanish-then-reappear double-shift on the same path. See Step 4 for
+  // the data/no-data branching that owns banner visibility going forward.
 
   try {
     // ── Step 1: committees + election-aggregated totals in parallel ──
