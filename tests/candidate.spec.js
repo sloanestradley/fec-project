@@ -79,10 +79,15 @@ test.describe('candidate.html — profile header', () => {
     await expect(fec).toHaveText(/FEC ID · H2WA03217/);
   });
 
-  test('meta-row is a sibling of .profile-header-row, not a child', async ({ page }) => {
+  test('meta-row lives inside .title-meta-stack alongside .page-title (T-meta-row-column)', async ({ page }) => {
+    // Architectural regression-lock: the meta-row is a descendant of
+    // .title-meta-stack (which is itself a child of .profile-header-row),
+    // sibling of .page-title. This keeps the meta-row's parent IS the
+    // title-zone so its box can't extend into the menu-btn's column.
     await setup(page);
-    await expect(page.locator('.profile-header-row #meta-row')).toHaveCount(0);
-    await expect(page.locator('#profile-header > #meta-row')).toHaveCount(1);
+    await expect(page.locator('#profile-header > #meta-row')).toHaveCount(0);
+    await expect(page.locator('#profile-header > .profile-header-row > .title-meta-stack > #meta-row')).toHaveCount(1);
+    await expect(page.locator('#profile-header > .profile-header-row > .title-meta-stack > #candidate-name')).toHaveCount(1);
   });
 
   test('meta-row children render in canonical order: FEC ID → race → party → incumbent', async ({ page }) => {

@@ -578,10 +578,17 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .page-header-reveal { opacity:0; transition:opacity 0.4s ease; }
 .page-header-reveal.visible { opacity:1; }
 /* flex-wrap:nowrap so the menu-btn never breaks onto its own line below a
-   wrapped title. The title absorbs the squeeze (see .profile-header-row
-   .page-title below — flex:1; min-width:0 — text wraps internally). */
+   wrapped title. The .title-meta-stack child (flex:1; min-width:0) absorbs
+   the squeeze; the title inside it wraps internally on long names. */
 .profile-header-row { display:flex; align-items:center; gap:var(--space-24); flex-wrap:nowrap; }
-.page-header > .meta-row { margin-top:var(--space-4); }
+/* T-meta-row-column: meta-row + title share a stack inside .profile-header-row
+   so the meta-row's parent IS the title-zone (flex:1 column). This caps the
+   meta-row's BOX at the title-zone right edge — it can no longer geometrically
+   extend into the menu-btn's column. Margin-top (not gap on the stack) so the
+   meta-row's compact-override `margin: 0 !important` zeros it cleanly without
+   leaving a phantom 4px gap in the compact strip. */
+.profile-header-row .title-meta-stack { flex:1; min-width:0; display:flex; flex-direction:column; }
+.title-meta-stack .meta-row { margin-top:var(--space-4); }
 .profile-content { padding:var(--space-32) var(--page-gutter); opacity:0; transition:opacity 0.3s ease; }
 .profile-content.visible { opacity:1; }
 
@@ -589,10 +596,14 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   font-size:clamp(2rem,5vw,4.5rem); font-weight:600; line-height:var(--lh-tight);
   letter-spacing:var(--ls-tight); text-transform:uppercase;
   color:var(--color-navy-950); }
-/* Title is the flex-grow item inside the profile-header-row; min-width:0 lets
-   it shrink below its content size so long titles wrap internally rather than
-   forcing the menu-btn to a second line. */
-.profile-header-row .page-title { flex:1; min-width:0; }
+/* Title sits inside .title-meta-stack (column flex). min-width:0 is defensive —
+   keeps the title from forcing the stack wider than its flex:1 allocation if
+   the title's intrinsic width somehow exceeds the stack width. The previous
+   .profile-header-row .page-title { flex:1 } was scope-narrowed to .title-meta-
+   stack on T-meta-row-column — flex:1 isn't meaningful in the new column-flex
+   parent (stack height is content-driven, no extra vertical space to grow into),
+   so dropping it keeps the rule's intent legible. */
+.title-meta-stack .page-title { min-width:0; }
 /* Menu-btn host positioning inside the profile-header-row.
    T-menu-btn-profile-header-title-wrap-fix (2026-05-26) lifted these from
    inline styles on each page's host element. margin-left:auto pushes the
