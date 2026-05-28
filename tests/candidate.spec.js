@@ -2374,3 +2374,117 @@ test.describe('candidate.html — committees modal a11y', () => {
     await expect(page.locator('#committees-modal')).not.toBeVisible();
   });
 });
+
+// ── T-cycle-empty-state — whole-view empty state for cycles with no filings ──
+// When a cycle has no financial filings, candidate.html replaces the tabs bar +
+// tabbed content with a single whole-view empty state below the summary strip.
+// The C5 string from the audit ("No financial filings for {cycle} cycle") lives
+// in this surface, not in #data-note. Banner is also hidden in this case (the
+// active-cycle "No Data" variant from assessHealth() and the closed-cycle
+// "Cycle Complete · no outstanding debt reported" framing both read oddly on a
+// no-data cycle). Summary strip (stats grid em-dashes + race context bar) stays.
+test.describe('candidate.html — T-cycle-empty-state', () => {
+
+  // Setup: add 2026 to the candidate's election_years (so #2026#summary lands
+  // in detail view rather than falling through to the index via NaN routing),
+  // and mock the cycle-detail /totals/?cycle=2026&election_full=true fetch to
+  // return an empty results array — matches the real API shape for a
+  // no-financial-filings cycle (verified against
+  // /api/fec/candidate/H6WA03309/totals/?cycle=2026&election_full=true which
+  // returns {results: [], pagination: {count: 0, pages: 0, …}}).
+  async function emptyCycleSetup(page) {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Override the candidate entity to add 2026 to election_years so ALL_CYCLES
+    // includes it and #2026#summary routes to detail view.
+    await page.route(/\/api\/fec\/candidate\/H2WA03217\/(?!.*\/)/, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [{
+            candidate_id: 'H2WA03217',
+            name: 'GLUESENKAMP PEREZ, MARIE',
+            party: 'DEM', party_full: 'DEMOCRATIC PARTY',
+            office: 'H', office_full: 'House',
+            state: 'WA', district: '03',
+            election_years: [2022, 2024, 2026],
+            incumbent_challenge: 'I', incumbent_challenge_full: 'Incumbent',
+            first_file_date: '2022-02-22',
+          }],
+          pagination: { count: 1, pages: 1, per_page: 20, page: 1 },
+        }),
+      });
+    });
+    // Override the cycle-detail totals fetch for cycle=2026 to return empty.
+    // The default mock returns TOTALS (which has data) for any cycle param;
+    // we narrow to cycle=2026 here.
+    await page.route(/\/api\/fec\/candidate\/H2WA03217\/totals\/.*cycle=2026/, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [],
+          pagination: { count: 0, pages: 0, per_page: 20, page: 1 },
+        }),
+      });
+    });
+    await page.goto('/candidate.html?id=H2WA03217#2026#summary');
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    // Wait for #cycle-empty-state to become visible — signal that loadCycle's
+    // empty branch fired and the visibility swap landed.
+    await page.waitForSelector('#cycle-empty-state', { state: 'visible', timeout: 12000 });
+  }
+
+  test('empty-state element is visible and contains the C5 copy', async ({ page }) => {
+    await emptyCycleSetup(page);
+    const emptyState = page.locator('#cycle-empty-state');
+    await expect(emptyState).toBeVisible();
+    await expect(emptyState).toHaveText('No financial filings for 2026 cycle.');
+  });
+
+  test('tabs-bar and tabbed content are hidden on empty cycle', async ({ page }) => {
+    await emptyCycleSetup(page);
+    await expect(page.locator('#tabs-bar')).toBeHidden();
+    await expect(page.locator('#content')).toBeHidden();
+  });
+
+  test('#banner is hidden on empty cycle (no "No Data" / "Cycle Complete" copy renders)', async ({ page }) => {
+    await emptyCycleSetup(page);
+    await expect(page.locator('#banner')).toBeHidden();
+    // Defensive: confirm the now-dead "No Data" string from assessHealth() and
+    // the closed-cycle "Cycle Complete" string don't slip into the live DOM.
+    await expect(page.locator('#banner-label')).not.toHaveText('No Data');
+    await expect(page.locator('#banner-label')).not.toHaveText('Cycle Complete');
+  });
+
+  test('#summary-strip stays visible on empty cycle with em-dashed stats', async ({ page }) => {
+    await emptyCycleSetup(page);
+    await expect(page.locator('#summary-strip')).toBeVisible();
+    // Stats resolve to em-dash on empty cycle (T-load-3 dash semantic — absence
+    // of filings, not $0).
+    await expect(page.locator('#stat-raised')).toHaveText('—');
+    await expect(page.locator('#stat-spent')).toHaveText('—');
+    await expect(page.locator('#stat-coh')).toHaveText('—');
+    await expect(page.locator('#stat-ratio')).toHaveText('—');
+  });
+
+  test('cycle-switch from empty cycle to data-present cycle re-shows tabs/content/banner and hides empty-state', async ({ page }) => {
+    // Land on 2026 (empty) first to set the "no-data state" baseline.
+    await emptyCycleSetup(page);
+    await expect(page.locator('#cycle-empty-state')).toBeVisible();
+    await expect(page.locator('#tabs-bar')).toBeHidden();
+    // Switch cycle via location.hash mutation — fires hashchange handler which
+    // calls view.switchTo(true, 2024) → loadCycle(2024). This exercises the
+    // real cycle-switch path (not just a synthetic display toggle); the reset
+    // block at the top of loadCycle is what restores tabs/content/banner
+    // visibility, so this test asserts the reset-block contract.
+    await page.evaluate(() => { location.hash = '#2024#summary'; });
+    // Wait for tabs-bar to come back — signal that the data-present cycle's
+    // loadCycle reset block + Step 4 banner gate ran.
+    await page.waitForSelector('#tabs-bar', { state: 'visible', timeout: 12000 });
+    await expect(page.locator('#cycle-empty-state')).toBeHidden();
+    await expect(page.locator('#content')).toBeVisible();
+    await expect(page.locator('#banner')).toBeVisible();
+  });
+});

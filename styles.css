@@ -212,6 +212,24 @@ body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans
 .placeholder { font-size:0.75rem; color:var(--muted); padding:var(--space-32);
   border:1px dashed var(--border); text-align:center; border-radius:4px; }
 
+/* ── Whole-view empty state (T-cycle-empty-state — candidate-only) ── */
+/* Used when a candidate cycle has no financial filings — replaces the
+   tab strip + tabbed content entirely with a quiet centered message.
+   No chrome (no border, no background) — the summary strip + race
+   context bar above already provide structural context; adding chrome
+   would make a non-event look like an event. Distinct from .placeholder
+   which uses a dashed border for in-content empty slots. */
+.cycle-empty-state {
+  /* 120px desktop top/bottom — above the 4rem (64px) scale ceiling; intentionally
+     larger than the page's other empty/status surfaces to give a confirmed-no-data
+     surface generous breathing room below the summary strip. Mobile clamps to
+     space-32 (see ≤860px override). */
+  padding: 120px var(--page-gutter);
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 /* ── Tab skeleton placeholders (T12 — Raised/Spent loading states) ── */
 /* Block-level variants of .skeleton, sized to approximate resolved content
    so layout stays stable during the eager-fetch wait window. */
@@ -1174,6 +1192,7 @@ div.cycle-row {
   .top-nav-mobile-controls { display:flex; }
   .page-header { padding:var(--space-24) var(--page-gutter); }
   .profile-content { padding:var(--space-24) var(--page-gutter); }
+  .cycle-empty-state { padding-top:var(--space-32); }
   .global-banner-text { padding:0 var(--page-gutter); }
   .committee-row { grid-template-columns:1fr; gap:var(--space-4); }
   .candidate-card, .race-card { grid-template-columns:1fr; }

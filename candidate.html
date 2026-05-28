@@ -177,6 +177,12 @@
 
     <div id="cycle-index" style="display:none" role="list" aria-label="Election cycles"></div>
 
+    <!-- Whole-view empty state (T-cycle-empty-state) — replaces tabs + tabbed
+         content when the cycle has no financial filings. JS toggles display
+         and writes the C5 copy into it. Sits inside .main-inner so it inherits
+         the same max-width and gutter constraints as #content. -->
+    <div class="cycle-empty-state" id="cycle-empty-state" style="display:none"></div>
+
     <div class="profile-content" id="content" style="display:none">
 
       <!-- Summary tab -->
@@ -1716,6 +1722,25 @@ async function loadCycle(cycle) {
   // metadata, not chart-state).
   document.getElementById('data-note').innerHTML = '';
 
+  // T-cycle-empty-state — reset the whole-view empty-state element AND
+  // restore tabs-bar + content visibility. The empty branch (Step 3 else)
+  // swaps these — tabs/content go hidden and the empty-state shows. On
+  // cycle-switch from no-data → data-present, this reset block restores
+  // tabs/content to their normal visibility before Step 3 runs. The empty-
+  // state is also hidden in the catch path naturally (we hide it here; the
+  // catch branch never re-shows it — chart-error overlay carries the
+  // user-facing failure messaging).
+  var emptyStateEl = document.getElementById('cycle-empty-state');
+  emptyStateEl.innerHTML = '';
+  emptyStateEl.style.display = 'none';
+  document.getElementById('tabs-bar').style.display = 'flex';
+  document.getElementById('content').style.display = 'block';
+  // Banner default-visible — Step 4 hides it on confirmed no-data. Reset
+  // here so cycle-switch from a prior no-data cycle restores visibility
+  // before Step 4 decides; catch branches (where Step 4 doesn't run) also
+  // get a default-visible banner with placeholder content.
+  document.getElementById('banner').style.display = '';
+
   try {
     // ── Step 1: committees + election-aggregated totals in parallel ──
     // T-loadcycle-single-fetch (2026-05-19) — was N parallel /totals/?cycle={sc}
@@ -1916,29 +1941,52 @@ async function loadCycle(cycle) {
       ['stat-raised','stat-spent','stat-coh','stat-ratio'].forEach(function(id) {
         document.getElementById(id).textContent = '—';
       });
-      document.getElementById('data-note').innerHTML = 'No financial filings found for the '+cycle+' cycle.';
+      // T-cycle-empty-state — swap the tabs + tabbed content for a single
+      // whole-view empty state. The summary strip (stats grid + race context
+      // bar) stays visible above; this empty state takes the place of
+      // tabs-bar + #content entirely. C5 string (revised — "found" and "the"
+      // dropped, period removed) lives here, not in #data-note (which is
+      // inside #tab-summary and isn't rendered when #content is hidden).
+      document.getElementById('tabs-bar').style.display = 'none';
+      document.getElementById('content').style.display = 'none';
+      var emptyStateEl = document.getElementById('cycle-empty-state');
+      emptyStateEl.textContent = 'No financial filings for '+cycle+' cycle.';
+      emptyStateEl.style.display = 'block';
     }
 
     // ── Step 4: banner — active vs. closed cycle ──
-    var sig   = document.getElementById('health-signal');
-    var lbl   = document.getElementById('banner-label');
-    var desc  = document.getElementById('banner-desc');
-    var note  = document.getElementById('banner-note');
-
-    if (isCycleActive(cycle)) {
-      var h = assessHealth(raised, spent, coh, debt);
-      sig.className  = 'health-signal '+h.s;
-      lbl.textContent = h.label;
-      desc.textContent = h.desc;
-      note.textContent = 'Best-guess assessment · Thresholds to be validated with domain expert';
+    // T-cycle-empty-state — gate banner population on the same (raised === 0
+    // && spent === 0) condition Step 3 uses. On no-data, hide #banner
+    // entirely (rather than render assessHealth's "No Data" return or the
+    // closed-cycle "Cycle Complete · Cycle concluded with no outstanding
+    // debt reported" framing, both of which read oddly when there's
+    // literally nothing to assess). The whole-view empty state below takes
+    // over communication; the banner is silent in this case.
+    var bannerEl = document.getElementById('banner');
+    if (raised === 0 && spent === 0) {
+      bannerEl.style.display = 'none';
     } else {
-      sig.className  = 'health-signal grey';
-      lbl.textContent = 'Cycle Complete';
-      var summary = 'Cycle concluded with ';
-      if (debt > 0) summary += fmt(debt)+' in outstanding debt.';
-      else summary += 'no outstanding debt reported.';
-      desc.textContent = summary;
-      note.textContent = covDate ? 'Final coverage: '+fmtDate(covDate) : '';
+      bannerEl.style.display = '';
+      var sig   = document.getElementById('health-signal');
+      var lbl   = document.getElementById('banner-label');
+      var desc  = document.getElementById('banner-desc');
+      var note  = document.getElementById('banner-note');
+
+      if (isCycleActive(cycle)) {
+        var h = assessHealth(raised, spent, coh, debt);
+        sig.className  = 'health-signal '+h.s;
+        lbl.textContent = h.label;
+        desc.textContent = h.desc;
+        note.textContent = 'Best-guess assessment · Thresholds to be validated with domain expert';
+      } else {
+        sig.className  = 'health-signal grey';
+        lbl.textContent = 'Cycle Complete';
+        var summary = 'Cycle concluded with ';
+        if (debt > 0) summary += fmt(debt)+' in outstanding debt.';
+        else summary += 'no outstanding debt reported.';
+        desc.textContent = summary;
+        note.textContent = covDate ? 'Final coverage: '+fmtDate(covDate) : '';
+      }
     }
 
     // ── Step 5: chart ──

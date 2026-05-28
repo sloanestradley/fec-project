@@ -121,6 +121,12 @@
        constrained demo card (production aligns to .main-inner gutter). */
     .ds-component-demo .banner { padding-left:0; padding-right:0; }
 
+    /* Cycle empty state — demo: same gutter reset as banner; production picks
+       up var(--page-gutter) horizontally, the constrained demo card needs
+       flush content. Top/bottom padding trimmed too — production's space-64
+       is over-tall for the demo grid. */
+    .ds-component-demo .cycle-empty-state { padding:var(--space-32) 0; }
+
     /* Menu-btn — demo:
        (1) .ds-component-demo's overflow-x:auto implicitly sets overflow-y:auto
            per CSS Overflow spec, which clips the absolutely-positioned dropdown.
@@ -1684,6 +1690,21 @@
           </div>
         </div>
         <div class="ds-component-notes"><code>.state-msg</code> is <code>display:flex; align-items:center; justify-content:center</code> — spinner and label are centered horizontally. Default padding is <code>var(--space-64) var(--space-48)</code>; override inline when a tighter vertical spacing is needed (e.g. tab loading states use <code>padding:var(--space-48) 0</code>). Used on all browse pages (initial load), all profile pages (initial fetch + tab transitions), and search.html. Distinct from <code><a href="#comp-inline-status-msg">.inline-status-msg</a></code> above: that's a small block-level inline status message for use inside an existing region; <code>.state-msg</code> is a flex container that defines the region itself.</div>
+      </div>
+
+      <!-- 18b. Cycle empty state — whole-view empty state on candidate.html cycle-detail -->
+      <div class="ds-component" id="comp-cycle-empty-state" data-status="candidate-only">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Cycle Empty State</span>
+          <span class="ds-status candidate-only">candidate-only</span>
+        </div>
+        <div class="ds-component-classes">.cycle-empty-state</div>
+        <div class="ds-component-demo">
+          <div class="cycle-empty-state">No financial filings for 2026 cycle.</div>
+        </div>
+        <div class="ds-component-notes">
+          Whole-view empty state used on candidate.html cycle-detail when the cycle has no financial filings (T-cycle-empty-state, 2026-05-28). Replaces the tab strip + tabbed content (<code>.tabs-bar</code> + <code>#content</code>) entirely; the summary strip + race context bar above stay visible to provide structural context. Centered body text (IBM Plex Sans 0.875rem · <code>var(--muted)</code>), no chrome — no border, no background, no icon. Padding is <code>120px var(--page-gutter)</code> on desktop (120px is intentionally above the 4rem scale ceiling — generous breathing room below the summary strip on a confirmed-no-data surface); mobile (≤860px) shifts top padding to <code>var(--space-32)</code> for compressed viewports. <strong>Distinct from <code><a href="#comp-inline-status-msg">.inline-status-msg</a></code> and <code><a href="#comp-loader">.state-msg</a></code></strong>: those are status-communication patterns for in-progress / wrapper-level states; <code>.cycle-empty-state</code> is a confirmed-empty-data pattern that replaces a major page region. <strong>Also distinct from <code>.placeholder</code></strong> (dashed-border in-content empty slot used on race.html for "no candidates found") — <code>.cycle-empty-state</code> has no chrome by design; adding a border would make a non-event look like an event. Single live consumer: candidate.html via JS in <code>loadCycle</code>'s empty branch. The banner is also hidden in this case (no "No Data" / "Cycle Complete" copy renders) — the empty-state alone carries communication.
+        </div>
       </div>
 
       <!-- Tab error — per-tier error UI (T12 + T12.5) -->

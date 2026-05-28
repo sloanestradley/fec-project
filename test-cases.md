@@ -191,9 +191,21 @@
 ### Health banner
 - [ ] Active cycle: green/amber/red signal visible with descriptive text
 - [ ] Closed cycle: "Cycle Complete" label, desc reads "Cycle concluded with [X in outstanding debt | no outstanding debt reported]", note reads "Final coverage: {date}"
-- [ ] No-data cycle: "No Data" label, desc reads "No filings this cycle.", note is empty
+- [ ] No-data cycle (T-cycle-empty-state, 2026-05-28): `#banner` is hidden (`display:none`). The prior "No Data" / "Cycle Complete" framings do NOT render. Banner-label and banner-desc do not flash placeholder content before being hidden.
 - [ ] Label and desc render in prose type (IBM Plex Serif, not uppercase Oswald)
 - [ ] Navy top border visible above the banner
+
+### Whole-view empty state (T-cycle-empty-state, 2026-05-28)
+Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle combination with no financial filings — H6WA03309's 2026 cycle is the canonical example).
+- [ ] `#summary-strip` is visible above (stats grid + race context bar) — stats show em-dashes for Raised / Spent / COH / Ratio
+- [ ] `#banner` is hidden (per Health banner section above)
+- [ ] `.tabs-bar` is hidden (the Summary / Raised / Spent tab links do not render)
+- [ ] `#content` (the tabbed content area, including the chart card and `#data-note`) is hidden — no empty chart card or em-dashed data-note text appears
+- [ ] `#cycle-empty-state` is visible directly below the race context bar, centered, with the copy "No financial filings for 2026 cycle." (period at end; no other chrome)
+- [ ] Cycle-card chevron in the stats grid is still clickable — clicking it returns to the cycle index
+- [ ] Navigate to a data-present cycle from cycle index (e.g. 2024): tabs-bar + #content + #banner re-show; empty-state hides; no stale empty-state content remains
+- [ ] Direct-load `#2026#raised` URL on a no-data cycle: the empty-state still overrides (URL hash stays as-is; tabs-bar and #content stay hidden)
+- [ ] Mobile (≤860px): empty-state padding-top tightens to 32px; copy stays centered; no horizontal overflow
 
 ### Summary strip persistence
 - [ ] Banner and stats grid visible on Summary tab
