@@ -375,15 +375,15 @@ test.describe('committee.html — archive threshold', () => {
     await expect(archive).toHaveAttribute('tabindex', '-1');
   });
 
-  test('archive divider precedes archive rows with threshold copy', async ({ page }) => {
+  test('archive divider precedes archive rows with inline label', async ({ page }) => {
     const divider = page.locator('#cycle-index .cycle-archive-divider');
     await expect(divider).toHaveCount(1);
     const text = await divider.textContent();
-    expect(text).toContain('FEC coverage begins 2008');
-    // No office reference for committees (vs candidate.html "for House races")
-    expect(text).not.toContain('for House');
-    expect(text).not.toContain('for Senate');
-    expect(text).not.toContain('for Presidential');
+    // Post-K17.a (2026-05-28): divider carries only the inline label
+    // "Archived cycles (totals only)" — the "FEC coverage begins X"
+    // explanation was retired pending TOOLTIP-VIZ (K17.b).
+    expect(text).toContain('Archived cycles (totals only)');
+    expect(text).not.toContain('FEC coverage begins');
   });
 
   test('post-2008 cycles render as navigable a.cycle-row', async ({ page }) => {

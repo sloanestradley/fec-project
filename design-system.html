@@ -815,7 +815,7 @@
               <div class="banner-label" id="demo-health-label">Financially Healthy</div>
             </div>
             <div class="banner-desc" id="demo-health-desc">Raised-to-spent ratio of 3.84x with positive cash on hand.</div>
-            <div class="banner-note" id="demo-health-note">Best-guess assessment · Thresholds to be validated with domain expert</div>
+            <div class="banner-note" id="demo-health-note"></div>
           </div>
         </div>
       </div>
@@ -1364,7 +1364,7 @@
             <span class="cycle-row-chevron" aria-hidden="true">›</span>
           </a>
           <div class="cycle-archive-divider">
-            <span class="cycle-archive-divider-text">Archive · summary-only. FEC coverage begins 2008.</span>
+            <span class="cycle-archive-divider-text">Archived cycles (totals only)</span>
           </div>
           <div class="cycle-row cycle-row--archive" tabindex="-1">
             <span class="cycle-row-label">2005–2006</span>
@@ -1942,13 +1942,20 @@
     });
   });
 
-  // Health state switcher
+  // Health state switcher — note: post-C1 retirement (2026-05-28), active-cycle
+  // states (healthy/watch/stressed) no longer carry a banner-note in production
+  // (the prior "Best-guess assessment · Thresholds to be validated" annotation
+  // was retired). Demo data reflects production: active states have empty note;
+  // closed-cycle "Final coverage: …" persists pending C2's PAGE-NOTE migration.
+  // No-Data state is dead in production (banner hidden entirely on no-data
+  // cycles per T-cycle-empty-state, 2026-05-28) but kept as a demo state for
+  // historical reference until a future cleanup retires the No Data button.
   var healthStates = {
-    healthy:  { signal:'green', label:'Financially Healthy', desc:'Raised-to-spent ratio of 3.84x with positive cash on hand.',                     note:'Best-guess assessment · Thresholds to be validated with domain expert' },
-    watch:    { signal:'amber', label:'Watch',               desc:'Raised-to-spent ratio of 1.12x. Limited financial cushion.',                      note:'Best-guess assessment · Thresholds to be validated with domain expert' },
-    stressed: { signal:'red',   label:'Financially Stressed', desc:'Disbursements exceed receipts — spending beyond what was raised this cycle.',     note:'Best-guess assessment · Thresholds to be validated with domain expert' },
-    nodata:   { signal:'grey',  label:'No Data',             desc:'No filings this cycle.',                                                          note:'' },
-    closed:   { signal:'grey',  label:'Cycle Complete',      desc:'Cycle concluded with no outstanding debt reported.',                                 note:'Final coverage: Dec 31, 2024' }
+    healthy:  { signal:'green', label:'Financially Healthy', desc:'Raised-to-spent ratio of 3.84x with positive cash on hand.',                 note:'' },
+    watch:    { signal:'amber', label:'Watch',               desc:'Raised-to-spent ratio of 1.12x. Limited financial cushion.',                  note:'' },
+    stressed: { signal:'red',   label:'Financially Stressed', desc:'Disbursements exceed receipts — spending beyond what was raised this cycle.', note:'' },
+    nodata:   { signal:'grey',  label:'No Data',             desc:'No filings this cycle.',                                                      note:'' },
+    closed:   { signal:'grey',  label:'Cycle Complete',      desc:'Cycle concluded with no outstanding debt reported.',                          note:'Final coverage: Dec 31, 2024' }
   };
   document.querySelectorAll('.ds-health-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {

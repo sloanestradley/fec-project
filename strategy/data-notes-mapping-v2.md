@@ -59,7 +59,7 @@ Each audit row from the audit (or its component concepts, for compound rows) get
 
 | Audit ID | Concept (what info it carries) | Destination | Specific attachment point | What's preserved | What's cut / merged with | Complete? |
 |---|---|---|---|---|---|---|
-| C1 | Health-thresholds-not-yet-validated honesty signal (Provisional) | CUT | — | Nothing — the provisional caveat does not carry forward | Judgment call resolved: option (c) | |
+| C1 | Health-thresholds-not-yet-validated honesty signal (Provisional) | CUT | — | Shipped 2026-05-28 — the "Best-guess assessment · Thresholds to be validated with domain expert" line in candidate.html's Step 4 active-cycle branch (formerly L1980) is removed; banner-note now renders empty on active data-present cycles. The `assessHealth()` "No Data" return at L647 was intentionally retained as a defensive default — the Step 4 banner gate (post-T-cycle-empty-state) makes the path unreachable today; the function-level fallback is cheap insurance against future callers without the upstream guard. | Judgment call resolved: option (c) | ✓ |
 | C2 | Final coverage date on closed cycle | CUT | — | Coverage-through date lives at PAGE-NOTE | Merged with C4.c (Coverage-through), one source of truth | |
 | C3 | Empty banner-note (closed cycle, no covDate) | CUT | — | Nothing — the orphan disappears with C2 | C2 | n/a |
 | C4.a | "Source: FEC — Candidate ID {ID}" attribution | CUT | — | The Candidate ID is already in the meta-row tag; the new source line (C4.e) covers attribution. No duplication needed at PAGE-NOTE. | Merged with .meta-row + C4.e | |
@@ -84,8 +84,8 @@ Each audit row from the audit (or its component concepts, for compound rows) get
 | C10.e | "Senate category totals aggregated across sub-cycles" conditional | CUT | — | Implied by the data being election-level (election-aggregated totals are the standard); the explicit caveat is unnecessary | — | |
 | C10.f | "Coverage through {date}" (spent footer) | CUT | — | Coverage-through date lives at PAGE-NOTE | C4.c | |
 | C11 | "Reflects committees directly linked… JFA participant gap… F2 pointer" | SECTION-NOTE | Bottom of the Committees modal / section | Caveat survives in its current form — stays as a section-bottom data-note. NOT routed to a tooltip on the section header (Sloane override: works as-is). | — | n/a |
-| C12.a | "Archive · summary-only" structural label | COMPONENT-LABEL | Cycle-index archive divider | Stays as the divider's inline label (component-owned). Revised copy: *"Archived elections (totals only)"* | — | |
-| C12.b | "FEC coverage begins {threshold} for {office} races" explanation | TOOLTIP-VIZ | Cycle-index archive divider (anchored beside C12.a's label) | Why-this-cutoff explanation scoped to the divider. Revised copy: *"Data for {office} races prior to {threshold} is less complete; no detail view available."* | — | |
+| C12.a | "Archive · summary-only" structural label | COMPONENT-LABEL | Cycle-index archive divider | Shipped 2026-05-28. Inline label is now exactly *"Archived elections (totals only)"* across all three render sites in candidate.html (renderCycleIndex, renderCycleIndexScaffold, onPartialError). The unused `officeLabel` variable declarations were removed at each site. | — | ✓ |
+| C12.b | "FEC coverage begins {threshold} for {office} races" explanation | TOOLTIP-VIZ | Cycle-index archive divider (anchored beside C12.a's label) | **Currently absent in production** as of 2026-05-28 (C12.a Option B ship: dropped the explanation entirely rather than carry it as inline text). Returns when the tooltip component lands with the spec'd copy: *"Data for {office} races prior to {threshold} is less complete; no detail view available."* | — | |
 
 ### committee.html
 
@@ -111,14 +111,14 @@ Each audit row from the audit (or its component concepts, for compound rows) get
 | K12.5 | Volume-cap empty state on Top Individual Contributors table | EMPTY-STATE | Top Individual Contributors table empty cell | Revised copy: *"Data not available due to high transaction volume."* (was: *"Unable to show due to high transaction volume."*). Updated 2026-05-28. | **Audit backfill**: this 4th empty-state cell was missed in the original audit (no K-row assigned at audit time). Captured here under K12.5. Parity with K11 / K12 / K13. | ✓ |
 | K13 | Volume-cap empty state on Top Conduit Sources table | EMPTY-STATE | Top Conduit Sources table empty cell | Revised copy: *"Data not available due to high transaction volume."* (was: *"Unable to show due to high transaction volume."*). Updated 2026-05-28. | Parity with K11 / K12 / K12.5. | ✓ |
 | K14 | "Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized" | TOOLTIP-VIZ | Spending by Purpose bars | Methodology + completeness scoped to bars | Parity with C9 (committee version omits the "most recent sub-cycle" candidate-only clause); consolidates K16.a | |
-| K15 | "Direct contributions to other federal candidates and committees" | CUT | — | Concept is a section subtitle / definition, not a caveat; the section title or a `.section-subtitle` pattern should carry this. The `.data-note` class was the wrong host. | — (section-title-level concern, copy decision out of scope) | |
+| K15 | "Direct contributions to other federal candidates and committees" | CUT | — | Shipped 2026-05-28 — `<p class="data-note">` paragraph removed from committee.html's Contributions to Candidates & Committees section. Option (a): pure removal. Section title "Contributions to Candidates & Committees" (`.donors-head`) carries the necessary context for the table below. No replacement subtitle pattern introduced; if other sections need similar descriptive subtitles in the future, that's a separate component decision. | — | ✓ |
 | K16.a | "Spending by Purpose: keyword mapping…" | CUT | — | Already covered by K14 tooltip | K14 | |
 | K16.b | "(capped at 500 transactions)" conditional clause | TOOLTIP-VIZ | Spending by Purpose bars (conditional content within K14's tooltip) | Surfaces only when cap fires | K14 (same tooltip, conditional fragment) | |
 | K16.c | "Spending by Category: FEC totals" source | CUT | — | Lacks value at per-viz level; the page-level source line covers attribution | K1.d | |
 | K16.d | "Top vendors deduplicated by recipient" methodology | TOOLTIP-VIZ | Top Vendors table | Methodology scoped to the table | Parity with C10.d | |
 | K16.e | "Coverage through {date}" (spent footer) | CUT | — | Coverage-through date lives at PAGE-NOTE | K1.c | |
-| K17.a | "Archive · summary-only" structural label | COMPONENT-LABEL | Cycle-index archive divider | Stays as the divider's inline label (component-owned). Revised copy: *"Archived cycles (totals only)"* | Parity with C12.a | |
-| K17.b | "FEC coverage begins {threshold}" explanation | TOOLTIP-VIZ | Cycle-index archive divider (anchored beside K17.a's label) | Why-this-cutoff explanation scoped to the divider. Revised copy: *"Data for cycles prior to {threshold} is less complete; no detail view available."* | — | |
+| K17.a | "Archive · summary-only" structural label | COMPONENT-LABEL | Cycle-index archive divider | Shipped 2026-05-28. Inline label is now exactly *"Archived cycles (totals only)"* across all three render sites in committee.html (renderCycleIndex, renderCycleIndexScaffold, onPartialError). Single string change applied via replace_all. | Parity with C12.a | ✓ |
+| K17.b | "FEC coverage begins {threshold}" explanation | TOOLTIP-VIZ | Cycle-index archive divider (anchored beside K17.a's label) | **Currently absent in production** as of 2026-05-28 (K17.a Option B ship: dropped the explanation entirely rather than carry it as inline text). Returns when the tooltip component lands with the spec'd copy: *"Data for cycles prior to {threshold} is less complete; no detail view available."* | — | |
 
 ### race.html
 
@@ -283,10 +283,10 @@ C8.d / K8 is the single longest piece of methodology copy in the audit (~47 word
 
 In v1 the divider text differed across pages (candidate carried "for {office} races"; committee did not). Sloane's revised copy normalizes much of this:
 
-- **Inline label (COMPONENT-LABEL):** candidate = *"Archived elections (totals only)"*; committee = *"Archived cycles (totals only)"*. Both use the *"Archived {unit} (totals only)"* shape with appropriate per-page units.
-- **Tooltip (TOOLTIP-VIZ):** candidate = *"Data for {office} races prior to {threshold} is less complete; no detail view available."*; committee = *"Data for cycles prior to {threshold} is less complete; no detail view available."*. Same shape, candidate retains the office-specificity that the committee version doesn't need.
+- **Inline label (COMPONENT-LABEL) — shipped 2026-05-28:** candidate = *"Archived elections (totals only)"*; committee = *"Archived cycles (totals only)"*. Both use the *"Archived {unit} (totals only)"* shape with appropriate per-page units. **The prior "FEC coverage begins X" explanation was dropped (Option B) rather than carried as inline text.**
+- **Tooltip (TOOLTIP-VIZ) — currently absent in production, pending tooltip component:** candidate = *"Data for {office} races prior to {threshold} is less complete; no detail view available."*; committee = *"Data for cycles prior to {threshold} is less complete; no detail view available."*. Same shape, candidate retains the office-specificity that the committee version doesn't need.
 
-This is parity at the shape level rather than the literal-string level — appropriate given the actual per-page domain differences. No further normalization needed.
+This is parity at the shape level rather than the literal-string level — appropriate given the actual per-page domain differences. No further normalization needed. **Interim user-facing trade:** the dropped explanation means users currently see the archive-divider label without the "why this cutoff exists" context. Returns when tooltip ships.
 
 ### e. The primary-loser caveat on race is a banked open question
 

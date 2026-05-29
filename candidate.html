@@ -1983,7 +1983,13 @@ async function loadCycle(cycle) {
         sig.className  = 'health-signal '+h.s;
         lbl.textContent = h.label;
         desc.textContent = h.desc;
-        note.textContent = 'Best-guess assessment · Thresholds to be validated with domain expert';
+        // C1 retired 2026-05-28 — the "Best-guess assessment · Thresholds to
+        // be validated with domain expert" annotation that previously sat in
+        // banner-note is now cut (decided in data-notes-mapping-v2 §5.1
+        // option c). assessHealth()'s "No Data" return at L647 is kept as a
+        // defensive default; this Step 4 branch is guarded above by
+        // (raised === 0 && spent === 0) so the dead path is unreached today.
+        note.textContent = '';
       } else {
         sig.className  = 'health-signal grey';
         lbl.textContent = 'Cycle Complete';
@@ -2106,10 +2112,8 @@ function renderCycleIndex(cycles, totalsMap, office) {
     var coh    = t ? fmt(t.last_cash_on_hand_end_period || 0) : '—';
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
-      var officeLabel = { H:'House', S:'Senate', P:'Presidential' }[office] || 'House';
       html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archive \u00b7 summary-only. '
-        + 'FEC coverage begins ' + threshold + ' for ' + officeLabel + ' races.</span>'
+        + '<span class="cycle-archive-divider-text">Archived elections (totals only)</span>'
         + '</div>';
     }
     html += cycleRowHTML(year, raised, spent, coh, isArchive);
@@ -2149,10 +2153,8 @@ function renderCycleIndexScaffold(cycles, office) {
     var isArchive = year < threshold;
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
-      var officeLabel = { H:'House', S:'Senate', P:'Presidential' }[office] || 'House';
       html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
-        + 'FEC coverage begins ' + threshold + ' for ' + officeLabel + ' races.</span>'
+        + '<span class="cycle-archive-divider-text">Archived elections (totals only)</span>'
         + '</div>';
     }
     html += cycleRowHTML(year, skel, skel, skel, isArchive);
@@ -2193,10 +2195,8 @@ function onPartialError(err) {
     var isArchive = year < threshold;
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
-      var officeLabel = { H:'House', S:'Senate', P:'Presidential' }[CAND_OFFICE] || 'House';
       html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
-        + 'FEC coverage begins ' + threshold + ' for ' + officeLabel + ' races.</span>'
+        + '<span class="cycle-archive-divider-text">Archived elections (totals only)</span>'
         + '</div>';
     }
     html += cycleRowHTML(year, '—', '—', '—', isArchive);

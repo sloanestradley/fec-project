@@ -89,9 +89,9 @@
 ### Archive threshold (House pre-2008)
 - [ ] ✅ Pre-threshold rows render as non-navigable `div.cycle-row--archive` (automated)
 - [ ] ✅ Archive rows have `tabindex="-1"` (automated)
-- [ ] ✅ Archive divider row is present with correct year and office label (automated)
+- [ ] ✅ Archive divider row is present with the new inline label (automated)
 - [ ] Archive rows are visually dimmed / not clickable (cursor:default, no hover highlight)
-- [ ] Archive divider copy includes "FEC coverage begins YEAR for [Office] races"
+- [ ] Archive divider copy is exactly "Archived elections (totals only)" — the prior "FEC coverage begins YEAR for [Office] races" explanation was retired in C12.a (2026-05-28, Option B). Returns as a tooltip when the tooltip component lands (C12.b).
 
 ### Amplitude events
 - [ ] `Page Viewed` fires with properties: `page`, `candidate_id`, `candidate_name`, `cycle`
@@ -189,8 +189,8 @@
 - [ ] Mobile (≤860px): outer grid stacks (left half row 1, right half row 2) with a horizontal navy divider between; right half stays as a 3-col row of Raised | Spent | COH
 
 ### Health banner
-- [ ] Active cycle: green/amber/red signal visible with descriptive text
-- [ ] Closed cycle: "Cycle Complete" label, desc reads "Cycle concluded with [X in outstanding debt | no outstanding debt reported]", note reads "Final coverage: {date}"
+- [ ] Active cycle: green/amber/red signal visible with descriptive text. **Banner-note renders empty** — the prior "Best-guess assessment · Thresholds to be validated with domain expert" annotation was retired in C1 (2026-05-28).
+- [ ] Closed cycle: "Cycle Complete" label, desc reads "Cycle concluded with [X in outstanding debt | no outstanding debt reported]", note reads "Final coverage: {date}" (C2 retirement pending PAGE-NOTE work)
 - [ ] No-data cycle (T-cycle-empty-state, 2026-05-28): `#banner` is hidden (`display:none`). The prior "No Data" / "Cycle Complete" framings do NOT render. Banner-label and banner-desc do not flash placeholder content before being hidden.
 - [ ] Deferred reveal on initial detail-view entry (T-cycle-empty-state-jump-mitigation, 2026-05-28): `#banner` is hidden during the loadCycle fetch window — appears only after data resolves (data-present cycle) or stays hidden (no-data cycle). Race-context-bar stays put through the fetch window; no upward shift on no-data resolve.
 - [ ] Hash-driven cycle change between detail URLs (browser back/forward — the only path that re-enters detail without going through the index post-T16): on data→data hash nav, banner content updates atomically when the new cycle's data resolves (no vanish-then-reappear). Quick test: visit `/candidate/H2WA03217#2024#summary`, wait for banner to populate, browser-back to a previously-visited `#2022#summary` URL — banner content updates without flicker.
@@ -503,7 +503,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Data note at bottom includes Schedule B and FEC totals source attribution
 - [ ] Navigating to Spent tab on a page where data is already fetched renders immediately (no re-fetch)
 - [ ] Section titles ("Spending by Category", "Spending by Purpose", "Top Vendors", "Contributions to Candidates & Committees") visible at all times during loading; per-section skeletons replace only the chart canvas / table body
-- [ ] Contributions section data note ("Direct contributions to other federal candidates and committees.") sits BELOW the table (not above)
+- [ ] Contributions section has section title "Contributions to Candidates & Committees" above the table; no descriptive paragraph below the table (K15 retired 2026-05-28 — section title carries context, no subtitle pattern introduced)
 - [ ] Whole-row click on a Contributions row navigates to /committee/{recipient_id}; middle-click opens in new tab; recipient name renders as plain text (no blue underline)
 - [ ] Mock 429 / 500 on `/schedules/schedule_b/` → spent-error tab UI renders correctly (rate-limit copy on 429, default + retry on 500)
 

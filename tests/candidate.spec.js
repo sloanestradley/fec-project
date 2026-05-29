@@ -1217,8 +1217,11 @@ test.describe('candidate.html — archive threshold (House pre-2008)', () => {
     const divider = page.locator('#cycle-index .cycle-archive-divider');
     await expect(divider).toBeVisible();
     const text = await divider.textContent();
-    expect(text).toContain('2008');
-    expect(text).toContain('House');
+    // Post-C12.a (2026-05-28): divider carries only the inline label
+    // "Archived elections (totals only)" — the "FEC coverage begins X for
+    // {office} races" explanation was retired pending TOOLTIP-VIZ (C12.b).
+    expect(text).toContain('Archived elections (totals only)');
+    expect(text).not.toContain('FEC coverage begins');
   });
 });
 

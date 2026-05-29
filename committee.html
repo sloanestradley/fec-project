@@ -346,7 +346,6 @@
               </tr></thead>
               <tbody id="contributions-tbody"></tbody>
             </table>
-            <p class="data-note" style="margin-top:.75rem">Direct contributions to other federal candidates and committees.</p>
           </div>
         </div>
 
@@ -558,8 +557,7 @@ function renderCycleIndex(cycles, totalsMap) {
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
       html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
-        + 'FEC coverage begins ' + threshold + '.</span>'
+        + '<span class="cycle-archive-divider-text">Archived cycles (totals only)</span>'
         + '</div>';
     }
     html += cycleRowHTML(year, raised, spent, coh, isArchive, startYear);
@@ -625,8 +623,7 @@ function renderCycleIndexScaffold(cycles) {
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
       html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
-        + 'FEC coverage begins ' + threshold + '.</span>'
+        + '<span class="cycle-archive-divider-text">Archived cycles (totals only)</span>'
         + '</div>';
     }
     html += cycleRowHTML(year, skel, skel, skel, isArchive, year - 1);
@@ -671,8 +668,7 @@ function onPartialError(err) {
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
       html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archive · summary-only. '
-        + 'FEC coverage begins ' + threshold + '.</span>'
+        + '<span class="cycle-archive-divider-text">Archived cycles (totals only)</span>'
         + '</div>';
     }
     html += cycleRowHTML(year, '—', '—', '—', isArchive, year - 1);
