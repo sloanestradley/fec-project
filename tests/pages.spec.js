@@ -171,6 +171,38 @@ test.describe('race.html', () => {
     expect(text?.trim()).toBe('Incumbent');
   });
 
+  test('page-level #race-note carries source link and completeness caveat (R1.a + R1.b, Phase 2)', async ({ page }) => {
+    // R1.a + R1.b shipped 2026-05-28 (Phase 2 race-first prototype):
+    // page-level data note moved OUTSIDE #tab-candidates so it's always
+    // visible regardless of which tab is active. Source-first ordering.
+    // FEC links to https://www.fec.gov/ (consumer site, not API).
+    const note = page.locator('#race-note');
+    await expect(note).toBeVisible();
+    // Source line first — sentence starts with "Source: FEC."
+    await expect(note).toContainText('Source: FEC.');
+    // FEC link → fec.gov
+    const fecLink = note.locator('a[href="https://www.fec.gov/"]');
+    await expect(fecLink).toHaveText('FEC');
+    // Completeness caveat
+    await expect(note).toContainText('Candidates may not yet have filed for all periods.');
+    // Old loose attribution string should be gone
+    await expect(note).not.toContainText('Financial figures are cycle totals as reported to the FEC');
+  });
+
+  test('#race-note is OUTSIDE #tab-candidates (page-level placement, Phase 2)', async ({ page }) => {
+    // Page-note should be a sibling of #tab-candidates / #tab-insights inside
+    // #race-content — NOT a child of either tab — so tab switches don't
+    // hide it. Regression-locks the Phase 2 relocation.
+    const isOutsideTab = await page.evaluate(() => {
+      const note = document.getElementById('race-note');
+      const tabCandidates = document.getElementById('tab-candidates');
+      const tabInsights = document.getElementById('tab-insights');
+      return note && tabCandidates && tabInsights &&
+        !tabCandidates.contains(note) && !tabInsights.contains(note);
+    });
+    expect(isOutsideTab).toBe(true);
+  });
+
   test('year selector options come from elections/search endpoint', async ({ page }) => {
     const sel = page.locator('#year-select');
     const options = await sel.locator('option').allTextContents();

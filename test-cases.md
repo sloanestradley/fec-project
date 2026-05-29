@@ -594,6 +594,14 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] ✅ Year dropdown shows 2024 as selected value when URL param is `year=2024`
 - [ ] Clicking "Insights" tab shows coming-soon message; clicking "Candidates" shows candidate list
 
+### Page-level data note (R1.a + R1.b, Phase 2 race-first prototype, 2026-05-28)
+- [ ] ✅ `#race-note` sits OUTSIDE both `#tab-candidates` and `#tab-insights` — sibling within `#race-content` (automated regression-lock)
+- [ ] `#race-note` is visible on both Candidates and Insights tabs (tab switch doesn't hide it)
+- [ ] Content reads exactly: "Source: FEC. Candidates may not yet have filed for all periods." with `FEC` rendered as a link
+- [ ] FEC link href = `https://www.fec.gov/` (consumer site, not API root)
+- [ ] FEC link opens in same tab (no `target="_blank"`)
+- [ ] FEC link inherits `.data-note` text color treatment; underline is the default link affordance
+
 ### Dynamic cycle dropdown
 - [ ] ✅ Year dropdown options populated from `/elections/search/` endpoint (not hardcoded)
 - [ ] House race: dropdown shows historical cycles from FEC data, capped at current cycle

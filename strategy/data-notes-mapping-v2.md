@@ -16,7 +16,7 @@ Three judgment calls from v1 are decided. Decisions are baked into the mapping t
 
 Three additional cross-cutting decisions emerged from Sloane's notes and apply across the mapping:
 
-- **Cadence framing retired.** Every "Data updated nightly by FEC" surface is replaced by a source line: `"Source: FEC."` with the word *FEC* linked to https://api.open.fec.gov/. Rationale: cadence framing can be read as "data is always current," when in reality refresh is bounded by FEC reporting deadlines. The source-link is honest about provenance without claiming a freshness contract we don't keep. Coverage-through date (which IS a truthful statement about what window the displayed numbers represent) is retained.
+- **Cadence framing retired.** Every "Data updated nightly by FEC" surface is replaced by a source line: `"Source: FEC."` with the word *FEC* linked to https://www.fec.gov/. Rationale: cadence framing can be read as "data is always current," when in reality refresh is bounded by FEC reporting deadlines. The source-link is honest about provenance without claiming a freshness contract we don't keep. Coverage-through date (which IS a truthful statement about what window the displayed numbers represent) is retained.
 - **Per-tooltip source-endpoint attribution dropped.** The four "Source: FEC totals endpoint" / "Source: FEC totals" donut tooltips (C8.a, C10.c, K3.a, K16.c) are all cut. The page-level source line covers it; per-viz repetition lacks value.
 - **Per-page FEC-ID source attribution dropped from PAGE-NOTE.** C4.a and K1.a are cut — the FEC ID is already shown in the meta-row tag, and the new source-link covers attribution. No need to surface the ID twice.
 
@@ -66,7 +66,7 @@ Each audit row from the audit (or its component concepts, for compound rows) get
 | C4.b | "Cycle {cycle} ({startYear}–{cycle})" framing | CUT | — | Shipped 2026-05-28 (Cat A pass) — clause removed from candidate.html's Step 3 #data-note innerHTML assembly. `cycleStartYear` variable declaration also removed (it was only used by this clause). Election year is shown at `#stat-cycle` per T-cycle-semantics; the sub-cycle range parenthetical was supplementary and not load-bearing. | `#stat-cycle` stat | ✓ |
 | C4.c | "Coverage through {date}" freshness stamp | PAGE-NOTE | Page-level note | Page-wide coverage-through date | Consolidates C2 / C8.e / C10.f duplicates | |
 | C4.d | "Raised-to-spent = total receipts ÷ total disbursements" definition | TOOLTIP-LABEL | Raised:Spent Ratio stat label | Definition scoped to its stat. Revised copy: *"Raised:spent = total receipts ÷ total disbursements"* (matches updated stat label) | — | |
-| C4.e | Source line (was: "Data updated nightly by FEC" cadence) | PAGE-NOTE | Page-level note | Transformed: *"Source: FEC."* with the word *FEC* linked to https://api.open.fec.gov/. Cadence concept retired. | The "data updated nightly" surfaces (here + K4 / K6 on committee) collapse into a single per-page source-link | |
+| C4.e | Source line (was: "Data updated nightly by FEC" cadence) | PAGE-NOTE | Page-level note | Transformed: *"Source: FEC."* with the word *FEC* linked to https://www.fec.gov/. Cadence concept retired. | The "data updated nightly" surfaces (here + K4 / K6 on committee) collapse into a single per-page source-link | |
 | C5 | "No financial filings found for the {cycle} cycle" | EMPTY-STATE | Cycle-detail whole-view empty state (new `.cycle-empty-state` element, candidate-only) | Revised copy: *"No financial filings for {cycle} cycle."* (dropped "found" and "the"; period retained). Shipped 2026-05-28 in T-cycle-empty-state — element sits inside `.main-inner` alongside `#content`, replaces tabs-bar + tabbed content on no-data cycles, banner is also hidden in this case. | — | ✓ |
 | C6 | Empty data-note (loadCycle catch branch) | CUT | — | The orphan disappears — chart-error overlay already owns failure messaging | — | n/a |
 | C7 | Overspend callout | (stays as `.callout`) | Near the timeline chart on the summary tab | Concept survives in its current visible-callout form | Judgment call resolved: option (a). Not absorbed into the data-note family. | n/a |
@@ -94,7 +94,7 @@ Each audit row from the audit (or its component concepts, for compound rows) get
 | K1.a | "Source: FEC — Committee ID {ID}" attribution | CUT | — | The Committee ID is already in the meta-row tag; the new source line (K1.d) covers attribution | Merged with .meta-row + K1.d | |
 | K1.b | "{startYear}–{cycleOrAll} cycle" framing | CUT | — | Shipped 2026-05-28 (Cat A pass) — clause removed from committee.html's `renderStats` #committee-meta-note assembly. `#stat-cycle` already carries the year-range. | `#stat-cycle` stat | ✓ |
 | K1.c | "Coverage through {date}" freshness stamp | PAGE-NOTE | Page-level note | Page-wide coverage-through date | Consolidates K9 / K16.e's coverage-through duplicates | |
-| K1.d | Source line (was: "Data updated nightly by FEC" cadence) | PAGE-NOTE | Page-level note | Transformed: *"Source: FEC."* with the word *FEC* linked to https://api.open.fec.gov/. Cadence concept retired. | Parity with C4.e | |
+| K1.d | Source line (was: "Data updated nightly by FEC" cadence) | PAGE-NOTE | Page-level note | Transformed: *"Source: FEC."* with the word *FEC* linked to https://www.fec.gov/. Cadence concept retired. | Parity with C4.e | |
 | K2 | Overspend callout | (stays as `.callout`) | Near the chart on the summary tab | Concept survives in its current visible-callout form | Judgment call resolved: option (a). Parity with C7. | n/a |
 | K3.a | "Raised breakdown from FEC totals endpoint" source | CUT | — | Shipped 2026-05-28 (Cat A pass) — prefix removed from committee.html's `renderRaisedIfReady` raised-data-note assembly. "Lacks value" cut. | K1.d | ✓ |
 | K3.b | "Geography reflects itemized individual contributions by state (Schedule A)" methodology | TOOLTIP-VIZ | Where Individual Contributions Come From map | Methodology scoped to choropleth | Parity with C8.b — also receives K3.c content | |
@@ -124,8 +124,8 @@ Each audit row from the audit (or its component concepts, for compound rows) get
 
 | Audit ID | Concept | Destination | Specific attachment point | What's preserved | What's cut / merged with | Complete? |
 |---|---|---|---|---|---|---|
-| R1.a | "as reported to the FEC" loose source attribution | PAGE-NOTE | Page-level note | Transformed: *"Source: FEC."* with the word *FEC* linked to https://api.open.fec.gov/ — for parity with candidate.html and committee.html | Parity with C4.e / K1.d | |
-| R1.b | "Candidates may not yet have filed for all periods" data-completeness caveat | PAGE-NOTE | Page-level note | Caveat survives | — | |
+| R1.a | "as reported to the FEC" loose source attribution | PAGE-NOTE | Page-level note | Shipped 2026-05-28 (Phase 2 race-first prototype). Transformed: *"Source: FEC."* with the word *FEC* linked to **https://www.fec.gov/** (flipped from the v1 api.open.fec.gov decision — fec.gov is the consumer-facing site, more useful destination for casual users). #race-note element relocated OUTSIDE #tab-candidates to a page-level slot inside #race-content (sibling of #tab-candidates / #tab-insights) so it stays visible regardless of which tab is active. | Parity with C4.e / K1.d (forthcoming) | ✓ |
+| R1.b | "Candidates may not yet have filed for all periods" data-completeness caveat | PAGE-NOTE | Page-level note | Shipped 2026-05-28 (Phase 2 race-first prototype). Sentence preserved verbatim; paired with R1.a's source line in the same paragraph. Source-first ordering. | — | ✓ |
 
 ### Borderline rows from the audit
 
@@ -147,7 +147,7 @@ After mapping, here's what each page's PAGE-NOTE actually carries (concept-level
 | Order | Content element |
 |---|---|
 | 1 | Coverage-through date (page-wide coverage-window stamp) |
-| 2 | Source line — *"Source: FEC."* with link to https://api.open.fec.gov/ |
+| 2 | Source line — *"Source: FEC."* with link to https://www.fec.gov/ |
 | 3 | ≤$200 itemization caveat — *"Individual contributions of $200 or less are not itemized."* |
 
 **Total: 3 elements.** Within hypothesis range (2–3). C1 (provisional caveat) is gone; C4.a (FEC ID) is gone; cadence / refresh-rate framing is gone. The candidate page-note is leaner than v1's projection.
@@ -157,7 +157,7 @@ After mapping, here's what each page's PAGE-NOTE actually carries (concept-level
 | Order | Content element |
 |---|---|
 | 1 | Coverage-through date (page-wide coverage-window stamp) |
-| 2 | Source line — *"Source: FEC."* with link to https://api.open.fec.gov/ |
+| 2 | Source line — *"Source: FEC."* with link to https://www.fec.gov/ |
 | 3 | ≤$200 itemization caveat — *"Individual contributions of $200 or less are not itemized."* |
 
 **Total: 3 elements.** Identical shape to candidate. No FEC ID (handled by meta-row tag); no cadence framing.
@@ -166,7 +166,7 @@ After mapping, here's what each page's PAGE-NOTE actually carries (concept-level
 
 | Order | Content element |
 |---|---|
-| 1 | Source line — *"Source: FEC."* with link to https://api.open.fec.gov/ |
+| 1 | Source line — *"Source: FEC."* with link to https://www.fec.gov/ |
 | 2 | Data-completeness caveat — *"Candidates may not yet have filed for all periods"* |
 
 **Total: 2 elements.** Race has no single race-wide coverage-through date (each candidate has their own), and no individual-contributions surface (so no ≤$200 caveat). The source line gives race parity with candidate / committee at the attribution layer.
@@ -246,10 +246,10 @@ For each major category in the audit, does race need parity with candidate / com
 
 | Category | Candidate | Committee | Race today | Race in new architecture | Parity verdict | Complete? |
 |---|---|---|---|---|---|---|
-| **Source attribution** (page-level source line) | New PAGE-NOTE source line: *"Source: FEC."* with link | New PAGE-NOTE source line: same | Loose: "as reported to the FEC" | R1.a transformed to the same source line as candidate / committee | **Resolved — parity achieved.** All three pages share the identical source-line treatment. | |
+| **Source attribution** (page-level source line) | New PAGE-NOTE source line: *"Source: FEC."* with link to https://www.fec.gov/ | New PAGE-NOTE source line: same | Loose: "as reported to the FEC" | R1.a shipped 2026-05-28 (Phase 2 race-first prototype) — same source-line treatment as candidate / committee (forthcoming). | **Resolved — parity achieved on race today; candidate / committee match in Phase 2 candidate+committee commit.** | ✓ (race side; candidate+committee blank pending Phase 2 finish) |
 | **Coverage-through (page-level coverage-window stamp)** | Yes (single page-wide date) | Yes (single page-wide date) | None | Race aggregates `/elections/` — each candidate's `coverage_end_date` is per-candidate; there's no single race-wide date. Per-card freshness stamps were proposed in v1 but are not pursued in v2. | **Appropriately absent.** The page-note shape differs by structural necessity. | n/a |
 | **Methodology** (Schedule A walks, keyword-matched purpose, dedup logic, memo-code conduit logic) | Multiple TOOLTIP-VIZ destinations | Multiple TOOLTIP-VIZ destinations | No methodology surfaces — race uses `/elections/`, which is FEC's pre-aggregated record | Race has no viz that need methodology explained. | **Appropriately absent.** Not a gap. | n/a |
-| **Data-completeness caveats** | ≤$200 itemization (PAGE-NOTE); JFA gap (SECTION-NOTE on committees) | ≤$200 itemization (PAGE-NOTE); volume-cap (EMPTY-STATE) | One caveat: "candidates may not yet have filed for all periods" (R1.b) | Race carries R1.b. The primary-loser-counting caveat (currently banked in project-brief.md) remains an open content question — see §5.e. | R1.b is appropriate parity at the data-completeness layer; primary-loser caveat is a banked-but-open product-honesty question for the designer. | |
+| **Data-completeness caveats** | ≤$200 itemization (PAGE-NOTE); JFA gap (SECTION-NOTE on committees) | ≤$200 itemization (PAGE-NOTE); volume-cap (EMPTY-STATE) | One caveat: "candidates may not yet have filed for all periods" (R1.b) | R1.b shipped 2026-05-28 (Phase 2 race-first prototype) — sentence preserved, paired with source line in page-level note. The primary-loser-counting caveat (currently banked in project-brief.md) remains an open content question — see §5.e. | R1.b is appropriate parity at the data-completeness layer; primary-loser caveat is a banked-but-open product-honesty question for the designer. | ✓ (race R1.b shipped; candidate / committee ≤$200 PAGE-NOTE pending Phase 2 finish) |
 | **Provisional / validation honesty signal** (C1) | Cut entirely (judgment call #1 = c) | None | None | N/A — the concept does not carry forward. | **Decided.** Not a gap; the category is retired across all three pages. | n/a |
 
 ### Summary

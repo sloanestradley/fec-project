@@ -78,11 +78,15 @@
       <div id="tab-candidates">
         <div class="section-title" id="race-candidates-label"></div>
         <div class="race-list" id="race-list"></div>
-        <div class="data-note" id="race-note"></div>
       </div>
       <div id="tab-insights" style="display:none">
         <div class="placeholder">Race insights coming soon</div>
       </div>
+      <!-- Page-level data note (R1.a + R1.b, 2026-05-28 Phase 2 race
+           prototype) — sits OUTSIDE both tab panels so it's always visible
+           regardless of which tab is active. Carries source attribution +
+           data-completeness caveat at page level. -->
+      <div class="data-note" id="race-note"></div>
     </div>
   </div><!-- /.main-inner -->
   </div><!-- /.main -->
@@ -311,8 +315,14 @@ async function init() {
       ? results.map(buildCandidateCard).join('')
       : '<div class="placeholder">No candidates found for this race in the FEC system.</div>';
 
-    document.getElementById('race-note').textContent =
-      'Financial figures are cycle totals as reported to the FEC. Candidates may not yet have filed for all periods.';
+    // R1.a + R1.b shipped 2026-05-28 (Phase 2 race-first prototype) —
+    // page-level data note. Source-first ordering per design call. FEC links
+    // to https://www.fec.gov/ (consumer site, not API). innerHTML used to
+    // render the link inline; both source identifier and completeness
+    // caveat are part of the same sentence-level paragraph.
+    document.getElementById('race-note').innerHTML =
+      'Source: <a href="https://www.fec.gov/">FEC</a>. ' +
+      'Candidates may not yet have filed for all periods.';
 
     document.getElementById('state-msg').style.display = 'none';
     var headerEl  = document.getElementById('race-header');
