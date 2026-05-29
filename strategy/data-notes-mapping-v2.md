@@ -238,6 +238,29 @@ The overspend callout (C7 / K2) is **data-state-conditional** — fires only whe
 
 This is the same logic that informs the tooltip-spec's stance on conditionality: the tooltip's CONTENTS can be conditional (cap clause, bulk-vs-API source), but the tooltip's PRESENCE shouldn't be.
 
+### Planned tooltip copy — consolidated review
+
+All TOOLTIP-VIZ and TOOLTIP-LABEL destinations from §1 compiled in one place for tone/formatting consistency review. Rows numbered by attachment surface (1, 2, 3 …); conditional variants and per-page parity splits use letter suffixes (1a, 1b, …). Conditional variants 3a/3b, 4b/4c, 6c, etc. fire only on certain data states — see Specific attachment point for trigger semantics. Sloane's notes column is intentionally blank for review.
+
+| # | V1? | Tooltip copy | Specific attachment point | Page(s) | Criticality tier | Related audit IDs | Sloane's notes |
+|---|---|---|---|---|---|---|---|
+| 1 | ✓ | *"Raised:spent = total receipts ÷ total disbursements"* | Raised:Spent Ratio stat-card label (TOOLTIP-LABEL) | candidate | definitional / contextual | C4.d | |
+| 2a | ✓ | *"Geography reflects itemized individual contributions by state (Schedule A)."* | Where Individual Contributions Come From map | both | definitional / contextual | C8.b / K3.b | |
+| 2b | ✓ | *"State totals may differ from summary figures due to FEC amendment processing."* | Where Individual Contributions Come From map (appended to #2a's tooltip) | committee (candidate parity TBD — §5.b) | interpretation-critical | K3.c | |
+| 3a |  | *"Top individual contributors pre-computed from FEC bulk data, refreshed daily."* | Top Individual Contributors table — bulk variant; surfaces only when KV-hit | committee | interpretation-critical (bulk-vs-API scope semantics) | K4 | |
+| 3b |  | *"Top individual contributors: {cycleLabel}."* | Top Individual Contributors table — API variant; surfaces only when KV-miss; conditional swap with #3a in same tooltip slot | committee | interpretation-critical (bulk-vs-API scope semantics) | K5 | |
+| 4a |  | *"Top committee contributors: complete PAC, party, and other committee contributions across {cycleLabel}, deduplicated by committee ID."* | Top Committee Contributors table on candidate.html | candidate | interpretation-critical (scope + dedup methodology) | C8.c | |
+| 4b |  | *"Top committee contributors pre-computed from FEC bulk data (pas2), refreshed daily."* | Top Committee Contributors table on committee.html — bulk variant; surfaces only when KV-hit | committee | interpretation-critical (bulk-vs-API scope semantics) | K6 | |
+| 4c |  | *"Top committee contributors: complete {cycleLabel} cycle, deduplicated by committee ID."* | Top Committee Contributors table on committee.html — API variant; conditional swap with #4b | committee | interpretation-critical (bulk-vs-API scope semantics) | K7 | |
+| 5 |  | *"Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals' money, not the platforms' own funds."* | Top Conduit Sources table | both | **interpretation-critical** (the architecture's stress case — without it, users misread platform contributions as platform donations; see §5.c) | C8.d / K8 | |
+| 6a | ✓ | *"Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle."* — **when the Schedule B fetch caps**, the tooltip appends *"(Capped at 500 transactions.)"* (C10.b conditional fragment; trailing "Covers most recent sub-cycle" is candidate-only Senate sub-cycle artifact) | Spending by Purpose bars on candidate.html | candidate | interpretation-critical (keyword-matching imprecision affects how user reads category totals; the cap append flags incomplete coverage) | C9 + C10.b (conditional) | |
+| 6b | ✓ | *"Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized."* — **when the Schedule B fetch caps**, the tooltip appends *"(Capped at 500 transactions.)"* (K16.b conditional fragment) | Spending by Purpose bars on committee.html | committee | interpretation-critical (keyword-matching imprecision; cap append flags incomplete coverage) | K14 + K16.b (conditional) | |
+| 7 | ✓ | *"Top vendors deduplicated by recipient."* | Top Vendors table | both | definitional / contextual | C10.d / K16.d | |
+| 8a | ✓ | *"Data for {office} races prior to {threshold} is less complete; no detail view available."* | Cycle-index archive divider, anchored beside C12.a's label | candidate | definitional / contextual | C12.b | |
+| 8b | ✓ | *"Data for cycles prior to {threshold} is less complete; no detail view available."* | Cycle-index archive divider, anchored beside K17.a's label | committee | definitional / contextual | K17.b | |
+
+**14 total entries** (8 distinct attachment surfaces). **V1 scope: 8 rows** (1, 2a, 2b, 6a, 6b, 7, 8a, 8b) — surfaces with simpler placement (stat label, choropleth, Spent-tab bars/table without nested sub-tabs, cycle-index archive divider). **Deferred to V2: 6 rows** (3a, 3b, 4a, 4b, 4c, 5) — all inside the Raised → "Top Contributors by type" nested sub-tab section (Committees / Conduits / Individuals); tooltip-on-sub-tab placement is more complex and benefits from its own scoping pass. Variants split into letter suffixes for: choropleth (2a base + 2b committee-only amendment caveat), Top Individuals (3a bulk / 3b API conditional swap), Top Committees (4a candidate / 4b committee bulk / 4c committee API), Spending by Purpose (6a candidate base / 6b committee base — cap conditional merged inline per fragment in each), and archive divider (8a candidate / 8b committee). When the tooltip component lands and these ship, each row's audit ID flips to ✓ in the §1 mapping table.
+
 ---
 
 ## 4. Race-parity findings

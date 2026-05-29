@@ -5901,3 +5901,75 @@ The investigation laid out three approaches; I recommended 3a (max-content, smal
 
 - **Architectural vs visible column separation as a design vocabulary.** The T-meta-row arc made the distinction load-bearing: "architectural box-clamping" (the structural fix, invisible at typical content) vs "visible column separation" (treatment that shows up in pixels). Worth a UX vocabulary discussion — when does the project care about which?
 
+
+---
+2026-05-29 — Data-notes mapping → Cat A cleanup → PAGE-NOTE ship arc (spans 2026-05-28 + 2026-05-29)
+
+## Process log draft
+
+### Mapping, then sweeping, then knowing when not to fix
+
+The data-notes audit from a few days back became a mapping pass became an actual cleanup arc this session. Twenty-something rows from a 55-row matrix flipped to ✓ across eight commits — a strategy doc shipped first to capture every decision, then the bundled small cleanups (C1, C12.a, K15, K17.a), then a whole-view empty-state pattern on no-data candidate cycles, then a follow-up to fix the load-sequence jolt that the empty-state ship surfaced, then a Cat A trim pass on the per-tab footers, then PAGE-NOTE on race as a small prototype, then PAGE-NOTE on candidate and committee for the full parity ship. Through all of it I kept building review surfaces in parallel — "Complete" column, then "Verified" column, then a consolidated tooltip-copy table with V1/V2 split — so the strategy doc reads like a roadmap I can move through deliberately instead of a list of decisions I made once.
+
+### Changelog
+- Empty-state copy on Raised-tab tables standardized to "Data not available …" across all four cells (K11, K12, K12.5 — audit backfill — and K13).
+- Archive divider copy on cycle-index: dropped the "FEC coverage begins X for Y races" explanation entirely, just shows "Archived elections (totals only)" / "Archived cycles (totals only)" — strict spec compliance, the explanation returns as a tooltip when the tooltip component lands.
+- Provisional caveat retired from the active-cycle banner-note; the closed-cycle "Final coverage: {date}" annotation retired separately. Banner-note renders empty in both states now.
+- New `.cycle-empty-state` whole-view empty state replaces tabs + tabbed content on no-data candidate cycles. Banner is hidden too. Summary strip + race context bar stay so users keep their orientation.
+- Follow-up: `#banner` deferred reveal so race-context-bar doesn't shift upward during the loadCycle fetch window on no-data cycles.
+- Big trim pass on per-tab footers — 14 mapping rows flipped to ✓ — purely the redundant / "lacks value" stuff.
+- Page-level data note shipped on all three profile pages. Uses the existing `.data-note` class at the bottom of the cycle-detail content area. Source-first sentence ordering. FEC links to fec.gov (flipped from v1's api.open.fec.gov decision). Site-wide `a { color: var(--accent) }` rule added.
+- C4.d (Raised:spent definition) cut now, returns as tooltip later — same Option B trade as C12.b.
+- New tooltip-copy review table in the strategy doc with V1/V2 split. V1 = 8 surfaces with simpler placement; V2 = 6 rows on the Raised → Top Contributors nested sub-tab tables.
+
+### Field notes
+The thing worth keeping from this session is the discipline of building review surfaces at the pace of shipping. Mapping doc → Complete column → Verified column → consolidated tooltip table → V1/V2 column. Each layer is a way to SEE the work and judge it.
+
+The other moment to remember: stepping back from C after the stress test. C was the cleaner architectural answer to the load-sequence jolt — defer tabs-bar + content + banner together. But the stress test surfaced that it would introduce a data→data flicker on hash navigation between detail URLs. Fixing one case by regressing another. Ship B (defer banner only); defer the rest to the single-scroll migration. The investigation paid for itself by saving the wrong fix.
+
+The other small thing: discovering K12.5 (the audit's missing 4th empty-state cell — Top Individuals on committee) was caught by my "Any concerns before you start?" question on the K11/K12/K13 standardization.
+
+### Stack tags
+None new this session.
+
+## How Sloane steered the work
+
+### "Strict spec, accept the interim" — Option B on archive divider
+When the archive divider copy work had two paths — keep the explanation as interim text (Option A) or drop it entirely until tooltip ships (Option B) — you went with B without hesitation. Same pattern repeated on C4.d (cut now, returns when tooltip ships). The pattern: when cleanup has a bounded interim cost and a clean target shape, ship the clean shape and accept the gap.
+
+### Sequencing — Cat A before PAGE-NOTE
+You read my Phase 2 PAGE-NOTE plan, identified that some of the CUT items rolled into it and others were independent, and asked "does it make sense to work on items to cut first?" That reframed the work cleanly: 14 rows of independent cleanup shipped first in one focused commit; PAGE-NOTE second with only the 9 atomically-tied CUTs.
+
+### Race-first prototype
+On the PAGE-NOTE work specifically, you chose to ship race first as a small prototype before scaling to candidate + committee. Letting it land first verified the source-link pattern (especially the fec.gov-vs-api URL choice) in production before the bigger commit.
+
+### "flip to fec.gov"
+One-word direction, load-bearing choice — flipped a v1 decision from api.open.fec.gov to www.fec.gov. Consumer site is the right destination for the audience.
+
+### Path Z
+On PAGE-NOTE I'd asked which of three paths. You picked Path Z — surgically cut the redundant/dead-code clauses, preserve methodology copy in the tab footers until tooltip ships. That answer made the Cat A pass possible as a standalone commit.
+
+### "Any concerns before you start?" — surfaced the audit gap
+On K11/K12/K13 empty-state copy work, you asked if I had any concerns. I flagged K12.5 — the Top Individuals volume-cap cell — missed in the original audit. Your question surfaced it.
+
+### The C investigation pause
+You caught that my stress-test of Option C had described "data→data cycle-switch within detail view" as the common case. You corrected me: there is no in-detail cycle switcher (T16 retired it). That correction recalibrated the whole C-vs-B analysis. Ship B (defer banner only); defer the rest to single-scroll migration.
+
+### Building review surfaces in parallel
+Complete column → Verified column → consolidated tooltip-copy table → V1/V2 split column. Each review surface created at the pace of the work shipping.
+
+### Through-line
+Paced verification + strict-spec-when-bounded. Mapping doc → Complete → Verified → tooltip table. Option B + race-first + Path Z. You're shipping fast AND keeping the review apparatus honest, which most sessions trade off against each other.
+
+## What to bring to Claude Chat
+
+1. **Tooltip-component scoping ticket** — V1 = 8 rows; V2 = 6 rows on Raised → Top Contributors nested sub-tab tables. Worth scoping V1 with the V2 placement question answered before V1 lands.
+
+2. **K3.c candidate-parity question** — the amendment caveat lives on committee.html's choropleth only. The behavior applies to candidate.html's choropleth too. Worth deciding whether candidate gets parity when V1 ships.
+
+3. **Primary-loser caveat on race** — banked in project-brief.md as "acceptable for now." A transparency note at PAGE-NOTE level would close the interpretive gap without the data fix. Add now or hold for the data layer?
+
+4. **Single-scroll layout migration timing** — the deferred-reveal pattern needs to apply to whatever the new architecture has. C was rejected this session for the current tabs architecture. When does single-scroll get prioritized? It would close several banked debts.
+
+5. **The audit's K12.5 discovery** — even a thorough audit can have one blind spot; the closing-question discipline before implementation surfaces it cheap. Worth noting as a pattern for future audit work.
+
