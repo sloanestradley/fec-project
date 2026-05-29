@@ -1281,10 +1281,15 @@ function renderRaisedIfReady() {
     document.getElementById('raised-tab-section-title')
       .textContent = 'Top Contributors by type · ' + cycleLabel;
 
-    var note = 'Raised breakdown from FEC totals endpoint. Geography reflects itemized individual contributions by state (Schedule A). ' +
+    // C8.a + C8.e retired 2026-05-28 — "Raised breakdown from FEC totals
+    // endpoint" prefix (donut source, "lacks value") and "Coverage through
+    // {date}" duplicate (already at #stat-coh-sub "As of {date}") both
+    // removed. C8.f (≤$200 caveat) stays here until PAGE-NOTE ship moves it
+    // page-level (Phase 2). Methodology copy (geography / top committees /
+    // top conduits) stays per Path Z, awaiting tooltip component ship.
+    var note = 'Geography reflects itemized individual contributions by state (Schedule A). ' +
       'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID. ' +
       'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect the individuals\' money, not the platforms\' own funds.';
-    if (currentCovDate) note += ' Coverage through ' + fmtDate(currentCovDate) + '.';
     note += ' Small-dollar contributions ≤$200 are not itemized.';
     var noteEl = document.getElementById('raised-data-note');
     noteEl.innerHTML = note;
@@ -1520,16 +1525,18 @@ function renderSpentIfReady() {
   renderSpentDonut(spentData.breakdown, spentData.totalSpent);
   renderTopVendors(spentData.topVendors);
 
-  // Cycle label + data note
-  var subCycles = spentData.subCycles;
-  var cycleLabel = (subCycles[0] - 1) + '–' + subCycles[subCycles.length - 1];
-  var note = 'Spending by Purpose: keyword mapping of FEC disbursement descriptions from Schedule B, most recent sub-cycle' +
-    (spentData.capped ? ' (capped at 500 transactions)' : '') + '. ' +
-    'Spending by Category: FEC totals endpoint. ' +
-    'Top vendors deduplicated by recipient.';
-  if (subCycles.length > 1) note += ' Senate category totals aggregated across sub-cycles.';
-  if (spentData.covDate) note += ' Coverage through ' + fmtDate(spentData.covDate) + '.';
-  document.getElementById('spent-data-note').innerHTML = note;
+  // C10.* trims 2026-05-28 — Path Z pass:
+  //   C10.a (Spending by Purpose: keyword mapping sentence + cap parenthetical
+  //     which carried C10.b): cut. C9 inline note on the purpose card already
+  //     covers the same methodology; C10.b returns inside C9's tooltip when
+  //     tooltip component ships (currently absent in production).
+  //   C10.c (Spending by Category: FEC totals endpoint donut source): cut
+  //     ("lacks value").
+  //   C10.e (Senate sub-cycle aggregation conditional): cut (implied by
+  //     election-level data).
+  //   C10.f (Coverage through {date}): cut (already at #stat-coh-sub).
+  // C10.d (Top vendors deduplicated by recipient) stays per Path Z.
+  document.getElementById('spent-data-note').innerHTML = 'Top vendors deduplicated by recipient.';
   document.getElementById('spent-data-note').style.display = 'block';
 
   spentRendered = true;
@@ -1917,7 +1924,6 @@ async function loadCycle(cycle) {
     // raised/spent/coh/debt/covDate already computed from allTotalsArr in Step 1.
     // #stat-cycle was set synchronously before the await (so the election year
     // shows immediately on cycle-switch); no need to re-write it here.
-    var cycleStartYear = cycle - getCycleSpanYears() + 1;
     if (raised > 0 || spent > 0) {
       document.getElementById('stat-raised').textContent = fmt(raised);
       document.getElementById('stat-spent').textContent  = fmt(spent);
@@ -1934,9 +1940,14 @@ async function loadCycle(cycle) {
         else                   { ratioEl.style.color='var(--green)';  ratioSub.className='stat-sub pos';  ratioSub.textContent='Healthy range'; }
       }
 
+      // C4.b retired 2026-05-28 — the "Cycle YYYY (YYYY-YYYY)" framing was
+      // redundant with #stat-cycle (which carries the election year per
+      // T-cycle-semantics); the sub-cycle range parenthetical was supplementary
+      // and not load-bearing. cycleStartYear variable declaration removed
+      // along with the reference. Coverage / Source / cadence stay in this
+      // assembly until PAGE-NOTE ship moves them to page-level (Phase 2).
       document.getElementById('data-note').innerHTML =
-        'Source: FEC — Candidate ID '+CANDIDATE_ID+'. '+
-        'Cycle '+cycle+' ('+cycleStartYear+'–'+cycle+').'+
+        'Source: FEC — Candidate ID '+CANDIDATE_ID+'.'+
         (covDate ? ' Coverage through '+fmtDate(covDate)+'.' : '')+
         ' Raised-to-spent = total receipts ÷ total disbursements. Data updated nightly by FEC.';
     } else {
@@ -1997,7 +2008,13 @@ async function loadCycle(cycle) {
         if (debt > 0) summary += fmt(debt)+' in outstanding debt.';
         else summary += 'no outstanding debt reported.';
         desc.textContent = summary;
-        note.textContent = covDate ? 'Final coverage: '+fmtDate(covDate) : '';
+        // C2 retired 2026-05-28 — the "Final coverage: {date}" annotation in
+        // closed-cycle banner-note is now cut (decided in v2 mapping as CUT,
+        // merging into PAGE-NOTE's coverage stamp). Coverage date is still
+        // visible at #stat-coh-sub "As of {date}" on the Cash on Hand card.
+        // Closed-cycle banner-note now renders empty (parity with C1
+        // retirement on active branch).
+        note.textContent = '';
       }
     }
 

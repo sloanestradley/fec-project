@@ -1152,9 +1152,12 @@ function renderStats(cycleOrAll) {
   overspendEl.style.display = (receipts > 0 && disbursements > receipts) ? 'block' : 'none';
 
   // Data note
+  // K1.b retired 2026-05-28 — the "YYYY–YYYY cycle." framing was redundant
+  // with #stat-cycle (which already shows the year-range). Source / Coverage /
+  // cadence stay until PAGE-NOTE ship moves them to page-level (Phase 2).
+  // startYear stays declared above — used by #stat-cycle text assignment.
   var noteEl = document.getElementById('committee-meta-note');
-  noteEl.textContent = 'Source: FEC — Committee ID ' + COMMITTEE_ID + '. '
-    + startYear + '–' + cycleOrAll + ' cycle.'
+  noteEl.textContent = 'Source: FEC — Committee ID ' + COMMITTEE_ID + '.'
     + (coverageDate ? ' Coverage through ' + fmtDate(coverageDate) + '.' : '')
     + ' Data updated nightly by FEC.';
 
@@ -1824,8 +1827,14 @@ function renderRaisedIfReady() {
     document.getElementById('raised-tab-section-title')
       .textContent = 'Top Contributors by type · ' + cycleLabel;
 
-    var note = 'Raised breakdown from FEC totals endpoint. ' +
-      'Geography reflects itemized individual contributions by state (Schedule A). ' +
+    // K3.a + K9 retired 2026-05-28 — "Raised breakdown from FEC totals
+    // endpoint" prefix (donut source, "lacks value") and "Coverage through
+    // {date}" duplicate (already at #stat-coh-sub) both removed. K10 (≤$200
+    // caveat) stays until PAGE-NOTE ship moves it page-level (Phase 2).
+    // Methodology stays per Path Z: K3.b/c (geography + amendment caveat),
+    // K4-K7 (bulk-vs-API source attribution), K8 (conduit explanation).
+    // covDate computation also retired — was used only for the cut clause.
+    var note = 'Geography reflects itemized individual contributions by state (Schedule A). ' +
       'State totals may differ from summary figures due to FEC amendment processing.';
     if (d.topIndividualsSource === 'bulk') {
       note += ' Top individual contributors pre-computed from FEC bulk data, refreshed daily.';
@@ -1840,9 +1849,6 @@ function renderRaisedIfReady() {
     if (!d.topConduitsTooLarge && !d.topCommitteesIsConduit) {
       note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
     }
-    var covDate = currentTotalsRecord && currentTotalsRecord.coverage_end_date
-      ? currentTotalsRecord.coverage_end_date.split('T')[0] : null;
-    if (covDate) note += ' Coverage through ' + fmtDate(covDate) + '.';
     note += ' Small-dollar contributions ≤$200 are not itemized.';
     var noteEl = document.getElementById('raised-data-note');
     noteEl.innerHTML = note;
@@ -2214,11 +2220,16 @@ function renderSpentIfReady() {
   var vendorsHead = document.getElementById('vendors-head');
   if (vendorsHead) vendorsHead.textContent = 'Top Vendors · ' + periodLabel;
 
-  var note = 'Spending by Purpose: keyword mapping of FEC disbursement descriptions '
-    + 'from Schedule B' + (data.capped ? ' (capped at 500 transactions)' : '') + '. '
-    + 'Spending by Category: FEC totals. Top vendors deduplicated by recipient.';
-  if (data.covDate) note += ' Coverage through ' + fmtDate(data.covDate) + '.';
-  document.getElementById('spent-data-note').innerHTML = note;
+  // K16.* trims 2026-05-28 — Path Z pass:
+  //   K16.a (Spending by Purpose: keyword mapping sentence + cap parenthetical
+  //     which carried K16.b): cut. K14 inline note on the purpose card already
+  //     covers the same methodology; K16.b returns inside K14's tooltip when
+  //     tooltip component ships (currently absent in production).
+  //   K16.c (Spending by Category: FEC totals donut source): cut ("lacks
+  //     value").
+  //   K16.e (Coverage through {date}): cut (already at #stat-coh-sub).
+  // K16.d (Top vendors deduplicated by recipient) stays per Path Z.
+  document.getElementById('spent-data-note').innerHTML = 'Top vendors deduplicated by recipient.';
   document.getElementById('spent-data-note').style.display = 'block';
 
   spentRendered = true;

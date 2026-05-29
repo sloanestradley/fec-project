@@ -1942,20 +1942,20 @@
     });
   });
 
-  // Health state switcher — note: post-C1 retirement (2026-05-28), active-cycle
-  // states (healthy/watch/stressed) no longer carry a banner-note in production
-  // (the prior "Best-guess assessment · Thresholds to be validated" annotation
-  // was retired). Demo data reflects production: active states have empty note;
-  // closed-cycle "Final coverage: …" persists pending C2's PAGE-NOTE migration.
-  // No-Data state is dead in production (banner hidden entirely on no-data
-  // cycles per T-cycle-empty-state, 2026-05-28) but kept as a demo state for
-  // historical reference until a future cleanup retires the No Data button.
+  // Health state switcher — post-C1 + C2 retirement (2026-05-28), no banner-note
+  // is written on either active or closed cycles in production. The prior
+  // "Best-guess assessment · Thresholds to be validated" (C1) and "Final
+  // coverage: …" (C2) annotations were both retired. Coverage-through date now
+  // lives at #stat-coh-sub on the Cash on Hand stat card (and will move to
+  // PAGE-NOTE in Phase 2). No-Data state is dead in production (banner hidden
+  // entirely on no-data cycles per T-cycle-empty-state, 2026-05-28) but kept
+  // as a demo state for historical reference until a future cleanup.
   var healthStates = {
     healthy:  { signal:'green', label:'Financially Healthy', desc:'Raised-to-spent ratio of 3.84x with positive cash on hand.',                 note:'' },
     watch:    { signal:'amber', label:'Watch',               desc:'Raised-to-spent ratio of 1.12x. Limited financial cushion.',                  note:'' },
     stressed: { signal:'red',   label:'Financially Stressed', desc:'Disbursements exceed receipts — spending beyond what was raised this cycle.', note:'' },
     nodata:   { signal:'grey',  label:'No Data',             desc:'No filings this cycle.',                                                      note:'' },
-    closed:   { signal:'grey',  label:'Cycle Complete',      desc:'Cycle concluded with no outstanding debt reported.',                          note:'Final coverage: Dec 31, 2024' }
+    closed:   { signal:'grey',  label:'Cycle Complete',      desc:'Cycle concluded with no outstanding debt reported.',                          note:'' }
   };
   document.querySelectorAll('.ds-health-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
