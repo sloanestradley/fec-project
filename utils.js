@@ -122,14 +122,27 @@ function formatCandidateName(n) { return toTitleCase(n); }
 // code so all surfaces show the full party name (e.g. "AMERICAN INDEPENDENT
 // PARTY") instead of a 3-letter FEC code (e.g. "AIP"). Mainstream parties
 // (DEM/REP/LIB/GRE/IND) and N/A bucket are unchanged in label text.
+//
+// **Unmapped code without party_full** (e.g. /candidate/{id}/ returns
+// party='PPP' with party_full=null — H0NY03067 Ross is a real case): both
+// helpers collapse to N/A behavior (label 'Party N/A', class 'tag-neutral').
+// Matches FEC.gov's own treatment ("Political party: None") and matches
+// race.html's render of the same candidate (where /elections/ omits party
+// data entirely so the empty-primary path returns 'Party N/A'). Without this
+// fallback, the same candidate read different labels on different pages.
 
 function partyClass(p, party_full) {
   var primary = p || party_full || '';
   if (!primary) return 'tag-neutral';
   var u = primary.toUpperCase();
+  var naGroup = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
+  if (naGroup.indexOf(u) !== -1) return 'tag-neutral';
   if (u === 'DEM' || u.startsWith('DEMOCRAT')) return 'tag-dem';
   if (u === 'REP' || u.startsWith('REPUBLICAN')) return 'tag-rep';
-  return 'tag-ind';
+  // Unmapped — only style as independent if we have a full name to display.
+  // Without party_full, partyLabel collapses to 'Party N/A'; mirror that here.
+  if (party_full) return 'tag-ind';
+  return 'tag-neutral';
 }
 
 function partyLabel(p, party_full) {
@@ -143,8 +156,12 @@ function partyLabel(p, party_full) {
   if (u.startsWith('DEMOCRAT'))   return 'Democrat';
   if (u.startsWith('REPUBLICAN')) return 'Republican';
   // Unmapped — prefer party_full (full name) over p (short code) so all
-  // surfaces show the same complete label for third-party candidates.
-  return party_full || p;
+  // surfaces show the same complete label for third-party candidates. If
+  // party_full is also absent (FEC sometimes returns a cryptic short code
+  // with no expansion — e.g. PPP), collapse to 'Party N/A' rather than
+  // showing the raw code. Matches FEC.gov's own treatment of such cases
+  // and matches race.html's render for the same candidate.
+  return party_full || 'Party N/A';
 }
 
 // ── Race utilities ───────────────────────────────────────────────────────────
