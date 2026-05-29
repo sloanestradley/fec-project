@@ -2385,7 +2385,10 @@ async function init() {
     document.getElementById('meta-row').innerHTML =
       '<span class="tag tag-neutral fec-id-tag">FEC ID · '+CANDIDATE_ID+'</span>'
       + '<span class="tag tag-neutral">'+formatRaceName(CAND_OFFICE, CAND_STATE, CAND_DIST)+'</span>'
-      + '<span class="tag '+partyClass(cand.party)+'" title="'+partyTooltip(cand.party, cand.party_full)+'">'+partyLabel(cand.party)+'</span>';
+      + (function() {
+          var ptt = partyTooltip(cand.party, cand.party_full);
+          return '<span class="tag '+partyClass(cand.party)+'"' + (ptt ? ' title="'+ptt+'"' : '') + '>'+partyLabel(cand.party)+'</span>';
+        })();
     var isDetailView = ALL_CYCLES.indexOf(hashCycle) !== -1;
 
     // T-menu-btn-profile-header — mount the profile menu (replaces the prior

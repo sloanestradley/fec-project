@@ -186,6 +186,7 @@ function buildCandidateCard(c) {
   var party = c.party || c.party_full || '';
   var pcls  = partyClass(party);
   var plbl  = partyLabel(party);
+  var ptt   = partyTooltip(c.party, c.party_full);
 
   // Link directly to the race's cycle year so the candidate page opens at the right cycle
   var href = id ? '/candidate/' + id + '?from=race#' + yearParam + '#summary' : '#';
@@ -206,7 +207,7 @@ function buildCandidateCard(c) {
     + ' onclick="amplitude.track(\'Candidate Result Clicked\',{candidate_id:' + JSON.stringify(id)
     + ',from_page:\'race\',race_year:' + JSON.stringify(yearParam) + '})">'
     + '<div class="candidate-card-name">' + name
-    + (plbl ? '<span class="tag ' + pcls + '">' + plbl + '</span>' : '')
+    + (plbl ? '<span class="tag ' + pcls + '"' + (ptt ? ' title="' + ptt + '"' : '') + '>' + plbl + '</span>' : '')
     + (c.incumbent_challenge === 'I' || c.incumbent_challenge_full === 'Incumbent' ? '<span class="tag tag-inc">Incumbent</span>' : '')
     + '</div>'
     + statsHtml

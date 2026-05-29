@@ -2269,7 +2269,7 @@ async function fetchAndRenderAssocSection(candidateId, relType) {
       + '<span class="tag tag-neutral">'
         + formatRaceName(cand.office, cand.state, cand.district)
         + '</span>'
-      + '<span class="tag ' + pcls + '" title="' + ptt + '">' + plbl + '</span>'
+      + '<span class="tag ' + pcls + '"' + (ptt ? ' title="' + ptt + '"' : '') + '>' + plbl + '</span>'
       + '</div></a>';
     assocSection.style.display = 'block';
   } catch(e) {

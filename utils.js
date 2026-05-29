@@ -136,12 +136,15 @@ function partyLabel(p) {
 
 // Returns a title attribute value for a party tag.
 // Named parties: shows party_full title-cased (e.g. "Republican Party").
-// N/A bucket: explains why.
+// N/A bucket (or missing/unknown party): returns empty string — the visible
+// "Party N/A" tag label is sufficient and the hover tooltip carried no info
+// the label didn't already convey. Call sites must omit the title= attribute
+// when this function returns empty (inline ternary at each injection site).
 // party_full comes from the API as ALL CAPS — title-case it before display.
 function partyTooltip(p, party_full) {
-  if (!p) return 'No party affiliation on file';
+  if (!p) return '';
   var naGroup = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
-  if (naGroup.indexOf(p.toUpperCase()) !== -1) return 'No party affiliation on file';
+  if (naGroup.indexOf(p.toUpperCase()) !== -1) return '';
   if (party_full) {
     return party_full.charAt(0).toUpperCase() + party_full.slice(1).toLowerCase();
   }
@@ -287,7 +290,7 @@ function candidateCardHTML(c, opts) {
     + '<div class="candidate-card-meta">'
     + (office ? '<span class="tag tag-neutral">' + office + '</span>' : '')
     + (latestCycle ? '<span class="tag tag-neutral">' + latestCycle + '</span>' : '')
-    + '<span class="tag ' + pcls + '" title="' + ptt + '">' + plbl + '</span>'
+    + '<span class="tag ' + pcls + '"' + (ptt ? ' title="' + ptt + '"' : '') + '>' + plbl + '</span>'
     + '</div></a>';
 }
 
