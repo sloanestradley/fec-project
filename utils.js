@@ -137,8 +137,18 @@ function partyClass(p, party_full) {
   var u = primary.toUpperCase();
   var naGroup = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
   if (naGroup.indexOf(u) !== -1) return 'tag-neutral';
-  if (u === 'DEM' || u.startsWith('DEMOCRAT')) return 'tag-dem';
-  if (u === 'REP' || u.startsWith('REPUBLICAN')) return 'tag-rep';
+  // Check BOTH fields for Democratic/Republican affiliation — variant short
+  // codes like 'DFL' don't reveal the affiliation on their own, but
+  // party_full does ('DEMOCRATIC-FARMER-LABOR' startsWith 'DEMOCRAT'). This
+  // keeps the visual hue (blue/red) consistent across surfaces regardless of
+  // which field the endpoint populates. Note: partyLabel deliberately uses
+  // EXACT match here (to preserve variant identity in the text), while
+  // partyClass uses startsWith (to keep the visual hue inclusive). Two
+  // different concerns, two different rules.
+  var pu = (p || '').toUpperCase();
+  var fu = (party_full || '').toUpperCase();
+  if (pu === 'DEM' || fu.startsWith('DEMOCRAT'))   return 'tag-dem';
+  if (pu === 'REP' || fu.startsWith('REPUBLICAN')) return 'tag-rep';
   // Unmapped — only style as independent if we have a full name to display.
   // Without party_full, partyLabel collapses to 'Party N/A'; mirror that here.
   if (party_full) return 'tag-ind';
@@ -153,8 +163,22 @@ function partyLabel(p, party_full) {
   if (naGroup.indexOf(u) !== -1) return 'Party N/A';
   var map = { DEM: 'Democrat', REP: 'Republican', LIB: 'Libertarian', GRE: 'Green Party', IND: 'Independent' };
   if (map[u]) return map[u];
-  if (u.startsWith('DEMOCRAT'))   return 'Democrat';
-  if (u.startsWith('REPUBLICAN')) return 'Republican';
+  // Exact full-name matches for the mainstream parties (so race.html's
+  // primary='DEMOCRATIC PARTY' collapses to 'Democrat' just like
+  // candidate.html's primary='DEM'). EXACT, not startsWith — variant party
+  // names like Minnesota's DEMOCRATIC-FARMER-LABOR or hypothetical state-
+  // affiliate variants must fall through to preserve their identity rather
+  // than incorrectly collapsing to the parent affiliation. Strategists
+  // tracking state-level party affiliates care about the distinction;
+  // FEC.gov surfaces the full variant name and we should too.
+  var fullMap = {
+    'DEMOCRATIC PARTY':  'Democrat',
+    'REPUBLICAN PARTY':  'Republican',
+    'LIBERTARIAN PARTY': 'Libertarian',
+    'GREEN PARTY':       'Green Party',
+    'INDEPENDENT':       'Independent'
+  };
+  if (fullMap[u]) return fullMap[u];
   // Unmapped — prefer party_full (full name) over p (short code) so all
   // surfaces show the same complete label for third-party candidates. If
   // party_full is also absent (FEC sometimes returns a cryptic short code
