@@ -2258,9 +2258,8 @@ async function fetchAndRenderAssocSection(candidateId, relType) {
     var displayName = toTitleCase(cand.name);
     var assocSection = document.getElementById('assoc-section');
     var assocList    = document.getElementById('assoc-list');
-    var pcls = partyClass(cand.party);
-    var plbl = partyLabel(cand.party);
-    var ptt  = partyTooltip(cand.party, cand.party_full);
+    var pcls = partyClass(cand.party, cand.party_full);
+    var plbl = partyLabel(cand.party, cand.party_full);
     var sectionTitle = relType === 'sponsor' ? 'Sponsored Candidate' : 'Principal Committee For';
     assocSection.querySelector('.section-title').textContent = sectionTitle;
     assocList.innerHTML = '<a class="candidate-card" href="/candidate/' + candidateId + '">'
@@ -2269,7 +2268,7 @@ async function fetchAndRenderAssocSection(candidateId, relType) {
       + '<span class="tag tag-neutral">'
         + formatRaceName(cand.office, cand.state, cand.district)
         + '</span>'
-      + '<span class="tag ' + pcls + '"' + (ptt ? ' title="' + ptt + '"' : '') + '>' + plbl + '</span>'
+      + '<span class="tag ' + pcls + '">' + plbl + '</span>'
       + '</div></a>';
     assocSection.style.display = 'block';
   } catch(e) {

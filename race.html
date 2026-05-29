@@ -183,14 +183,8 @@ function buildYearSelector(cycles) {
 function buildCandidateCard(c) {
   var id    = c.candidate_id || (c.candidate_ids && c.candidate_ids[0]);
   var name  = toTitleCase(c.candidate_name || c.name);
-  var party = c.party || c.party_full || '';
-  var pcls  = partyClass(party);
-  var plbl  = partyLabel(party);
-  // /elections/ returns party: null for every candidate — party info lives only
-  // in party_full on this endpoint (per CLAUDE.md). Pass the resolved `party`
-  // (already falls back to party_full) so partyTooltip's `if (!p)` short-circuit
-  // doesn't fire on every candidate. Same fallback partyClass / partyLabel use.
-  var ptt   = partyTooltip(party, c.party_full);
+  var pcls  = partyClass(c.party, c.party_full);
+  var plbl  = partyLabel(c.party, c.party_full);
 
   // Link directly to the race's cycle year so the candidate page opens at the right cycle
   var href = id ? '/candidate/' + id + '?from=race#' + yearParam + '#summary' : '#';
@@ -211,7 +205,7 @@ function buildCandidateCard(c) {
     + ' onclick="amplitude.track(\'Candidate Result Clicked\',{candidate_id:' + JSON.stringify(id)
     + ',from_page:\'race\',race_year:' + JSON.stringify(yearParam) + '})">'
     + '<div class="candidate-card-name">' + name
-    + (plbl ? '<span class="tag ' + pcls + '"' + (ptt ? ' title="' + ptt + '"' : '') + '>' + plbl + '</span>' : '')
+    + '<span class="tag ' + pcls + '">' + plbl + '</span>'
     + (c.incumbent_challenge === 'I' || c.incumbent_challenge_full === 'Incumbent' ? '<span class="tag tag-inc">Incumbent</span>' : '')
     + '</div>'
     + statsHtml

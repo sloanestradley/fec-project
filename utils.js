@@ -113,43 +113,38 @@ function toTitleCase(name) {
 function formatCandidateName(n) { return toTitleCase(n); }
 
 // ── Party utilities ──────────────────────────────────────────────────────────
+// partyClass + partyLabel both accept (p, party_full). The two-arg signature
+// exists because the /elections/ endpoint (race.html) returns party=null and
+// only populates party_full, while every other endpoint returns party as a
+// short code. Passing both lets both surface types produce the same label
+// and class consistently, with no per-call-site fallback wiring. For unmapped
+// third parties specifically, partyLabel prefers party_full over the short
+// code so all surfaces show the full party name (e.g. "AMERICAN INDEPENDENT
+// PARTY") instead of a 3-letter FEC code (e.g. "AIP"). Mainstream parties
+// (DEM/REP/LIB/GRE/IND) and N/A bucket are unchanged in label text.
 
-function partyClass(p) {
-  if (!p) return 'tag-neutral';
-  var u = p.toUpperCase();
+function partyClass(p, party_full) {
+  var primary = p || party_full || '';
+  if (!primary) return 'tag-neutral';
+  var u = primary.toUpperCase();
   if (u === 'DEM' || u.startsWith('DEMOCRAT')) return 'tag-dem';
   if (u === 'REP' || u.startsWith('REPUBLICAN')) return 'tag-rep';
   return 'tag-ind';
 }
 
-function partyLabel(p) {
-  if (!p) return 'Party N/A';
+function partyLabel(p, party_full) {
+  var primary = p || party_full || '';
+  if (!primary) return 'Party N/A';
+  var u = primary.toUpperCase();
   var naGroup = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
-  if (naGroup.indexOf(p.toUpperCase()) !== -1) return 'Party N/A';
+  if (naGroup.indexOf(u) !== -1) return 'Party N/A';
   var map = { DEM: 'Democrat', REP: 'Republican', LIB: 'Libertarian', GRE: 'Green Party', IND: 'Independent' };
-  var u = p.toUpperCase();
   if (map[u]) return map[u];
   if (u.startsWith('DEMOCRAT'))   return 'Democrat';
   if (u.startsWith('REPUBLICAN')) return 'Republican';
-  return p; // raw code fallback for unmapped named parties
-}
-
-// Returns a title attribute value for a party tag.
-// Named parties: shows party_full title-cased (e.g. "Republican Party").
-// N/A bucket (or missing/unknown party): returns empty string — the visible
-// "Party N/A" tag label is sufficient and the hover tooltip carried no info
-// the label didn't already convey. Call sites must omit the title= attribute
-// when this function returns empty (inline ternary at each injection site).
-// party_full comes from the API as ALL CAPS — title-case it before display.
-function partyTooltip(p, party_full) {
-  if (!p) return '';
-  var naGroup = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
-  if (naGroup.indexOf(p.toUpperCase()) !== -1) return '';
-  if (party_full) {
-    return party_full.charAt(0).toUpperCase() + party_full.slice(1).toLowerCase();
-  }
-  var fallback = { DEM: 'Democratic Party', REP: 'Republican Party', LIB: 'Libertarian Party', GRE: 'Green Party', IND: 'Independent' };
-  return fallback[p.toUpperCase()] || '';
+  // Unmapped — prefer party_full (full name) over p (short code) so all
+  // surfaces show the same complete label for third-party candidates.
+  return party_full || p;
 }
 
 // ── Race utilities ───────────────────────────────────────────────────────────
@@ -273,9 +268,8 @@ function candidateCardHTML(c, opts) {
   opts = opts || {};
   var fromPage = opts.fromPage || 'candidate-card';
   var name     = formatCandidateName(c.name);
-  var pcls     = partyClass(c.party || c.party_full);
-  var plbl     = partyLabel(c.party || c.party_full);
-  var ptt      = partyTooltip(c.party, c.party_full);
+  var pcls     = partyClass(c.party, c.party_full);
+  var plbl     = partyLabel(c.party, c.party_full);
   var office   = formatRaceName(c.office, c.state, c.district);
   var latestCycle = c.election_years && c.election_years.length
     ? Math.max.apply(null, c.election_years) : '';
@@ -290,7 +284,7 @@ function candidateCardHTML(c, opts) {
     + '<div class="candidate-card-meta">'
     + (office ? '<span class="tag tag-neutral">' + office + '</span>' : '')
     + (latestCycle ? '<span class="tag tag-neutral">' + latestCycle + '</span>' : '')
-    + '<span class="tag ' + pcls + '"' + (ptt ? ' title="' + ptt + '"' : '') + '>' + plbl + '</span>'
+    + '<span class="tag ' + pcls + '">' + plbl + '</span>'
     + '</div></a>';
 }
 
