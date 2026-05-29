@@ -356,6 +356,13 @@
         </div>
       </div>
 
+      <!-- Page-level data note (C4.a + C4.c + C4.e + C8.f, 2026-05-29
+           Phase 2 candidate+committee) — sits OUTSIDE the three #tab-*
+           panels at the bottom of #content so it stays visible across all
+           tabs. Source-first ordering. Populated by loadCycle's Step 3 data
+           branch; hidden on no-data cycles via #content's display:none. -->
+      <div class="data-note" id="page-note"></div>
+
     </div><!-- /content -->
   </div><!-- /main-inner -->
   </div><!-- /main -->
@@ -1281,16 +1288,17 @@ function renderRaisedIfReady() {
     document.getElementById('raised-tab-section-title')
       .textContent = 'Top Contributors by type · ' + cycleLabel;
 
-    // C8.a + C8.e retired 2026-05-28 — "Raised breakdown from FEC totals
-    // endpoint" prefix (donut source, "lacks value") and "Coverage through
-    // {date}" duplicate (already at #stat-coh-sub "As of {date}") both
-    // removed. C8.f (≤$200 caveat) stays here until PAGE-NOTE ship moves it
-    // page-level (Phase 2). Methodology copy (geography / top committees /
-    // top conduits) stays per Path Z, awaiting tooltip component ship.
+    // C8.a + C8.e + C8.f all retired:
+    //   C8.a + C8.e (Cat A pass 2026-05-28): donut source attribution +
+    //     coverage duplicate
+    //   C8.f (Phase 2 PAGE-NOTE ship 2026-05-29): ≤$200 caveat moves to
+    //     #page-note (page-level, applies across all individual-contribution
+    //     surfaces)
+    // Methodology copy (geography / top committees / top conduits) stays
+    // per Path Z, awaiting tooltip component ship.
     var note = 'Geography reflects itemized individual contributions by state (Schedule A). ' +
       'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID. ' +
       'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect the individuals\' money, not the platforms\' own funds.';
-    note += ' Small-dollar contributions ≤$200 are not itemized.';
     var noteEl = document.getElementById('raised-data-note');
     noteEl.innerHTML = note;
     noteEl.style.display = 'block';
@@ -1727,7 +1735,17 @@ async function loadCycle(cycle) {
   // empty — chart-error overlay carries the user-facing failure messaging,
   // data-note doesn't compete (separation of concerns: data-note is cycle-
   // metadata, not chart-state).
+  // Post-Phase-2 PAGE-NOTE ship (2026-05-29): #data-note inside #tab-summary
+  // is no longer populated by Step 3's data branch (its content moved to
+  // #page-note); the reset is now defensive only — preserves the catch-
+  // branch contract that the element exists but empty if loadCycle errors.
   document.getElementById('data-note').innerHTML = '';
+  // #page-note (Phase 2, 2026-05-29): same reset contract as #data-note —
+  // empty at the start of every loadCycle; data branch repopulates with
+  // Source / Coverage / ≤$200 page-level note; empty + catch branches leave
+  // empty (chart-error overlay or #cycle-empty-state respectively carry
+  // the user-facing messaging).
+  document.getElementById('page-note').innerHTML = '';
 
   // T-cycle-empty-state — reset the whole-view empty-state element AND
   // restore tabs-bar + content visibility. The empty branch (Step 3 else)
@@ -1940,16 +1958,24 @@ async function loadCycle(cycle) {
         else                   { ratioEl.style.color='var(--green)';  ratioSub.className='stat-sub pos';  ratioSub.textContent='Healthy range'; }
       }
 
-      // C4.b retired 2026-05-28 — the "Cycle YYYY (YYYY-YYYY)" framing was
-      // redundant with #stat-cycle (which carries the election year per
-      // T-cycle-semantics); the sub-cycle range parenthetical was supplementary
-      // and not load-bearing. cycleStartYear variable declaration removed
-      // along with the reference. Coverage / Source / cadence stay in this
-      // assembly until PAGE-NOTE ship moves them to page-level (Phase 2).
-      document.getElementById('data-note').innerHTML =
-        'Source: FEC — Candidate ID '+CANDIDATE_ID+'.'+
+      // C4.a + C4.c + C4.d + C4.e all retired 2026-05-29 (Phase 2
+      // candidate+committee PAGE-NOTE ship). The #data-note slot inside
+      // #tab-summary is no longer populated:
+      //   C4.a (Candidate ID source line) → replaced by #page-note source line
+      //   C4.c (Coverage through {date}) → moves to #page-note
+      //   C4.d (Raised-to-spent = ÷ definition) → cut now per design call
+      //     (Option B logic, same as C12.b — returns when tooltip ships)
+      //   C4.e (Data updated nightly) → cadence framing retired; replaced
+      //     by #page-note source link
+      // #data-note slot stays in DOM (catch branch leaves it empty per the
+      // catch comment below); the slot may be removed entirely in a future
+      // cleanup once we're certain nothing depends on it.
+      // PAGE-NOTE assembly: Source-first ordering, FEC linked to consumer
+      // site (www.fec.gov), C8.f ≤$200 caveat included page-level.
+      document.getElementById('page-note').innerHTML =
+        'Source: <a href="https://www.fec.gov/">FEC</a>.'+
         (covDate ? ' Coverage through '+fmtDate(covDate)+'.' : '')+
-        ' Raised-to-spent = total receipts ÷ total disbursements. Data updated nightly by FEC.';
+        ' Individual contributions of $200 or less are not itemized.';
     } else {
       // T-load-3 — empty cycle (no filings). Resolve skeletons to dashes so
       // they don't pulse forever. FEC convention: absence of activity returns

@@ -197,6 +197,15 @@
 - [ ] Label and desc render in prose type (IBM Plex Serif, not uppercase Oswald)
 - [ ] Navy top border visible above the banner
 
+### Page-level data note (#page-note, Phase 2 candidate+committee, 2026-05-29)
+- [ ] ✅ `#page-note` sits OUTSIDE the three #tab-* panels (sibling within #content) — automated regression-lock
+- [ ] `#page-note` is visible on data-present cycles regardless of which tab is active (Summary / Raised / Spent)
+- [ ] Content reads: "Source: FEC. Coverage through {date}. Individual contributions of $200 or less are not itemized." with `FEC` as a link to `https://www.fec.gov/`
+- [ ] FEC link renders in the new site-wide accent color (`var(--accent)` #2C5282), not UA-default blue
+- [ ] On no-data cycles (e.g. /candidate/H6WA03309#2026#summary): `#page-note` is hidden along with `#content` — empty-state takes over communication
+- [ ] `#data-note` slot inside `#tab-summary` is empty (the old C4.a/C4.c/C4.d/C4.e family no longer populates it)
+- [ ] Existing per-tab footer notes (`#raised-data-note`, `#spent-data-note`) still carry their methodology copy (geography caveat, top committees, conduit explanation on Raised; vendor dedup on Spent) — Path Z compliance, awaiting tooltip migration
+
 ### Whole-view empty state (T-cycle-empty-state, 2026-05-28)
 Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle combination with no financial filings — H6WA03309's 2026 cycle is the canonical example).
 - [ ] `#summary-strip` is visible above (stats grid + race context bar) — stats show em-dashes for Raised / Spent / COH / Ratio

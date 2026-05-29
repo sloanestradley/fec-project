@@ -2536,3 +2536,68 @@ test.describe('candidate.html — T-cycle-empty-state', () => {
     await expect(page.locator('#banner')).toBeVisible();
   });
 });
+
+// ── Phase 2 PAGE-NOTE — page-level data note on candidate detail ──────────────
+// Shipped 2026-05-29. #page-note carries Source line + Coverage stamp + ≤$200
+// caveat at page level (Source-first ordering, FEC linked to www.fec.gov). Lives
+// inside #content, after #tab-spent — visible across all tab views. Hidden on
+// no-data cycles via #content's display:none (T-cycle-empty-state inheritance).
+
+test.describe('candidate.html — Phase 2 PAGE-NOTE', () => {
+  test.beforeEach(async ({ page }) => {
+    await setup(page);
+    // Wait for content reveal — signals loadCycle's data branch ran and Step
+    // 3 populated #page-note.
+    await page.waitForSelector('#content', { state: 'visible', timeout: 12000 });
+  });
+
+  test('#page-note exists and is visible on data-present cycle', async ({ page }) => {
+    const pn = page.locator('#page-note');
+    await expect(pn).toBeVisible();
+  });
+
+  test('#page-note carries Source line + Coverage stamp + ≤$200 caveat', async ({ page }) => {
+    const pn = page.locator('#page-note');
+    // Source-first ordering per design call.
+    await expect(pn).toContainText('Source: FEC.');
+    // Coverage stamp (mock fixture has 2024-12-31 covDate).
+    await expect(pn).toContainText('Coverage through');
+    // ≤$200 caveat (moved from raised-data-note to PAGE-NOTE in this commit).
+    await expect(pn).toContainText('Individual contributions of $200 or less are not itemized.');
+  });
+
+  test('#page-note FEC link → fec.gov (consumer site)', async ({ page }) => {
+    const link = page.locator('#page-note a[href="https://www.fec.gov/"]');
+    await expect(link).toHaveText('FEC');
+  });
+
+  test('#page-note is OUTSIDE the three #tab-* panels', async ({ page }) => {
+    // Page-note should be a sibling of #tab-summary / #tab-raised / #tab-spent
+    // inside #content — NOT a child of any tab — so tab switches don't hide
+    // it. Regression-locks the Phase 2 placement.
+    const isOutsideTabs = await page.evaluate(() => {
+      const note = document.getElementById('page-note');
+      const summary = document.getElementById('tab-summary');
+      const raised = document.getElementById('tab-raised');
+      const spent = document.getElementById('tab-spent');
+      return note && !summary.contains(note) && !raised.contains(note) && !spent.contains(note);
+    });
+    expect(isOutsideTabs).toBe(true);
+  });
+
+  test('#page-note retired strings are gone', async ({ page }) => {
+    // C1 retired earlier; C4.a, C4.c (in summary footer), C4.d, C4.e all
+    // retired in Phase 2. The full sentence the old #data-note carried
+    // should not appear in #page-note.
+    const pn = page.locator('#page-note');
+    await expect(pn).not.toContainText('Source: FEC — Candidate ID');
+    await expect(pn).not.toContainText('Raised-to-spent = total receipts');
+    await expect(pn).not.toContainText('Data updated nightly by FEC');
+  });
+
+  test('#data-note inside #tab-summary is empty post-Phase 2', async ({ page }) => {
+    // The summary-tab #data-note slot is no longer populated by Step 3's data
+    // branch (its content moved to #page-note). Slot stays in DOM but empty.
+    await expect(page.locator('#data-note')).toBeEmpty();
+  });
+});

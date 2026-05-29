@@ -359,6 +359,12 @@
         </div>
       </div>
 
+      <!-- Page-level data note (K1.a + K1.c + K1.d + K10, 2026-05-29
+           Phase 2 candidate+committee) — sits OUTSIDE the three #tab-*
+           panels at the bottom of #committee-content so it stays visible
+           across all tabs. Source-first ordering, parity with candidate. -->
+      <div class="data-note" id="page-note"></div>
+
     </div>
 
   </div><!-- /.main-inner -->
@@ -1152,14 +1158,19 @@ function renderStats(cycleOrAll) {
   overspendEl.style.display = (receipts > 0 && disbursements > receipts) ? 'block' : 'none';
 
   // Data note
-  // K1.b retired 2026-05-28 — the "YYYY–YYYY cycle." framing was redundant
-  // with #stat-cycle (which already shows the year-range). Source / Coverage /
-  // cadence stay until PAGE-NOTE ship moves them to page-level (Phase 2).
-  // startYear stays declared above — used by #stat-cycle text assignment.
-  var noteEl = document.getElementById('committee-meta-note');
-  noteEl.textContent = 'Source: FEC — Committee ID ' + COMMITTEE_ID + '.'
+  // K1.a + K1.c + K1.d all retired 2026-05-29 (Phase 2 candidate+committee
+  // PAGE-NOTE ship):
+  //   K1.a (Committee ID source line) → replaced by #page-note source line
+  //   K1.c (Coverage through {date}) → moves to #page-note
+  //   K1.d (Data updated nightly) → cadence framing retired
+  // #committee-meta-note slot stays empty in DOM (consumer cleanup deferred);
+  // populator no longer writes to it. PAGE-NOTE shape mirrors candidate.html:
+  // Source-first ordering, FEC linked to www.fec.gov, K10 ≤$200 caveat
+  // included page-level.
+  document.getElementById('page-note').innerHTML =
+    'Source: <a href="https://www.fec.gov/">FEC</a>.'
     + (coverageDate ? ' Coverage through ' + fmtDate(coverageDate) + '.' : '')
-    + ' Data updated nightly by FEC.';
+    + ' Individual contributions of $200 or less are not itemized.';
 
   // Sync URL hash
   var tabEl = document.querySelector('.tab.active');
@@ -1849,7 +1860,9 @@ function renderRaisedIfReady() {
     if (!d.topConduitsTooLarge && !d.topCommitteesIsConduit) {
       note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
     }
-    note += ' Small-dollar contributions ≤$200 are not itemized.';
+    // K10 (≤$200 caveat) retired from raised-data-note 2026-05-29 (Phase 2):
+    // moves to #page-note (page-level, applies across all individual-
+    // contribution surfaces, parity with C8.f on candidate).
     var noteEl = document.getElementById('raised-data-note');
     noteEl.innerHTML = note;
     noteEl.style.display = 'block';

@@ -116,6 +116,14 @@ html { overflow-anchor: none; } /* prevent scroll anchoring feedback loop on com
 body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif;
   font-size:14px; line-height:var(--lh-normal); min-height:100vh; overflow-x:clip; }
 
+/* Site-wide link default — replaces the UA blue default. Component-level
+   anchors that should NOT carry this color (cards, rows, tabs, nav items,
+   etc.) continue to opt out with their own explicit `color:inherit` or
+   override rule. Affects: inline links inside .data-note / page-note, race
+   page-note FEC link, modal copy links, and any future inline editorial
+   link surfaces. (2026-05-29) */
+a { color: var(--accent); }
+
 /* ── Layout ── */
 .layout { min-height:100vh; }
 .main { overflow-x:clip; min-width:0; }

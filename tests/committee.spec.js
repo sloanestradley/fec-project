@@ -1710,3 +1710,56 @@ test.describe('committee.html — profile menu-btn', () => {
     await expect(page.locator('#committee-menu-btn')).toBeVisible();
   });
 });
+
+// ── Phase 2 PAGE-NOTE — page-level data note on committee detail ──────────────
+// Shipped 2026-05-29. Mirrors candidate.html: #page-note carries Source line +
+// Coverage stamp + ≤$200 caveat at page level, Source-first ordering, FEC link
+// to www.fec.gov. Lives inside #committee-content after #tab-spent.
+
+test.describe('committee.html — Phase 2 PAGE-NOTE', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupDetail(page);
+  });
+
+  test('#page-note exists and is visible on data-present cycle', async ({ page }) => {
+    const pn = page.locator('#page-note');
+    await expect(pn).toBeVisible();
+  });
+
+  test('#page-note carries Source line + Coverage stamp + ≤$200 caveat', async ({ page }) => {
+    const pn = page.locator('#page-note');
+    await expect(pn).toContainText('Source: FEC.');
+    await expect(pn).toContainText('Coverage through');
+    await expect(pn).toContainText('Individual contributions of $200 or less are not itemized.');
+  });
+
+  test('#page-note FEC link → fec.gov (consumer site)', async ({ page }) => {
+    const link = page.locator('#page-note a[href="https://www.fec.gov/"]');
+    await expect(link).toHaveText('FEC');
+  });
+
+  test('#page-note is OUTSIDE the three #tab-* panels', async ({ page }) => {
+    const isOutsideTabs = await page.evaluate(() => {
+      const note = document.getElementById('page-note');
+      const summary = document.getElementById('tab-summary');
+      const raised = document.getElementById('tab-raised');
+      const spent = document.getElementById('tab-spent');
+      return note && !summary.contains(note) && !raised.contains(note) && !spent.contains(note);
+    });
+    expect(isOutsideTabs).toBe(true);
+  });
+
+  test('#page-note retired strings are gone', async ({ page }) => {
+    // K1.a / K1.c / K1.d all retired in Phase 2. The full sentence the old
+    // #committee-meta-note carried should not appear in #page-note.
+    const pn = page.locator('#page-note');
+    await expect(pn).not.toContainText('Source: FEC — Committee ID');
+    await expect(pn).not.toContainText('Data updated nightly by FEC');
+  });
+
+  test('#committee-meta-note is empty post-Phase 2', async ({ page }) => {
+    // K1.* family retired; renderStats no longer writes to #committee-meta-note.
+    // Slot stays in DOM but empty.
+    await expect(page.locator('#committee-meta-note')).toBeEmpty();
+  });
+});
