@@ -186,7 +186,11 @@ function buildCandidateCard(c) {
   var party = c.party || c.party_full || '';
   var pcls  = partyClass(party);
   var plbl  = partyLabel(party);
-  var ptt   = partyTooltip(c.party, c.party_full);
+  // /elections/ returns party: null for every candidate — party info lives only
+  // in party_full on this endpoint (per CLAUDE.md). Pass the resolved `party`
+  // (already falls back to party_full) so partyTooltip's `if (!p)` short-circuit
+  // doesn't fire on every candidate. Same fallback partyClass / partyLabel use.
+  var ptt   = partyTooltip(party, c.party_full);
 
   // Link directly to the race's cycle year so the candidate page opens at the right cycle
   var href = id ? '/candidate/' + id + '?from=race#' + yearParam + '#summary' : '#';
