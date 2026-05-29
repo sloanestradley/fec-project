@@ -392,18 +392,25 @@ function purposeBucket(desc) {
   return 'Other';
 }
 
-// ── Inline-SVG icons (Material Symbols Outlined, weight 400) ─────────────────
-// Five glyphs used by the menu-btn component. Paths copied verbatim from
-// @material-symbols/svg-400/outlined/{name}.svg (Apache 2.0). 960×960 negative-Y
-// viewBox is Google's standard for this family. Site convention is inline SVG
-// for every icon (search button, hamburger, cycle-back chevron); no icon font
-// is loaded and none is added by this helper.
+// ── Inline-SVG icons (Material Symbols, weight 400) ──────────────────────────
+// Seven glyphs total. Five outlined glyphs (more_horiz, trending_flat,
+// expand_content, compare_arrows, rss_feed) consumed by the menu-btn component;
+// info (outlined) + info_filled consumed by the tooltip component. Paths copied
+// verbatim from @material-symbols/svg-400/{outlined|filled}/{name}.svg
+// (Apache 2.0). 960×960 negative-Y viewBox is Google's standard for this family.
+// Site convention is inline SVG for every icon (search button, hamburger,
+// cycle-back chevron); no icon font is loaded and none is added by this helper.
+// Variant-with-name convention (info + info_filled): first instance — if a
+// second glyph needs a filled variant, consider refactoring iconSvg() to accept
+// variants. YAGNI for now.
 var ICON_PATHS = {
   more_horiz:     'M207.86-432Q188-432 174-446.14t-14-34Q160-500 174.14-514t34-14Q228-528 242-513.86t14 34Q256-460 241.86-446t-34 14Zm272 0Q460-432 446-446.14t-14-34Q432-500 446.14-514t34-14Q500-528 514-513.86t14 34Q528-460 513.86-446t-34 14Zm272 0Q732-432 718-446.14t-14-34Q704-500 718.14-514t34-14Q772-528 786-513.86t14 34Q800-460 785.86-446t-34 14Z',
   trending_flat:  'm702-301-43-42 106-106H120v-60h646L660-615l42-42 178 178-178 178Z',
   expand_content: 'M200-200v-240h60v180h180v60H200Zm500-320v-180H520v-60h240v240h-60Z',
   compare_arrows: 'm317-160-42-42 121-121H80v-60h316L275-504l42-42 193 193-193 193Zm326-254L450-607l193-193 42 42-121 121h316v60H564l121 121-42 42Z',
-  rss_feed:       'M142-142.04q-22-22.05-22-53Q120-226 142.04-248q22.05-22 53-22Q226-270 248-247.96q22 22.05 22 53Q270-164 247.96-142q-22.05 22-53 22Q164-120 142-142.04ZM710-120q0-123-46-229.5T537-537q-81-81-187.58-127Q242.85-710 120-710v-90q142 0 265 53t216 146q93 93 146 216t53 265h-90Zm-258 0q0-70-25.8-131.48Q400.4-312.96 355-360q-45-47-105.03-73.5Q189.95-460 120-460v-90q89 0 165.5 33.5t133.64 92.42q57.15 58.93 90 137Q542-209 542-120h-90Z'
+  rss_feed:       'M142-142.04q-22-22.05-22-53Q120-226 142.04-248q22.05-22 53-22Q226-270 248-247.96q22 22.05 22 53Q270-164 247.96-142q-22.05 22-53 22Q164-120 142-142.04ZM710-120q0-123-46-229.5T537-537q-81-81-187.58-127Q242.85-710 120-710v-90q142 0 265 53t216 146q93 93 146 216t53 265h-90Zm-258 0q0-70-25.8-131.48Q400.4-312.96 355-360q-45-47-105.03-73.5Q189.95-460 120-460v-90q89 0 165.5 33.5t133.64 92.42q57.15 58.93 90 137Q542-209 542-120h-90Z',
+  info:           'M440-280h80v-240h-80v240Zm40-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z',
+  info_filled:    'M480-280q17 0 28.5-11.5T520-320v-160q0-17-11.5-28.5T480-520q-17 0-28.5 11.5T440-480v160q0 17 11.5 28.5T480-280Zm0-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z'
 };
 
 // Return inline SVG markup for a named glyph. Returns empty string + warns
@@ -1664,4 +1671,279 @@ function openInfoModal(triggerEl) {
 function closeInfoModal() {
   var el = document.getElementById('info-modal');
   if (el) closeAccessibleModal(el);
+}
+
+// ── initTooltips ─────────────────────────────────────────────────────────────
+// Markup-driven info-icon tooltip. Author writes:
+//   <span class="tooltip" aria-label="About X">trusted-HTML content</span>
+// initTooltips(rootEl) wires every .tooltip inside rootEl:
+//   - Stashes the host's innerHTML on host._tooltipContent
+//   - Replaces innerHTML with a <button class="tooltip-trigger"> carrying the
+//     two SVGs (outlined + filled, one visible at a time per aria-expanded)
+//   - On hover/focus/click, lazily creates a <div role="tooltip"> portaled to
+//     document.body with the stashed content, positioned 32px below the
+//     trigger (flips above if no room; clamps horizontally to viewport)
+//
+// Idempotent: re-running on a rootEl that already contains wired triggers
+// skips them (dataset.tooltipWired flag). Call from page-level JS after any
+// DOM mutation that injects new .tooltip markup.
+//
+// Singleton: only one popup open at a time across the page. Opening B closes A.
+// Listeners attached on open are torn down via AbortController on close.
+//
+// Behavior:
+//   - Hover: 100ms delay before reveal. Mouseleave on either trigger or popup
+//     starts a 100ms close timer; mouseenter on the other cancels it (handoff).
+//     Reduced-motion: 0ms reveal delay.
+//   - Click: tap-toggle (first opens, second closes). Also handles touch.
+//   - Keyboard: Tab to focus; Enter/Space opens; Escape closes + returns focus.
+//   - Outside pointerdown: closes.
+//   - Scroll / resize: closes (simpler than reposition; signals "I'm done").
+//   - Default placement: popup top edge contiguous with trigger bottom edge
+//     (zero gap per Figma — the trigger is 32×32 and the Figma anchors the
+//     popup at top:32px from the trigger's top, which equals the trigger's
+//     bottom edge). Flip above when no room below; horizontal clamp to viewport.
+//   - Filled iff revealed: icon-outline visible when aria-expanded=false;
+//     icon-filled visible when aria-expanded=true. Single source of truth.
+//
+// A11y contract:
+//   - Trigger: <button type="button"> with aria-haspopup="true",
+//     aria-expanded, aria-label (required — host's aria-label is transferred
+//     and stripped from the host), aria-describedby pointing at the popup id.
+//   - Popup: role="tooltip" with a generated id.
+//   - Missing aria-label: console.warn + skip wiring (the host stays as
+//     literal text in place — visible but not interactive).
+//   - Nested-button: console.warn if host.closest('button') is an ancestor;
+//     wiring still proceeds (invalid HTML but renders).
+//
+// Content is treated as trusted HTML — callers own content safety. All site
+// tooltip copy is authored, not user-generated.
+//
+// Z-index: popup at 250 — above sticky nav (200), profile-header (195),
+// tabs-bar (185). Below any future modal (which would claim 300+).
+var __tt_open = null;       // currently-open { host, btn, popup, abort } record
+var __tt_idSeq = 0;          // monotonic popup id counter
+var __tt_HOVER_DELAY = 100;  // ms before hover-open fires
+var __tt_CLOSE_DELAY = 100;  // ms hover-handoff close timer
+
+function initTooltips(rootEl) {
+  var root = rootEl || document.body;
+  var hosts = root.querySelectorAll('.tooltip:not([data-tooltip-wired])');
+  for (var i = 0; i < hosts.length; i++) {
+    __tt_wireHost(hosts[i]);
+  }
+}
+
+function __tt_wireHost(host) {
+  var ariaLabel = host.getAttribute('aria-label');
+  if (!ariaLabel) {
+    try { console.warn('initTooltips: .tooltip host missing aria-label; skipping wire'); } catch (e) {}
+    return;
+  }
+  // Nested-button check: invalid HTML, breaks a11y silently.
+  var ancestor = host.parentElement && host.parentElement.closest('button');
+  if (ancestor) {
+    try { console.warn('initTooltips: .tooltip host nested inside a <button> ancestor; this is invalid HTML', host); } catch (e) {}
+  }
+
+  host.dataset.tooltipWired = '1';
+  host._tooltipContent = host.innerHTML;     // stash trusted HTML for later popup
+  host._tooltipAriaLabel = ariaLabel;
+  host.removeAttribute('aria-label');         // ownership transfers to button
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'tooltip-trigger';
+  btn.setAttribute('aria-haspopup', 'true');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-label', ariaLabel);
+  btn.innerHTML =
+    '<span class="tooltip-icon-outline">' + iconSvg('info')        + '</span>' +
+    '<span class="tooltip-icon-filled">'  + iconSvg('info_filled') + '</span>';
+
+  host.innerHTML = '';
+  host.appendChild(btn);
+
+  // Per-trigger transient state.
+  var state = {
+    host: host,
+    btn: btn,
+    triggerHover: false,
+    popupHover: false,
+    openTimer: null,
+    closeTimer: null
+  };
+  host._tooltipState = state;
+
+  btn.addEventListener('mouseenter', function() {
+    state.triggerHover = true;
+    if (state.closeTimer) { clearTimeout(state.closeTimer); state.closeTimer = null; }
+    if (__tt_open && __tt_open.host === host) return;     // already open
+    var delay = __tt_reducedMotion() ? 0 : __tt_HOVER_DELAY;
+    state.openTimer = setTimeout(function() {
+      state.openTimer = null;
+      if (state.triggerHover) __tt_openFor(host);
+    }, delay);
+  });
+  btn.addEventListener('mouseleave', function() {
+    state.triggerHover = false;
+    if (state.openTimer) { clearTimeout(state.openTimer); state.openTimer = null; }
+    __tt_scheduleCloseIfIdle(state);
+  });
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (__tt_open && __tt_open.host === host) __tt_close();
+    else __tt_openFor(host);
+  });
+  btn.addEventListener('focus', function() {
+    // Keyboard focus alone does not reveal; Enter/Space (which fires click)
+    // is required. Matches the filled-iff-revealed rule — :focus-visible
+    // keeps the icon outlined.
+  });
+}
+
+function __tt_reducedMotion() {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
+}
+
+function __tt_scheduleCloseIfIdle(state) {
+  if (!__tt_open || __tt_open.host !== state.host) return;
+  if (state.triggerHover || state.popupHover) return;
+  if (state.closeTimer) clearTimeout(state.closeTimer);
+  state.closeTimer = setTimeout(function() {
+    state.closeTimer = null;
+    if (!state.triggerHover && !state.popupHover && __tt_open && __tt_open.host === state.host) {
+      __tt_close();
+    }
+  }, __tt_CLOSE_DELAY);
+}
+
+function __tt_openFor(host) {
+  if (__tt_open) {
+    if (__tt_open.host === host) return;
+    __tt_close();
+  }
+
+  var state = host._tooltipState;
+  var btn = state.btn;
+
+  var popup = document.createElement('div');
+  var id = 'tooltip-popup-' + (++__tt_idSeq);
+  popup.id = id;
+  popup.className = 'tooltip-popup';
+  popup.setAttribute('role', 'tooltip');
+  popup.innerHTML = host._tooltipContent;
+  document.body.appendChild(popup);
+
+  btn.setAttribute('aria-expanded', 'true');
+  btn.setAttribute('aria-describedby', id);
+
+  __tt_position(btn, popup);
+
+  // Hover-handoff: cursor moving onto the popup keeps it open.
+  popup.addEventListener('mouseenter', function() {
+    state.popupHover = true;
+    if (state.closeTimer) { clearTimeout(state.closeTimer); state.closeTimer = null; }
+  });
+  popup.addEventListener('mouseleave', function() {
+    state.popupHover = false;
+    __tt_scheduleCloseIfIdle(state);
+  });
+
+  // Document-level listeners — torn down via AbortController on close.
+  var ctrl = new AbortController();
+  var sig = { signal: ctrl.signal };
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      var openHost = __tt_open && __tt_open.host;
+      __tt_close();
+      if (openHost && openHost._tooltipState) openHost._tooltipState.btn.focus();
+    }
+  }, sig);
+
+  document.addEventListener('pointerdown', function(e) {
+    if (!__tt_open) return;
+    if (__tt_open.btn.contains(e.target) || __tt_open.popup.contains(e.target)) return;
+    __tt_close();
+  }, sig);
+
+  __tt_open = { host: host, btn: btn, popup: popup, abort: ctrl };
+
+  // Close on scroll/resize. Defer attachment by one animation frame: a
+  // pointer/keyboard gesture that opened the tooltip can have an in-flight
+  // scroll event (Playwright's auto-scroll-into-view, browser focus-adjust)
+  // that fires AFTER the click handler returns and would otherwise close the
+  // popup before the user sees it. capture:true on scroll so inner scroll
+  // containers (which don't bubble to window) also close; passive:true since
+  // we never preventDefault.
+  requestAnimationFrame(function() {
+    if (!__tt_open || __tt_open.host !== host || __tt_open.abort.signal.aborted) return;
+    document.addEventListener('scroll', function() { __tt_close(); }, { capture: true, passive: true, signal: ctrl.signal });
+    window.addEventListener('resize', function() { __tt_close(); }, sig);
+  });
+}
+
+function __tt_close() {
+  if (!__tt_open) return;
+  var rec = __tt_open;
+  __tt_open = null;
+  try { rec.abort.abort(); } catch (e) {}
+  rec.btn.setAttribute('aria-expanded', 'false');
+  rec.btn.removeAttribute('aria-describedby');
+  if (rec.popup.parentNode) rec.popup.parentNode.removeChild(rec.popup);
+  var state = rec.host._tooltipState;
+  if (state) {
+    if (state.closeTimer) { clearTimeout(state.closeTimer); state.closeTimer = null; }
+    if (state.openTimer)  { clearTimeout(state.openTimer);  state.openTimer  = null; }
+    state.triggerHover = false;
+    state.popupHover = false;
+  }
+}
+
+// Position the popup directly below the trigger by default — the popup's top
+// edge is contiguous with the trigger's bottom edge (zero gap). Figma anchors
+// the popup at top:32px from the trigger's TOP; the 32×32 trigger makes 32px
+// equal to the trigger's bottom edge. Flip above if no room below. Clamp
+// horizontally so the popup stays at least 8px inside both viewport edges.
+// position:fixed + viewport coordinates — paired with close-on-scroll so no
+// scroll-recompute is needed.
+function __tt_position(btn, popup) {
+  var btnRect = btn.getBoundingClientRect();
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+
+  // Read popup natural size at default position.
+  popup.style.left = '0px';
+  popup.style.top  = '0px';
+  var popRect = popup.getBoundingClientRect();
+  var popW = popRect.width;
+  var popH = popRect.height;
+
+  var GAP = 0;     // contiguous edge per Figma; named for future-proofing
+  var EDGE = 8;
+
+  // Vertical: prefer below; flip above if no room.
+  var topBelow = btnRect.bottom + GAP;
+  var topAbove = btnRect.top - GAP - popH;
+  var top;
+  if (topBelow + popH <= vh - EDGE) {
+    top = topBelow;
+  } else if (topAbove >= EDGE) {
+    top = topAbove;
+  } else {
+    // Neither fits cleanly — prefer below; popup's max-height (50vh) + overflow
+    // handles the remainder.
+    top = topBelow;
+  }
+
+  // Horizontal: center on the trigger icon; clamp to [EDGE, vw - popW - EDGE].
+  var centerX = btnRect.left + btnRect.width / 2;
+  var left = centerX - popW / 2;
+  if (left < EDGE) left = EDGE;
+  if (left + popW > vw - EDGE) left = vw - popW - EDGE;
+
+  popup.style.left = Math.round(left) + 'px';
+  popup.style.top  = Math.round(top)  + 'px';
 }

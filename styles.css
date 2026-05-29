@@ -816,7 +816,8 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 /* Reduced motion — disable all new compact transitions. Existing
    reveal animations on .page-header-reveal / .tabs-bar / .profile-content
    are out of scope here; their fade-ins are gentle enough that they don't
-   warrant the reduced-motion disable. */
+   warrant the reduced-motion disable. Tooltip hover-delay is handled in JS
+   (utils.js __tt_reducedMotion()) — delay → 0ms when reduce is preferred. */
 @media (prefers-reduced-motion: reduce) {
   .transitions-ready #profile-header,
   .transitions-ready #committee-header,
@@ -824,6 +825,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   .transitions-ready #profile-header .meta-row,
   .transitions-ready #committee-header .meta-row {
     transition: none !important; }
+  .tooltip-trigger { transition: none !important; }
 }
 
 /* ── P: Form controls ── */
@@ -1088,6 +1090,40 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    after the T-menu-btn 0.45→0.50 alignment). */
 .menu-item[aria-disabled="true"] {
   color:var(--text); opacity:0.50; cursor:default; }
+
+/* ── Tooltip (info-icon, portaled popup) — T-tooltip-component ───────────────
+   Markup-driven info-icon tooltip. Author writes <span class="tooltip"
+   aria-label="...">trusted-HTML content</span>; initTooltips() in utils.js
+   wires it (button + portaled popup). Replaces the project's prior browser-
+   default `title` attribute tooltips. Filled-iff-revealed icon rule: outlined
+   visible at aria-expanded=false, filled visible at aria-expanded=true (single
+   source of truth, including :focus-visible — keyboard focus does not fill). */
+.tooltip { display:inline-flex; vertical-align:middle; }
+.tooltip-trigger {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:32px; height:32px; padding:var(--space-4);
+  background:transparent; border:none; border-radius:2px;
+  color:var(--accent); cursor:pointer; line-height:0; }
+.tooltip-trigger:hover { opacity:0.88; }
+/* :focus-visible:not(:hover) — preemptive Safari mobile guard. T-menu-btn-
+   focus-on-open paid the same tax once; cheap insurance. */
+.tooltip-trigger:focus-visible:not(:hover) {
+  outline:2px solid var(--accent); outline-offset:2px; }
+.tooltip-icon-outline, .tooltip-icon-filled {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:20px; height:20px; }
+.tooltip-icon-outline svg, .tooltip-icon-filled svg { display:block; }
+.tooltip-trigger[aria-expanded="false"] .tooltip-icon-filled  { display:none; }
+.tooltip-trigger[aria-expanded="true"]  .tooltip-icon-outline { display:none; }
+.tooltip-popup {
+  position:fixed; z-index:250;
+  max-width:216px; max-height:50vh; overflow-y:auto;
+  padding:var(--space-8);
+  background:var(--surface); border-radius:2px;
+  box-shadow:0 0 8px rgba(0,0,0,0.2);
+  font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem;
+  font-weight:400; line-height:1.5; color:var(--text); }
+.tooltip-popup a { color:var(--accent); }
 
 /* ── Tab section (composes button-group as tablist) ── */
 /* Section-level wrapper for tabbed content. Header lays out title + tablist

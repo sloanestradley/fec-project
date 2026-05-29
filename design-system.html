@@ -157,6 +157,17 @@
       left:0; right:auto;
     }
 
+    /* Tooltip demo layout — portaled popup escapes the demo card via
+       portal-to-body, so overflow:visible isn't needed on the card itself. */
+    .ds-tooltip-demos {
+      display:flex; flex-direction:column; gap:var(--space-24); }
+    .ds-tooltip-demo-row {
+      display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-8); }
+    .ds-tooltip-demo-line {
+      display:inline-flex; align-items:center; gap:var(--space-4); }
+    .ds-tooltip-demo-text {
+      font-family:'IBM Plex Sans',sans-serif; font-size:0.875rem; color:var(--text); }
+
     /* Raised tab grid — demo: suppress margin-bottom */
     .raised-grid { margin-bottom:0; }
 
@@ -792,6 +803,57 @@
           </div>
         </div>
         <div class="ds-component-notes">An <strong>action menu</strong> (not a value-selector) — items dispatch and close, no <code>aria-selected</code>. Trigger uses <code>aria-haspopup="true"</code> + <code>aria-expanded</code>; dropdown is <code>role="menu"</code> with <code>tabindex="0"</code>, items are <code>role="menuitem"</code>. Click toggles; outside-click closes; Escape closes and returns focus to the trigger. <strong>Focus model:</strong> on open, focus lands on the dropdown CONTAINER (not the first item) — T-menu-btn-focus-on-open (2026-05-26) chose this to avoid Safari mobile's <code>:focus-visible</code> firing on the first menuitem after a touch tap, which had been painting the <code>--accent-dim</code> background and reading as "current item." First ArrowDown enters at item 0; first ArrowUp enters at the last item; subsequent arrow presses move focus and <strong>clamp at the ends</strong> (do not wrap — matches <a href="#comp-form-controls">comb-dropdown</a> behavior; one keyboard model for all popup-style dropdowns). Home/End jump to first/last enabled item from anywhere. The navy fill matches the site's <a href="#comp-button-group">.button-group-btn.active</a> "selected" treatment but kept as its own identity class — different sizing (40px height, off the 8px scale by design) and a different interaction model. <strong>The text segment label is config-driven</strong> — page integrations pass a page-specific value (<code>text:'Candidate'</code> on candidate.html, <code>text:'Committee'</code> on committee.html). The demos above use <code>text:'Candidate'</code> as a representative page-integration label; the factory's <code>'Menu'</code> fallback is never rendered in production. The dropdown's <code>box-shadow:0 0 4px rgba(0,0,0,0.2)</code> is intentionally distinct from <code>.typeahead-dropdown</code>'s (<code>0 0 8px rgba(26,21,16,0.2)</code>) for now. <strong>showText:false</strong> drops the MENU text segment to icon-only — used at mobile breakpoint by callers (the breakpoint switch itself is the caller's concern). The component is mounted on candidate.html + committee.html profile headers in T-menu-btn-profile-header. Disabled menu-item state uses <code>aria-disabled="true"</code> (not the native <code>disabled</code> attribute) so the item stays in the DOM for visual consistency — color flips to <code>--text</code> at 50% opacity, parity with <a href="#comp-form-controls">.form-input:disabled</a>.</div>
+      </div>
+
+      <!-- Tooltip (info-icon, portaled popup) -->
+      <div class="ds-component" id="comp-tooltip" data-status="stable">
+        <div class="ds-component-header">
+          <span class="ds-component-name">Tooltip</span>
+          <span class="ds-status stable">stable</span>
+        </div>
+        <div class="ds-component-classes">.tooltip · .tooltip-trigger · .tooltip-icon-outline · .tooltip-icon-filled · .tooltip-popup — info-icon-triggered metadata tooltip. Markup-driven: author writes <code>&lt;span class="tooltip" aria-label="..."&gt;trusted-HTML content&lt;/span&gt;</code> and <code>initTooltips()</code> wires it. Replaces the project's prior browser-default <code>title</code>-attribute tooltip pattern. Built via <code>initTooltips(rootEl)</code> in utils.js.</div>
+        <div class="ds-component-demo">
+          <div class="ds-tooltip-demos">
+
+            <div class="ds-tooltip-demo-row">
+              <div class="ds-demo-label">Short content · inline label</div>
+              <div class="ds-tooltip-demo-line">
+                <span class="ds-tooltip-demo-text">Raised-to-spent ratio</span>
+                <span class="tooltip" aria-label="About raised-to-spent ratio">
+                  Total cycle receipts ÷ total cycle disbursements.
+                </span>
+              </div>
+            </div>
+
+            <div class="ds-tooltip-demo-row">
+              <div class="ds-demo-label">Long content with link · ~47-word stress case</div>
+              <div class="ds-tooltip-demo-line">
+                <span class="ds-tooltip-demo-text">Top Conduit Sources</span>
+                <span class="tooltip" aria-label="About top conduit sources">
+                  Conduit platforms like <strong>ActBlue</strong> and <strong>WinRed</strong> forward individual contributions to the committee. Each row shows the platform's total forwarded amount; the underlying donors appear in Top Individual Contributors. <a href="#">Learn more</a>
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="ds-component-notes">
+          <strong>Trigger:</strong> 32 × 32 button with <code>var(--space-4)</code> padding around a 20 px Material Symbols "info" glyph. Outlined when <code>aria-expanded="false"</code>, filled when <code>aria-expanded="true"</code> — single source of truth (icon state IS popup state; keyboard <code>:focus-visible</code> keeps the icon outlined until Enter/Space reveals). Icon color: <code>var(--accent)</code> in both outlined and filled variants. <code>:focus-visible:not(:hover)</code> applied preemptively as a Safari mobile sticky-focus-on-tap guard (T-menu-btn-focus-on-open paid the same tax once).
+          <br><br>
+          <strong>Popup:</strong> portaled to <code>document.body</code> with <code>position:fixed</code>, <code>z-index:250</code> (above sticky nav at 200, profile-header at 195, tabs-bar at 185; below any future modal at 300+). White surface (<code>var(--surface)</code>), <code>var(--space-8)</code> padding, 2 px border-radius, soft shadow <code>0 0 8px rgba(0,0,0,0.2)</code>, <code>max-width:216px</code>, <code>max-height:50vh</code> with <code>overflow-y:auto</code> for extreme content. Body text: IBM Plex Sans 400 · 0.75 rem · line-height 1.5 · <code>var(--text)</code>. Portal-to-body is required because consumer surfaces (chart cards, donut labels, vendor tables) carry <code>overflow:hidden</code> ancestors that would clip an inline popup.
+          <br><br>
+          <strong>Positioning:</strong> popup top edge is contiguous with the trigger bottom edge (zero gap per Figma — the 32 × 32 trigger plus the Figma's <code>top:32px</code> anchor lands the popup flush against the trigger's bottom), centered horizontally on the icon. Custom vanilla-JS positioning algorithm (<code>__tt_position</code> in utils.js) flips above when there isn't enough room below, and clamps horizontally to keep the popup at least 8 px inside both viewport edges. No external dependency. Close-on-scroll and close-on-resize (simpler than reposition; aligns with the "I'm done reading this" mental model).
+          <br><br>
+          <strong>Interaction:</strong> hover (~100 ms delay before reveal; <code>0 ms</code> under <code>prefers-reduced-motion</code>); combined hover region (cursor can move from trigger onto popup without closing — 100 ms hover-handoff close timer that cancels on re-entry); click toggles (handles touch tap); Tab + Enter opens via keyboard; Escape closes and returns focus to trigger; outside <code>pointerdown</code> closes. Only one tooltip open at any time — opening B closes A (module-level singleton).
+          <br><br>
+          <strong>Accessibility contract:</strong> trigger is a <code>&lt;button type="button"&gt;</code> with <code>aria-haspopup="true"</code>, <code>aria-expanded</code> (toggled on open/close), <code>aria-label</code> (required — transferred from the host's required <code>aria-label</code>), and <code>aria-describedby</code> pointing at the popup's generated id while open. Popup is <code>role="tooltip"</code>. Missing <code>aria-label</code> on the host: <code>console.warn</code> + skip wiring (literal text stays in place). Nested <code>&lt;button&gt;</code> ancestor: <code>console.warn</code> (invalid HTML and breaks a11y silently; warning is a dev-time signal, wiring still proceeds).
+          <br><br>
+          <strong>Content shape:</strong> trusted HTML — links, <code>&lt;strong&gt;</code>, etc. are permitted. All site tooltip copy is authored; no sanitization. Callers own content safety.
+          <br><br>
+          <strong>API:</strong> <code>initTooltips(rootEl?)</code> wires every <code>.tooltip</code> inside <code>rootEl</code> (defaults to <code>document.body</code>). Idempotent — already-wired triggers carry <code>data-tooltip-wired</code> and are skipped. Call again after dynamic DOM mutations that inject new <code>.tooltip</code> markup (e.g. post-fetch table renders). AbortController-based listener teardown on close (second codebase consumer after <code>openAccessibleModal</code>).
+          <br><br>
+          <strong>Status:</strong> shipping built but unapplied; consumer-side application is downstream of <code>strategy/data-notes-mapping-v2.md</code> (§1 TOOLTIP-VIZ and TOOLTIP-LABEL rows).
+        </div>
       </div>
 
       <!-- 7. Health banner (interactive) -->
@@ -2012,6 +2074,9 @@
   document.getElementById('ds-info-modal-trigger').addEventListener('click', function() {
     openInfoModal(document.getElementById('ds-info-modal-trigger'));
   });
+
+  // Wire all .tooltip hosts on the page (idempotent — safe to re-call).
+  initTooltips();
 
   // Amplitude pageview
   amplitude.track('Page Viewed', { page: 'design-system' });
