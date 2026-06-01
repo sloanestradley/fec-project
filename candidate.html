@@ -2145,6 +2145,19 @@ function cycleRowHTML(year, raised, spent, coh, isArchive) {
     + '</a>';
 }
 
+// Archive divider markup (cycle-index) + its methodology tooltip (C12.b). Single
+// source for all three render sites (index / scaffold / partial-error) so the
+// interpolated copy stays consistent.
+function archiveDividerHTML(office) {
+  var word = { H: 'House', S: 'Senate', P: 'Presidential' }[office] || 'these';
+  var threshold = ARCHIVE_MIN_YEAR[office] || 2008;
+  return '<div class="cycle-archive-divider">'
+    + '<span class="cycle-archive-divider-text">Archived elections (totals only)</span>'
+    + '<span class="tooltip" aria-label="About archived elections">No detail view available for ' + word
+    + ' races prior to ' + threshold + '</span>'
+    + '</div>';
+}
+
 function renderCycleIndex(cycles, totalsMap, office) {
   var threshold = ARCHIVE_MIN_YEAR[office] || 2008;
   var container = document.getElementById('cycle-index');
@@ -2164,13 +2177,12 @@ function renderCycleIndex(cycles, totalsMap, office) {
     var coh    = t ? fmt(t.last_cash_on_hand_end_period || 0) : '—';
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
-      html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archived elections (totals only)</span>'
-        + '</div>';
+      html += archiveDividerHTML(office);
     }
     html += cycleRowHTML(year, raised, spent, coh, isArchive);
   });
   container.innerHTML = html;
+  initTooltips(container);  // wire the archive-divider tooltip if present
 }
 
 
@@ -2205,13 +2217,12 @@ function renderCycleIndexScaffold(cycles, office) {
     var isArchive = year < threshold;
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
-      html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archived elections (totals only)</span>'
-        + '</div>';
+      html += archiveDividerHTML(office);
     }
     html += cycleRowHTML(year, skel, skel, skel, isArchive);
   });
   container.innerHTML = html;
+  initTooltips(container);  // wire the archive-divider tooltip if present
 }
 
 // ── Partial-data error handler (T-load-4a) ────────────────────────────────────
@@ -2247,13 +2258,12 @@ function onPartialError(err) {
     var isArchive = year < threshold;
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
-      html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archived elections (totals only)</span>'
-        + '</div>';
+      html += archiveDividerHTML(CAND_OFFICE);
     }
     html += cycleRowHTML(year, '—', '—', '—', isArchive);
   });
   container.innerHTML = html;
+  initTooltips(container);  // wire the archive-divider tooltip if present
   console.error('[candidate] partial-data error (/totals/):', err);
 }
 

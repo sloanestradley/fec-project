@@ -379,11 +379,20 @@ test.describe('committee.html — archive threshold', () => {
     const divider = page.locator('#cycle-index .cycle-archive-divider');
     await expect(divider).toHaveCount(1);
     const text = await divider.textContent();
-    // Post-K17.a (2026-05-28): divider carries only the inline label
-    // "Archived cycles (totals only)" — the "FEC coverage begins X"
-    // explanation was retired pending TOOLTIP-VIZ (K17.b).
+    // Inline label is "Archived cycles (totals only)"; the methodology
+    // explanation now lives in the K17.b tooltip (stashed off the visible text).
     expect(text).toContain('Archived cycles (totals only)');
     expect(text).not.toContain('FEC coverage begins');
+  });
+
+  test('archive divider mounts the K17.b methodology tooltip', async ({ page }) => {
+    const trigger = page.locator('#cycle-index .cycle-archive-divider .tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About archived cycles');
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('No detail view available for cycles prior to 2008');
   });
 
   test('post-2008 cycles render as navigable a.cycle-row', async ({ page }) => {

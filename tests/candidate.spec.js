@@ -1263,11 +1263,21 @@ test.describe('candidate.html — archive threshold (House pre-2008)', () => {
     const divider = page.locator('#cycle-index .cycle-archive-divider');
     await expect(divider).toBeVisible();
     const text = await divider.textContent();
-    // Post-C12.a (2026-05-28): divider carries only the inline label
-    // "Archived elections (totals only)" — the "FEC coverage begins X for
-    // {office} races" explanation was retired pending TOOLTIP-VIZ (C12.b).
+    // Inline label is "Archived elections (totals only)"; the methodology
+    // explanation now lives in the C12.b tooltip (stashed off the visible text).
     expect(text).toContain('Archived elections (totals only)');
     expect(text).not.toContain('FEC coverage begins');
+  });
+
+  test('archive divider mounts the C12.b methodology tooltip', async ({ page }) => {
+    const trigger = page.locator('#cycle-index .cycle-archive-divider .tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About archived elections');
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    // H2WA03217 is House → "House races", threshold 2008.
+    await expect(popup).toContainText('No detail view available for House races prior to 2008');
   });
 });
 

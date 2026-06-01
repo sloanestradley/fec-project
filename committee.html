@@ -525,6 +525,16 @@ function cycleRowHTML(year, raised, spent, coh, isArchive, startYear) {
     + '</a>';
 }
 
+// Archive divider markup (cycle-index) + its methodology tooltip (K17.b). Single
+// source for all three render sites (index / scaffold / partial-error).
+function archiveDividerHTML() {
+  return '<div class="cycle-archive-divider">'
+    + '<span class="cycle-archive-divider-text">Archived cycles (totals only)</span>'
+    + '<span class="tooltip" aria-label="About archived cycles">No detail view available for cycles prior to '
+    + ARCHIVE_MIN_YEAR_COMMITTEE + '</span>'
+    + '</div>';
+}
+
 function renderCycleIndex(cycles, totalsMap) {
   var threshold = ARCHIVE_MIN_YEAR_COMMITTEE;
   var container = document.getElementById('cycle-index');
@@ -558,13 +568,12 @@ function renderCycleIndex(cycles, totalsMap) {
     if (startYear >= year) startYear = year - 1;
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
-      html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archived cycles (totals only)</span>'
-        + '</div>';
+      html += archiveDividerHTML();
     }
     html += cycleRowHTML(year, raised, spent, coh, isArchive, startYear);
   });
   container.innerHTML = html;
+  initTooltips(container);  // wire the archive-divider tooltip if present
 }
 
 // ── View switcher callbacks ──────────────────────────────────────────────────
@@ -624,13 +633,12 @@ function renderCycleIndexScaffold(cycles) {
     var isArchive = year < threshold;
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
-      html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archived cycles (totals only)</span>'
-        + '</div>';
+      html += archiveDividerHTML();
     }
     html += cycleRowHTML(year, skel, skel, skel, isArchive, year - 1);
   });
   container.innerHTML = html;
+  initTooltips(container);  // wire the archive-divider tooltip if present
 }
 
 // ── Partial-data error handler (T-load-4a) ────────────────────────────────────
@@ -669,13 +677,12 @@ function onPartialError(err) {
     var isArchive = year < threshold;
     if (isArchive && !archiveDividerInserted) {
       archiveDividerInserted = true;
-      html += '<div class="cycle-archive-divider">'
-        + '<span class="cycle-archive-divider-text">Archived cycles (totals only)</span>'
-        + '</div>';
+      html += archiveDividerHTML();
     }
     html += cycleRowHTML(year, '—', '—', '—', isArchive, year - 1);
   });
   container.innerHTML = html;
+  initTooltips(container);  // wire the archive-divider tooltip if present
   console.error('[committee] partial-data error (/totals/):', err);
 }
 
