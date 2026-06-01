@@ -1671,6 +1671,58 @@ test.describe('candidate.html — Spent tab footer (vendor note cut)', () => {
   });
 });
 
+test.describe('candidate.html — Spending by Purpose tooltip (C9 + cap)', () => {
+  async function gotoSpent(page) {
+    await page.waitForSelector('#tabs-bar', { timeout: 8000 });
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Spent' }).click();
+    await page.waitForFunction(
+      () => { const el = document.getElementById('spent-vendors-content'); return el && el.style.display === 'block'; },
+      { timeout: 12000 }
+    );
+  }
+
+  test('title mounts the methodology tooltip with the candidate sub-cycle sentence', async ({ page }) => {
+    await setup(page);
+    await gotoSpent(page);
+    const trigger = page.locator('#spent-purpose-title .tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About spending by purpose');
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('Categories estimated from FEC disbursement descriptions using keyword matching.');
+    await expect(popup).toContainText('Covers most recent sub-cycle.');
+    await expect(popup).not.toContainText('capped at 500 transactions');
+    // The old inline note under the bars is gone.
+    await expect(page.locator('#spent-bars-content .data-note')).toHaveCount(0);
+  });
+
+  test('tooltip appends the cap fragment when Schedule B caps (C10.b)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Force the Schedule B walk to cap (>5 pages + a cursor on every page).
+    await page.route('**/schedules/schedule_b/**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [{ disbursement_description: 'DIGITAL ADVERTISING', disbursement_amount: 1000, recipient_name: 'VENDOR A' }],
+          pagination: { pages: 10, last_indexes: { last_index: '123', last_disbursement_amount: '1' } },
+        }),
+      })
+    );
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await gotoSpent(page);
+    const trigger = page.locator('#spent-purpose-title .tooltip-trigger');
+    await expect(trigger).toBeAttached({ timeout: 15000 });
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('(capped at 500 transactions)');
+  });
+});
+
 // ── T12.5: 429-aware error UI + init-stage failure bridging ──────────────────
 
 test.describe('candidate.html — 429-aware error UI (T12.5)', () => {

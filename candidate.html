@@ -321,11 +321,10 @@
             </div>
           </div>
           <div class="raised-cell">
-            <div class="raised-cell-title">Spending by Purpose</div>
+            <div class="raised-cell-title" id="spent-purpose-title">Spending by Purpose</div>
             <div class="skeleton tab-skeleton skeleton-bars" id="spent-bars-skeleton"></div>
             <div id="spent-bars-content" style="display:none">
               <div id="spend-detail-bars"></div>
-              <div class="data-note" style="margin-top:0.75rem">Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle.</div>
             </div>
           </div>
         </div>
@@ -1536,6 +1535,20 @@ function renderSpentIfReady() {
   renderSpendDetail(spentData.allTransactions || []);
   renderSpentDonut(spentData.breakdown, spentData.totalSpent);
   renderTopVendors(spentData.topVendors);
+
+  // C9 Spending-by-Purpose methodology → tooltip on the section title, with the
+  // conditional cap fragment (C10.b). Rebuilt each render so the cap clause
+  // tracks per-cycle fetch state; fresh innerHTML re-wires via initTooltips
+  // (donut pattern). Mounts on resolve — the inline note it replaced was
+  // likewise post-resolve (inside #spent-bars-content).
+  (function() {
+    var t = document.getElementById('spent-purpose-title');
+    var copy = 'Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle.'
+      + (spentData.capped ? ' (capped at 500 transactions)' : '');
+    t.classList.add('raised-cell-title--has-info');
+    t.innerHTML = 'Spending by Purpose<span class="tooltip" aria-label="About spending by purpose">' + copy + '</span>';
+    initTooltips(t);
+  })();
 
   // C10.* trims 2026-05-28 — Path Z pass:
   //   C10.a (Spending by Purpose: keyword mapping sentence + cap parenthetical

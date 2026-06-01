@@ -303,11 +303,10 @@
           </div>
           <!-- Right: Spending by Purpose breakdown bars -->
           <div class="raised-cell">
-            <div class="raised-cell-title">Spending by Purpose</div>
+            <div class="raised-cell-title" id="spent-purpose-title">Spending by Purpose</div>
             <div class="skeleton tab-skeleton skeleton-bars" id="spent-bars-skeleton"></div>
             <div id="spent-bars-content" style="display:none">
               <div id="spend-detail-bars"></div>
-              <div class="data-note" style="margin-top:0.75rem">Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized.</div>
             </div>
           </div>
         </div>
@@ -2233,6 +2232,20 @@ function renderSpentIfReady() {
   renderSpendDetail(data.allTransactions || []);
   renderTopVendors(data.topVendors || []);
   renderContributions(data.contributions || []);
+
+  // K14 Spending-by-Purpose methodology → tooltip on the section title, with the
+  // conditional cap fragment (K16.b). Rebuilt each render so the cap clause
+  // tracks per-cycle fetch state; fresh innerHTML re-wires via initTooltips
+  // (donut pattern). Committee omits the candidate-only "Covers most recent
+  // sub-cycle" sentence.
+  (function() {
+    var t = document.getElementById('spent-purpose-title');
+    var copy = 'Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized.'
+      + (data.capped ? ' (capped at 500 transactions)' : '');
+    t.classList.add('raised-cell-title--has-info');
+    t.innerHTML = 'Spending by Purpose<span class="tooltip" aria-label="About spending by purpose">' + copy + '</span>';
+    initTooltips(t);
+  })();
 
   var periodLabel = (data.cycleOrAll - 1) + '–' + data.cycleOrAll;
   var vendorsHead = document.getElementById('vendors-head');
