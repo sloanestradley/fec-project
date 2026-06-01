@@ -532,6 +532,24 @@ test.describe('candidate.html — Raised tab sections', () => {
     );
   });
 
+  test('choropleth section title mounts the geography tooltip (with candidate-parity amendment caveat)', async ({ page }) => {
+    const title = page.locator('.raised-cell-title--has-info', {
+      hasText: 'Where Individual Contributions Come From',
+    });
+    await expect(title).toHaveCount(1);
+    const trigger = title.locator('.tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About the contribution geography map');
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('Geography reflects itemized individual contributions by state (Schedule A).');
+    // 2b candidate-parity: the amendment caveat now appears on candidate too.
+    await expect(popup).toContainText('State totals may differ from summary figures due to FEC amendment processing.');
+    // The geography clause moved out of the raised-tab footer.
+    await expect(page.locator('#raised-data-note')).not.toContainText('Geography reflects');
+  });
+
   test('top committee contributor rows are whole-row links to /committee/{id}', async ({ page }) => {
     // Mock data carries contributor_committee_id → row should render as .donors-link-row
     // with .donors-link-anchor pointing at /committee/{id}.

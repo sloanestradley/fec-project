@@ -234,7 +234,7 @@
             </div>
           </div>
           <div class="raised-cell">
-            <div class="raised-cell-title">Where Individual Contributions Come From</div>
+            <div class="raised-cell-title raised-cell-title--has-info">Where Individual Contributions Come From<span class="tooltip" aria-label="About the contribution geography map">Geography reflects itemized individual contributions by state (Schedule A). State totals may differ from summary figures due to FEC amendment processing.</span></div>
             <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
             <div class="map-svg-wrap" id="map-container" style="display:none"></div>
             <div class="map-legend" id="map-legend" style="display:none">
@@ -1299,10 +1299,10 @@ function renderRaisedIfReady() {
     //   C8.f (Phase 2 PAGE-NOTE ship 2026-05-29): ≤$200 caveat moves to
     //     #page-note (page-level, applies across all individual-contribution
     //     surfaces)
-    // Methodology copy (geography / top committees / top conduits) stays
-    // per Path Z, awaiting tooltip component ship.
-    var note = 'Geography reflects itemized individual contributions by state (Schedule A). ' +
-      'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID. ' +
+    // Geography methodology moved to the choropleth tooltip (T-choropleth-tooltip,
+    // 2026-06-01, C8.b). Footer keeps the Top-Committee / Top-Conduit clauses
+    // (C8.c / C8.d — V2, still per Path Z until their own tooltips ship).
+    var note = 'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID. ' +
       'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect the individuals\' money, not the platforms\' own funds.';
     var noteEl = document.getElementById('raised-data-note');
     noteEl.innerHTML = note;
@@ -2438,6 +2438,11 @@ async function init() {
     // getDetailScrollTarget reads it.
     compactThreshold = initCompactHeader('profile-header');
     compactHeaderInited = true;
+
+    // Wire static .tooltip markup once (the choropleth section-title tooltip is
+    // in #tab-raised from first paint). The donut legend's dynamic tooltips are
+    // wired per-render via initTooltips(legendEl) inside renderDonut.
+    initTooltips();
 
     // Tab section for top contributors (Raised tab) — wires WAI-ARIA tabs.
     // Both panels are slow-tier-fed, so indicator visibility doesn't gate on

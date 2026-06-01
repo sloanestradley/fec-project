@@ -525,6 +525,10 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .raised-cell { padding-top:var(--space-24); min-width:0; }
 .raised-cell-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;
   text-transform:uppercase; color:var(--text); margin-bottom:var(--space-24); }
+/* Section title carrying an info tooltip: flex row so the 32px .tooltip trigger
+   seats beside the heading. No gap — the trigger's own var(--space-4) padding
+   spaces it from the title text (matches .donut-lbl--has-info). */
+.raised-cell-title--has-info { display:flex; align-items:center; }
 
 /* ── K: Stats grid ──
    T14 structure: outer 1fr 1fr grid wraps two .stats-grid-half nests. Each half

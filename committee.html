@@ -198,7 +198,7 @@
             </div>
           </div>
           <div class="raised-cell">
-            <div class="raised-cell-title">Where Individual Contributions Come From</div>
+            <div class="raised-cell-title raised-cell-title--has-info">Where Individual Contributions Come From<span class="tooltip" aria-label="About the contribution geography map">Geography reflects itemized individual contributions by state (Schedule A). State totals may differ from summary figures due to FEC amendment processing.</span></div>
             <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
             <div class="map-svg-wrap" id="map-container" style="display:none"></div>
             <div class="map-legend" id="map-legend" style="display:none">
@@ -836,6 +836,11 @@ async function init() {
     // getDetailScrollTarget reads it.
     compactThreshold = initCompactHeader('committee-header');
     compactHeaderInited = true;
+
+    // Wire static .tooltip markup once (the choropleth section-title tooltip is
+    // in #tab-raised from first paint). The donut legend's dynamic tooltips are
+    // wired per-render via initTooltips(legendEl) inside renderDonut.
+    initTooltips();
 
     // Tab section for top contributors (Raised tab) — wires WAI-ARIA tabs.
     // Slow-tier indicators (#raised-still-loading, #raised-slow-error) are
@@ -1850,8 +1855,10 @@ function renderRaisedIfReady() {
     // Methodology stays per Path Z: K3.b/c (geography + amendment caveat),
     // K4-K7 (bulk-vs-API source attribution), K8 (conduit explanation).
     // covDate computation also retired — was used only for the cut clause.
-    var note = 'Geography reflects itemized individual contributions by state (Schedule A). ' +
-      'State totals may differ from summary figures due to FEC amendment processing.';
+    // Geography + amendment-caveat methodology moved to the choropleth tooltip
+    // (T-choropleth-tooltip, 2026-06-01, K3.b + K3.c). Footer now carries only the
+    // Top-Contributor source/methodology clauses (K4–K8 — V2, pending their tooltips).
+    var note = '';
     if (d.topIndividualsSource === 'bulk') {
       note += ' Top individual contributors pre-computed from FEC bulk data, refreshed daily.';
     } else if (d.topIndividualsSource === 'api') {
@@ -1869,8 +1876,9 @@ function renderRaisedIfReady() {
     // moves to #page-note (page-level, applies across all individual-
     // contribution surfaces, parity with C8.f on candidate).
     var noteEl = document.getElementById('raised-data-note');
+    note = note.trim();   // leading space on the now-leading conditional clause
     noteEl.innerHTML = note;
-    noteEl.style.display = 'block';
+    noteEl.style.display = note ? 'block' : 'none';
 
     raisedSlowRendered = true;
   }

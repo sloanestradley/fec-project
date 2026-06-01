@@ -504,6 +504,24 @@ test.describe('committee.html — Raised tab sections', () => {
     );
   });
 
+  test('choropleth section title mounts the geography tooltip (geography + amendment caveat)', async ({ page }) => {
+    const title = page.locator('.raised-cell-title--has-info', {
+      hasText: 'Where Individual Contributions Come From',
+    });
+    await expect(title).toHaveCount(1);
+    const trigger = title.locator('.tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About the contribution geography map');
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('Geography reflects itemized individual contributions by state (Schedule A).');
+    await expect(popup).toContainText('State totals may differ from summary figures due to FEC amendment processing.');
+    // Both clauses moved out of the raised-tab footer onto the tooltip.
+    await expect(page.locator('#raised-data-note')).not.toContainText('Geography reflects');
+    await expect(page.locator('#raised-data-note')).not.toContainText('amendment processing');
+  });
+
   test('map container is present in raised tab', async ({ page }) => {
     await expect(page.locator('#map-container')).toBeAttached();
   });
