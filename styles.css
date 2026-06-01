@@ -453,12 +453,20 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .donut-center-lbl { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted); text-transform:uppercase; letter-spacing:var(--ls-expanded); margin-top:var(--space-4); }
 .donut-legend { width:100%; }
 .donut-row { display:flex; align-items:center; gap:var(--space-8); padding:var(--space-4) 0;
-  font-size:0.625rem; border-bottom:1px solid var(--border); }
+  height:32px; font-size:0.625rem; border-bottom:1px solid var(--border); }
 .donut-row:last-child { border-bottom:none; }
-.donut-info { color:var(--muted); cursor:help; margin-left:var(--space-4); font-style:normal; }
 .donut-sw { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
 .donut-lbl { color:var(--subtle); flex:1; min-width:0; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
+/* Tooltip'd wedges: label cell becomes a flex row so the .tooltip trigger
+   stays beside the label and never gets clipped by the ellipsis. The inner
+   text span owns the truncation; the trigger is shrink-proof. No gap — the
+   trigger's own var(--space-4) padding supplies the space beside the label,
+   and .donut-row's fixed 32px height keeps every legend row even (the 32px
+   trigger spans the row exactly while text rows center in the same height). */
+.donut-lbl--has-info { display:flex; align-items:center; overflow:visible; }
+.donut-lbl-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.donut-lbl--has-info .tooltip { flex-shrink:0; }
 .donut-pct { color:var(--muted); padding-left:var(--space-8); white-space:nowrap; }
 .donut-val { color:var(--text); min-width:50px; text-align:right; white-space:nowrap; }
 

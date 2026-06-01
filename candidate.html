@@ -1044,13 +1044,18 @@ function renderContributorDonut(breakdown, totalRaised) {
   var legendEl = document.getElementById('donut-legend');
   legendEl.innerHTML = active.map(function(c, i) {
     var pct = total > 0 ? (aVals[i]/total*100).toFixed(1) : '0';
+    var lbl = c.tooltip
+      ? '<div class="donut-lbl donut-lbl--has-info"><span class="donut-lbl-text">'+c.label+'</span>' +
+        '<span class="tooltip" aria-label="About '+c.label+'">'+c.tooltip+'</span></div>'
+      : '<div class="donut-lbl">'+c.label+'</div>';
     return '<div class="donut-row">' +
       '<div class="donut-sw" style="background:'+(c.legendColor || c.color)+'"></div>' +
-      '<div class="donut-lbl">'+c.label+(c.tooltip ? '<span class="donut-info" title="'+c.tooltip+'">ⓘ</span>' : '')+'</div>' +
+      lbl +
       '<div class="donut-pct">'+pct+'%</div>' +
       '<div class="donut-val">'+fmt(aVals[i])+'</div>' +
     '</div>';
   }).join('');
+  initTooltips(legendEl);
 }
 
 // ── Raised tab: choropleth ───────────────────────────

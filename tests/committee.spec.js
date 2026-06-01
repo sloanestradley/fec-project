@@ -484,16 +484,23 @@ test.describe('committee.html — Raised tab sections', () => {
     await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
   });
 
-  test('donut legend renders "Candidate contributions & loans" segment with tooltip', async ({ page }) => {
+  test('donut legend "Candidate contributions & loans" wedge mounts the tooltip component', async ({ page }) => {
     const row = page.locator('#donut-legend .donut-row', {
-      has: page.locator('.donut-lbl', { hasText: 'Candidate contributions & loans' }),
+      has: page.locator('.donut-lbl-text', { hasText: 'Candidate contributions & loans' }),
     });
     await expect(row).toHaveCount(1);
-    const info = row.locator('.donut-info');
-    await expect(info).toHaveCount(1);
-    await expect(info).toHaveAttribute(
-      'title',
-      'Direct contributions and loans from the candidate to this committee. Contributions are gifts; loans create a debt the committee owes back to the candidate.'
+    // initTooltips wired the .tooltip host into a trigger button with the
+    // host's aria-label transferred; legacy .donut-info/title= is gone.
+    const trigger = row.locator('.tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About Candidate contributions & loans');
+    await expect(row.locator('.donut-info')).toHaveCount(0);
+    // Popup surfaces the verbatim methodology copy on open.
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText(
+      'Direct contributions and loans from the candidate to this committee.'
     );
   });
 

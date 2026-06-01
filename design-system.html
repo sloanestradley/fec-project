@@ -852,7 +852,7 @@
           <br><br>
           <strong>API:</strong> <code>initTooltips(rootEl?)</code> wires every <code>.tooltip</code> inside <code>rootEl</code> (defaults to <code>document.body</code>). Idempotent — already-wired triggers carry <code>data-tooltip-wired</code> and are skipped. Call again after dynamic DOM mutations that inject new <code>.tooltip</code> markup (e.g. post-fetch table renders). AbortController-based listener teardown on close (second codebase consumer after <code>openAccessibleModal</code>).
           <br><br>
-          <strong>Status:</strong> shipping built but unapplied; consumer-side application is downstream of <code>strategy/data-notes-mapping-v2.md</code> (§1 TOOLTIP-VIZ and TOOLTIP-LABEL rows).
+          <strong>Status:</strong> in production. First applied 2026-06-01 to the Raised-tab donut breakdown legend on candidate.html + committee.html (the C13.a–f / K18.a–f wedge methodology tooltips — swapped off the legacy <code>title=</code> affordance; wired via <code>initTooltips(legendEl)</code> after each legend render). In that consumer the trigger keeps its standard 32 × 32 size while <code>.donut-row</code> carries a fixed <code>height:32px</code> so legend rows stay even. Remaining <code>strategy/data-notes-mapping-v2.md</code> §1 TOOLTIP-VIZ / TOOLTIP-LABEL rows (choropleth, Spending-by-Purpose, vendor/contributor tables, ratio stat label, archive divider) mount in downstream tickets.
         </div>
       </div>
 

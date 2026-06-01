@@ -512,6 +512,26 @@ test.describe('candidate.html — Raised tab sections', () => {
     await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
   });
 
+  test('donut legend "Candidate authorized committees" wedge mounts the tooltip component', async ({ page }) => {
+    const row = page.locator('#donut-legend .donut-row', {
+      has: page.locator('.donut-lbl-text', { hasText: 'Candidate authorized committees' }),
+    });
+    await expect(row).toHaveCount(1);
+    // initTooltips wired the .tooltip host into a trigger button with the
+    // host's aria-label transferred; legacy .donut-info/title= is gone.
+    const trigger = row.locator('.tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About Candidate authorized committees');
+    await expect(row.locator('.donut-info')).toHaveCount(0);
+    // Popup surfaces the verbatim methodology copy on open.
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText(
+      'Money transferred in from committees authorized by the same candidate.'
+    );
+  });
+
   test('top committee contributor rows are whole-row links to /committee/{id}', async ({ page }) => {
     // Mock data carries contributor_committee_id → row should render as .donors-link-row
     // with .donors-link-anchor pointing at /committee/{id}.

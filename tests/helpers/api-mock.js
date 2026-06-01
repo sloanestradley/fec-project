@@ -36,6 +36,14 @@ const TOTALS = {
     last_cash_on_hand_end_period: 450000,
     coverage_end_date: '2024-12-31T00:00:00',
     cycle: 2024,
+    // Raised breakdown — drives the Raised-tab donut legend (sums to receipts).
+    individual_itemized_contributions: 2000000,
+    individual_unitemized_contributions: 500000,
+    other_political_committee_contributions: 700000,
+    political_party_committee_contributions: 100000,
+    transfers_from_other_authorized_committee: 100000,
+    candidate_contribution: 0,
+    other_receipts: 100000,
   }],
   pagination: { count: 1 },
 };
