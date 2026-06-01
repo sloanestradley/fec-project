@@ -6036,3 +6036,60 @@ You shape decisions by asking honest narrow questions rather than open-ended one
 
 5. **page.evaluate-against-design-system as the unit-test standard for helpers.** Six spec files now use it (overlay, tooltip, party-helpers, candidate-card, race-helpers, committee-helpers, spend-helpers). Fast, no API mocking, locks contracts. Worth naming as the default for any new utility-function test.
 
+
+---
+2026-06-01 — end of tooltip-application arc (V1 complete)
+
+## Process log draft
+
+### Title
+Five info icons and the art of the cut
+
+### Summary (Sloane's voice)
+This session I finally applied the tooltip component I'd built — mounting little ⓘ info icons across five surfaces (donut wedges, the contribution map, Spending by Purpose, the archive divider, and the Raised:Spent ratio). But the more interesting half of the work was deciding what *not* to add: a whole family of "source attribution" tooltips that just restated where data came from got cut instead of mounted, because they told the user nothing the page didn't already say. The session became as much about decluttering as about decorating.
+
+### Changelog
+- Mounted the tooltip component on 5 surfaces: Raised-donut wedge methodology, the "Where Individual Contributions Come From" map title, the "Spending by Purpose" title (with a conditional "(capped at 500 transactions)" clause), the cycle-index archive divider, and the Raised:Spent ratio stat label.
+- Cut the no-value notes: the bulk-vs-API source attributions (Top Individuals + Top Committees), the candidate top-committees scope note, and the vendor "deduplicated by recipient" note — they were internal-architecture detail or restatements of the table title; provenance is covered once by the page-level "Source: FEC" line.
+- Removed two long-dead empty slots (#data-note, #committee-meta-note) — leftover from the Phase 2 page-note migration; they were even rendering a faint stray border-rule at the bottom of the summary tab.
+- Density discipline: gave .donut-row and .cycle-archive-divider a fixed height:32px so the 32px trigger doesn't bloat dense rows; for the ratio stat card (no room to grow) the trigger is absolute-positioned in the corner instead.
+- Copy refinements throughout: lowercased the cap fragment, reordered the archive copy to lead with the point, simplified the ratio definition to "Total receipts ÷ total disbursements".
+
+### Field notes
+The session kept returning to one question: does this tooltip earn its place? The donut/choropleth methodology clearly did — it explains how a number was derived. But the "pre-computed from FEC bulk data, refreshed daily" source attribution didn't: the user reads the same accurate number whether it came from the daily snapshot or the live API, so surfacing the path is noise. Once that lens was named (around the K5 discussion), three more tooltips fell to it, and two empty DOM slots went with them. The component made the page more informative; the cuts made it less cluttered. Both were the same project.
+
+The other thing worth keeping: the "mark complete only after the work is real" correction. I'd flipped the cut rows to checked in the mapping doc while the footer copy was still rendering live — the decision was made, the code wasn't. Marking done-on-paper ahead of done-in-fact is a quiet way to lie to the next session.
+
+### Stack tags
+None new — this was all application of the existing tooltip component (initTooltips), AbortController teardown, Material Symbols inline SVG.
+
+## How Sloane steered the work
+
+### "Ship 32×32, then decide live" — twice
+On both the donut legend and the archive divider, you declined to pre-decide the trigger sizing and instead said ship the standard 32×32 and look at it on the real build. Then, having seen it, you made the same call both times: add a fixed height:32px to the row/band so the big trigger sits inside a controlled height instead of bloating it. Deciding from the rendered result, not the abstract — and the live look produced a cleaner answer than guessing would have.
+
+### The K5 question that became a decluttering arc
+You asked of one deferred tooltip: "Is there any technical benefit to this? I'm not seeing any from the user's perspective." That single honest question didn't just kill K5 — it exposed that the whole bulk-vs-API source-attribution family (K4–K7), the candidate twin (C8.c), and the vendor dedup note were all the same empty calorie. Four "ship it" rows became "cut it," and the page got leaner. You drove the cut, not the mount.
+
+### "Why did you mark them complete and verified? The work wasn't done yet."
+When I flipped the cut rows to complete+verified in the doc while the footer copy was still live in production, you caught it immediately. That correction forced the actual code removal and reset a discipline: the Verified/Complete columns track reality, not intent.
+
+### "Clear the Verified column — that's mine"
+You drew a clean line: Complete is mine to mark when the code ships; Verified is yours to check off after you've looked. I'd been filling in both. Small process correction, but it keeps the doc honest about who's vouched for what.
+
+### Copy as a series of tightenings
+You revised three tooltip strings after seeing them: capitalized sentence → lowercase parenthetical for the cap fragment; "Data for X is less complete; no detail view available" → "No detail view available for X" (lead with the point); and the ratio definition down to "Total receipts ÷ total disbursements". Each made the copy quieter and more direct.
+
+### "Wire the cap fragment now"
+Offered the choice between deferring the conditional "(capped at 500 transactions)" clause or wiring it (which meant making that tooltip dynamic), you chose spec-complete over simple. A deliberate decision to take on the per-render rebuild rather than leave a banked gap.
+
+### Through-line
+You steered toward honesty and restraint: cut what doesn't inform, don't claim done before it's done, keep the copy tight, and judge density from the rendered page. The most consequential moves this session were subtractions — and they came from you asking whether each addition actually earned its place.
+
+## What to bring to Claude Chat
+
+- V2 row 5 — the conduit-sources tooltip is the only unmounted §1 tooltip left. The mapping doc flagged it as needing its own scoping pass because it lives on the Raised → "Top Contributors by type" nested sub-tab tables, and it's the architecture's interpretation-critical stress case (~47-word copy; without it users misread ActBlue as a donor). Worth deciding whether/when to scope it — it's a different placement problem than everything shipped this session.
+- The "does this tooltip earn its place?" test as a reusable lens. This session it killed 6+ tooltips (the K4–K7 / C8.c / vendor family). Worth deciding if that's the standing bar for any future on-demand info: does it inform, or just restate what's visible / where data came from?
+- A second stat card wanting an info icon. The ratio label is the first stat card with a tooltip (absolute-corner pattern). If others follow, it's a quick repeat — but worth a deliberate "which stats deserve a definition" pass rather than adding them ad hoc.
+- Mobile/compact spot-check. All five surfaces were verified at desktop with screenshots; a quick ≤860px + compact-header pass on the SbP / divider / ratio tooltips would close the last verification gap (low risk).
+- The Verified column is yours to fill. Every §1 row I touched this session has Complete ✓ but a blank Verified, waiting for your review pass on the live site.
