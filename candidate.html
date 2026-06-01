@@ -233,7 +233,7 @@
             </div>
           </div>
           <div class="raised-cell">
-            <div class="raised-cell-title raised-cell-title--has-info">Where Individual Contributions Come From<span class="tooltip" aria-label="About the contribution geography map">Geography reflects itemized individual contributions by state (Schedule A). State totals may differ from summary figures due to FEC amendment processing.</span></div>
+            <div class="raised-cell-title raised-cell-title--has-info">Where Individual Contributions Come From<span class="tooltip" aria-label="About the contribution geography map">Reflects itemized individual contributions by state. State totals may differ from summary figures due to FEC amendment processing.</span></div>
             <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
             <div class="map-svg-wrap" id="map-container" style="display:none"></div>
             <div class="map-legend" id="map-legend" style="display:none">
@@ -1044,7 +1044,7 @@ function renderContributorDonut(breakdown, totalRaised) {
     var pct = total > 0 ? (aVals[i]/total*100).toFixed(1) : '0';
     var lbl = c.tooltip
       ? '<div class="donut-lbl donut-lbl--has-info"><span class="donut-lbl-text">'+c.label+'</span>' +
-        '<span class="tooltip" aria-label="About '+c.label+'">'+c.tooltip+'</span></div>'
+        '<span class="tooltip" aria-label="About '+c.label.charAt(0).toLowerCase()+c.label.slice(1)+'">'+c.tooltip+'</span></div>'
       : '<div class="donut-lbl">'+c.label+'</div>';
     return '<div class="donut-row">' +
       '<div class="donut-sw" style="background:'+(c.legendColor || c.color)+'"></div>' +
@@ -1544,7 +1544,7 @@ function renderSpentIfReady() {
   // likewise post-resolve (inside #spent-bars-content).
   (function() {
     var t = document.getElementById('spent-purpose-title');
-    var copy = 'Categories estimated from FEC disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle.'
+    var copy = 'Categories estimated from disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle only.'
       + (spentData.capped ? ' (capped at 500 transactions)' : '');
     t.classList.add('raised-cell-title--has-info');
     t.innerHTML = 'Spending by Purpose<span class="tooltip" aria-label="About spending by purpose">' + copy + '</span>';

@@ -6052,7 +6052,7 @@ This session I finally applied the tooltip component I'd built — mounting litt
 - Mounted the tooltip component on 5 surfaces: Raised-donut wedge methodology, the "Where Individual Contributions Come From" map title, the "Spending by Purpose" title (with a conditional "(capped at 500 transactions)" clause), the cycle-index archive divider, and the Raised:Spent ratio stat label.
 - Cut the no-value notes: the bulk-vs-API source attributions (Top Individuals + Top Committees), the candidate top-committees scope note, and the vendor "deduplicated by recipient" note — they were internal-architecture detail or restatements of the table title; provenance is covered once by the page-level "Source: FEC" line.
 - Removed two long-dead empty slots (#data-note, #committee-meta-note) — leftover from the Phase 2 page-note migration; they were even rendering a faint stray border-rule at the bottom of the summary tab.
-- Density discipline: gave .donut-row and .cycle-archive-divider a fixed height:32px so the 32px trigger doesn't bloat dense rows; for the ratio stat card (no room to grow) the trigger is absolute-positioned in the corner instead.
+- Density discipline: gave .donut-row and .cycle-archive-divider a fixed height:32px so the 32px trigger doesn't bloat dense rows; for the ratio stat card (no room to grow) the .tooltip HOST is absolute-positioned in the corner (top/right:8px) — the trigger button inside it is position:static, so the positioning is the host's, not the trigger's. (Corrected 2026-06-01 from an earlier "the trigger is absolute" framing.)
 - Copy refinements throughout: lowercased the cap fragment, reordered the archive copy to lead with the point, simplified the ratio definition to "Total receipts ÷ total disbursements".
 
 ### Field notes

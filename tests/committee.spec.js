@@ -496,7 +496,7 @@ test.describe('committee.html — Raised tab sections', () => {
     // host's aria-label transferred; legacy .donut-info/title= is gone.
     const trigger = row.locator('.tooltip-trigger');
     await expect(trigger).toHaveCount(1);
-    await expect(trigger).toHaveAttribute('aria-label', 'About Candidate contributions & loans');
+    await expect(trigger).toHaveAttribute('aria-label', 'About candidate contributions & loans');
     await expect(row.locator('.donut-info')).toHaveCount(0);
     // Popup surfaces the verbatim methodology copy on open.
     await trigger.click();
@@ -518,10 +518,10 @@ test.describe('committee.html — Raised tab sections', () => {
     await trigger.click();
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
-    await expect(popup).toContainText('Geography reflects itemized individual contributions by state (Schedule A).');
+    await expect(popup).toContainText('Reflects itemized individual contributions by state.');
     await expect(popup).toContainText('State totals may differ from summary figures due to FEC amendment processing.');
     // Both clauses moved out of the raised-tab footer onto the tooltip.
-    await expect(page.locator('#raised-data-note')).not.toContainText('Geography reflects');
+    await expect(page.locator('#raised-data-note')).not.toContainText('itemized individual contributions by state');
     await expect(page.locator('#raised-data-note')).not.toContainText('amendment processing');
   });
 
@@ -662,7 +662,7 @@ test.describe('committee.html — Spent tab sections', () => {
     await trigger.click();
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
-    await expect(popup).toContainText('Categories estimated from FEC disbursement descriptions using keyword matching.');
+    await expect(popup).toContainText('Categories estimated from disbursement descriptions using keyword matching.');
     // Committee omits the candidate-only "Covers most recent sub-cycle" sentence.
     await expect(popup).not.toContainText('Covers most recent sub-cycle');
     // Default mock doesn't paginate → not capped → no cap fragment.

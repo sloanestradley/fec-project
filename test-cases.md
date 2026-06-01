@@ -55,9 +55,10 @@
 
 - [ ] ✅ Donut legend wedges (Raised tab): the 6 methodology wedges each show a ⓘ; popup shows the wedge's copy; legend rows are even (no row grows — `.donut-row` is 32px)
 - [ ] ✅ Choropleth title (Raised tab): "Where Individual Contributions Come From" has a ⓘ; popup = geography + amendment caveat (both pages, identical copy)
-- [ ] ✅ Spending by Purpose title (Spent tab): ⓘ; popup = keyword-matching methodology; candidate adds "Covers most recent sub-cycle.", committee omits it
+- [ ] ✅ Spending by Purpose title (Spent tab): ⓘ; popup = "Categories estimated from disbursement descriptions…"; candidate adds "Covers most recent sub-cycle only.", committee omits it
 - [ ] ✅ Archive divider (index view, pre-threshold cycles only): ⓘ on the "Archived …" band; popup = "No detail view available for … prior to {threshold}"; band stays 32px (doesn't grow)
-- [ ] ✅ Raised:Spent ratio stat label (candidate, detail view): ⓘ in the card's top-right corner; popup = "Total receipts ÷ total disbursements"; **card and stats-grid row do NOT change height** (trigger is absolute)
+- [ ] ✅ Raised:Spent ratio stat label (candidate, detail view): ⓘ in the card's top-right corner; popup = "Total receipts ÷ total disbursements"; **card and stats-grid row do NOT change height** (the `.tooltip` host is `position:absolute`; the trigger button inside is `position:static`)
+- [ ] ✅ Tooltip aria-labels are sentence case (first word capitalized, rest lowercase except proper/product terms): "About candidate authorized committees", "About other receipts", "About spending by purpose", "About the Raised:Spent ratio"
 - [ ] At ≤860px: each ⓘ remains tappable; popup opens and clamps inside the viewport (≥8px from both edges); no horizontal page overflow
 - [ ] Spent footer (`#spent-data-note`) is empty/hidden; Raised footer (`#raised-data-note`) shows only the conduit explanation (the cut source/scope/vendor notes are gone)
 

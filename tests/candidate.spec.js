@@ -536,7 +536,7 @@ test.describe('candidate.html — Raised tab sections', () => {
     // host's aria-label transferred; legacy .donut-info/title= is gone.
     const trigger = row.locator('.tooltip-trigger');
     await expect(trigger).toHaveCount(1);
-    await expect(trigger).toHaveAttribute('aria-label', 'About Candidate authorized committees');
+    await expect(trigger).toHaveAttribute('aria-label', 'About candidate authorized committees');
     await expect(row.locator('.donut-info')).toHaveCount(0);
     // Popup surfaces the verbatim methodology copy on open.
     await trigger.click();
@@ -558,11 +558,11 @@ test.describe('candidate.html — Raised tab sections', () => {
     await trigger.click();
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
-    await expect(popup).toContainText('Geography reflects itemized individual contributions by state (Schedule A).');
+    await expect(popup).toContainText('Reflects itemized individual contributions by state.');
     // 2b candidate-parity: the amendment caveat now appears on candidate too.
     await expect(popup).toContainText('State totals may differ from summary figures due to FEC amendment processing.');
     // The geography clause moved out of the raised-tab footer.
-    await expect(page.locator('#raised-data-note')).not.toContainText('Geography reflects');
+    await expect(page.locator('#raised-data-note')).not.toContainText('itemized individual contributions by state');
   });
 
   test('raised footer no longer carries the C8.c top-committees scope/dedup note (cut §5.j)', async ({ page }) => {
@@ -1715,8 +1715,8 @@ test.describe('candidate.html — Spending by Purpose tooltip (C9 + cap)', () =>
     await trigger.click();
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
-    await expect(popup).toContainText('Categories estimated from FEC disbursement descriptions using keyword matching.');
-    await expect(popup).toContainText('Covers most recent sub-cycle.');
+    await expect(popup).toContainText('Categories estimated from disbursement descriptions using keyword matching.');
+    await expect(popup).toContainText('Covers most recent sub-cycle only.');
     await expect(popup).not.toContainText('capped at 500 transactions');
     // The old inline note under the bars is gone.
     await expect(page.locator('#spent-bars-content .data-note')).toHaveCount(0);
