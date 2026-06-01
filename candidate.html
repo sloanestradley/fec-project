@@ -1299,11 +1299,12 @@ function renderRaisedIfReady() {
     //   C8.f (Phase 2 PAGE-NOTE ship 2026-05-29): ≤$200 caveat moves to
     //     #page-note (page-level, applies across all individual-contribution
     //     surfaces)
-    // Geography methodology moved to the choropleth tooltip (T-choropleth-tooltip,
-    // 2026-06-01, C8.b). Footer keeps the Top-Committee / Top-Conduit clauses
-    // (C8.c / C8.d — V2, still per Path Z until their own tooltips ship).
-    var note = 'Top committee contributors: complete PAC, party, and other committee contributions across the ' + cycleLabel + ' cycle, deduplicated by committee ID. ' +
-      'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect the individuals\' money, not the platforms\' own funds.';
+    // Footer methodology after the 2026-06-01 cuts: geography → choropleth tooltip
+    // (C8.b); C8.c (top-committees scope/dedup note) → CUT for parity with the cut
+    // committee K6/K7 (§5.j) — mostly scope-restatement + a thin dedup note, no
+    // standalone tooltip. Footer now carries only C8.d (conduit explanation,
+    // still Path-Z pending its own tooltip).
+    var note = 'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect the individuals\' money, not the platforms\' own funds.';
     var noteEl = document.getElementById('raised-data-note');
     noteEl.innerHTML = note;
     noteEl.style.display = 'block';

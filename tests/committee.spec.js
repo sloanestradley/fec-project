@@ -522,6 +522,13 @@ test.describe('committee.html — Raised tab sections', () => {
     await expect(page.locator('#raised-data-note')).not.toContainText('amendment processing');
   });
 
+  test('raised footer no longer carries the K4–K7 bulk-vs-API source attribution (cut §5.j)', async ({ page }) => {
+    const footer = page.locator('#raised-data-note');
+    await expect(footer).not.toContainText('pre-computed from FEC bulk');  // K4 / K6
+    await expect(footer).not.toContainText('refreshed daily');              // K4 / K6 cadence framing
+    await expect(footer).not.toContainText('deduplicated by committee ID'); // K7
+  });
+
   test('map container is present in raised tab', async ({ page }) => {
     await expect(page.locator('#map-container')).toBeAttached();
   });

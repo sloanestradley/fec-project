@@ -550,6 +550,14 @@ test.describe('candidate.html — Raised tab sections', () => {
     await expect(page.locator('#raised-data-note')).not.toContainText('Geography reflects');
   });
 
+  test('raised footer no longer carries the C8.c top-committees scope/dedup note (cut §5.j)', async ({ page }) => {
+    const footer = page.locator('#raised-data-note');
+    await expect(footer).not.toContainText('Top committee contributors');
+    await expect(footer).not.toContainText('deduplicated by committee ID');
+    // C8.d conduit explanation stays (Path Z, pending its own tooltip).
+    await expect(footer).toContainText('Top conduit sources');
+  });
+
   test('top committee contributor rows are whole-row links to /committee/{id}', async ({ page }) => {
     // Mock data carries contributor_committee_id → row should render as .donors-link-row
     // with .donors-link-anchor pointing at /committee/{id}.

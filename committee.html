@@ -1852,23 +1852,18 @@ function renderRaisedIfReady() {
     // endpoint" prefix (donut source, "lacks value") and "Coverage through
     // {date}" duplicate (already at #stat-coh-sub) both removed. K10 (≤$200
     // caveat) stays until PAGE-NOTE ship moves it page-level (Phase 2).
-    // Methodology stays per Path Z: K3.b/c (geography + amendment caveat),
-    // K4-K7 (bulk-vs-API source attribution), K8 (conduit explanation).
-    // covDate computation also retired — was used only for the cut clause.
-    // Geography + amendment-caveat methodology moved to the choropleth tooltip
-    // (T-choropleth-tooltip, 2026-06-01, K3.b + K3.c). Footer now carries only the
-    // Top-Contributor source/methodology clauses (K4–K8 — V2, pending their tooltips).
+    // Footer methodology after two cuts:
+    //   - K3.b/c (geography + amendment caveat) → moved to the choropleth tooltip
+    //     (T-choropleth-tooltip, 2026-06-01).
+    //   - K4–K7 (bulk-vs-API source attribution for Top Individuals / Top
+    //     Committees) → CUT entirely 2026-06-01 (§5.j): internal source-path detail
+    //     with no interpretive value + retired cadence framing; provenance covered
+    //     by the page-level "Source: FEC" line. The topIndividualsSource /
+    //     topCommitteesSource flags still drive the KV-vs-API data path + empty
+    //     states; only their footer copy is gone.
+    // Footer now carries only K8 (conduit explanation), still Path-Z pending its
+    // own tooltip — hides when not applicable.
     var note = '';
-    if (d.topIndividualsSource === 'bulk') {
-      note += ' Top individual contributors pre-computed from FEC bulk data, refreshed daily.';
-    } else if (d.topIndividualsSource === 'api') {
-      note += ' Top individual contributors: ' + cycleLabel + '.';
-    }
-    if (d.topCommitteesSource === 'bulk') {
-      note += ' Top committee contributors pre-computed from FEC bulk data (pas2), refreshed daily.';
-    } else if (d.topCommitteesSource === 'api') {
-      note += ' Top committee contributors: complete ' + cycleLabel + ' cycle, deduplicated by committee ID.';
-    }
     if (!d.topConduitsTooLarge && !d.topCommitteesIsConduit) {
       note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
     }
