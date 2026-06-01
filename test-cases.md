@@ -204,7 +204,7 @@
 - [ ] FEC link renders in the new site-wide accent color (`var(--accent)` #2C5282), not UA-default blue
 - [ ] On no-data cycles (e.g. /candidate/H6WA03309#2026#summary): `#page-note` is hidden along with `#content` — empty-state takes over communication
 - [ ] `#data-note` slot inside `#tab-summary` is empty (the old C4.a/C4.c/C4.d/C4.e family no longer populates it)
-- [ ] Per-tab footer notes after the 2026-06-01 cuts: `#raised-data-note` carries only the conduit explanation (both pages); `#spent-data-note` carries vendor dedup. The geography + amendment caveat moved to the choropleth tooltip; K4–K7 bulk-vs-API source attribution AND C8.c (candidate top-committees scope/dedup) were cut entirely (§5.j)
+- [ ] Per-tab footer notes after the 2026-06-01 cuts: `#raised-data-note` carries only the conduit explanation (both pages); `#spent-data-note` is empty + hidden (both pages — vendor dedup note cut). The geography + amendment caveat moved to the choropleth tooltip; K4–K7 source attribution, C8.c (candidate top-committees), and C10.d/K16.d (vendor dedup) were all cut (§5.j)
 
 ### Whole-view empty state (T-cycle-empty-state, 2026-05-28)
 Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle combination with no financial filings — H6WA03309's 2026 cycle is the canonical example).

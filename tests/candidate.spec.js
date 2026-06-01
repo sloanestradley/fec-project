@@ -1656,6 +1656,21 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
   });
 });
 
+test.describe('candidate.html — Spent tab footer (vendor note cut)', () => {
+  test('spent footer is empty/hidden — vendor dedup note cut (C10.d, §5.j)', async ({ page }) => {
+    await setup(page);
+    await page.waitForSelector('#tabs-bar', { timeout: 8000 });
+    await page.locator('.tabs-bar .tab').filter({ hasText: 'Spent' }).click();
+    await page.waitForFunction(
+      () => { const el = document.getElementById('spent-vendors-content'); return el && el.style.display === 'block'; },
+      { timeout: 12000 }
+    );
+    const footer = page.locator('#spent-data-note');
+    await expect(footer).toBeHidden();
+    await expect(footer).not.toContainText('deduplicated by recipient');
+  });
+});
+
 // ── T12.5: 429-aware error UI + init-stage failure bridging ──────────────────
 
 test.describe('candidate.html — 429-aware error UI (T12.5)', () => {

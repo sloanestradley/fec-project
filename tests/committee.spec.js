@@ -646,6 +646,12 @@ test.describe('committee.html — Spent tab sections', () => {
     await expect(rows).not.toHaveCount(0);
   });
 
+  test('spent footer is empty/hidden — vendor dedup note cut (K16.d, §5.j)', async ({ page }) => {
+    const footer = page.locator('#spent-data-note');
+    await expect(footer).toBeHidden();
+    await expect(footer).not.toContainText('deduplicated by recipient');
+  });
+
   test('contributions-section is visible (mock has CCM record)', async ({ page }) => {
     await expect(page.locator('#contributions-section')).toBeVisible();
   });
