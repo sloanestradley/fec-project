@@ -336,6 +336,21 @@ test.describe('candidate.html — stats row', () => {
     const text = await ratio.textContent();
     expect(text?.trim().length).toBeGreaterThan(0);
   });
+
+  test('Raised:Spent ratio label mounts the C4.d tooltip (absolute, no layout impact)', async ({ page }) => {
+    await setupWithContent(page);
+    const card = page.locator('.stat-card--has-info');
+    await expect(card).toHaveCount(1);
+    // Host is absolutely positioned (out of flow) so it can't grow the card / grid row.
+    await expect(card.locator('> .tooltip')).toHaveCSS('position', 'absolute');
+    const trigger = card.locator('.tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About the Raised:Spent ratio');
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('Total receipts ÷ total disbursements');
+  });
 });
 
 // ── Health banner ─────────────────────────────────────────────────────────────

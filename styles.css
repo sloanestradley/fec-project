@@ -561,6 +561,12 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   margin-bottom:var(--section-gap); }
 .stat-card { padding:var(--space-16); border-right:1px solid #05234F; }
 .stat-card:last-child { border-right:none; }
+/* Stat card carrying an info tooltip (Raised:Spent ratio). The 32×32 trigger is
+   absolutely positioned in the top-right corner — out of flow so it never grows
+   the card or its shared grid-row height; the label/value are left-aligned so
+   there's no horizontal collision. top:8px also centers it on the label line. */
+.stat-card--has-info { position:relative; }
+.stat-card--has-info > .tooltip { position:absolute; top:var(--space-8); right:var(--space-8); }
 .stat-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
   color:var(--muted); margin-bottom:var(--space-4); }
 .stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:400;
