@@ -1,5 +1,16 @@
 # Fixture coverage audit — `tests/helpers/api-mock.js` vs `utils.js` helpers
 
+**EXECUTED 2026-06-01 — T-fixture-coverage-tier1-2.** Tier 1 + Tier 2 gaps closed via page.evaluate unit tests in three new spec files:
+- `tests/race-helpers.spec.js` (19 tests) — `formatRaceName` + `formatRaceLabelLong` + `toOrdinal` Presidential / at-large House / teen-ordinal coverage
+- `tests/committee-helpers.spec.js` (27 tests) — `committeeTypeLabel` (all 12 codes + fallback) + `filingFrequencyLabel` (all 6 codes + fallback) + `filingFrequencyDotClass` (T/A vs everything else)
+- `tests/spend-helpers.spec.js` (14 tests) — `purposeBucket` (all 8 buckets + pattern-order precedence + Other fallback) + `ENTITY_TYPE_LABELS` (structure lock)
+
+**Scope adjustment from this audit:** `raceHref` Presidential and at-large House coverage was found to already exist in `tests/pages.spec.js:1107-1129` during Phase 1 of the execution ticket (not surfaced in the original audit's Phase 1.2 grep). Dropped from execution scope; remaining gaps were closed as listed above. **No production bugs surfaced** during execution — every uncovered branch behaved as expected. The audit's predicted hidden bug (toOrdinal teen exception) didn't materialize; teen handling is correct.
+
+Tier 3 deliberately deferred — uniform code paths (STATE_NAMES) or indirect coverage already exists (simple formatters).
+
+---
+
 **Date:** 2026-06-01
 **Trigger:** T-party-helpers-dual-field-rewrite surfaced that mock fixtures only covered mainstream party cases for `partyLabel`/`partyClass` — multiple production bugs (PPP / DFL / UNAFFILIATED) went undetected through the test suite because no fixture exercised the failure paths.
 
