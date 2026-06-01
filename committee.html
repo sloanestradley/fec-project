@@ -2255,21 +2255,19 @@ async function fetchAndRenderAssocSection(candidateId, relType) {
     var res  = await apiFetch('/candidate/' + candidateId + '/');
     var cand = (res.results || [])[0];
     if (!cand) return;
-    var displayName = toTitleCase(cand.name);
     var assocSection = document.getElementById('assoc-section');
     var assocList    = document.getElementById('assoc-list');
-    var pcls = partyClass(cand.party, cand.party_full);
-    var plbl = partyLabel(cand.party, cand.party_full);
     var sectionTitle = relType === 'sponsor' ? 'Sponsored Candidate' : 'Principal Committee For';
     assocSection.querySelector('.section-title').textContent = sectionTitle;
-    assocList.innerHTML = '<a class="candidate-card" href="/candidate/' + candidateId + '">'
-      + '<div class="candidate-card-name">' + displayName + '</div>'
-      + '<div class="candidate-card-meta">'
-      + '<span class="tag tag-neutral">'
-        + formatRaceName(cand.office, cand.state, cand.district)
-        + '</span>'
-      + '<span class="tag ' + pcls + '">' + plbl + '</span>'
-      + '</div></a>';
+    // Committee assoc-card variant of the shared candidateCardHTML helper:
+    //   - default 'meta' layout (office + party tags in .candidate-card-meta)
+    //   - showLatestCycle:false (assoc context is already cycle-implicit)
+    //   - trackEvent:null (assoc-card historically fired no Amplitude event)
+    assocList.innerHTML = candidateCardHTML(cand, {
+      showLatestCycle: false,
+      trackEvent:      null,
+      fromPage:        'committee-assoc'
+    });
     assocSection.style.display = 'block';
   } catch(e) {
     // Non-fatal — assoc section just won't appear

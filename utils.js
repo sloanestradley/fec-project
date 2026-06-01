@@ -310,43 +310,101 @@ function committeeTypeLabel(t) {
   return map[t] || ('Type ' + t);
 }
 
-// Shared candidate card markup. Single source of truth for the canonical 3-tag
-// shape rendered on candidates.html and search.html (race tag + party tag +
-// latest-cycle tag, in that order). Whole-card link semantics (the <a> is the
-// card itself), hover/border/spacing via .candidate-card + .candidate-card-meta
-// CSS. race.html uses .candidate-card directly with a structural variant (tags
-// inline in name + .candidate-card-stats below) and does NOT use this helper.
+// Shared candidate card markup. Single source of truth for every candidate-
+// card render across the site (T-card-builder-consolidation, 2026-06-01 —
+// consolidates the three near-twin builders that existed before: this helper
+// for /candidates and /search, buildCandidateCard in race.html, and the
+// inline assocList build in committee.html). Whole-card link semantics
+// (the <a> is the card itself); hover/border/spacing via .candidate-card +
+// .candidate-card-meta CSS.
 //
-// opts:
-//   fromPage       — string, used for ?from= URL param + amplitude from_page
-//   resultPosition — int, position in list (logged in amplitude)
-//   query          — optional string, logged in amplitude (search context)
-//   includeName    — bool, defaults to true; include candidate_name in amplitude
-//                    payload (set false to omit)
-//   trackEvent     — defaults to 'Candidate Result Clicked' (aggregates across
-//                    callers in dashboards; from_page distinguishes context)
+// opts (all optional, sensible defaults):
+//   fromPage         — string, used for ?from= URL param + amplitude from_page (default 'candidate-card')
+//   resultPosition   — int, position in list (logged in amplitude)
+//   query            — optional string, logged in amplitude (search context)
+//   includeName      — bool, defaults true; include candidate_name in amplitude payload
+//   trackEvent       — string | null. null skips the onclick handler entirely (committee assoc-card opts out
+//                      of Amplitude). String defaults to 'Candidate Result Clicked'.
+//   extraTrackProps  — object; merged into amplitude payload (race.html passes {race_year: yearParam})
+//   layoutVariant    — 'meta' (default — tags in .candidate-card-meta block below the name) |
+//                      'inline' (tags live inline inside .candidate-card-name; race.html shape)
+//   showOffice       — bool, defaults true; race.html sets false (its name row carries no office tag)
+//   showLatestCycle  — bool, defaults true; race + committee set false
+//   showIncumbent    — bool, defaults false; race.html sets true (reads c.incumbent_challenge / _full)
+//   showStats        — bool, defaults false; race.html sets true (renders .candidate-card-stats row
+//                      below the name when c.total_receipts or c.total_disbursements is non-null)
+//   cycleHashYear    — number | null; if set, appends #{year}#summary to href (race.html cycle-anchor)
+//
+// Default opts produce the canonical /candidates + /search 3-tag shape; race.html and
+// committee.html each pass a small set of opts to opt into their structural variants.
 function candidateCardHTML(c, opts) {
   opts = opts || {};
   var fromPage = opts.fromPage || 'candidate-card';
-  var name     = formatCandidateName(c.name);
-  var pcls     = partyClass(c.party, c.party_full);
-  var plbl     = partyLabel(c.party, c.party_full);
-  var office   = formatRaceName(c.office, c.state, c.district);
-  var latestCycle = c.election_years && c.election_years.length
+  var layoutVariant = opts.layoutVariant || 'meta';
+  // Robust extraction — race.html's /elections/ data uses candidate_name + candidate_ids[];
+  // other endpoints use name + candidate_id. Fall through both.
+  var rawName = c.candidate_name || c.name || '';
+  var name    = formatCandidateName(rawName);
+  var id      = c.candidate_id || (c.candidate_ids && c.candidate_ids[0]) || '';
+  var pcls    = partyClass(c.party, c.party_full);
+  var plbl    = partyLabel(c.party, c.party_full);
+  var office  = (opts.showOffice !== false) ? formatRaceName(c.office, c.state, c.district) : '';
+  var latestCycle = (opts.showLatestCycle !== false && c.election_years && c.election_years.length)
     ? Math.max.apply(null, c.election_years) : '';
-  var trackProps = { candidate_id: c.candidate_id, from_page: fromPage };
-  if (opts.includeName !== false) trackProps.candidate_name = name;
-  if (opts.resultPosition != null) trackProps.result_position = opts.resultPosition;
-  if (opts.query) trackProps.query = opts.query;
-  var trackName = opts.trackEvent || 'Candidate Result Clicked';
-  return '<a class="candidate-card" href="/candidate/' + c.candidate_id + '?from=' + encodeURIComponent(fromPage) + '"'
-    + ' onclick="amplitude.track(' + JSON.stringify(trackName) + ',' + JSON.stringify(trackProps) + ')">'
-    + '<div class="candidate-card-name">' + name + '</div>'
-    + '<div class="candidate-card-meta">'
-    + (office ? '<span class="tag tag-neutral">' + office + '</span>' : '')
-    + (latestCycle ? '<span class="tag tag-neutral">' + latestCycle + '</span>' : '')
-    + '<span class="tag ' + pcls + '">' + plbl + '</span>'
-    + '</div></a>';
+  var isIncumbent = !!opts.showIncumbent && (c.incumbent_challenge === 'I' || c.incumbent_challenge_full === 'Incumbent');
+
+  // href: /candidate/{id}?from={fromPage}[#{year}#summary]
+  var href = id ? ('/candidate/' + id + '?from=' + encodeURIComponent(fromPage)) : '#';
+  if (id && opts.cycleHashYear != null) href += '#' + opts.cycleHashYear + '#summary';
+
+  // onclick: skipped entirely when trackEvent is explicitly null
+  var onclickAttr = '';
+  if (opts.trackEvent !== null) {
+    var trackProps = { candidate_id: id, from_page: fromPage };
+    if (opts.includeName !== false) trackProps.candidate_name = name;
+    if (opts.resultPosition != null) trackProps.result_position = opts.resultPosition;
+    if (opts.query) trackProps.query = opts.query;
+    if (opts.extraTrackProps) {
+      for (var k in opts.extraTrackProps) {
+        if (Object.prototype.hasOwnProperty.call(opts.extraTrackProps, k)) trackProps[k] = opts.extraTrackProps[k];
+      }
+    }
+    var trackName = opts.trackEvent || 'Candidate Result Clicked';
+    onclickAttr = ' onclick="amplitude.track(' + JSON.stringify(trackName) + ',' + JSON.stringify(trackProps) + ')"';
+  }
+
+  // Tag fragments — shared between both layout variants.
+  var officeTag    = office       ? '<span class="tag tag-neutral">' + office + '</span>' : '';
+  var cycleTag     = latestCycle  ? '<span class="tag tag-neutral">' + latestCycle + '</span>' : '';
+  var partyTag     = '<span class="tag ' + pcls + '">' + plbl + '</span>';
+  var incumbentTag = isIncumbent  ? '<span class="tag tag-inc">Incumbent</span>' : '';
+
+  // Stats row — only rendered when showStats AND at least one total is non-null.
+  var statsHtml = '';
+  if (opts.showStats && (c.total_receipts != null || c.total_disbursements != null)) {
+    statsHtml = '<div class="candidate-card-stats">'
+      + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Raised</span>'
+      + '<span class="candidate-card-stat-val">' + fmt(c.total_receipts) + '</span></div>'
+      + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Spent</span>'
+      + '<span class="candidate-card-stat-val">' + fmt(c.total_disbursements) + '</span></div>'
+      + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Cash on Hand</span>'
+      + '<span class="candidate-card-stat-val">' + fmt(c.cash_on_hand_end_period) + '</span></div>'
+      + '</div>';
+  }
+
+  // Structural variants:
+  //   'meta' — tags in a separate .candidate-card-meta block below the name (default)
+  //   'inline' — party + incumbent inline inside the name row; race.html shape
+  var bodyHtml;
+  if (layoutVariant === 'inline') {
+    bodyHtml = '<div class="candidate-card-name">' + name + officeTag + cycleTag + partyTag + incumbentTag + '</div>' + statsHtml;
+  } else {
+    bodyHtml = '<div class="candidate-card-name">' + name + '</div>'
+             + '<div class="candidate-card-meta">' + officeTag + cycleTag + partyTag + incumbentTag + '</div>'
+             + statsHtml;
+  }
+
+  return '<a class="candidate-card" href="' + href + '"' + onclickAttr + '>' + bodyHtml + '</a>';
 }
 
 // Shared committee row markup. Single source of truth for the row shape rendered
