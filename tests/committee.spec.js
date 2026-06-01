@@ -403,12 +403,6 @@ test.describe('committee.html — All-time removal regressions', () => {
     await expect(page.locator('#career-strip')).toBeVisible();
     await expect(page.locator('#summary-strip')).toBeHidden();
   });
-
-  test('data note does not contain "All-cycle aggregate" copy', async ({ page }) => {
-    await setupDetail(page);
-    const note = await page.locator('#committee-meta-note').textContent();
-    expect(note).not.toContain('All-cycle aggregate');
-  });
 });
 
 // ── Terminated committee branch ──────────────────────────────────────────────
@@ -764,7 +758,10 @@ test.describe('committee.html — in-place transitions', () => {
     // URL hash, .tab.active, AND #tab-* panel visibility must all agree on Summary.
     await expect(page).toHaveURL(/#\d{4}#summary/);
     await expect(page.locator('.tab').filter({ hasText: 'Summary' })).toHaveClass(/active/);
-    await expect(page.locator('#tab-summary')).toBeVisible();
+    // Summary is the shown panel (display, not rendered height — committee
+    // #tab-summary has no always-present child after the vestigial meta-note
+    // div was removed; #assoc-section isn't populated in the mock).
+    await expect(page.locator('#tab-summary')).not.toHaveCSS('display', 'none');
     await expect(page.locator('#tab-raised')).toBeHidden();
     await expect(page.locator('#tab-spent')).toBeHidden();
   });
@@ -862,7 +859,10 @@ test.describe('committee.html — in-place transitions', () => {
     expect(raisedText).toContain('2.1');
     expect(raisedText).not.toContain('3.7');
     // T-bug fix (2026-05-14): tab panels must agree with the #summary hash.
-    await expect(page.locator('#tab-summary')).toBeVisible();
+    // Summary is the shown panel (display, not rendered height — committee
+    // #tab-summary has no always-present child after the vestigial meta-note
+    // div was removed; #assoc-section isn't populated in the mock).
+    await expect(page.locator('#tab-summary')).not.toHaveCSS('display', 'none');
     await expect(page.locator('#tab-raised')).toBeHidden();
   });
 });
@@ -1793,11 +1793,5 @@ test.describe('committee.html — Phase 2 PAGE-NOTE', () => {
     const pn = page.locator('#page-note');
     await expect(pn).not.toContainText('Source: FEC — Committee ID');
     await expect(pn).not.toContainText('Data updated nightly by FEC');
-  });
-
-  test('#committee-meta-note is empty post-Phase 2', async ({ page }) => {
-    // K1.* family retired; renderStats no longer writes to #committee-meta-note.
-    // Slot stays in DOM but empty.
-    await expect(page.locator('#committee-meta-note')).toBeEmpty();
   });
 });

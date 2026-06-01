@@ -2176,17 +2176,14 @@ test.describe('candidate.html — T-load-4b chart-card skeleton', () => {
     await page.goto('/candidate.html?id=H2WA03217#2024#summary');
     await page.waitForSelector('#content.visible', { timeout: 12000 });
     // Wait for chart-error overlay to become visible — the user-facing signal
-    // that loadCycle's catch fired. data-note is intentionally NOT touched on
-    // catch (separation of concerns: chart-error owns chart-card failure
-    // messaging; data-note owns cycle-level metadata).
+    // that loadCycle's catch fired. The chart-error overlay owns chart-card
+    // failure messaging.
     await page.waitForSelector('#chart-error', { state: 'visible', timeout: 12000 });
     // Skeleton hidden, error visible with the inline-status-msg copy.
     // Legend stays hidden — there's no chart for the swatches to reference.
     await expect(page.locator('#chart-skeleton')).toBeHidden();
     await expect(page.locator('#chart-error')).toContainText('Unable to load chart');
     await expect(page.locator('.chart-legend')).toBeHidden();
-    // data-note empty on catch (not coupled to chart error state)
-    await expect(page.locator('#data-note')).toBeEmpty();
   });
 });
 
@@ -2654,11 +2651,5 @@ test.describe('candidate.html — Phase 2 PAGE-NOTE', () => {
     await expect(pn).not.toContainText('Source: FEC — Candidate ID');
     await expect(pn).not.toContainText('Raised-to-spent = total receipts');
     await expect(pn).not.toContainText('Data updated nightly by FEC');
-  });
-
-  test('#data-note inside #tab-summary is empty post-Phase 2', async ({ page }) => {
-    // The summary-tab #data-note slot is no longer populated by Step 3's data
-    // branch (its content moved to #page-note). Slot stays in DOM but empty.
-    await expect(page.locator('#data-note')).toBeEmpty();
   });
 });

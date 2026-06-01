@@ -207,8 +207,6 @@
             ⚠ Disbursements exceed receipts this cycle — this campaign spent beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.
           </div>
         </div>
-
-        <div class="data-note" id="data-note"></div>
       </div>
 
       <!-- Raised tab — progressive rendering: donut renders synchronously,
@@ -1739,21 +1737,12 @@ async function loadCycle(cycle) {
   document.getElementById('chart-area').style.height = '320px';
   document.querySelector('.chart-legend').style.display = 'none';
 
-  // Clear data-note so it starts fresh for this cycle. Success / empty-cycle
-  // paths write their own content; on catch the element stays present but
-  // empty — chart-error overlay carries the user-facing failure messaging,
-  // data-note doesn't compete (separation of concerns: data-note is cycle-
-  // metadata, not chart-state).
-  // Post-Phase-2 PAGE-NOTE ship (2026-05-29): #data-note inside #tab-summary
-  // is no longer populated by Step 3's data branch (its content moved to
-  // #page-note); the reset is now defensive only — preserves the catch-
-  // branch contract that the element exists but empty if loadCycle errors.
-  document.getElementById('data-note').innerHTML = '';
-  // #page-note (Phase 2, 2026-05-29): same reset contract as #data-note —
-  // empty at the start of every loadCycle; data branch repopulates with
-  // Source / Coverage / ≤$200 page-level note; empty + catch branches leave
-  // empty (chart-error overlay or #cycle-empty-state respectively carry
-  // the user-facing messaging).
+  // #page-note (Phase 2, 2026-05-29): reset to empty at the start of every
+  // loadCycle; the data branch repopulates with the Source / Coverage / ≤$200
+  // page-level note; empty + catch branches leave it empty (chart-error overlay
+  // or #cycle-empty-state respectively carry the user-facing messaging).
+  // (The legacy #data-note slot inside #tab-summary was removed 2026-06-01 — an
+  // empty vestigial element post-Phase-2; its content had moved to #page-note.)
   document.getElementById('page-note').innerHTML = '';
 
   // T-cycle-empty-state — reset the whole-view empty-state element AND
@@ -1976,9 +1965,7 @@ async function loadCycle(cycle) {
       //     (Option B logic, same as C12.b — returns when tooltip ships)
       //   C4.e (Data updated nightly) → cadence framing retired; replaced
       //     by #page-note source link
-      // #data-note slot stays in DOM (catch branch leaves it empty per the
-      // catch comment below); the slot may be removed entirely in a future
-      // cleanup once we're certain nothing depends on it.
+      // (The #data-note slot was removed 2026-06-01 — vestigial empty element.)
       // PAGE-NOTE assembly: Source-first ordering, FEC linked to consumer
       // site (www.fec.gov), C8.f ≤$200 caveat included page-level.
       document.getElementById('page-note').innerHTML =
@@ -1997,8 +1984,8 @@ async function loadCycle(cycle) {
       // whole-view empty state. The summary strip (stats grid + race context
       // bar) stays visible above; this empty state takes the place of
       // tabs-bar + #content entirely. C5 string (revised — "found" and "the"
-      // dropped, period removed) lives here, not in #data-note (which is
-      // inside #tab-summary and isn't rendered when #content is hidden).
+      // dropped, period removed) lives here, in the whole-view empty state,
+      // not inside a tab panel (which isn't rendered when #content is hidden).
       document.getElementById('tabs-bar').style.display = 'none';
       document.getElementById('content').style.display = 'none';
       var emptyStateEl = document.getElementById('cycle-empty-state');

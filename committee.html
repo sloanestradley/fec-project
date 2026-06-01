@@ -174,9 +174,6 @@
           <div class="section-title">Associated Candidate</div>
           <div class="assoc-list" id="assoc-list"></div>
         </div>
-
-        <!-- Committee ID reference -->
-        <div class="data-note" id="committee-meta-note" style="margin-top:1.5rem"></div>
       </div>
 
       <div id="tab-raised" style="display:none">
@@ -1168,8 +1165,8 @@ function renderStats(cycleOrAll) {
   //   K1.a (Committee ID source line) → replaced by #page-note source line
   //   K1.c (Coverage through {date}) → moves to #page-note
   //   K1.d (Data updated nightly) → cadence framing retired
-  // #committee-meta-note slot stays empty in DOM (consumer cleanup deferred);
-  // populator no longer writes to it. PAGE-NOTE shape mirrors candidate.html:
+  // #committee-meta-note element removed 2026-06-01 — an empty vestigial slot
+  // post-Phase-2; renderStats never repopulated it. PAGE-NOTE shape mirrors candidate.html:
   // Source-first ordering, FEC linked to www.fec.gov, K10 ≤$200 caveat
   // included page-level.
   document.getElementById('page-note').innerHTML =
