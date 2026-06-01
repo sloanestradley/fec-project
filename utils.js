@@ -113,78 +113,98 @@ function toTitleCase(name) {
 function formatCandidateName(n) { return toTitleCase(n); }
 
 // ── Party utilities ──────────────────────────────────────────────────────────
-// partyClass + partyLabel both accept (p, party_full). The two-arg signature
-// exists because the /elections/ endpoint (race.html) returns party=null and
-// only populates party_full, while every other endpoint returns party as a
-// short code. Passing both lets both surface types produce the same label
-// and class consistently, with no per-call-site fallback wiring. For unmapped
-// third parties specifically, partyLabel prefers party_full over the short
-// code so all surfaces show the full party name (e.g. "AMERICAN INDEPENDENT
-// PARTY") instead of a 3-letter FEC code (e.g. "AIP"). Mainstream parties
-// (DEM/REP/LIB/GRE/IND) and N/A bucket are unchanged in label text.
+// partyClass + partyLabel both accept (p, party_full) and apply a DUAL-FIELD
+// design — every lookup explicitly considers both fields with parallel data,
+// no reduction to a single `primary` value. The two-field signature exists
+// because the /elections/ endpoint (race.html) returns party=null and only
+// populates party_full, while every other endpoint returns party as a short
+// code and may or may not populate party_full. Reducing to `primary =
+// p || party_full` and applying a single lookup against `primary` was the
+// source of three cross-surface bugs (PPP / DFL / UNAFFILIATED) where the
+// same candidate read different labels and colors on different pages — see
+// the Lineage block at the bottom of this file's CLAUDE.md entry. Don't
+// reintroduce the primary reduction.
 //
-// **Unmapped code without party_full** (e.g. /candidate/{id}/ returns
-// party='PPP' with party_full=null — H0NY03067 Ross is a real case): both
-// helpers collapse to N/A behavior (label 'Party N/A', class 'tag-neutral').
-// Matches FEC.gov's own treatment ("Political party: None") and matches
-// race.html's render of the same candidate (where /elections/ omits party
-// data entirely so the empty-primary path returns 'Party N/A'). Without this
-// fallback, the same candidate read different labels on different pages.
+// Per-category logic — both helpers share the same N/A bucket and mainstream
+// detection; they differ on how they treat variant party identities:
+//   - N/A bucket: short code in NA_SHORT_CODES (NNE/NON/UNK/OTH/NPA/UN/W/O)
+//     OR party_full in NA_FULL_NAMES (NONE/NON-PARTY/UNKNOWN/OTHER/NO PARTY
+//     AFFILIATION/UNAFFILIATED/WRITE-IN — verified live against FEC 2026-06-01).
+//   - Mainstream party: short code in MAINSTREAM_BY_SHORT OR party_full in
+//     MAINSTREAM_BY_FULL. partyLabel returns the compact label
+//     ('Democrat'/etc.); partyClass returns the parent affiliation's tag class.
+//   - Variant DEMOCRATIC/REPUBLICAN affiliate (e.g. DFL → DEMOCRATIC-FARMER-
+//     LABOR): partyLabel uses EXACT-match against MAINSTREAM_BY_FULL above so
+//     variants fall through and preserve their identity (DFL stays as
+//     "DEMOCRATIC-FARMER-LABOR"); partyClass uses startsWith on party_full so
+//     variants inherit the parent affiliation's color (DFL gets tag-dem).
+//     **Deliberate asymmetry — do NOT unify.** Two concerns, two rules.
+//   - Other unmapped party with party_full: label = full party name, class =
+//     tag-ind (independent style).
+//   - Unmapped without party_full (e.g. cryptic FEC code 'PPP'): collapses to
+//     N/A — matches FEC.gov's own "Political party: None" rendering.
+
+// Module-level data lists — shared by both helpers (DRY). Lifted from
+// inside-function locals in T-party-helpers-dual-field-rewrite (2026-06-01).
+var NA_SHORT_CODES = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
+var NA_FULL_NAMES  = [
+  'NONE',                  // pairs with NNE
+  'NON-PARTY',             // pairs with NON
+  'UNKNOWN',               // pairs with UNK
+  'OTHER',                 // pairs with OTH
+  'NO PARTY AFFILIATION',  // pairs with NPA
+  'UNAFFILIATED',          // pairs with UN  — surfaced as Macruari H0NY02291
+  'WRITE-IN'               // pairs with W
+  // 'O' short code has null party_full on every observed candidate; no
+  // full-name entry needed — falls through to the cryptic-no-full fallback.
+];
+var MAINSTREAM_BY_SHORT = {
+  DEM: { label: 'Democrat',    tag: 'tag-dem' },
+  REP: { label: 'Republican',  tag: 'tag-rep' },
+  LIB: { label: 'Libertarian', tag: 'tag-ind' },
+  GRE: { label: 'Green Party', tag: 'tag-ind' },
+  IND: { label: 'Independent', tag: 'tag-ind' }
+};
+var MAINSTREAM_BY_FULL = {
+  'DEMOCRATIC PARTY':  { label: 'Democrat',    tag: 'tag-dem' },
+  'REPUBLICAN PARTY':  { label: 'Republican',  tag: 'tag-rep' },
+  'LIBERTARIAN PARTY': { label: 'Libertarian', tag: 'tag-ind' },
+  'GREEN PARTY':       { label: 'Green Party', tag: 'tag-ind' },
+  'INDEPENDENT':       { label: 'Independent', tag: 'tag-ind' }
+};
 
 function partyClass(p, party_full) {
-  var primary = p || party_full || '';
-  if (!primary) return 'tag-neutral';
-  var u = primary.toUpperCase();
-  var naGroup = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
-  if (naGroup.indexOf(u) !== -1) return 'tag-neutral';
-  // Check BOTH fields for Democratic/Republican affiliation — variant short
-  // codes like 'DFL' don't reveal the affiliation on their own, but
-  // party_full does ('DEMOCRATIC-FARMER-LABOR' startsWith 'DEMOCRAT'). This
-  // keeps the visual hue (blue/red) consistent across surfaces regardless of
-  // which field the endpoint populates. Note: partyLabel deliberately uses
-  // EXACT match here (to preserve variant identity in the text), while
-  // partyClass uses startsWith (to keep the visual hue inclusive). Two
-  // different concerns, two different rules.
   var pu = (p || '').toUpperCase();
   var fu = (party_full || '').toUpperCase();
-  if (pu === 'DEM' || fu.startsWith('DEMOCRAT'))   return 'tag-dem';
-  if (pu === 'REP' || fu.startsWith('REPUBLICAN')) return 'tag-rep';
-  // Unmapped — only style as independent if we have a full name to display.
-  // Without party_full, partyLabel collapses to 'Party N/A'; mirror that here.
-  if (party_full) return 'tag-ind';
-  return 'tag-neutral';
+  if (!pu && !fu) return 'tag-neutral';
+  if (NA_SHORT_CODES.indexOf(pu) !== -1) return 'tag-neutral';
+  if (NA_FULL_NAMES.indexOf(fu)  !== -1) return 'tag-neutral';
+  if (MAINSTREAM_BY_SHORT[pu]) return MAINSTREAM_BY_SHORT[pu].tag;
+  if (MAINSTREAM_BY_FULL[fu])  return MAINSTREAM_BY_FULL[fu].tag;
+  // Variant Democratic/Republican affiliate — startsWith on party_full so
+  // DFL ('DEMOCRATIC-FARMER-LABOR') inherits the parent affiliation's hue.
+  // Inclusive match deliberately — partyLabel uses exact match here instead
+  // because labels preserve variant identity while colors group affiliates.
+  if (fu.startsWith('DEMOCRAT'))   return 'tag-dem';
+  if (fu.startsWith('REPUBLICAN')) return 'tag-rep';
+  // Other party with full name → independent style; without → neutral.
+  return party_full ? 'tag-ind' : 'tag-neutral';
 }
 
 function partyLabel(p, party_full) {
-  var primary = p || party_full || '';
-  if (!primary) return 'Party N/A';
-  var u = primary.toUpperCase();
-  var naGroup = ['NNE','NON','UNK','OTH','NPA','UN','W','O'];
-  if (naGroup.indexOf(u) !== -1) return 'Party N/A';
-  var map = { DEM: 'Democrat', REP: 'Republican', LIB: 'Libertarian', GRE: 'Green Party', IND: 'Independent' };
-  if (map[u]) return map[u];
-  // Exact full-name matches for the mainstream parties (so race.html's
-  // primary='DEMOCRATIC PARTY' collapses to 'Democrat' just like
-  // candidate.html's primary='DEM'). EXACT, not startsWith — variant party
-  // names like Minnesota's DEMOCRATIC-FARMER-LABOR or hypothetical state-
-  // affiliate variants must fall through to preserve their identity rather
-  // than incorrectly collapsing to the parent affiliation. Strategists
-  // tracking state-level party affiliates care about the distinction;
-  // FEC.gov surfaces the full variant name and we should too.
-  var fullMap = {
-    'DEMOCRATIC PARTY':  'Democrat',
-    'REPUBLICAN PARTY':  'Republican',
-    'LIBERTARIAN PARTY': 'Libertarian',
-    'GREEN PARTY':       'Green Party',
-    'INDEPENDENT':       'Independent'
-  };
-  if (fullMap[u]) return fullMap[u];
-  // Unmapped — prefer party_full (full name) over p (short code) so all
-  // surfaces show the same complete label for third-party candidates. If
-  // party_full is also absent (FEC sometimes returns a cryptic short code
-  // with no expansion — e.g. PPP), collapse to 'Party N/A' rather than
-  // showing the raw code. Matches FEC.gov's own treatment of such cases
-  // and matches race.html's render for the same candidate.
+  var pu = (p || '').toUpperCase();
+  var fu = (party_full || '').toUpperCase();
+  if (!pu && !fu) return 'Party N/A';
+  if (NA_SHORT_CODES.indexOf(pu) !== -1) return 'Party N/A';
+  if (NA_FULL_NAMES.indexOf(fu)  !== -1) return 'Party N/A';
+  if (MAINSTREAM_BY_SHORT[pu]) return MAINSTREAM_BY_SHORT[pu].label;
+  if (MAINSTREAM_BY_FULL[fu])  return MAINSTREAM_BY_FULL[fu].label;
+  // Variant party — preserve party_full (e.g. DFL → "DEMOCRATIC-FARMER-LABOR").
+  // EXACT match above is deliberate — startsWith here would collapse variants
+  // to "Democrat"/"Republican" and lose the identity strategists track.
+  // If party_full is also absent (cryptic short code with no expansion —
+  // e.g. PPP, H0NY03067 Ross), collapse to 'Party N/A' rather than showing
+  // the raw code. Matches FEC.gov's own treatment.
   return party_full || 'Party N/A';
 }
 
