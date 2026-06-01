@@ -6054,11 +6054,14 @@ This session I finally applied the tooltip component I'd built — mounting litt
 - Removed two long-dead empty slots (#data-note, #committee-meta-note) — leftover from the Phase 2 page-note migration; they were even rendering a faint stray border-rule at the bottom of the summary tab.
 - Density discipline: gave .donut-row and .cycle-archive-divider a fixed height:32px so the 32px trigger doesn't bloat dense rows; for the ratio stat card (no room to grow) the .tooltip HOST is absolute-positioned in the corner (top/right:8px) — the trigger button inside it is position:static, so the positioning is the host's, not the trigger's. (Corrected 2026-06-01 from an earlier "the trigger is absolute" framing.)
 - Copy refinements throughout: lowercased the cap fragment, reordered the archive copy to lead with the point, simplified the ratio definition to "Total receipts ÷ total disbursements".
+- Post-V1-verification refinements (Sloane's review pass): a third round of copy tightening (choropleth dropped "Geography"/"(Schedule A)" → "Reflects itemized individual contributions by state."; SbP dropped "FEC" + "sub-cycle" → "sub-cycle only"; donut wedges for Other receipts / Loans / Federal funds); aria-labels standardized to sentence case (the donut wedges were the lone label-cased outlier, "About Candidate…" → "About candidate…"); the C4.d positioning description corrected (the .tooltip HOST is position:absolute, the trigger button inside it is static); and a stale mapping-doc rationale fixed after the $0-wedge insight (below).
 
 ### Field notes
 The session kept returning to one question: does this tooltip earn its place? The donut/choropleth methodology clearly did — it explains how a number was derived. But the "pre-computed from FEC bulk data, refreshed daily" source attribution didn't: the user reads the same accurate number whether it came from the daily snapshot or the live API, so surfacing the path is noise. Once that lens was named (around the K5 discussion), three more tooltips fell to it, and two empty DOM slots went with them. The component made the page more informative; the cuts made it less cluttered. Both were the same project.
 
 The other thing worth keeping: the "mark complete only after the work is real" correction. I'd flipped the cut rows to checked in the mapping doc while the footer copy was still rendering live — the decision was made, the code wasn't. Marking done-on-paper ahead of done-in-fact is a quiet way to lie to the next session.
+
+A late one, from Sloane's verification pass: the "$0 wedges never render" catch. I'd written a mapping-doc rationale calling Federal funds "interpretation-critical" because an empty wedge might read as "missing." Sloane pointed out the wedge can't be empty — the donut only draws categories with vals > 0. The lesson isn't about that one wedge; it's that I'd reasoned about a UI state without checking the render path that produces it. A rationale that sounds right can rest on a premise the code already forecloses.
 
 ### Stack tags
 None new — this was all application of the existing tooltip component (initTooltips), AbortController teardown, Material Symbols inline SVG.
@@ -6083,8 +6086,11 @@ You revised three tooltip strings after seeing them: capitalized sentence → lo
 ### "Wire the cap fragment now"
 Offered the choice between deferring the conditional "(capped at 500 transactions)" clause or wiring it (which meant making that tooltip dynamic), you chose spec-complete over simple. A deliberate decision to take on the per-render rebuild rather than leave a banked gap.
 
+### Your verification pass did real work
+Verifying V1 on the live site, you caught three things in-flight. The ratio trigger reads position:static — the docs (and my claude-to-claude draft) said the *trigger* was absolute, when really it's the *host*; you made me describe the actual mechanism. The aria-labels weren't consistent — three casing styles in production, standardized to sentence case. And the sharpest: that "Only available to presidential candidates" was redundant because $0 categories never render. That last one didn't just trim copy — it invalidated a mapping-doc rationale I'd written calling Federal funds "interpretation-critical" on a false premise. The build shipped V1; your verification pass is where the real corrections came from.
+
 ### Through-line
-You steered toward honesty and restraint: cut what doesn't inform, don't claim done before it's done, keep the copy tight, and judge density from the rendered page. The most consequential moves this session were subtractions — and they came from you asking whether each addition actually earned its place.
+You steered toward honesty and restraint: cut what doesn't inform, don't claim done before it's done, keep the copy tight, judge density from the rendered page, and verify the shipped thing against the code rather than the description. The most consequential moves this session were subtractions and corrections — and they came from you asking whether each addition actually earned its place, then checking that what shipped matched what was claimed.
 
 ## What to bring to Claude Chat
 
@@ -6092,4 +6098,5 @@ You steered toward honesty and restraint: cut what doesn't inform, don't claim d
 - The "does this tooltip earn its place?" test as a reusable lens. This session it killed 6+ tooltips (the K4–K7 / C8.c / vendor family). Worth deciding if that's the standing bar for any future on-demand info: does it inform, or just restate what's visible / where data came from?
 - A second stat card wanting an info icon. The ratio label is the first stat card with a tooltip (absolute-corner pattern). If others follow, it's a quick repeat — but worth a deliberate "which stats deserve a definition" pass rather than adding them ad hoc.
 - Mobile/compact spot-check. All five surfaces were verified at desktop with screenshots; a quick ≤860px + compact-header pass on the SbP / divider / ratio tooltips would close the last verification gap (low risk).
-- The Verified column is yours to fill. Every §1 row I touched this session has Complete ✓ but a blank Verified, waiting for your review pass on the live site.
+- The Verified column — you completed your review pass and marked the §1 rows verified (committed separately). Verification surfaced the position:static fix, the aria-label inconsistency, and the $0-wedge insight.
+- Render-logic reminder (banked): the donut renders only `vals[i] > 0` wedges (candidate.html:1007), so tooltip/legend copy must never assume a $0 or "empty" wedge is visible — it isn't. Same filter on the Spent donut.
