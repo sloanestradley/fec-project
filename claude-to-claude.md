@@ -5973,3 +5973,66 @@ Paced verification + strict-spec-when-bounded. Mapping doc → Complete → Veri
 
 5. **The audit's K12.5 discovery** — even a thorough audit can have one blind spot; the closing-question discipline before implementation surfaces it cheap. Worth noting as a pattern for future audit work.
 
+
+---
+2026-06-01 — partyTooltip retirement → party-tag arc → dual-field rewrite → card consolidation → fixture coverage (spans 2026-05-29 → 2026-06-01)
+
+## Process log draft
+
+### Title
+The week of the partyTooltip — three bugs, four fixes, then the structural answer
+
+### Summary (Sloane's voice, 2-3 sentences)
+This week started with a tooltip component build, became a tooltip audit, and turned into a five-day arc chasing cross-surface party-tag bugs across three different real candidates — Kanye West, Daniel Craig Ross (PPP), and Daniel Feehan (DFL). The case-by-case patches kept working but kept compounding, until a structural rewrite (drop the `primary = p || party_full` reduction, check both fields explicitly everywhere) closed the entire bug class instead of just the next one. The week ended with a fixture-coverage audit so the next FEC data edge case surfaces as a test failure rather than a production firefight.
+
+### Changelog
+- **T-tooltip-component** — designed info-icon tooltip component (markup-driven `<span class="tooltip">`, portal-to-body popup, 20 tests, design-system entry). Replaces browser-default `title=` pattern site-wide. Unapplied until downstream tickets.
+- **T-tooltip-audit + cleanup arc** — inventoried every `title=`-driven tooltip on the site. Two source-of-truth families: donut-info ⓘ tooltips (Raised donut wedges) and party-tag hover tooltips. Cleanup pass: N/A bucket returns empty string from `partyTooltip`; race.html party tag gets parity; v2 §1 gets 12 new TOOLTIP-VIZ rows for donut wedges.
+- **Party-tag arc (4 commits)** — closed audit row 3 entirely. `partyLabel`/`partyClass` gained `(p, party_full)` two-arg signature; `partyTooltip` deleted; unmapped third parties show full party name; cryptic-without-full N/A handling; variant party identities (DFL) preserved in labels with parent affiliation hue in classes (deliberate asymmetry).
+- **T-party-helpers-dual-field-rewrite** — structural consolidation. Dropped the `primary = p || party_full` reduction that was the source of three production bugs. Module-level data lists (NA_SHORT_CODES, NA_FULL_NAMES, MAINSTREAM_BY_SHORT, MAINSTREAM_BY_FULL), verified live against FEC. 38 unit tests (party-helpers.spec.js) locking the dual-field contract.
+- **T-card-builder-consolidation** — `candidateCardHTML` + `buildCandidateCard` (race.html) + inline `assocList.innerHTML` (committee.html) collapsed into one extended helper with opts. 13 new tests (candidate-card.spec.js).
+- **T-fixture-coverage-audit + T-fixture-coverage-tier1-2** — per-helper coverage audit revealed 7 untested branches across `formatRaceName` / `formatRaceLabelLong` / `toOrdinal` / `committeeTypeLabel` / `filingFrequencyLabel` / `filingFrequencyDotClass` / `purposeBucket` / `ENTITY_TYPE_LABELS`. Closed via 3 new spec files (60 unit tests, page.evaluate pattern). No production bugs surfaced (toOrdinal teen handling correct).
+- **Test count:** 660 → 791 (+131 net across the week).
+
+### Field notes
+The pattern across all three real-candidate bugs (PPP / DFL / UNAFFILIATED) was the same: `primary = p || party_full` collapses two parallel inputs into one before lookup, and any time the two fields encode the same information in different forms, the helpers diverge across surfaces. Patching case-by-case keeps working until you realize there's no end — the FEC API has more codes than I've enumerated. The structural fix (drop primary, check both fields explicitly with parallel data lists) closed the class.
+
+The audit deliverable was the next-level reflection: if `partyLabel`/`partyClass` had this pattern, what other utility helpers do? Turns out `toOrdinal`, `committeeTypeLabel`, `filingFrequencyLabel`, `purposeBucket`, `ENTITY_TYPE_LABELS` all had untested branches. The audit doc → closing-pass discipline (audit doc, then a single ticket closing the gaps) became a useful template. Each was small individually; the cumulative pattern was a real coverage class.
+
+The other thing worth banking: the page.evaluate-against-design-system unit-test pattern (party-helpers / candidate-card / tooltip / race-helpers / committee-helpers / spend-helpers all use it now) is the standard for utility-function coverage going forward. It's fast (~6ms per test), needs no API mocking, and locks helper contracts without fixture entanglement.
+
+### Stack tags
+None new. Reusing: dual-field design as a pattern name, AbortController-based listener teardown (now established convention with 2+ consumers).
+
+## How Sloane steered the work
+
+### "Was it intentional before this fix?"
+After I shipped the race.html parity edit and explained the deeper bug, Sloane asked whether the prior absence of the tooltip was intentional or oversight. The question forced a git-history trace that confirmed: the original 2026-03-11 commit had scoped to "fix the label rendering" and tooltips were simply not in scope — neither intentional suppression nor a bug. The question pattern — "verify the past before recommending the future" — turned a routine fix into an honest framing.
+
+### "Does option 4 mean extra API calls anywhere?" and "Are there any drawbacks to option 4 beyond extra work?"
+Direct, specific questions when I'd given a four-option recommendation. Forced me to own the answer instead of hedging — and to admit that my "option 4 is structurally cleaner" framing had over-sold one of its benefits (the data-enumeration problem doesn't actually go away). The questions narrowed the recommendation to honest grounds: option 3 vs option 4 is a question of "small fix vs structural refactor at the right time," not "wrong vs right."
+
+### "Let's go with option 4!"
+The pivot from accumulating small fixes to a structural rewrite. The case-by-case pattern had worked three times in three days; the structural fix earned its place when the cumulative pattern became visible. The decision was made with clear awareness of the trade (more refactor surface, same data requirements as option 3, no API impact).
+
+### "Plan K/G/I now; drop C"
+On the related-refactor scan: explicit triage of follow-ups. C (LIB/GRE/IND distinct tag classes) was a design conversation, not a refactor — Sloane correctly named it as out-of-scope for the rewrite. K (card-builder consolidation) was real DRY value. G + I were process work worth banking. The drop was as load-bearing as the keeps.
+
+### "Proceed straight through"
+At the end-of-session ritual audit: instead of pausing to review each phase, "do all five sequentially." Trust the discipline once the audit confirmed what was needed.
+
+### Through-line
+You shape decisions by asking honest narrow questions rather than open-ended ones. "Was it intentional before this fix?" / "Does option 4 mean extra API calls?" / "Plan K/G/I; drop C" — each forces a specific answer that reveals the right move. The result is a session that shipped the right structural answer without overshooting into nice-to-have territory.
+
+## What to bring to Claude Chat
+
+1. **Follow-up K is shipped, follow-up C is open as a design question.** LIB / GRE / IND currently all map to `tag-ind` (purple). Giving each its own hue (Libertarian yellow? Green Party green?) would surface third parties more clearly in candidate lists. Worth a design conversation; not a refactor.
+
+2. **The "audit doc → closing-pass" discipline as a banked pattern.** This week shipped two of them (data-notes-mapping-v2 audit → execution; fixture-coverage-audit → execution). Both worked — the audit doc let you triage gaps before committing to fixes. Worth naming as the explicit shape for any future "we keep finding the same class of bug" situation.
+
+3. **The dual-field design as a debugging lens.** Three production bugs (PPP / DFL / UNAFFILIATED) all had the same shape: two parallel inputs reduced to one before lookup. Worth a watch when other utility helpers gain a second input field — the pattern recurs whenever endpoint shape differs across surfaces.
+
+4. **The case-by-case vs structural-rewrite decision point.** This week's data point: three case-by-case fixes in three days was the trigger. If a fourth case had arrived before the rewrite, it would have been five fixes to undo. Worth naming the threshold (3 instances of the same root cause = revisit) for future tickets.
+
+5. **page.evaluate-against-design-system as the unit-test standard for helpers.** Six spec files now use it (overlay, tooltip, party-helpers, candidate-card, race-helpers, committee-helpers, spend-helpers). Fast, no API mocking, locks contracts. Worth naming as the default for any new utility-function test.
+
