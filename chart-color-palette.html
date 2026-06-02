@@ -194,11 +194,12 @@
     <!-- ── Source layers ── -->
     <section class="cc-section">
       <h2 class="cc-section-title">The three color-source layers</h2>
-      <p class="cc-section-note">Colors live in three disconnected places. Only the <strong>timeline</strong>
-        (and the monochrome purpose bars + non-chart UI chrome) flow from CSS tokens. The <strong>donuts and
-        choropleth are hardcoded literals</strong> that numerically duplicate token values without referencing
-        them — so retuning a <code>--chart-*</code> token moves the timeline but <em>not</em> the matching donut
-        wedge. The badges throughout this page mark which layer each swatch belongs to.</p>
+      <p class="cc-section-note">Colors live in three disconnected places. The <strong>timeline</strong>, the
+        <strong>choropleth</strong> (now sourced from <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>),
+        the monochrome purpose bars, and non-chart UI chrome flow from CSS tokens. The <strong>donuts are still
+        hardcoded literals</strong> that numerically duplicate token values without referencing them — so retuning a
+        token moves the timeline and choropleth but <em>not</em> the matching donut wedge. The badges throughout this
+        page mark which layer each swatch belongs to.</p>
       <div class="cc-grid" id="layers"></div>
     </section>
 
@@ -351,12 +352,14 @@
     <!-- ── Choropleth ── -->
     <section class="cc-section cc-section--brighten">
       <h2 class="cc-section-title">Choropleth map · both pages</h2>
-      <p class="cc-section-note">Per-state fill = a single <strong>party-derived hue</strong> at a
+      <p class="cc-section-note">Per-state fill = a single <strong>token-sourced hue</strong> —
+        <code>--amber</code> (#8A5F10), read at runtime via <code>CHART_COLORS.choroplethRgb</code> — at a
         <strong>continuous alpha</strong> (no discrete steps): <code>alpha = 0.1 + (stateTotal / maxStateTotal) × 0.82</code>,
-        ranging <strong>0.10 → 0.92</strong>. The top state always renders near 0.92. Hue is an inline RGB string:
-        REP → red, DEM → blue, anything else (incl. <code>null</code>) → purple. <strong>Divergence:</strong>
-        candidate party is reliably DEM/REP; committee party (<code>c.party</code>) is often <code>null</code>,
-        so committee maps frequently fall to purple even for a clearly partisan committee.</p>
+        ranging <strong>0.10 → 0.92</strong>. The top state always renders near 0.92. <strong>The party-derived
+        hue was removed</strong> (it used to be REP→red / DEM→blue / else→purple, with committee maps often falling
+        to purple because <code>c.party</code> is usually <code>null</code>) — now both pages render the same amber
+        ramp regardless of party. This is the one chart surface that's <span class="cc-src cc-src--token">token</span>-driven
+        rather than a literal.</p>
       <div id="choro"></div>
       <h3 class="cc-subhead">No-data state &amp; stroke (hardcoded)</h3>
       <div class="cc-grid" id="choroExtra" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
@@ -364,13 +367,13 @@
       <h3 class="cc-subhead">Hover behavior — a different color mechanism (CSS filter, not Chart.js)</h3>
       <div class="cc-hover-panel">
         <div class="cc-hov-demo">
-          <span class="cc-hov-state" style="background:rgba(74,144,217,0.6)"></span>
+          <span class="cc-hov-state" style="background:rgba(138,95,16,0.6)"></span>
           <span class="cc-hov-cap">hover — brightness 1.35×</span>
         </div>
         <div class="cc-hov-demo">
           <div class="cc-split">
-            <span style="background:rgba(74,144,217,0.6)"></span>
-            <span style="background:rgba(74,144,217,0.6);filter:brightness(1.35)"></span>
+            <span style="background:rgba(138,95,16,0.6)"></span>
+            <span style="background:rgba(138,95,16,0.6);filter:brightness(1.35)"></span>
           </div>
           <div class="cc-split-labels"><span>default</span><span>hover</span></div>
         </div>
@@ -380,8 +383,10 @@
             different mechanism</strong>: a CSS <code>brightness(1.35)</code> filter on the SVG path — not Chart.js's
             <code>getHoverColor</code>. Because it's a flat multiplier on whatever fill is there, it brightens a
             dense (α 0.92) state, a faint (α 0.10) state, <em>and</em> the no-data grey by the same factor, and the
-            result maps to no token. Both the gradient bars and the no-data swatch above brighten on hover. (Demo in
-            the current production blue; the filter is hue-independent.)</span>
+            result maps to no token. Both the gradient bars and the no-data swatch above brighten on hover.
+            <strong>Now that the hue is amber</strong>, this brightening is worth watching: a faint low-density amber
+            state and the (also-brightening) no-data grey can read close on the warm parchment background — flagged
+            for the amber-rollout QA.</span>
           <span class="cc-hov-badge cc-hov-badge--color">color change · brightness filter</span>
         </div>
       </div>
@@ -446,10 +451,10 @@
         <li><strong>Two genuine exceptions.</strong> The unitemized <em>pattern</em> wedge is color-exempt —
           <code>getHoverColor</code> leaves CanvasPatterns untouched, so it only offsets. And the purpose bars +
           donut legend have no hover at all (the legend never cross-highlights its wedge).</li>
-        <li><strong>Relevance to the paused choropleth → <code>--amber</code> change.</strong> The
-          <code>brightness(1.35)</code> hover should be re-evaluated against amber: brightening a dark, warm amber
-          reads differently than vivid blue/red, and the faint low-density amber + brightened state may be hard to
-          separate from the (also-brightening) no-data grey. Worth folding into that ticket's QA.</li>
+        <li><strong>Now live on the amber choropleth.</strong> With the map hue switched to <code>--amber</code>,
+          the <code>brightness(1.35)</code> hover applies to a dark, warm amber rather than vivid blue/red — and a
+          faint low-density amber state + its brightened hover can read close to the (also-brightening) no-data grey
+          on the warm parchment background. Flagged for the amber-rollout QA.</li>
       </ul>
     </section>
 
@@ -476,49 +481,21 @@
         </div>
       </div>
 
-      <h3 class="cc-subhead">2 · Choropleth "partisan" blue/red ≠ partisan tag tokens</h3>
-      <p class="cc-section-note">The map's party hues are the bright <em>chart</em> blue/red, not the
-        <code>--dem</code>/<code>--rep</code> tag tokens. "Democratic" is two different blues depending on whether
-        you're looking at a tag or the map.</p>
-      <div class="cc-compare">
-        <div class="cc-compare-cell">
-          <span class="cc-chip" style="background:rgb(74,144,217)"></span>
-          <div class="cc-swatch-body"><span class="cc-src cc-src--literal">literal</span>
-            <span class="cc-name">Choropleth · DEM hue</span>
-            <span class="cc-val">74,144,217 · #4A90D9</span></div>
-        </div>
-        <div class="cc-compare-cell">
-          <span class="cc-chip" style="background:var(--dem)"></span>
-          <div class="cc-swatch-body"><span class="cc-src cc-src--token">token</span>
-            <span class="cc-name">Party tag · --dem</span>
-            <span class="cc-val">--dem · #1E3A5F</span></div>
-        </div>
-        <div class="cc-compare-cell">
-          <span class="cc-chip" style="background:rgb(217,74,74)"></span>
-          <div class="cc-swatch-body"><span class="cc-src cc-src--literal">literal</span>
-            <span class="cc-name">Choropleth · REP hue</span>
-            <span class="cc-val">217,74,74 · #D94A4A</span></div>
-        </div>
-        <div class="cc-compare-cell">
-          <span class="cc-chip" style="background:var(--rep)"></span>
-          <div class="cc-swatch-body"><span class="cc-src cc-src--token">token</span>
-            <span class="cc-name">Party tag · --rep</span>
-            <span class="cc-val">--rep · #A83228</span></div>
-        </div>
-      </div>
-
-      <h3 class="cc-subhead">3 · One grey, three meanings (alpha-only distinction)</h3>
+      <h3 class="cc-subhead">2 · One grey, three meanings (alpha-only distinction)</h3>
       <p class="cc-section-note">Three raised-donut categories are the <em>same</em> grey
         <code>90,96,112</code>, separated only by opacity. Stacked over the page background:</p>
       <div class="cc-stack" id="greyStack"></div>
 
-      <h3 class="cc-subhead">4 · One green, many meanings</h3>
+      <h3 class="cc-subhead">3 · One green, many meanings</h3>
       <p class="cc-section-note">The green <code>61,191,122</code> (and its token forms) carries at least five
         unrelated meanings across the charts; nearby <code>--green</code> and <code>--filing-active</code> add two
         more green meanings in the UI.</p>
       <div class="cc-grid" id="greenCluster"></div>
 
-      <h3 class="cc-subhead">5 · One amber, two meanings</h3>
+      <h3 class="cc-subhead">4 · "Amber" is two different colors</h3>
+      <p class="cc-section-note">The donuts' "amber" is a gold <em>literal</em> (<code>#E8A020</code>); the
+        choropleth's new amber is the <code>--amber</code> <em>token</em> (<code>#8A5F10</code>, much darker). Same
+        word, different colors and different source layers.</p>
       <div class="cc-grid" id="amberCluster"></div>
     </section>
 
@@ -528,13 +505,14 @@
       <ul class="cc-findings">
         <li><strong>Three disconnected color layers.</strong> CSS tokens (<code>--chart-*</code>, partisan,
           status) → drive the timeline, purpose bars, and UI chrome. <code>CHART_COLORS</code> (utils.js) mirrors
-          the <code>--chart-*</code> tokens into JS for the timeline. <strong>Inline rgba/RGB literals</strong>
-          drive the donuts and choropleth — duplicating token numbers without referencing them. A token retune
-          will <em>not</em> propagate to the donuts or map.</li>
-        <li><strong>Category color is fixed; geographic color is partisan.</strong> Donut and purpose-bar colors
-          are assigned per-category, hardcoded by identity — "Individuals (itemized)" is
-          <code>rgba(74,144,217,1)</code> on every page, cycle, and candidate regardless of party. Only the
-          choropleth varies by party.</li>
+          the <code>--chart-*</code> tokens into JS for the timeline, and the choropleth now reads <code>--amber</code>
+          via <code>CHART_COLORS.choroplethRgb</code>. <strong>Inline rgba/RGB literals</strong> still drive the
+          donuts — duplicating token numbers without referencing them, so a token retune won't propagate to the
+          donut wedges.</li>
+        <li><strong>Category color is fixed; geographic color is a single token ramp.</strong> Donut and
+          purpose-bar colors are assigned per-category, hardcoded by identity — "Individuals (itemized)" is
+          <code>rgba(74,144,217,1)</code> on every page, cycle, and candidate. The choropleth is now a single
+          <code>--amber</code> ramp on both pages (the party-derived hue was removed).</li>
         <li><strong>One pattern, capacity 1.</strong> A single diagonal-stripe canvas pattern exists, used only
           for Individuals (unitemized) on the raised donut. There is no generator for a second distinct pattern.
           The legend can't render it (CSS background ≠ CanvasPattern) so it swaps to a flat
@@ -544,12 +522,12 @@
           receipts, Refunds &amp; offsets, Other Disbursements). The choropleth uses a continuous alpha scale
           (effectively unlimited shades of one hue).</li>
         <li><strong>Cross-page:</strong> raised donut identical; spent donut diverges (candidate 5 vs committee
-          8 categories); choropleth same algorithm but committee party is often <code>null</code> → purple;
+          8 categories); choropleth now identical on both (a single <code>--amber</code> ramp, party-agnostic);
           timeline is candidate-only; purpose bars identical (monochrome).</li>
-        <li><strong>Collisions:</strong> the choropleth's blue/red are the chart hues, not the partisan tag
-          tokens; three greys distinguished only by alpha; one green and one amber each carry multiple unrelated
-          meanings across surfaces; and several committee-spent literals (<code>--accent</code>, <code>--ind</code>)
-          silently equal existing tokens.</li>
+        <li><strong>Collisions:</strong> three greys distinguished only by alpha; one green carries many
+          meanings; "amber" is two different colors (donut gold literal vs the <code>--amber</code> token now on the
+          map); and several committee-spent literals (<code>--accent</code>, <code>--ind</code>) silently equal
+          existing tokens.</li>
       </ul>
     </section>
 
@@ -594,10 +572,10 @@
     fill('layers', [
       { name: 'CSS token', color: 'var(--chart-raised)', val: 'styles.css :root → --chart-*', src: 'token',
         key: 'timeline · purpose bar · UI chrome' },
-      { name: 'CHART_COLORS (JS)', color: 'var(--chart-spent)', val: 'utils.js · getComputedStyle mirror of --chart-*', src: 'chart_colors',
-        key: 'timeline series + axes' },
+      { name: 'CHART_COLORS (JS)', color: 'var(--chart-spent)', val: 'utils.js · mirrors --chart-* + choroplethRgb (--amber)', src: 'chart_colors',
+        key: 'timeline series + axes · choropleth hue' },
       { name: 'Inline literal', color: 'rgba(155,142,212,0.85)', val: 'hardcoded rgba in render fn', src: 'literal',
-        key: 'donut categories · choropleth hues' }
+        key: 'donut categories (choropleth no longer — now token)' }
     ]);
 
     // ── timeline ──────────────────────────────────────────────────────────
@@ -643,11 +621,9 @@
       { name: 'Other Disbursements', color: 'rgba(90,96,112,0.7)', val: 'rgba(90,96,112,0.7)', key: 'other_disbursements (+ remainder)', src: 'literal' }
     ]);
 
-    // ── choropleth gradient bars ─────────────────────────────────────────
+    // ── choropleth gradient bar (single token-sourced --amber hue) ───────
     var choro = [
-      { label: 'DEM — blue', rgb: '74,144,217', hex: '#4A90D9' },
-      { label: 'REP — red', rgb: '217,74,74', hex: '#D94A4A' },
-      { label: 'default / null — purple', rgb: '155,142,212', hex: '#9B8ED4' }
+      { label: '--amber (all maps)', rgb: '138,95,16', hex: '#8A5F10' }
     ];
     document.getElementById('choro').innerHTML = choro.map(function (c) {
       return '<div class="cc-gradbar-row">' +
@@ -703,8 +679,9 @@
 
     // ── amber cluster ────────────────────────────────────────────────────
     fill('amberCluster', [
-      { name: 'PACs & other committees (raised)', color: 'rgba(232,160,32,0.9)', val: 'rgba(232,160,32,0.9)', src: 'literal' },
-      { name: 'Transfers Out (spent)', color: 'rgba(232,160,32,0.85)', val: 'rgba(232,160,32,0.85)', src: 'literal' }
+      { name: 'PACs & other committees (raised)', color: 'rgba(232,160,32,0.9)', val: 'rgba(232,160,32,0.9)', key: 'donut "gold" literal', src: 'literal' },
+      { name: 'Transfers Out (spent)', color: 'rgba(232,160,32,0.85)', val: 'rgba(232,160,32,0.85)', key: 'same donut gold', src: 'literal' },
+      { name: 'Choropleth hue (both pages)', color: 'var(--amber)', val: '--amber · #8A5F10', key: 'the system token — a different, darker amber', src: 'token' }
     ]);
   })();
   </script>

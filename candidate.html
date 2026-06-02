@@ -429,7 +429,6 @@ var currentDisbursementsBreakdown = null;
 var currentTotalSpent        = null;
 var currentCovDate           = null;
 var usTopoCache          = null;
-var CAND_PARTY           = null;
 var committeesLoaded     = false;
 var CAND_NAME            = null;
 // T-history-retire (2026-05-19) — career-wide first-file date stashed from
@@ -1062,9 +1061,7 @@ async function renderChoropleth(byStateData) {
     byStateData.forEach(function(d){ stateMap[d.state] = d; });
     var maxTotal = byStateData.length ? byStateData[0].total : 0; // sorted desc
 
-    var rgb = CAND_PARTY === 'REP' ? '217,74,74'
-            : CAND_PARTY === 'DEM' ? '74,144,217'
-            : '155,142,212';
+    var rgb = CHART_COLORS.choroplethRgb;   // single token-sourced hue (--amber)
 
     var projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305]);
     var pathGen    = d3.geoPath().projection(projection);
@@ -2352,7 +2349,6 @@ async function init() {
     CAND_STATE  = cand.state    || '';
     CAND_DIST   = cand.district || '';
     CAND_OFFICE = cand.office   || 'H';
-    CAND_PARTY  = cand.party    || '';
     CAND_FIRST_FILE_DATE = cand.first_file_date || null;
     ALL_CYCLES  = (cand.election_years || []).slice().sort(function(a,b){ return b-a; });
     if (!ALL_CYCLES.length) throw new Error('No election years found for this candidate');

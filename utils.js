@@ -451,6 +451,15 @@ function committeeRowHTML(c, opts) {
 
 // ── Shared chart color palette ────────────────────────────────────────────────
 // Used by any page with Chart.js charts (candidate.html, committee.html, etc.)
+// Converts a hex color (#RRGGBB or #RGB) to an "r,g,b" triplet string so it can be
+// composited with a per-element alpha as rgba(r,g,b,a). Used to source the
+// choropleth hue from a CSS token (--amber) rather than a hardcoded literal.
+function hexToRgbTriplet(hex) {
+  var h = String(hex || '').replace('#', '').trim();
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  var n = parseInt(h, 16);
+  return ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255);
+}
 var CHART_COLORS = (function() {
   var s = getComputedStyle(document.documentElement);
   var v = function(name) { return s.getPropertyValue(name).trim(); };
@@ -466,7 +475,9 @@ var CHART_COLORS = (function() {
     axisGrid:         'rgba(205,199,188,0.6)',
     axisTick:         v('--muted'),
     axisBorder:       v('--border'),
-    donutBorder:      v('--bg')
+    donutBorder:      v('--bg'),
+    // Choropleth hue, sourced from the --amber token (single-hue, party-agnostic).
+    choroplethRgb:    hexToRgbTriplet(v('--amber'))
   };
 })();
 

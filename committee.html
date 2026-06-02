@@ -389,7 +389,6 @@ var activeCycle = null;  // integer cycle year — set in detail-view branch of 
 // committee types, so a single threshold applies (vs candidate.html's office-keyed map).
 var ARCHIVE_MIN_YEAR_COMMITTEE = 2008;
 
-var COMM_PARTY            = null;
 var COMM_TYPE             = null;
 // T-load-4a — stashed at renderHeader time so renderIndexScaffold can hydrate
 // #cstat-history from entity-only data (no /totals/ dependency). Committee's
@@ -964,8 +963,6 @@ function renderHeader(c) {
   // Page title
   if (c.name) document.title = toTitleCase(c.name) + ' — FECLedger';
 
-  // Party for choropleth color
-  COMM_PARTY = c.party || null;
   COMM_TYPE  = c.committee_type || null;
 
   // T-load-4a — stash entity dates for renderIndexScaffold's cstat-history hydration
@@ -1549,9 +1546,7 @@ async function renderChoropleth(byStateData) {
     byStateData.forEach(function(d){ stateMap[d.state] = d; });
     var maxTotal = byStateData.length ? byStateData[0].total : 0;
 
-    var rgb = COMM_PARTY === 'REP' ? '217,74,74'
-            : COMM_PARTY === 'DEM' ? '74,144,217'
-            : '155,142,212';
+    var rgb = CHART_COLORS.choroplethRgb;   // single token-sourced hue (--amber)
 
     var projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305]);
     var pathGen    = d3.geoPath().projection(projection);
