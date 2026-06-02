@@ -520,16 +520,20 @@ test.describe('committee.html — Raised tab sections', () => {
     await expect(popup).toBeVisible();
     await expect(popup).toContainText('Reflects itemized individual contributions by state.');
     await expect(popup).toContainText('State totals may differ from summary figures due to FEC amendment processing.');
-    // Both clauses moved out of the raised-tab footer onto the tooltip.
-    await expect(page.locator('#raised-data-note')).not.toContainText('itemized individual contributions by state');
-    await expect(page.locator('#raised-data-note')).not.toContainText('amendment processing');
   });
 
-  test('raised footer no longer carries the K4–K7 bulk-vs-API source attribution (cut §5.j)', async ({ page }) => {
-    const footer = page.locator('#raised-data-note');
-    await expect(footer).not.toContainText('pre-computed from FEC bulk');  // K4 / K6
-    await expect(footer).not.toContainText('refreshed daily');              // K4 / K6 cadence framing
-    await expect(footer).not.toContainText('deduplicated by committee ID'); // K7
+  test('K8 retired: raised footer element removed, Conduits header mounts the conduit tooltip', async ({ page }) => {
+    // The whole raised-tab footer was retired 2026-06-01 — #raised-data-note is gone.
+    await expect(page.locator('#raised-data-note')).toHaveCount(0);
+    // K8 (conduit explanation) now lives on the Conduits column header tooltip.
+    await page.locator('#raised-tab-btn-conduits').click();
+    const trigger = page.locator('#raised-tab-panel-conduits thead .tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About conduit sources');
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('forward contributions from individual donors');
   });
 
   test('map container is present in raised tab', async ({ page }) => {

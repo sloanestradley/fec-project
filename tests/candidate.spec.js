@@ -561,16 +561,20 @@ test.describe('candidate.html — Raised tab sections', () => {
     await expect(popup).toContainText('Reflects itemized individual contributions by state.');
     // 2b candidate-parity: the amendment caveat now appears on candidate too.
     await expect(popup).toContainText('State totals may differ from summary figures due to FEC amendment processing.');
-    // The geography clause moved out of the raised-tab footer.
-    await expect(page.locator('#raised-data-note')).not.toContainText('itemized individual contributions by state');
   });
 
-  test('raised footer no longer carries the C8.c top-committees scope/dedup note (cut §5.j)', async ({ page }) => {
-    const footer = page.locator('#raised-data-note');
-    await expect(footer).not.toContainText('Top committee contributors');
-    await expect(footer).not.toContainText('deduplicated by committee ID');
-    // C8.d conduit explanation stays (Path Z, pending its own tooltip).
-    await expect(footer).toContainText('Top conduit sources');
+  test('C8.d retired: raised footer element removed, Conduits header mounts the conduit tooltip', async ({ page }) => {
+    // The whole raised-tab footer was retired 2026-06-01 — #raised-data-note is gone.
+    await expect(page.locator('#raised-data-note')).toHaveCount(0);
+    // C8.d (conduit explanation) now lives on the Conduits column header tooltip.
+    await page.locator('#raised-tab-btn-conduits').click();
+    const trigger = page.locator('#raised-tab-panel-conduits thead .tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About conduit sources');
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('forward contributions from individual donors');
   });
 
   test('top committee contributor rows are whole-row links to /committee/{id}', async ({ page }) => {

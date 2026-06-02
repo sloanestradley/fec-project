@@ -245,7 +245,7 @@
                   <table class="donors-table">
                     <thead><tr>
                       <th>#</th>
-                      <th>Committee (Conduit)</th>
+                      <th>Conduit <span class="tooltip" aria-label="About conduit sources">Conduits are platforms like ActBlue and WinRed that forward contributions from individual donors. The amounts shown reflect money from those donors, not the platform itself.</span></th>
                       <th>Type</th>
                       <th class="r">Total</th>
                     </tr></thead>
@@ -279,7 +279,6 @@
             <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
           </div>
         </div>
-        <div class="data-note" id="raised-data-note" style="display:none"></div>
       </div>
 
       <div id="tab-spent" style="display:none">
@@ -1216,7 +1215,6 @@ function renderStats(cycleOrAll) {
   var rcContentReset = document.getElementById('conduits-content');
   if (rcContentReset) rcContentReset.style.display = 'none';
   document.getElementById('individual-donors-content').style.display = 'none';
-  document.getElementById('raised-data-note').style.display = 'none';
 
   // Reset Spent tab state + DOM
   spentData = null; spentError = null; spentRendered = false;
@@ -1851,33 +1849,16 @@ function renderRaisedIfReady() {
     document.getElementById('raised-tab-section-title')
       .textContent = 'Top Contributors by type · ' + cycleLabel;
 
-    // K3.a + K9 retired 2026-05-28 — "Raised breakdown from FEC totals
-    // endpoint" prefix (donut source, "lacks value") and "Coverage through
-    // {date}" duplicate (already at #stat-coh-sub) both removed. K10 (≤$200
-    // caveat) stays until PAGE-NOTE ship moves it page-level (Phase 2).
-    // Footer methodology after two cuts:
-    //   - K3.b/c (geography + amendment caveat) → moved to the choropleth tooltip
-    //     (T-choropleth-tooltip, 2026-06-01).
-    //   - K4–K7 (bulk-vs-API source attribution for Top Individuals / Top
-    //     Committees) → CUT entirely 2026-06-01 (§5.j): internal source-path detail
-    //     with no interpretive value + retired cadence framing; provenance covered
-    //     by the page-level "Source: FEC" line. The topIndividualsSource /
-    //     topCommitteesSource flags still drive the KV-vs-API data path + empty
-    //     states; only their footer copy is gone.
-    // Footer now carries only K8 (conduit explanation), still Path-Z pending its
-    // own tooltip — hides when not applicable.
-    var note = '';
-    if (!d.topConduitsTooLarge && !d.topCommitteesIsConduit) {
-      note += ' Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect individuals\' money, not the platforms\' own funds.';
-    }
-    // K10 (≤$200 caveat) retired from raised-data-note 2026-05-29 (Phase 2):
-    // moves to #page-note (page-level, applies across all individual-
-    // contribution surfaces, parity with C8.f on candidate).
-    var noteEl = document.getElementById('raised-data-note');
-    note = note.trim();   // leading space on the now-leading conditional clause
-    noteEl.innerHTML = note;
-    noteEl.style.display = note ? 'block' : 'none';
-
+    // Raised-tab footer fully retired 2026-06-01:
+    //   K3.a + K9 (Cat A pass 2026-05-28): donut source prefix + coverage duplicate
+    //   K3.b/c (2026-06-01): geography + amendment caveat → choropleth tooltip
+    //   K4–K7 (2026-06-01): bulk-vs-API source attribution → CUT (§5.j); the
+    //     topIndividualsSource / topCommitteesSource flags still drive the KV-vs-API
+    //     data path + empty states, only their footer copy is gone
+    //   K10 (Phase 2 PAGE-NOTE 2026-05-29): ≤$200 caveat → #page-note
+    //   K8 (this change): conduit explanation → Conduits column-header tooltip
+    //     (static markup, wired by the init-time initTooltips()). With nothing
+    //     left to write, the #raised-data-note element was removed.
     raisedSlowRendered = true;
   }
 

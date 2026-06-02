@@ -281,7 +281,7 @@
                   <table class="donors-table">
                     <thead><tr>
                       <th>#</th>
-                      <th>Committee (Conduit)</th>
+                      <th>Conduit <span class="tooltip" aria-label="About conduit sources">Conduits are platforms like ActBlue and WinRed that forward contributions from individual donors. The amounts shown reflect money from those donors, not the platform itself.</span></th>
                       <th>Type</th>
                       <th class="r">Total</th>
                     </tr></thead>
@@ -299,7 +299,6 @@
             <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
           </div>
         </div>
-        <div class="data-note" id="raised-data-note" style="display:none"></div>
       </div>
 
       <!-- Spent tab — per-section skeletons; titles always visible -->
@@ -1291,21 +1290,15 @@ function renderRaisedIfReady() {
     document.getElementById('raised-tab-section-title')
       .textContent = 'Top Contributors by type · ' + cycleLabel;
 
-    // C8.a + C8.e + C8.f all retired:
-    //   C8.a + C8.e (Cat A pass 2026-05-28): donut source attribution +
-    //     coverage duplicate
-    //   C8.f (Phase 2 PAGE-NOTE ship 2026-05-29): ≤$200 caveat moves to
-    //     #page-note (page-level, applies across all individual-contribution
-    //     surfaces)
-    // Footer methodology after the 2026-06-01 cuts: geography → choropleth tooltip
-    // (C8.b); C8.c (top-committees scope/dedup note) → CUT for parity with the cut
-    // committee K6/K7 (§5.j) — mostly scope-restatement + a thin dedup note, no
-    // standalone tooltip. Footer now carries only C8.d (conduit explanation,
-    // still Path-Z pending its own tooltip).
-    var note = 'Top conduit sources: aggregated from memo entries (memo_code=X) identifying platforms (ActBlue, WinRed, etc.) that forwarded individual contributions — amounts reflect the individuals\' money, not the platforms\' own funds.';
-    var noteEl = document.getElementById('raised-data-note');
-    noteEl.innerHTML = note;
-    noteEl.style.display = 'block';
+    // Raised-tab footer fully retired 2026-06-01:
+    //   C8.a + C8.e (Cat A pass 2026-05-28): donut source attribution + coverage
+    //     duplicate
+    //   C8.f (Phase 2 PAGE-NOTE ship 2026-05-29): ≤$200 caveat → #page-note
+    //   C8.b (2026-06-01): geography caveat → choropleth tooltip
+    //   C8.c (2026-06-01): top-committees scope/dedup note → CUT (§5.j parity)
+    //   C8.d (this change): conduit explanation → Conduits column-header tooltip
+    //     (static markup, wired by the init-time initTooltips()). With nothing
+    //     left to write, the #raised-data-note element was removed.
     raisedSlowRendered = true;
   }
 
@@ -1696,7 +1689,6 @@ async function loadCycle(cycle) {
   document.getElementById('raised-slow-error').style.display = 'none';
   document.getElementById('donors-content').style.display = 'none';
   document.getElementById('conduits-content').style.display = 'none';
-  document.getElementById('raised-data-note').style.display = 'none';
 
   // Reset Spent tab state + DOM for new cycle
   spentData = null; spentError = null; spentRendered = false;

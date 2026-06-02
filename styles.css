@@ -1171,6 +1171,18 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .tab-section-panel .donors-table td:nth-child(3) { width:9.5rem; }
 .tab-section-panel .donors-table th:nth-child(4),
 .tab-section-panel .donors-table td:nth-child(4) { width:7rem; }
+/* Uniform 32px header row across the three contributor tables so the Conduits
+   header's 32px .tooltip trigger (C8.d/K8) doesn't make that thead taller than
+   the text-only Committees/Individuals headers — which would jump the UI on tab
+   switch. Vertical padding zeroed so the trigger defines the height (same
+   mechanism as .donut-row / .cycle-archive-divider); vertical-align:middle
+   centers both the trigger and the text-only headers (base th has none). Scoped
+   to .tab-section-panel so the Spent vendor + contributions tables are untouched. */
+.tab-section-panel .donors-table thead th {
+  height:32px; padding-top:0; padding-bottom:0; vertical-align:middle;
+  line-height:32px; /* off-grid: == the 32px .tooltip trigger, so the
+    trigger fits the line box exactly (no vertical-align:middle overflow that
+    would make the Conduits header 1px taller than the text-only headers). */ }
 
 .results-area { padding:var(--space-32) var(--page-gutter); }
 .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
