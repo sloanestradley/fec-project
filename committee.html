@@ -1525,8 +1525,8 @@ function renderContributorDonut(breakdown, totalRaised) {
     return '<div class="donut-row">' +
       '<div class="donut-sw" style="background:'+(c.legendColor || c.color)+'"></div>' +
       lbl +
-      '<div class="donut-pct">'+pct+'%</div>' +
       '<div class="donut-val">'+fmt(aVals[i])+'</div>' +
+      '<div class="donut-pct">'+pct+'%</div>' +
     '</div>';
   }).join('');
   initTooltips(legendEl);
@@ -2069,8 +2069,8 @@ function renderSpentDonut(breakdown, totalSpent) {
     return '<div class="donut-row">' +
       '<div class="donut-sw" style="background:'+c.color+'"></div>' +
       '<div class="donut-lbl">'+c.label+'</div>' +
-      '<div class="donut-pct">'+pct+'%</div>' +
       '<div class="donut-val">'+fmt(aVals[i])+'</div>' +
+      '<div class="donut-pct">'+pct+'%</div>' +
     '</div>';
   }).join('');
 }
