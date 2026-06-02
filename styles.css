@@ -514,11 +514,20 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .map-legend { display:flex; align-items:center; gap:var(--space-8); margin-top:var(--space-8); }
 .map-legend-bar { flex:1; height:5px; border-radius:3px; }
 .map-legend-lbl { font-size:0.625rem; color:var(--muted); text-transform:uppercase; letter-spacing:var(--ls-expanded); white-space:nowrap; }
-.map-tt { position:fixed; z-index:400; pointer-events:none; display:none;
-  background:var(--surface2); border:1px solid var(--border);
-  padding:var(--space-8); border-radius:2px; }
-.map-tt-name { font-size:0.75rem; color:var(--text); font-weight:400; }
-.map-tt-val  { font-size:0.625rem; color:var(--muted); margin-top:var(--space-2); /* micro: tooltip value sits flush beneath state name */ }
+/* ── Data-viz hover tooltip (.viz-tt) ──
+   Shared surface for all data-viz hover tooltips: the summary timeline + Raised/
+   Spent donuts (Chart.js `external` → singleton #chart-tt) and the choropleth
+   (#map-tt). z-index 400 is the data-viz hover tier — above modal scrim (300),
+   info-icon popup (250), and the absolute .donut-center overlay (no z-index).
+   Body text style (IBM Plex Sans 0.75rem · 1.5): label rows in var(--text), all
+   other copy in var(--subtle). */
+.viz-tt { position:fixed; z-index:400; pointer-events:none; display:none;
+  background:var(--surface);
+  padding:var(--space-8); border-radius:2px; box-shadow:0 0 8px rgba(0,0,0,0.2); }
+.viz-tt-label { font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem;
+  line-height:var(--lh-normal); color:var(--muted); }
+.viz-tt-body  { font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem;
+  line-height:var(--lh-normal); color:var(--text); }
 
 /* ── K1: Raised tab grid layout (candidate + committee) ── */
 .raised-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-64); margin-bottom:var(--section-gap); }

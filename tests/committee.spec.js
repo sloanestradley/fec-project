@@ -629,6 +629,30 @@ test.describe('committee.html — Raised tab unavailable-state copy', () => {
 
 // ── Spent tab sections ───────────────────────────────────────────────────────
 
+// ── Donut center labels + viz-tt tooltip surface (T-chart-tooltip-improvements) ─
+
+test.describe('committee.html — donut center labels + viz-tt surface', () => {
+  test.beforeEach(async ({ page }) => { await setupDetail(page); });
+
+  test('Raised donut center label reads "Raised" (dropped "Total")', async ({ page }) => {
+    const lbl = page.locator('.donut-center', { has: page.locator('#donut-center-val') })
+      .locator('.donut-center-lbl');
+    await expect(lbl).toHaveText('Raised');
+  });
+
+  test('Spent donut center label reads "Spent" (dropped "Total")', async ({ page }) => {
+    const lbl = page.locator('.donut-center', { has: page.locator('#spent-donut-center-val') })
+      .locator('.donut-center-lbl');
+    await expect(lbl).toHaveText('Spent');
+  });
+
+  test('choropleth tooltip #map-tt adopts the shared .viz-tt classes', async ({ page }) => {
+    await expect(page.locator('#map-tt')).toHaveClass(/\bviz-tt\b/);
+    await expect(page.locator('#map-tt-name')).toHaveClass(/\bviz-tt-label\b/);
+    await expect(page.locator('#map-tt-val')).toHaveClass(/\bviz-tt-body\b/);
+  });
+});
+
 test.describe('committee.html — Spent tab sections', () => {
   test.beforeEach(async ({ page }) => {
     await setupDetail(page);

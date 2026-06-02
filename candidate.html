@@ -225,7 +225,7 @@
                   <canvas id="chart-donut"></canvas>
                   <div class="donut-center">
                     <div class="donut-center-val" id="donut-center-val">—</div>
-                    <div class="donut-center-lbl">Total Raised</div>
+                    <div class="donut-center-lbl">Raised</div>
                   </div>
                 </div>
                 <div class="donut-legend" id="donut-legend"></div>
@@ -313,7 +313,7 @@
                   <canvas id="chart-spent-donut"></canvas>
                   <div class="donut-center">
                     <div class="donut-center-val" id="spent-donut-center-val">—</div>
-                    <div class="donut-center-lbl">Total Spent</div>
+                    <div class="donut-center-lbl">Spent</div>
                   </div>
                 </div>
                 <div class="donut-legend" id="spent-donut-legend"></div>
@@ -384,9 +384,9 @@
 </div>
 
 <!-- Map tooltip — outside layout so it's not clipped -->
-<div class="map-tt" id="map-tt">
-  <div class="map-tt-name" id="map-tt-name"></div>
-  <div class="map-tt-val"  id="map-tt-val"></div>
+<div class="viz-tt" id="map-tt">
+  <div class="viz-tt-label" id="map-tt-name"></div>
+  <div class="viz-tt-body"  id="map-tt-val"></div>
 </div>
 
 <script src="/main.js"></script>
@@ -780,8 +780,8 @@ function renderChart(reports, cycle) {
           pointRadius: 5,
           pointHoverRadius: 7,
           pointBackgroundColor: CHART_COLORS.raisedSolid,
-          pointBorderColor: CHART_COLORS.pointBorder,
-          pointBorderWidth: 2,
+          pointBorderWidth: 0,
+          pointHoverBorderWidth: 0,
           stepped: 'before',     // ← stepped line: horizontal then vertical
           tension: 0
         },
@@ -794,8 +794,8 @@ function renderChart(reports, cycle) {
           pointRadius: 5,
           pointHoverRadius: 7,
           pointBackgroundColor: CHART_COLORS.spentSolid,
-          pointBorderColor: CHART_COLORS.pointBorder,
-          pointBorderWidth: 2,
+          pointBorderWidth: 0,
+          pointHoverBorderWidth: 0,
           stepped: 'before',     // ← stepped
           tension: 0
         },
@@ -808,8 +808,8 @@ function renderChart(reports, cycle) {
           pointRadius: 5,
           pointHoverRadius: 7,
           pointBackgroundColor: CHART_COLORS.cohSolid,
-          pointBorderColor: CHART_COLORS.pointBorder,
-          pointBorderWidth: 2,
+          pointBorderWidth: 0,
+          pointHoverBorderWidth: 0,
           stepped: false,        // ← COH is a snapshot, not cumulative — connect linearly
           tension: 0,
           spanGaps: true
@@ -825,14 +825,8 @@ function renderChart(reports, cycle) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: CHART_COLORS.tooltipBg,
-          titleColor: CHART_COLORS.tooltipTitle,
-          bodyColor: CHART_COLORS.tooltipBody,
-          borderColor: CHART_COLORS.tooltipBorder,
-          borderWidth: 1,
-          titleFont: { family: 'IBM Plex Mono', size: 10 },
-          bodyFont:  { family: 'IBM Plex Mono', size: 11 },
-          padding: 12,
+          enabled: false,
+          external: externalChartTooltip,
           callbacks: {
             title: function(items) {
               if (!items[0]) return '';
@@ -1015,8 +1009,7 @@ function renderContributorDonut(breakdown, totalRaised) {
       labels: active.map(function(c){ return c.label; }),
       datasets: [{ data: aVals,
         backgroundColor: active.map(function(c){ return c.color; }),
-        borderColor: CHART_COLORS.donutBorder, borderWidth: 2,
-        hoverBorderColor: CHART_COLORS.donutBorderHover, hoverOffset: 4 }]
+        borderColor: CHART_COLORS.donutBorder, borderWidth: 1, hoverOffset: 4 }]
     },
     options: {
       cutout: '68%', responsive: true, maintainAspectRatio: true,
@@ -1024,10 +1017,10 @@ function renderContributorDonut(breakdown, totalRaised) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor:CHART_COLORS.tooltipBg, titleColor:CHART_COLORS.tooltipTitle, bodyColor:CHART_COLORS.tooltipBody,
-          borderColor:CHART_COLORS.tooltipBorder, borderWidth:1, padding:10,
-          titleFont:{family:'IBM Plex Mono',size:10}, bodyFont:{family:'IBM Plex Mono',size:11},
+          enabled: false,
+          external: externalChartTooltip,
           callbacks: {
+            title: function(items) { return items[0] ? items[0].label : ''; },
             label: function(item) {
               var pct = total > 0 ? (item.raw / total * 100).toFixed(1) : '0.0';
               return ' ' + fmtFull(item.raw) + ' (' + pct + '%)';
@@ -1106,7 +1099,7 @@ async function renderChoropleth(byStateData) {
           document.getElementById('map-tt-val').textContent  =
             parseFloat(this.getAttribute('data-total')) > 0
               ? fmtFull(parseFloat(this.getAttribute('data-total')))
-              : 'No individual contributions on record';
+              : 'No itemized individual contributions';
           var tt = document.getElementById('map-tt');
           tt.style.display = 'block';
           tt.style.left = (e.clientX + 14) + 'px';
@@ -1382,12 +1375,12 @@ function renderSpentDonut(breakdown, totalSpent) {
   spentDonutInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
+      labels: active.map(function(c){ return c.label; }),
       datasets: [{
         data: aVals,
         backgroundColor: active.map(function(c){ return c.color; }),
         borderColor: CHART_COLORS.donutBorder,
-        borderWidth: 2,
-        hoverBorderColor: CHART_COLORS.donutBorderHover,
+        borderWidth: 1,
         hoverOffset: 4
       }]
     },
@@ -1399,19 +1392,16 @@ function renderSpentDonut(breakdown, totalSpent) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: CHART_COLORS.tooltipBg,
-          titleColor: CHART_COLORS.tooltipTitle,
-          bodyColor: CHART_COLORS.tooltipBody,
-          borderColor: CHART_COLORS.tooltipBorder,
-          borderWidth: 1,
-          padding: 10,
-          titleFont: { family: 'IBM Plex Mono', size: 10 },
-          bodyFont: { family: 'IBM Plex Mono', size: 11 },
-          callbacks: { label: function(ctx) {
-            var total = ctx.dataset.data.reduce(function(a,b){ return a+b; }, 0);
-            var pct = total > 0 ? (ctx.raw/total*100).toFixed(1) : '0';
-            return ' ' + fmt(ctx.raw) + '  (' + pct + '%)';
-          }}
+          enabled: false,
+          external: externalChartTooltip,
+          callbacks: {
+            title: function(items) { return items[0] ? items[0].label : ''; },
+            label: function(ctx) {
+              var total = ctx.dataset.data.reduce(function(a,b){ return a+b; }, 0);
+              var pct = total > 0 ? (ctx.raw/total*100).toFixed(1) : '0';
+              return ' ' + fmt(ctx.raw) + '  (' + pct + '%)';
+            }
+          }
         }
       }
     }

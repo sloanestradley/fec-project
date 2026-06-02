@@ -463,18 +463,59 @@ var CHART_COLORS = (function() {
     cohSolid:         v('--chart-coh-solid'),
     spentBar:         v('--chart-spent-bar'),
     overlayToday:     v('--chart-overlay-today'),
-    tooltipBg:        v('--surface'),
-    tooltipTitle:     v('--muted'),
-    tooltipBody:      v('--text'),
-    tooltipBorder:    v('--border'),
     axisGrid:         'rgba(205,199,188,0.6)',
     axisTick:         v('--muted'),
     axisBorder:       v('--border'),
-    donutBorder:      v('--surface'),
-    donutBorderHover: v('--surface'),
-    pointBorder:      v('--bg')
+    donutBorder:      v('--bg')
   };
 })();
+
+// ── Shared data-viz hover tooltip (charts + choropleth) ──
+// Chart.js `external` handler used by the summary timeline + Raised/Spent donuts
+// on candidate.html and committee.html. Renders an HTML tooltip (singleton
+// #chart-tt, class .viz-tt) appended to <body>, so it stacks above the canvas
+// AND the absolute .donut-center overlay — native canvas tooltips can't, they
+// paint inside the canvas, below the center div (the z-index clip bug). Title
+// lines render as .viz-tt-label (var(--text)); body lines as .viz-tt-body
+// (var(--subtle)). The choropleth shares the .viz-tt CSS via its own #map-tt.
+// Content is all app-controlled (wedge labels, formatted dates/values) — no
+// untrusted user input — so innerHTML is safe here.
+function externalChartTooltip(context) {
+  var tt = context.tooltip;
+  var el = document.getElementById('chart-tt');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'chart-tt';
+    el.className = 'viz-tt';
+    el.style.display = 'none';
+    document.body.appendChild(el);
+  }
+  if (!tt || tt.opacity === 0) { el.style.display = 'none'; return; }
+
+  var html = '';
+  (tt.title || []).forEach(function(line) {
+    if (line === '' || line == null) return;
+    html += '<div class="viz-tt-label">' + line + '</div>';
+  });
+  (tt.body || []).forEach(function(item) {
+    (item.lines || []).forEach(function(line) {
+      html += '<div class="viz-tt-body">' + String(line).trim() + '</div>';
+    });
+  });
+  el.innerHTML = html;
+  el.style.display = 'block';
+
+  // Position centered above the caret, clamped to the viewport; flips below if
+  // it would clip the top edge.
+  var rect = context.chart.canvas.getBoundingClientRect();
+  var ttW = el.offsetWidth, ttH = el.offsetHeight, GAP = 8;
+  var left = rect.left + tt.caretX - ttW / 2;
+  left = Math.max(GAP, Math.min(left, window.innerWidth - ttW - GAP));
+  var top = rect.top + tt.caretY - ttH - GAP;
+  if (top < GAP) top = rect.top + tt.caretY + GAP;
+  el.style.left = left + 'px';
+  el.style.top  = top + 'px';
+}
 
 // ── Shared entity type labels (Schedule A/B contributor and recipient types) ──
 var ENTITY_TYPE_LABELS = {
