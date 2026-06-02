@@ -6100,3 +6100,50 @@ You steered toward honesty and restraint: cut what doesn't inform, don't claim d
 - Mobile/compact spot-check. All five surfaces were verified at desktop with screenshots; a quick ≤860px + compact-header pass on the SbP / divider / ratio tooltips would close the last verification gap (low risk).
 - The Verified column — you completed your review pass and marked the §1 rows verified (committed separately). Verification surfaced the position:static fix, the aria-label inconsistency, and the $0-wedge insight.
 - Render-logic reminder (banked): the donut renders only `vals[i] > 0` wedges (candidate.html:1007), so tooltip/legend copy must never assume a $0 or "empty" wedge is visible — it isn't. Same filter on the Spent donut.
+
+---
+2026-06-02 — CATCH-UP ENTRY (reconstructed): conduit column-header tooltip + chart-tooltip/choropleth arc
+
+> **Reconstruction note:** This entry covers two sessions whose end-of-session rituals never ran — the prior context window ran out before logging. It was rebuilt the next day from (a) the 5 unlogged commits (`69e45b1`, `23ae53e`, `c52b44a`, `2e94c9b`, `a307218`), (b) the current state of the code/docs, and (c) ~157 screenshots Sloane had snapped of the terminal transcript (reviewed via fan-out subagents). The code was committed, pushed, and Track 1-green throughout, and was re-confirmed green (811/811) at close-out — only the *narrative* was at risk, and it was recoverable. The "How Sloane steered" section below is therefore reconstructed from the transcript, not lived — flagged inline where it's inference rather than verified.
+
+## Process log draft
+
+**Title:** The map goes monochrome — and a session is rebuilt from its own screenshots
+
+**Summary (Sloane's voice):** Two sessions of chart polish that never got logged, recovered after the fact from the terminal screenshots I'd snapped before context ran out. The headline change: the contribution choropleth dropped its party-derived red/blue/purple for a single amber ramp, so the map stops quietly editorializing by party; chart tooltips moved to HTML so they stop getting clipped behind the donut center; and a standalone color-reference page now documents the whole chart palette. The fiddly part was a California-shaped hover bug that ate two clever approaches before the simple one won.
+
+**Changelog:**
+- **Conduit explanation → column-header tooltip (`69e45b1`).** The Raised-tab conduit note moved out of the footer onto a tooltip on the renamed `Conduit` column header (ActBlue/WinRed forward individuals' money, not the platform's). Closes data-notes-mapping-v2 §1; the dead `#raised-data-note` element + JS removed on both profile pages. race.html's page-level `#race-note` retired entirely (not rich enough yet to warrant a data note).
+- **HTML chart tooltips (`23ae53e`).** All Chart.js hover tooltips (candidate timeline + both pages' donuts) re-built as HTML via the `external` callback — a body-portaled `#chart-tt`/`.viz-tt` singleton at z-index 400 that escapes the canvas + the donut-center overlay (fixes the long-standing center-clip) and aligns to the body type style. Donut center labels dropped "Total" → "Raised"/"Spent". Donut wedges got a 1px parchment (`--bg`) ring; timeline dots went borderless. Choropleth `#map-tt` adopted the shared `.viz-tt` classes. Dead `CHART_COLORS.tooltip*` keys removed. +10 tests.
+- **chart-color-palette.html (`c52b44a`).** New 712-line local-only reference page documenting every chart color surface, a source-input legend, and a hover-state audit table. Intentionally not deployed (not in the stage-site allowlist, ia.md, or the structural test list).
+- **Choropleth → single amber hue (`2e94c9b`).** Replaced the party-derived choropleth hue with one party-agnostic `--amber` ramp composited per-state as `rgba(r,g,b,α)`; added `hexToRgbTriplet()` + `CHART_COLORS.choroplethRgb` (token-sourced); removed the dead `CAND_PARTY`/`COMM_PARTY` vars. Spend-by-purpose bars recolored to amber to match.
+- **Choropleth no-data + hover polish (`a307218`).** No-data states fill flat (`--surface`); hover paints a single amber outline-clone path on top of all states (so the hovered state isn't occluded by neighbors), fill unchanged. Two fancier approaches — grow-on-hover `scale()` and a centroid-transform clone — were built, hit a California multi-polygon "double-edge sliver" artifact, and were reverted to the simple outline. Dead-token cleanup (`--chart-spent-bar` + remaining dead `CHART_COLORS` keys).
+
+**Field notes:**
+The session I'm logging isn't one I lived — it ran out of context before rituals, and I rebuilt it from the screenshots Sloane had snapped of the terminal plus the git history. That's a quietly reassuring proof: because the work was committed, pushed, and tests were green, the *code* was never at risk; what got lost was the *story*, and a folder of screenshots was enough to recover it faithfully. The cheaper insurance, though, is logging incrementally per-commit rather than only at the cliff edge of a context window.
+
+The substantive lesson from the work itself: the choropleth de-partisaning is the most on-brand change in a while. A campaign-finance tool that color-codes a contribution map by party is editorializing without meaning to — a single amber ramp says "here's where the money is" without saying "here's which side it's on." And the California sliver is the recurring shape across this project: the clever geometry approach (scale/clone-on-hover) looked right until a multi-part polygon exposed it, and the honest answer was the simple outline that never scales. Architecturally-correct work, reverted, because the simpler thing was the right thing.
+
+**Stack tags:** HTML chart tooltips via Chart.js `external` callback (body-portaled singleton, escapes canvas + overflow:hidden); token-sourced choropleth hue (`hexToRgbTriplet` → per-state `rgba` composite); SVG outline-clone hover (paint-on-top, no geometry scaling); session-recovery-from-screenshots (fan-out subagent review of a terminal-transcript screenshot dump).
+
+## How Sloane steered the work
+
+> Reconstructed from the terminal-transcript screenshots, not lived — read as "what the transcript shows Sloane doing," not a verified first-hand account.
+
+**"Take the party colors off the map."** The choropleth de-partisaning reads as the session's clearest product call — removing the party-derived hue logic (and the `CAND_PARTY`/`COMM_PARTY` vars that fed it) in favor of a single amber ramp. It lines up exactly with the project's stated non-partisan core value: the map should show *where* the money is, not *which side*. The decision to delete the party logic rather than keep it as a toggle is the load-bearing part.
+
+**Caught the California sliver, drove the revert to simple.** The transcript shows Sloane spotting the California double-edge artifact on the live map, after two more elaborate hover approaches had been built (scale-on-hover, then a centroid-transform clone). The call was to revert the architecturally-correct-but-fragile work back to the simple outline-clone. Keep-it-simple after clever-fails — the same shape as past arcs where the right answer was a revert.
+
+**Live-build verification as the gate.** "All changes look great in local" / "verified by Sloane in local" recurs through the transcript — the eyeball pass on the real rendered build was the sign-off, not "tests green + commits shipped." Consistent with the project's interaction-design-verification discipline for anything touching motion/color/position.
+
+**Per-decision calls on the tooltip/color menu.** The transcript shows a "ten decisions I need from you" framing where I laid out the options and Sloane made the individual calls — drop "Total" from the donut center, amber-only choropleth, spend bars to amber. Decisions kept with Sloane, not defaulted.
+
+**Through-line:** even reconstructed, the pattern is recognizable — steer toward honest framing (a non-partisan map), simplicity over cleverness (revert the geometry hacks), and the live build as the real verification gate.
+
+## What to bring to Claude Chat
+
+- **chart-color-palette.html's lifecycle.** It shipped as a local-only reference (not deployed, not tested). Is it a permanent design-system sibling (then maybe deploy + give it the structural-test treatment design-system.html gets), a throwaway investigation artifact (delete once the color work settles), or content to fold into design-system.html? Decide before it drifts.
+- **Non-partisan color as a system principle.** The choropleth went amber specifically to avoid editorializing by party. Worth a design-system-level stance: should party color *ever* appear in data-viz, or is it reserved for identity tags only? If it's a principle, write it down so it propagates to future charts.
+- **Choropleth richer hover, if ever wanted.** The simple outline-clone shipped because the geometry approaches (scale/centroid-clone) broke on California's multi-polygon. If true hover-elevate is ever desired, that multi-part-polygon sliver is the known blocker — needs a deliberate approach decision before reopening.
+- **§1 tooltip set is fully closed** — the conduit-sources explanation (V2 row 5 / C8.d / K8) shipped this arc as the `Conduit` column-header tooltip in `69e45b1`; there is no remaining unmounted §1 tooltip. (Noting this here only to correct a stale claim in the 2026-06-01 afternoon entry, which called V2 row 5 "the only unmounted §1 tooltip left" — true at that moment, shipped that evening.) Nothing to action.
+- **Ritual cadence vs. context limits.** This session was only recoverable because Sloane had screenshots. Worth a quick retro: log incrementally per-commit (cheap) rather than betting the whole session's narrative on reaching the end-of-session ritual before context runs out.

@@ -272,6 +272,7 @@ race.html         — Single race view — all candidates in a contest (scaffold
 feed.html         — Filing feed — recent candidate committee filings (live): load-all-upfront, client-side office/report-type/time-window filters, filter chips, refresh with dedup, Amplitude tracking
 process-log.html  — Living case study / dev diary
 design-system.html — Token and component reference (live)
+chart-color-palette.html — Local-only visual chart-color + hover reference (2026-06-02). Self-contained except it pulls `styles.css` + `utils.js`. **Intentionally NOT in the deploy allowlist (`scripts/stage-site.sh`) — local-dev reference only**, reached by direct URL; not in ia.md (deployed-page inventory) and not in the shared.spec.js structural page-list. Do not "fix" the missing deploy — local-only is the decision.
 project-brief.md  — Full product vision and open questions
 ia.md             — Information architecture reference (page inventory, nav structure, URL patterns)
 test-cases.md     — Manual browser test checklist; one section per page + shared checks + test log
