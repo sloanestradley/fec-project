@@ -480,6 +480,45 @@ var CHART_COLORS = (function() {
   };
 })();
 
+// ── Donut category colors (single source for both pages' Raised + Spent donuts) ──
+// One entry per category; candidate.html + committee.html reference these instead of
+// inlining literals, so a shared category can't drift between pages. Values are raw
+// rgba strings for now — Phase 1 of the color-system cleanup (consolidate literals).
+// Phase 3 will promote these to --cat-* tokens in styles.css :root and convert this to
+// a getComputedStyle IIFE, mirroring CHART_COLORS. Until then, edit values here to
+// re-color every donut on both pages in one place.
+//   • individualsUnitemized = the legend swatch; individualsHatch{A,B} = the two
+//     stripe shades of its canvas-pattern wedge fill (makeStripePattern).
+//   • candidateSelfFunding (candidate) and candidateContribLoans (committee) are
+//     separate keys — same value today, free to diverge later.
+var CATEGORY_COLORS = {
+  raised: {
+    individualsItemized:   'rgba(74,144,217,1)',
+    individualsUnitemized: 'rgba(74,144,217,0.65)',
+    individualsHatchA:     'rgba(74,144,217,0.7)',
+    individualsHatchB:     'rgba(74,144,217,0.12)',
+    pacs:                  'rgba(232,160,32,0.9)',
+    party:                 'rgba(61,191,122,0.85)',
+    candidateAuthorized:   'rgba(155,142,212,0.85)',
+    candidateSelfFunding:  'rgba(90,96,112,0.8)',
+    candidateContribLoans: 'rgba(90,96,112,0.8)',
+    otherReceipts:         'rgba(90,96,112,0.4)',
+    loans:                 'rgba(200,150,80,0.75)',
+    federalFunds:          'rgba(61,191,122,0.5)',
+    refundsOffsets:        'rgba(90,96,112,0.25)'
+  },
+  spent: {
+    operatingExpenditures:   'rgba(217,74,74,0.85)',
+    sharedNonfedOpex:        'rgba(194,85,62,0.8)',
+    transfersOut:            'rgba(232,160,32,0.85)',
+    candidateContributions:  'rgba(44,82,130,0.8)',
+    independentExpenditures: 'rgba(90,74,122,0.8)',
+    loanRepayments:          'rgba(88,100,140,0.85)',
+    contributionRefunds:     'rgba(61,191,122,0.65)',
+    otherDisbursements:      'rgba(90,96,112,0.7)'
+  }
+};
+
 // ── Shared data-viz hover tooltip (charts + choropleth) ──
 // Chart.js `external` handler used by the summary timeline + Raised/Spent donuts
 // on candidate.html and committee.html. Renders an HTML tooltip (singleton
