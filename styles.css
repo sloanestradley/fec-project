@@ -520,9 +520,6 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    per-state :hover stroke gets painted over by later-drawn neighbors. ~0.75px: thin, but
    --text (near-black) makes it read against light AND amber states. */
 .map-hover-outline { fill:none; stroke:var(--text); stroke-width:0.75; pointer-events:none; }
-.map-legend { display:flex; align-items:center; gap:var(--space-8); margin-top:var(--space-8); }
-.map-legend-bar { flex:1; height:5px; border-radius:3px; }
-.map-legend-lbl { font-size:0.625rem; color:var(--muted); text-transform:uppercase; letter-spacing:var(--ls-expanded); white-space:nowrap; }
 /* ── Data-viz hover tooltip (.viz-tt) ──
    Shared surface for all data-viz hover tooltips: the summary timeline + Raised/
    Spent donuts (Chart.js `external` → singleton #chart-tt) and the choropleth

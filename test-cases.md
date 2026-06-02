@@ -473,7 +473,6 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Donut center shows total raised amount (formatted dollar)
 - [ ] Choropleth map SVG renders; WA state is filled (not grey) for Marie for Congress
 - [ ] State hover tooltip shows state name and formatted contribution total
-- [ ] Map legend bar (Less → More gradient) visible below the map
 - [ ] "Top Committee Contributors" table appears above "Top Individual Contributors" (committee donors first)
 - [ ] Table headers dynamically reflect the cycle: "Top Individual Contributors · 2023–2024" / "Top Committee Contributors · 2023–2024" / "Top Conduit Sources · 2023–2024" — no "Most recent cycle" copy (post-T8)
 - [ ] Committee table shows name, type label, and amount columns

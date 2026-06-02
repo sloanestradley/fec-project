@@ -198,11 +198,6 @@
             <div class="raised-cell-title raised-cell-title--has-info">Where Individual Contributions Come From<span class="tooltip" aria-label="About the contribution geography map">Reflects itemized individual contributions by state. State totals may differ from summary figures due to FEC amendment processing.</span></div>
             <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
             <div class="map-svg-wrap" id="map-container" style="display:none"></div>
-            <div class="map-legend" id="map-legend" style="display:none">
-              <span class="map-legend-lbl">Less</span>
-              <div class="map-legend-bar" id="map-legend-bar"></div>
-              <span class="map-legend-lbl">More</span>
-            </div>
             <div class="tab-error" id="raised-fast-error" style="display:none">
               <span class="tab-error-msg">⚠ Could not load contribution geography.</span>
               <button class="tab-retry-btn" data-retry="raised-fast">Retry</button>
@@ -1195,8 +1190,6 @@ function renderStats(cycleOrAll) {
   document.getElementById('raised-donut-content').style.display = 'none';
   var mapEl = document.getElementById('map-container');
   if (mapEl) { mapEl.innerHTML = ''; mapEl.style.display = 'none'; }
-  var mapLegEl = document.getElementById('map-legend');
-  if (mapLegEl) mapLegEl.style.display = 'none';
   var mapTtEl = document.getElementById('map-tt');
   if (mapTtEl) mapTtEl.style.display = 'none';
   document.getElementById('raised-fast-skeleton').style.display = 'block';
@@ -1613,10 +1606,6 @@ async function renderChoropleth(byStateData) {
 
     container.innerHTML = '';
     container.appendChild(svg);
-
-    var bar = document.getElementById('map-legend-bar');
-    bar.style.background = 'linear-gradient(to right, rgba('+rgb+',0.1), rgba('+rgb+',0.92))';
-    document.getElementById('map-legend').style.display = 'flex';
 
   } catch(e) {
     container.innerHTML = '<div class="inline-status-msg">Map unavailable.</div>';

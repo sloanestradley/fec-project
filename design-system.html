@@ -573,7 +573,7 @@
         </div>
         <div class="ds-type-row">
           <span class="stat-label" style="margin-bottom:0">Cycle</span>
-          <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .candidate-card-stat-lbl · .button-group-btn · .menu-btn-text · .menu-item-label · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results · .map-legend-lbl</span>
+          <span class="ds-type-meta"><strong>label</strong><br>IBM Plex Mono 400 · 0.625rem · uppercase · --ls-expanded (0.05em)<br>.stat-label · .tag · .donors-table th · .tab-retry-btn · .donut-center-lbl · .global-banner-text · .candidate-card-stat-lbl · .button-group-btn · .menu-btn-text · .menu-item-label · .cycle-index-header · .cycle-archive-divider-text · .feed-row-header · .section-title · .results-group-header · .results-view-all · .form-label · .chip-clear-all · .results-header · .end-of-results</span>
         </div>
         <div class="ds-type-row">
           <span class="legend-item" style="gap:0">Final coverage: Mar 31, 2024</span>
@@ -1109,14 +1109,9 @@
           <span class="ds-component-name">Choropleth Map</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.map-svg-wrap · .map-legend · .map-legend-bar · .map-legend-lbl · .viz-tt · .viz-tt-label · .viz-tt-body <span style="color:var(--muted)">(hover tooltip #map-tt — shared .viz-tt surface, see Tooltip card)</span></div>
+        <div class="ds-component-classes">.map-svg-wrap · .viz-tt · .viz-tt-label · .viz-tt-body <span style="color:var(--muted)">(hover tooltip #map-tt — shared .viz-tt surface, see Tooltip card)</span></div>
         <div class="ds-component-demo">
           <div class="map-svg-wrap" style="max-width:400px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;height:120px;font-size:0.625rem;color:var(--muted);letter-spacing:var(--ls-expanded);text-transform:uppercase">SVG path map</div>
-          <div class="map-legend" style="max-width:400px;margin-top:0.75rem">
-            <div class="map-legend-lbl">$0</div>
-            <div class="map-legend-bar" style="background:linear-gradient(to right,rgba(74,144,217,0.1),rgba(74,144,217,0.92))"></div>
-            <div class="map-legend-lbl">$250K+</div>
-          </div>
         </div>
         <div class="ds-component-notes">SVG paths generated via D3-style projection in <code>renderChoropleth()</code>. State fill colors interpolate a single token-sourced hue (<code>--amber</code>, via <code>CHART_COLORS.choroplethRgb</code>) at 0.1–0.92 alpha based on contribution density; no-data states use <code>--surface2</code>. <strong>Hover</strong> draws a <code>--text</code> outline of the hovered state via a single <code>fill:none</code> overlay clone (<code>.map-hover-outline</code>) appended last so it paints on top of every neighbor — a consistent outline on all edges (a per-state <code>:hover</code> stroke gets covered by later-drawn neighbors), with <strong>no fill change</strong> (the shade is the data). Tooltip (<code>#map-tt</code>, shared <code>.viz-tt</code> surface) is <code>position:fixed</code>, follows cursor via mousemove.</div>
       </div>
