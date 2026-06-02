@@ -470,7 +470,6 @@ var CHART_COLORS = (function() {
     spentSolid:       v('--chart-spent-solid'),
     coh:              v('--chart-coh'),
     cohSolid:         v('--chart-coh-solid'),
-    spentBar:         v('--chart-spent-bar'),
     overlayToday:     v('--chart-overlay-today'),
     axisGrid:         'rgba(205,199,188,0.6)',
     axisTick:         v('--muted'),

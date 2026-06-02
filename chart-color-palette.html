@@ -92,7 +92,7 @@
     .cc-purpose-lbl { font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem; color:var(--text);
       display:flex; justify-content:space-between; margin-bottom:var(--space-2); }
     .cc-purpose-track { height:10px; border-radius:2px; background:var(--surface2); overflow:hidden; }
-    .cc-purpose-fill { height:100%; border-radius:2px; background:var(--chart-spent-bar); }
+    .cc-purpose-fill { height:100%; border-radius:2px; background:var(--amber); }
 
     /* ── Legend asymmetry callout ── */
     .cc-legend-demo { display:flex; gap:var(--space-32); flex-wrap:wrap; align-items:flex-start;
@@ -114,16 +114,14 @@
     /* ── Hover-state documentation ──
        Each demo reproduces the SURFACE'S ACTUAL hover behavior (read from the
        production code), so hovering the swatch/demo shows the real effect. */
-    /* Section-scoped: the reference swatches reproduce their surface's hover RECOLOR.
+    /* Section-scoped: the canvas-chart reference swatches reproduce their hover RECOLOR.
        Canvas charts (timeline + donuts) → Chart.js getHoverColor (saturate + darken);
        the unitemized .cc-pattern wedge is excluded (getHoverColor skips CanvasPatterns).
-       Choropleth → CSS brightness(1.35). The 4px offset / point-grow geometry is NOT on the
-       reference swatches — it lives only in the hover-documentation demos below each grid. */
+       The 4px offset / point-grow geometry is NOT on the reference swatches — it lives
+       only in the hover-documentation demos below each grid. (The choropleth's hover is a
+       --text outline, not a recolor, so its section has no swatch-hover rule.) */
     .cc-section--rehover .cc-chip { transition: filter .15s ease; }
     .cc-section--rehover .cc-swatch:hover .cc-chip:not(.cc-pattern) { filter: saturate(2) brightness(0.9); }
-    .cc-section--brighten .cc-chip, .cc-section--brighten .cc-gradbar { transition: filter .15s ease; }
-    .cc-section--brighten .cc-swatch:hover .cc-chip,
-    .cc-section--brighten .cc-gradbar:hover { filter: brightness(1.35); }            /* path:hover filter */
 
     .cc-hover-panel { display:flex; gap:var(--space-24); flex-wrap:wrap; align-items:center;
       margin-top:var(--space-16); padding:var(--space-16) var(--space-24);
@@ -151,9 +149,7 @@
     .cc-hov-wedge { width:130px; height:40px; border:1px solid var(--bg); border-radius:2px;
       transition:transform .15s ease; }
     .cc-hov-wedge:hover { transform: translateX(4px); }                             /* hoverOffset:4 */
-    .cc-hov-state { width:130px; height:40px; border-radius:2px; transition:filter .15s ease; }
-    .cc-hov-state:hover { filter: brightness(1.35); }                               /* path:hover */
-    .cc-hov-inert { width:130px; height:14px; border-radius:2px; background:var(--chart-spent-bar); }
+    .cc-hov-inert { width:130px; height:14px; border-radius:2px; background:var(--amber); }
     .cc-split { display:inline-flex; border:1px solid var(--border); border-radius:2px; overflow:hidden; }
     .cc-split > span { width:65px; height:40px; display:block; }
     .cc-split-labels { display:flex; gap:0; }
@@ -195,7 +191,7 @@
     <section class="cc-section">
       <h2 class="cc-section-title">The three color-source layers</h2>
       <p class="cc-section-note">Colors live in three disconnected places. The <strong>timeline</strong>, the
-        <strong>choropleth</strong> (now sourced from <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>),
+        <strong>choropleth</strong> (sourced from <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>),
         the monochrome purpose bars, and non-chart UI chrome flow from CSS tokens. The <strong>donuts are still
         hardcoded literals</strong> that numerically duplicate token values without referencing them — so retuning a
         token moves the timeline and choropleth but <em>not</em> the matching donut wedge. The badges throughout this
@@ -350,44 +346,33 @@
     </section>
 
     <!-- ── Choropleth ── -->
-    <section class="cc-section cc-section--brighten">
+    <section class="cc-section">
       <h2 class="cc-section-title">Choropleth map · both pages</h2>
       <p class="cc-section-note">Per-state fill = a single <strong>token-sourced hue</strong> —
         <code>--amber</code> (#8A5F10), read at runtime via <code>CHART_COLORS.choroplethRgb</code> — at a
         <strong>continuous alpha</strong> (no discrete steps): <code>alpha = 0.1 + (stateTotal / maxStateTotal) × 0.82</code>,
-        ranging <strong>0.10 → 0.92</strong>. The top state always renders near 0.92. <strong>The party-derived
-        hue was removed</strong> (it used to be REP→red / DEM→blue / else→purple, with committee maps often falling
-        to purple because <code>c.party</code> is usually <code>null</code>) — now both pages render the same amber
-        ramp regardless of party. This is the one chart surface that's <span class="cc-src cc-src--token">token</span>-driven
-        rather than a literal.</p>
+        ranging <strong>0.10 → 0.92</strong>. The top state always renders near 0.92. Both pages render the same
+        amber ramp, <strong>independent of party</strong>. This is the one chart surface whose hue is
+        <span class="cc-src cc-src--token">token</span>-driven rather than a literal.</p>
       <div id="choro"></div>
-      <h3 class="cc-subhead">No-data state &amp; stroke (hardcoded)</h3>
+      <h3 class="cc-subhead">No-data state &amp; stroke</h3>
       <div class="cc-grid" id="choroExtra" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
 
-      <h3 class="cc-subhead">Hover behavior — a different color mechanism (CSS filter, not Chart.js)</h3>
+      <h3 class="cc-subhead">Hover behavior — a --text outline, no fill change</h3>
       <div class="cc-hover-panel">
         <div class="cc-hov-demo">
-          <span class="cc-hov-state" style="background:rgba(138,95,16,0.6)"></span>
-          <span class="cc-hov-cap">hover — brightness 1.35×</span>
-        </div>
-        <div class="cc-hov-demo">
-          <div class="cc-split">
-            <span style="background:rgba(138,95,16,0.6)"></span>
-            <span style="background:rgba(138,95,16,0.6);filter:brightness(1.35)"></span>
-          </div>
-          <div class="cc-split-labels"><span>default</span><span>hover</span></div>
+          <span style="display:block;width:130px;height:40px;border-radius:2px;background:rgba(138,95,16,0.6);outline:1px solid var(--text);outline-offset:-1px"></span>
+          <span class="cc-hov-cap">hover — --text outline</span>
         </div>
         <div class="cc-hov-desc">
-          <span class="cc-hov-mech">CSS · .map-svg-wrap path:hover { filter: brightness(1.35) }</span>
-          <span class="cc-hov-text">Like the canvas charts the choropleth <strong>recolors on hover, but by a
-            different mechanism</strong>: a CSS <code>brightness(1.35)</code> filter on the SVG path — not Chart.js's
-            <code>getHoverColor</code>. Because it's a flat multiplier on whatever fill is there, it brightens a
-            dense (α 0.92) state, a faint (α 0.10) state, <em>and</em> the no-data grey by the same factor, and the
-            result maps to no token. Both the gradient bars and the no-data swatch above brighten on hover.
-            <strong>Now that the hue is amber</strong>, this brightening is worth watching: a faint low-density amber
-            state and the (also-brightening) no-data grey can read close on the warm parchment background — flagged
-            for the amber-rollout QA.</span>
-          <span class="cc-hov-badge cc-hov-badge--color">color change · brightness filter</span>
+          <span class="cc-hov-mech">overlay clone · fill:none · stroke var(--text) 0.75px · drawn on top</span>
+          <span class="cc-hov-text"><strong>No fill change</strong> — the shade is the data, so it stays put. On
+            hover a single <code>fill:none</code> overlay path (<code>.map-hover-outline</code>) copies the hovered
+            state's shape and outlines it in <code>--text</code> at 0.75px. It's drawn <em>last</em>, so the outline
+            is consistent on <strong>every edge</strong> — a per-state <code>:hover</code> stroke would get painted
+            over by later-drawn neighbors, leaving a messy partial outline. No transform, so no doubling of small
+            islands.</span>
+          <span class="cc-hov-badge cc-hov-badge--geom">outline only · no fill change</span>
         </div>
       </div>
     </section>
@@ -396,9 +381,8 @@
     <section class="cc-section">
       <h2 class="cc-section-title">Spending by Purpose bars · both pages — monochrome</h2>
       <p class="cc-section-note"><strong>Color encodes nothing here.</strong> Every bar is the same
-        <code>--chart-spent-bar</code> red (<code>rgba(217,74,74,0.72)</code>, the one token-driven chart fill
-        outside the timeline). Category is conveyed by the text label only; bar length encodes share. Shown with
-        illustrative widths.</p>
+        <code>--amber</code> (<code>#8A5F10</code> — the same hue as the choropleth). Category is conveyed by the
+        text label only; bar length encodes share. Shown with illustrative widths.</p>
       <div class="cc-purpose" id="purpose"></div>
       <h3 class="cc-subhead">Hover behavior</h3>
       <div class="cc-hover-panel">
@@ -420,10 +404,10 @@
     <section class="cc-section">
       <h2 class="cc-section-title">Hover-state audit — analysis of the current approach</h2>
       <p class="cc-section-note">Read off the production code <strong>and verified empirically</strong> (reading
-        Chart.js's resolved default-vs-active styles). The headline: <strong>the three data-mark surfaces all
-        recolor on hover, but via two unrelated mechanisms</strong> — Chart.js's built-in <code>getHoverColor</code>
-        (canvas: timeline + donuts) and a CSS brightness filter (SVG: choropleth) — with geometry (grow / offset)
-        layered onto the canvas ones. Only the purpose bars and the legend are inert.</p>
+        Chart.js's resolved default-vs-active styles). The headline: <strong>the canvas charts recolor on hover; the
+        choropleth doesn't.</strong> Timeline points and donut wedges recolor via Chart.js's built-in
+        <code>getHoverColor</code> (saturate + darken) plus geometry (grow / offset); the choropleth uses a
+        <code>--text</code> outline with no fill change (its shade is the data). Purpose bars and the legend are inert.</p>
       <table class="cc-audit">
         <thead><tr><th>Surface</th><th>Hover mechanism</th><th>Color change?</th><th>Defined where</th></tr></thead>
         <tbody>
@@ -431,7 +415,7 @@
           <tr><td>Timeline line</td><td>none (points carry the hover)</td><td class="no">No</td><td>—</td></tr>
           <tr><td>Raised/Spent donut wedge (solid)</td><td>recolor (saturate + darken) + offset 4px</td><td class="yes">Yes — Chart.js + offset</td><td>Chart.js <code>getHoverColor</code> default · <code>hoverOffset: 4</code></td></tr>
           <tr><td>Donut wedge — unitemized pattern</td><td>offset 4px only (pattern exempt)</td><td class="no">No — getHoverColor skips CanvasPatterns</td><td><code>hoverOffset: 4</code></td></tr>
-          <tr><td>Choropleth state</td><td>brightness × 1.35</td><td class="yes">Yes — CSS filter</td><td>CSS <code>.map-svg-wrap path:hover</code></td></tr>
+          <tr><td>Choropleth state</td><td>--text outline (no fill change)</td><td class="no">No — outline only</td><td><code>.map-hover-outline</code> overlay clone (fill:none, on top)</td></tr>
           <tr><td>Spending-by-Purpose bars</td><td>none</td><td class="no">No — inert</td><td>—</td></tr>
           <tr><td>Donut legend swatches</td><td>none (no wedge link)</td><td class="no">No — inert</td><td>—</td></tr>
         </tbody>
@@ -442,19 +426,18 @@
           (saturate + darken): timeline points and solid donut wedges shift (e.g. blue <code>#4A90D9</code> →
           <code>#097FFD</code>, amber <code>#E8A020</code> → <code>#EE9600</code>), and the donut's 1px ring
           brightens too. This is the effect you see on hover — it is <em>not</em> "geometry only."</li>
-        <li><strong>Two different color mechanisms that don't match.</strong> The canvas charts recolor via
-          Chart.js <code>getHoverColor</code> (a saturate + darken transform); the choropleth recolors via a CSS
-          <code>brightness(1.35)</code> multiplier. Both "brighten," but by different math — so hover intensity is
-          inconsistent across surfaces, and neither is governed by a token.</li>
+        <li><strong>Canvas recolor is Chart.js's, not ours.</strong> The canvas charts recolor via Chart.js
+          <code>getHoverColor</code> (a saturate + darken transform) — automatic, not governed by a token. The
+          choropleth deliberately does <em>not</em> recolor: its fill shade encodes the data, so it outlines
+          (<code>--text</code>) instead of touching the fill.</li>
         <li><strong>Geometry is layered on the canvas charts only.</strong> Points grow (5 → 7), wedges offset
           (4px). The choropleth has no geometry change; the recolor is its entire hover.</li>
         <li><strong>Two genuine exceptions.</strong> The unitemized <em>pattern</em> wedge is color-exempt —
           <code>getHoverColor</code> leaves CanvasPatterns untouched, so it only offsets. And the purpose bars +
           donut legend have no hover at all (the legend never cross-highlights its wedge).</li>
-        <li><strong>Now live on the amber choropleth.</strong> With the map hue switched to <code>--amber</code>,
-          the <code>brightness(1.35)</code> hover applies to a dark, warm amber rather than vivid blue/red — and a
-          faint low-density amber state + its brightened hover can read close to the (also-brightening) no-data grey
-          on the warm parchment background. Flagged for the amber-rollout QA.</li>
+        <li><strong>The choropleth doesn't recolor on hover.</strong> Its fill shade encodes the data, so hover is
+          a <code>--text</code> outline clone (<code>fill:none</code>, drawn on top) — no fill change, consistent on
+          every edge. No-data states are <code>--surface2</code>; the state grid lines are <code>--bg</code>.</li>
       </ul>
     </section>
 
@@ -505,14 +488,14 @@
       <ul class="cc-findings">
         <li><strong>Three disconnected color layers.</strong> CSS tokens (<code>--chart-*</code>, partisan,
           status) → drive the timeline, purpose bars, and UI chrome. <code>CHART_COLORS</code> (utils.js) mirrors
-          the <code>--chart-*</code> tokens into JS for the timeline, and the choropleth now reads <code>--amber</code>
+          the <code>--chart-*</code> tokens into JS for the timeline, and the choropleth reads <code>--amber</code>
           via <code>CHART_COLORS.choroplethRgb</code>. <strong>Inline rgba/RGB literals</strong> still drive the
           donuts — duplicating token numbers without referencing them, so a token retune won't propagate to the
           donut wedges.</li>
-        <li><strong>Category color is fixed; geographic color is a single token ramp.</strong> Donut and
-          purpose-bar colors are assigned per-category, hardcoded by identity — "Individuals (itemized)" is
-          <code>rgba(74,144,217,1)</code> on every page, cycle, and candidate. The choropleth is now a single
-          <code>--amber</code> ramp on both pages (the party-derived hue was removed).</li>
+        <li><strong>Category color is fixed; geographic color is a single token ramp.</strong> Donut colors are
+          assigned per-category, hardcoded by identity — "Individuals (itemized)" is <code>rgba(74,144,217,1)</code>
+          on every page, cycle, and candidate. The choropleth is a single <code>--amber</code> ramp on both pages,
+          party-independent.</li>
         <li><strong>One pattern, capacity 1.</strong> A single diagonal-stripe canvas pattern exists, used only
           for Individuals (unitemized) on the raised donut. There is no generator for a second distinct pattern.
           The legend can't render it (CSS background ≠ CanvasPattern) so it swaps to a flat
@@ -522,10 +505,10 @@
           receipts, Refunds &amp; offsets, Other Disbursements). The choropleth uses a continuous alpha scale
           (effectively unlimited shades of one hue).</li>
         <li><strong>Cross-page:</strong> raised donut identical; spent donut diverges (candidate 5 vs committee
-          8 categories); choropleth now identical on both (a single <code>--amber</code> ramp, party-agnostic);
+          8 categories); choropleth identical on both (a single <code>--amber</code> ramp, party-agnostic);
           timeline is candidate-only; purpose bars identical (monochrome).</li>
         <li><strong>Collisions:</strong> three greys distinguished only by alpha; one green carries many
-          meanings; "amber" is two different colors (donut gold literal vs the <code>--amber</code> token now on the
+          meanings; "amber" is two different colors (donut gold literal vs the <code>--amber</code> token on the
           map); and several committee-spent literals (<code>--accent</code>, <code>--ind</code>) silently equal
           existing tokens.</li>
       </ul>
@@ -575,7 +558,7 @@
       { name: 'CHART_COLORS (JS)', color: 'var(--chart-spent)', val: 'utils.js · mirrors --chart-* + choroplethRgb (--amber)', src: 'chart_colors',
         key: 'timeline series + axes · choropleth hue' },
       { name: 'Inline literal', color: 'rgba(155,142,212,0.85)', val: 'hardcoded rgba in render fn', src: 'literal',
-        key: 'donut categories (choropleth no longer — now token)' }
+        key: 'donut categories' }
     ]);
 
     // ── timeline ──────────────────────────────────────────────────────────
@@ -635,8 +618,8 @@
       '</div>';
     }).join('');
     fill('choroExtra', [
-      { name: 'No itemized contributions', color: 'rgba(205,199,188,0.4)', val: 'rgba(205,199,188,0.4)', key: 'state with $0 · hardcoded', src: 'literal' },
-      { name: 'State border stroke', color: 'rgb(248,245,236)', val: '#F8F5EC', key: 'hardcoded · = --bg parchment', src: 'literal' }
+      { name: 'No itemized contributions', color: 'var(--surface2)', val: '--surface2 · #EEE9E1', key: 'state with $0', src: 'token' },
+      { name: 'State border stroke', color: 'var(--bg)', val: '--bg · #F8F5EC', key: 'state grid lines', src: 'token' }
     ]);
 
     // ── purpose bars (monochrome) ────────────────────────────────────────
@@ -651,7 +634,7 @@
         '<div class="cc-purpose-lbl"><span>' + p.label + '</span><span>' + p.pct + '%</span></div>' +
         '<div class="cc-purpose-track"><div class="cc-purpose-fill" style="width:' + p.pct + '%"></div></div>' +
       '</div>';
-    }).join('') + '<p class="cc-val" style="margin-top:var(--space-8)">every bar = --chart-spent-bar · rgba(217,74,74,0.72) · #D94A4A</p>';
+    }).join('') + '<p class="cc-val" style="margin-top:var(--space-8)">every bar = --amber · #8A5F10</p>';
 
     // ── grey-alpha stack ─────────────────────────────────────────────────
     var greys = [

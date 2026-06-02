@@ -1547,6 +1547,7 @@ async function renderChoropleth(byStateData) {
     var maxTotal = byStateData.length ? byStateData[0].total : 0;
 
     var rgb = CHART_COLORS.choroplethRgb;   // single token-sourced hue (--amber)
+    var noDataFill = getComputedStyle(document.documentElement).getPropertyValue('--surface2').trim() || '#EEE9E1';
 
     var projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305]);
     var pathGen    = d3.geoPath().projection(projection);
@@ -1556,6 +1557,14 @@ async function renderChoropleth(byStateData) {
     svg.setAttribute('viewBox', '0 0 960 600');
     svg.setAttribute('aria-label', 'Map of individual contributions by state');
 
+    // Hover affordance = a single navy outline of the hovered state, drawn on top of
+    // every state (fill:none, so it never covers a fill — the data shade is untouched).
+    // Drawn last → its stroke sits above all neighbors, giving a consistent outline on
+    // every edge; a per-state :hover stroke would get painted over by later-drawn
+    // neighbors. The real paths never change, so hover events stay clean.
+    var hoverOutline = document.createElementNS(ns, 'path');
+    hoverOutline.setAttribute('class', 'map-hover-outline');
+
     states.features.forEach(function(feature) {
       var fips  = String(feature.id).padStart(2, '0');
       var abbr  = FIPS_TO_ABBR[fips];
@@ -1563,15 +1572,17 @@ async function renderChoropleth(byStateData) {
       var total = rec ? rec.total : 0;
       var pct   = maxTotal > 0 && total > 0 ? total / maxTotal : 0;
       var alpha = total > 0 ? (0.1 + pct * 0.82).toFixed(3) : '0';
-      var fill  = total > 0 ? 'rgba('+rgb+','+alpha+')' : 'rgba(205,199,188,0.4)';
+      var fill  = total > 0 ? 'rgba('+rgb+','+alpha+')' : noDataFill;   // no-data → --surface2 token
 
       var path = document.createElementNS(ns, 'path');
       var dAttr = pathGen(feature);
       if (!dAttr) return;
       path.setAttribute('d', dAttr);
       path.setAttribute('fill', fill);
-      path.setAttribute('stroke', '#F8F5EC');
-      path.setAttribute('stroke-width', '0.75');
+      // stroke (--bg) + stroke-width set in CSS (.map-svg-wrap path) — token, not a literal attribute.
+      // Move the hover outline onto this state (cleared on leave).
+      path.addEventListener('mouseenter', function() { hoverOutline.setAttribute('d', this.getAttribute('d')); });
+      path.addEventListener('mouseleave', function() { hoverOutline.removeAttribute('d'); });
 
       if (abbr) {
         path.setAttribute('data-full', rec ? rec.state_full : abbr);
@@ -1598,6 +1609,7 @@ async function renderChoropleth(byStateData) {
       }
       svg.appendChild(path);
     });
+    svg.appendChild(hoverOutline);   // last → outline paints on top of every state
 
     container.innerHTML = '';
     container.appendChild(svg);

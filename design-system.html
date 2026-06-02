@@ -347,7 +347,6 @@
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-spent-solid)"></span>--chart-spent-solid</td><td>--rep @ 100%</td><td class="ds-token-hex">rgba(217,74,74,1)</td><td>Spent chart point fill</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-coh)"></span>--chart-coh</td><td>--green @ 85%</td><td class="ds-token-hex">rgba(61,191,122,0.85)</td><td>Cash on Hand line in chart</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-coh-solid)"></span>--chart-coh-solid</td><td>--green @ 100%</td><td class="ds-token-hex">rgba(61,191,122,1)</td><td>CoH chart point fill</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-spent-bar)"></span>--chart-spent-bar</td><td>--rep @ 72%</td><td class="ds-token-hex">rgba(217,74,74,0.72)</td><td>Spend purpose bar fill</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--chart-overlay-today)"></span>--chart-overlay-today</td><td>--subtle @ 18%</td><td class="ds-token-hex">rgba(136,144,160,0.18)</td><td>Today marker (active cycles) — sole remaining chart overlay token after filing-deadline + election-day overlays were retired 2026-04-24</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Spacing scale tokens (8px grid):</td></tr>
             <tr><td class="ds-token-name">--space-2</td><td>—</td><td class="ds-token-hex">2px</td><td>Micro — fine-tuning only; every call site must have an inline comment explaining the rationale</td></tr>
@@ -1119,7 +1118,7 @@
             <div class="map-legend-lbl">$250K+</div>
           </div>
         </div>
-        <div class="ds-component-notes">SVG paths generated via D3-style projection in <code>renderChoropleth()</code>. State fill colors interpolate a single token-sourced hue (<code>--amber</code>, via <code>CHART_COLORS.choroplethRgb</code>) at 0.1–0.92 alpha based on contribution density. Tooltip (<code>#map-tt</code>, shared <code>.viz-tt</code> surface) is <code>position:fixed</code>, follows cursor via mousemove.</div>
+        <div class="ds-component-notes">SVG paths generated via D3-style projection in <code>renderChoropleth()</code>. State fill colors interpolate a single token-sourced hue (<code>--amber</code>, via <code>CHART_COLORS.choroplethRgb</code>) at 0.1–0.92 alpha based on contribution density; no-data states use <code>--surface2</code>. <strong>Hover</strong> draws a <code>--text</code> outline of the hovered state via a single <code>fill:none</code> overlay clone (<code>.map-hover-outline</code>) appended last so it paints on top of every neighbor — a consistent outline on all edges (a per-state <code>:hover</code> stroke gets covered by later-drawn neighbors), with <strong>no fill change</strong> (the shade is the data). Tooltip (<code>#map-tt</code>, shared <code>.viz-tt</code> surface) is <code>position:fixed</code>, follows cursor via mousemove.</div>
       </div>
 
       <!-- 10. Chart container (tab bar interactive) -->
@@ -1628,6 +1627,7 @@
             <div class="spend-bar-track"><div class="spend-bar-fill" style="width:28%"></div></div>
           </div>
         </div>
+        <div class="ds-component-notes">Monochrome — every <code>.spend-bar-fill</code> is <code>var(--amber)</code> (changed 2026-06-02 from <code>--chart-spent-bar</code> red). Color encodes nothing here; the category is the text label and bar length is the share.</div>
       </div>
 
       <!-- 13. Donut center -->

@@ -98,7 +98,6 @@
   --chart-spent-solid:      rgba(217,74,74,1);
   --chart-coh:              rgba(61,191,122,0.85);
   --chart-coh-solid:        rgba(61,191,122,1);
-  --chart-spent-bar:        rgba(217,74,74,0.72);
   --chart-overlay-today:    rgba(136,144,160,0.18);
 }
 
@@ -441,7 +440,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .spend-bar-amt { color:var(--text); white-space:nowrap; }
 .spend-bar-pct { color:var(--muted); white-space:nowrap; min-width:3rem; text-align:right; }
 .spend-bar-track { width:100%; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
-.spend-bar-fill { height:100%; border-radius:2px; background:var(--chart-spent-bar); transition:width 0.4s ease; }
+.spend-bar-fill { height:100%; border-radius:2px; background:var(--amber); transition:width 0.4s ease; }
 
 /* ── H: Donut ── */
 .donut-wrap { display:flex; flex-direction:column; align-items:center; gap:var(--space-24); }
@@ -509,8 +508,18 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 /* ── J: Choropleth map ── */
 .map-svg-wrap { width:100%; line-height:0; }
 .map-svg-wrap svg { width:100%; height:auto; display:block; }
-.map-svg-wrap path { transition:filter 0.1s; cursor:default; }
-.map-svg-wrap path:hover { filter:brightness(1.35); }
+.map-svg-wrap path { cursor:default; }
+/* State outline = the --bg parchment grid lines (token, set in CSS rather than a
+   per-path stroke attribute — SVG presentation attributes can't resolve var()). Scoped
+   :not(.map-hover-outline) so it doesn't override the hover clone's --text stroke below
+   (which has lower specificity). */
+.map-svg-wrap path:not(.map-hover-outline) { stroke:var(--bg); stroke-width:0.75; }
+/* Hover = a single dark outline of the hovered state, drawn on top via an overlay clone
+   (.map-hover-outline, built in renderChoropleth). fill:none so it never covers a fill
+   (the shade is the data); drawn last so the outline is consistent on every edge — a
+   per-state :hover stroke gets painted over by later-drawn neighbors. ~0.75px: thin, but
+   --text (near-black) makes it read against light AND amber states. */
+.map-hover-outline { fill:none; stroke:var(--text); stroke-width:0.75; pointer-events:none; }
 .map-legend { display:flex; align-items:center; gap:var(--space-8); margin-top:var(--space-8); }
 .map-legend-bar { flex:1; height:5px; border-radius:3px; }
 .map-legend-lbl { font-size:0.625rem; color:var(--muted); text-transform:uppercase; letter-spacing:var(--ls-expanded); white-space:nowrap; }
