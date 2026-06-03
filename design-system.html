@@ -370,7 +370,7 @@
             <tr><td class="ds-token-name">--ls-expanded</td><td>—</td><td class="ds-token-hex">0.05em</td><td>Small uppercase labels — <code style="font-size:0.625rem">.stat-label</code>, <code style="font-size:0.625rem">.tag</code>, table headers (proportional em). Tightened from 0.1em on 2026-05-13 — single canonical value across all label-shape rules.</td></tr>
           </tbody>
         </table>
-        <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#A83228</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). Both are backed by the <code>--red-deep</code> primitive. If the status system diverges from the partisan palette in the future, they should split into separate primitives at that point.</div>
+        <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#A83228</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). As of 2026-06-03 both <em>reference</em> the <code>--red-deep</code> primitive (collapsed to one source). They stay distinct token names: if the status system ever needs to diverge from the partisan palette, redefine <code>--red</code> to its own value at that point.</div>
       </div>
     </section>
 

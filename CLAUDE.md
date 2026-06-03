@@ -171,9 +171,9 @@ Documented non-token exceptions: `margin-bottom:-1px` in `.tab` (border-offset t
 
 **Page gutter pattern:** All content sections use `var(--page-gutter)` for horizontal padding — resolves to `var(--space-48)` (48px) on desktop, `var(--space-16)` (16px) on mobile (≤860px). Mobile value is overridden in `:root` inside `@media (max-width:860px)`. When adding a new page or content section, use `padding: <vertical> var(--page-gutter)`. Component-internal padding (buttons, cards, modals) uses `--space-*` tokens directly, not `--page-gutter`.
 
-**Known intentional overlap:** `--red` and `--rep` both resolve to `#A83228`. `--rep` = Republican partisan color; `--red` = status color (stressed/error). Do not merge them. If the status system ever diverges from the partisan palette, split them at that point. Same pattern for `--inc` and `--amber`: both resolve to `#8A5F10` (amber-deep). `--inc` is the incumbent-tag text color; `--amber` is the watch/warning status color. Kept separate so a future change to either semantic role doesn't ripple into the other. **Contrast — `--dem` is the opposite case (collapsed, not kept-separate):** as of 2026-06-03 `--dem` *references* `--navy-deep` (`#05234F`) rather than holding its own literal — the Democrat navy and the brand navy were deliberately merged (the former `#1E3A5F` was retired with no visual risk). If the Democrat color ever needs to diverge from the brand navy, redefine `--dem` to its own value at that point.
+**Token overlaps — collapsed vs kept-separate:** Several semantic tokens share a value with a brand primitive. As of 2026-06-03 the navy and red ones are **collapsed** — they *reference* the brand primitive rather than holding their own literal, so there's a single source per color: `--dem` → `--navy-deep` (`#05234F`, the former `#1E3A5F` was retired with no visual risk), and `--rep` + `--red` → `--red-deep` (`#A83228`). They stay distinct token *names*: if a partisan or status color ever needs to diverge from the brand color, redefine that token to its own value at that point (the collapse doesn't prevent divergence, it just removes the duplicate literal). **`--inc` and `--amber` are the one remaining kept-separate overlap:** both are independent `#8A5F10` literals (incumbent-tag text vs watch/warning status), deliberately *not* collapsed so a change to either role doesn't ripple into the other.
 
-**Partisan tag tokens:** Each party has a deep/tint pair — `--dem` (#05234F, via `--navy-deep`) + `--dem50` (#E6EBEF), `--rep` (#A83228) + `--rep50` (#F5E2E0), `--ind` (#5A4A7A) + `--ind50` (#EDE7FA). Deep is tag text; light tint is tag background. The `50` suffix marks "lightest tint" — it does NOT imply a numbered scale (no `--dem100`, `--dem500`, etc.); only two values per party. Same convention for `--inc` (#8A5F10, amber-deep) + `--inc50` (#F6E9CE, amber-light) on the incumbent tag.
+**Partisan tag tokens:** Each party has a deep/tint pair — `--dem` (#05234F, via `--navy-deep`) + `--dem50` (#E6EBEF), `--rep` (#A83228, via `--red-deep`) + `--rep50` (#F5E2E0), `--ind` (#5A4A7A) + `--ind50` (#EDE7FA). Deep is tag text; light tint is tag background. The `50` suffix marks "lightest tint" — it does NOT imply a numbered scale (no `--dem100`, `--dem500`, etc.); only two values per party. Same convention for `--inc` (#8A5F10, amber-deep) + `--inc50` (#F6E9CE, amber-light) on the incumbent tag.
 
 ### Component status lifecycle
 
@@ -197,7 +197,7 @@ Light "broadsheet" theme. Key CSS variables.
 
 ```
 --navy-deep: #05234F  (brand primitive — backs logo "Ledger", banner bg, brand accent; also backs --dem, summary chart Raised line, --cat-1. Renamed from --color-navy-950 2026-06-03)
---red-deep:  #A83228  (brand primitive — backs logo "FEC", active tab, summary chart Spent line; also backs --rep and --red (same value, independent literals). Renamed from --color-red-700 2026-06-03)
+--red-deep:  #A83228  (brand primitive — backs logo "FEC", active tab, summary chart Spent line; --rep and --red now reference it. Renamed from --color-red-700 2026-06-03)
 
 --bg: #F8F5EC        (page background + nav)
 --surface: #FFFFFF   (cards, panels)
@@ -209,14 +209,14 @@ Light "broadsheet" theme. Key CSS variables.
 --subtle: #46403A
 --dem: var(--navy-deep) → #05234F  (Democrat — tag text; collapsed into the brand navy 2026-06-03, was #1E3A5F)
 --dem50: #E6EBEF     (Democrat — tag background tint)
---rep: #A83228       (Republican — tag text; resolves via --red-deep)
+--rep: var(--red-deep) → #A83228  (Republican — tag text; collapsed into --red-deep 2026-06-03)
 --rep50: #F5E2E0     (Republican — tag background tint)
 --ind: #5A4A7A       (Independent — tag text)
 --ind50: #EDE7FA     (Independent — tag background tint)
 --green: #1E6644     (healthy)
 --filing-active: #3DBF7A (active filing status dot)
 --amber: #8A5F10     (watch / warning — same value as --inc, intentionally kept separate)
---red: #A83228       (stressed — resolves via --red-deep; same value as --rep, intentionally kept separate)
+--red: var(--red-deep) → #A83228  (stressed/error — collapsed into --red-deep 2026-06-03; see token-overlaps note)
 --inc: #8A5F10       (incumbent tag text — amber-deep; same value as --amber, see overlap note)
 --inc50: #F6E9CE     (incumbent tag background tint — amber-light)
 --filing-terminated: #A8A099 (terminated filing status dot)

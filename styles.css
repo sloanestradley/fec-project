@@ -48,7 +48,7 @@
   /* Partisan / data — deep color + light tint pair per party */
   --dem:   var(--navy-deep);  /* collapsed into the brand navy 2026-06-03 — Democrat = #05234F (was #1E3A5F) */
   --dem50: #E6EBEF;  /* light blue tint — filled tag bg */
-  --rep:   #A83228;
+  --rep:   var(--red-deep);  /* collapsed into --red-deep 2026-06-03 — Republican = #A83228. Redefine to its own value if it ever needs to diverge from the brand red. */
   --rep50: #F5E2E0;  /* light red tint — filled tag bg */
   --ind:   #5A4A7A;
   --ind50: #EDE7FA;  /* light purple tint — filled tag bg */
@@ -57,14 +57,14 @@
   --green:     #1E6644;
   --filing-active: #3DBF7A;
   --amber:     #8A5F10;
-  --red:       #A83228;
+  --red:       var(--red-deep);  /* collapsed into --red-deep 2026-06-03 — status red = #A83228. Redefine if the status system ever diverges from the partisan palette. */
   --filing-terminated: #A8A099;
-  --inc:       #8A5F10; /* amber-deep — incumbent tag text. Same value as --amber, kept separate for semantic clarity (parallel to --red/--rep). */
+  --inc:       #8A5F10; /* amber-deep — incumbent tag text. Same value as --amber, kept separate as independent literals (the last such overlap — --dem/--rep/--red were collapsed to reference their brand primitive 2026-06-03). */
   --inc50:     #F6E9CE; /* amber-light tint — incumbent tag bg */
 
   /* Brand primitives */
   --navy-deep: #05234F; /* nav logo "Ledger", brand accent — also backs --dem (Democrat) + summary chart Raised + --cat-1 */
-  --red-deep:  #A83228; /* nav logo "FEC", active tab, summary chart Spent — also backs --rep/--red (same #A83228, independent literals). Renamed from --color-red-700 2026-06-03 */
+  --red-deep:  #A83228; /* nav logo "FEC", active tab, summary chart Spent — also backs --rep/--red (which now reference it). Renamed from --color-red-700 2026-06-03 */
 
   /* Data-category sequence — donut wedges (raised + spent, shared by ring
      position). Self-contained: deliberately own values, NOT references to
