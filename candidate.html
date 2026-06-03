@@ -192,9 +192,9 @@
           <div class="chart-header">
             <div class="chart-title" id="chart-title">Raised · Spent · Cash on Hand over cycle</div>
             <div class="chart-legend" style="display:none">
-              <div class="legend-item"><div class="legend-swatch" style="background:var(--color-navy-950)"></div>Raised</div>
-              <div class="legend-item"><div class="legend-swatch" style="background:var(--color-red-700)"></div>Spent</div>
-              <div class="legend-item"><div class="legend-swatch" style="background:var(--green)"></div>Cash on Hand</div>
+              <div class="legend-item"><div class="legend-swatch" style="color:var(--color-navy-950)"></div>Raised</div>
+              <div class="legend-item"><div class="legend-swatch" style="color:var(--color-red-700)"></div>Spent</div>
+              <div class="legend-item"><div class="legend-swatch" style="color:var(--green)"></div>Cash on Hand</div>
             </div>
           </div>
           <div id="chart-area" style="position:relative;width:100%;min-width:0;height:320px">
@@ -768,6 +768,7 @@ function renderChart(reports, cycle) {
         {
           label: 'Raised',
           data: ptRaised,
+          clip: false,           // ← let edge points draw into layout padding
           borderColor: CHART_COLORS.raised,
           backgroundColor: 'transparent',
           borderWidth: 2,
@@ -782,6 +783,7 @@ function renderChart(reports, cycle) {
         {
           label: 'Spent',
           data: ptSpent,
+          clip: false,
           borderColor: overspend ? CHART_COLORS.spentSolid : CHART_COLORS.spent,
           backgroundColor: 'transparent',
           borderWidth: 2,
@@ -796,6 +798,7 @@ function renderChart(reports, cycle) {
         {
           label: 'Cash on Hand',
           data: ptCoh,
+          clip: false,
           borderColor: CHART_COLORS.coh,
           backgroundColor: 'transparent',
           borderWidth: 2,
@@ -814,6 +817,10 @@ function renderChart(reports, cycle) {
       responsive: true,
       maintainAspectRatio: true,
       aspectRatio: 2.2,
+      // Room inside the canvas for the "today" overlay label (drawn above the
+      // plot area) and the radius of points sitting at the right/top edges;
+      // paired with clip:false on the datasets so edge points draw into it.
+      layout: { padding: { top: 16, right: 10 } },
       animation: { duration: 600, easing: 'easeOutQuart' },
       interaction: { mode: 'index', intersect: false },
       plugins: {
