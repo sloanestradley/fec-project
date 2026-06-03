@@ -61,10 +61,10 @@
 
     /* ── Pattern fill (CSS approximation of the canvas makeStripePattern) ── */
     .cc-pattern {
-      background-color: #F8F5EC;
+      background-color: #05234F;
       background-image: repeating-linear-gradient(135deg,
-        #05234F 0, #05234F 2px,
-        #F8F5EC 2px, #F8F5EC 6px); }
+        #F8F5EC 0, #F8F5EC 2px,
+        #05234F 2px, #05234F 6px); }
 
     /* ── Choropleth gradient bars ── */
     .cc-gradbar-row { display:flex; align-items:center; gap:var(--space-16); margin-bottom:var(--space-16); flex-wrap:wrap; }
@@ -168,8 +168,8 @@
     <p class="cc-lede">Every color- and pattern-encoding chart surface, rendered as actual swatches over the
       real page background so collisions and the token/literal split are visible at a glance. Each swatch carries
       a <strong>source-layer badge</strong>: <span class="cc-src cc-src--token">token</span> reads a
-      <code style="font-family:'IBM Plex Mono'">--chart-*</code> CSS variable,
-      <span class="cc-src cc-src--cc">chart_colors</span> reads the JS mirror of those tokens, and
+      CSS variable (a semantic / brand token),
+      <span class="cc-src cc-src--cc">chart_colors</span> reads those tokens through the JS helper, and
       <span class="cc-src cc-src--literal">literal</span> is a hardcoded rgba/RGB string baked into a render
       function (not a token). Each chart section also documents its <strong>hover behavior</strong> with a faithful
       interactive demo (hover the swatches and demos to see the real effect), summarized in the
@@ -194,9 +194,10 @@
     <section class="cc-section cc-section--rehover">
       <h2 class="cc-section-title">Summary timeline · candidate only</h2>
       <p class="cc-section-note">Line chart, 3 series + an overlay marker. The only fully token-driven chart
-        surface (via <code>CHART_COLORS</code>, which reads the <code>--chart-*</code> vars at runtime). Points
-        use the opaque <code>-solid</code> variants; the Spent line swaps to <code>spentSolid</code> when
-        cumulative spend exceeds raised.</p>
+        surface (via <code>CHART_COLORS</code>, which now reads general semantic / brand tokens at runtime —
+        <code>--color-navy-950</code> / <code>--color-red-700</code> / <code>--green</code>). The <code>-solid</code>
+        point variants resolve to the same tokens as the lines now, so the Spent line's former overspend
+        opacity-shift no longer applies.</p>
       <div class="cc-grid" id="timeline"></div>
       <h3 class="cc-subhead">Hover behavior</h3>
       <div class="cc-hover-panel">
@@ -240,17 +241,17 @@
         <div class="cc-legend-demo-col">
           <div class="cc-legend-demo-big cc-pattern"></div>
           <span class="cc-legend-demo-cap">Wedge fill — stripes</span>
-          <span class="cc-val">canvas pattern · #05234F on #F8F5EC</span>
+          <span class="cc-val">canvas pattern · #F8F5EC on #05234F</span>
         </div>
         <div class="cc-legend-demo-col">
-          <div class="cc-legend-demo-big" style="background:#05234F"></div>
+          <div class="cc-legend-demo-big" style="background:#F8F5EC;border:1px solid var(--border)"></div>
           <span class="cc-legend-demo-cap">Legend swatch — flat</span>
-          <span class="cc-val">legendColor · #05234F</span>
+          <span class="cc-val">legendColor · #F8F5EC</span>
         </div>
         <div class="cc-legend-demo-col" style="align-items:flex-start;max-width:240px">
           <span class="cc-legend-demo-cap">As it appears in-legend</span>
           <span class="cc-name"><span class="cc-legend-sw cc-pattern"></span> shown as &rarr;
-            <span class="cc-legend-sw" style="background:#05234F"></span> Individuals (unitemized)</span>
+            <span class="cc-legend-sw" style="background:#F8F5EC;border:1px solid var(--border)"></span> Individuals (unitemized)</span>
           <span class="cc-val">render: <code style="font-family:'IBM Plex Mono'">(c.legendColor || c.color)</code></span>
         </div>
       </div>
@@ -433,10 +434,11 @@
     <section class="cc-section">
       <h2 class="cc-section-title">Findings (condensed)</h2>
       <ul class="cc-findings">
-        <li><strong>Three disconnected color layers.</strong> CSS tokens (<code>--chart-*</code>, partisan,
-          status) → drive the timeline, purpose bars, and UI chrome. <code>CHART_COLORS</code> (utils.js) mirrors
-          the <code>--chart-*</code> tokens into JS for the timeline, and the choropleth reads <code>--amber</code>
-          via <code>CHART_COLORS.choroplethRgb</code>. The donut categories are <strong>raw literals</strong>,
+        <li><strong>Three color layers.</strong> CSS tokens (partisan, status, brand) drive the timeline, purpose
+          bars, and UI chrome. <code>CHART_COLORS</code> (utils.js) reads those general tokens into JS for the
+          timeline (the bespoke <code>--chart-*</code> set was retired 2026-06-03), and the choropleth reads
+          <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>. The donut categories are <strong>raw
+          literals</strong>,
           consolidated into <code>CATEGORY_COLORS</code> (utils.js, Phase 1) so both pages share one source — but
           still literal values, not tokens, so a token retune won't propagate to the donut wedges until Phase 3
           promotes them to <code>--cat-*</code> tokens.</li>
@@ -502,26 +504,26 @@
 
     // ── source layers ─────────────────────────────────────────────────────
     fill('layers', [
-      { name: 'CSS token', color: 'var(--chart-raised)', val: 'styles.css :root → --chart-*', src: 'token',
+      { name: 'CSS token', color: 'var(--color-navy-950)', val: 'styles.css :root → semantic / brand tokens', src: 'token',
         key: 'timeline · purpose bar · UI chrome' },
-      { name: 'CHART_COLORS (JS)', color: 'var(--chart-spent)', val: 'utils.js · mirrors --chart-* + choroplethRgb (--amber)', src: 'chart_colors',
+      { name: 'CHART_COLORS (JS)', color: 'var(--color-red-700)', val: 'utils.js · reads general tokens + choroplethRgb (--amber)', src: 'chart_colors',
         key: 'timeline series + axes · choropleth hue' },
       { name: 'Raw literal', color: '#05234F', val: 'CATEGORY_COLORS (utils.js) · raw values, not tokens', src: 'literal',
         key: 'donut categories' }
     ]);
 
-    // ── timeline ──────────────────────────────────────────────────────────
+    // ── timeline (CHART_COLORS now reads general tokens, not bespoke --chart-*) ──
     fill('timeline', [
-      { name: 'Raised', color: 'rgba(74,144,217,0.9)', val: 'rgba(74,144,217,0.9)', key: '--chart-raised · pts use -solid 1.0', src: 'chart_colors' },
-      { name: 'Spent', color: 'rgba(217,74,74,0.85)', val: 'rgba(217,74,74,0.85)', key: '--chart-spent · → spentSolid on overspend', src: 'chart_colors' },
-      { name: 'Cash on Hand', color: 'rgba(61,191,122,0.85)', val: 'rgba(61,191,122,0.85)', key: '--chart-coh · pts use -solid 1.0', src: 'chart_colors' },
-      { name: '"Today" overlay line', color: 'rgba(136,144,160,0.18)', val: 'rgba(136,144,160,0.18)', key: '--chart-overlay-today', src: 'chart_colors' }
+      { name: 'Raised', color: 'var(--color-navy-950)', val: '--color-navy-950 · #05234F', key: 'CHART_COLORS.raised · raisedSolid = same token', src: 'chart_colors' },
+      { name: 'Spent', color: 'var(--color-red-700)', val: '--color-red-700 · #A83228', key: 'CHART_COLORS.spent · spentSolid = same token (overspend no longer shifts)', src: 'chart_colors' },
+      { name: 'Cash on Hand', color: 'var(--green)', val: '--green · #1E6644', key: 'CHART_COLORS.coh · cohSolid = same token', src: 'chart_colors' },
+      { name: '"Today" overlay line', color: 'var(--border-strong)', val: '--border-strong · #A8A099', key: 'CHART_COLORS.overlayToday', src: 'chart_colors' }
     ]);
 
     // ── raised donut (10) ────────────────────────────────────────────────
     fill('raised', [
       { name: 'Individuals (itemized)', color: '#05234F', val: '#05234F', key: 'individual_itemized_contributions', src: 'literal' },
-      { name: 'Individuals (unitemized)', pattern: true, val: 'PATTERN · stripes #05234F on #F8F5EC · legend #05234F', key: 'individual_unitemized_contributions · legendColor #05234F', src: 'literal' },
+      { name: 'Individuals (unitemized)', pattern: true, val: 'PATTERN · stripes #F8F5EC on #05234F · legend #F8F5EC', key: 'individual_unitemized_contributions · legendColor #F8F5EC', src: 'literal' },
       { name: 'PACs & other committees', color: '#1d5a6d', val: '#1d5a6d', key: 'other_political_committee_contributions', src: 'literal' },
       { name: 'Party committees', color: '#437772', val: '#437772', key: 'political_party_committee_contributions', src: 'literal' },
       { name: 'Candidate authorized committees', color: '#75917b', val: '#75917b', key: 'transfers_from_other_authorized_committee', src: 'literal' },

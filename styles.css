@@ -90,15 +90,6 @@
      T-nav-scroll arc; the property + the lifted helper stay, the nav-scroll
      listener that originally motivated them has been reverted.) */
   --compact-header-h:  0px;
-
-  /* Chart palette — opacified layer on semantic tokens */
-  --chart-raised:           rgba(74,144,217,0.9);
-  --chart-raised-solid:     rgba(74,144,217,1);
-  --chart-spent:            rgba(217,74,74,0.85);
-  --chart-spent-solid:      rgba(217,74,74,1);
-  --chart-coh:              rgba(61,191,122,0.85);
-  --chart-coh-solid:        rgba(61,191,122,1);
-  --chart-overlay-today:    rgba(136,144,160,0.18);
 }
 
 /* ── Global banner ── */
