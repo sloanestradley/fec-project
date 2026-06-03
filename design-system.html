@@ -38,7 +38,7 @@
     .ds-status.stable      { color:var(--green);  border-color:rgba(30,102,68,0.3);   background:rgba(30,102,68,0.06); }
     .ds-status.candidate-only { color:var(--dem); border-color:rgba(30,58,95,0.3);   background:rgba(30,58,95,0.06); }
     .ds-status.log-only    { color:var(--ind);   border-color:rgba(90,74,122,0.3);   background:rgba(90,74,122,0.06); }
-    .ds-status.planned     { color:var(--muted); border-color:var(--border);          background:var(--surface2); }
+    .ds-status.planned     { color:var(--muted); border-color:var(--border);          background:var(--surface-2); }
     .ds-status.deprecated  { color:var(--red);   border-color:rgba(168,50,40,0.3);   background:rgba(168,50,40,0.06); }
 
     /* ── Token table ── */
@@ -50,7 +50,7 @@
       vertical-align:middle; font-size:0.625rem; color:var(--subtle);
       font-family:'IBM Plex Mono',monospace; }
     .ds-token-table tr:last-child td { border-bottom:none; }
-    .ds-token-table tr:hover td { background:var(--surface2); }
+    .ds-token-table tr:hover td { background:var(--surface-2); }
     .ds-token-dot { width:12px; height:12px; border-radius:2px; display:inline-block;
       vertical-align:middle; border:1px solid rgba(255,255,255,0.06); margin-right:var(--space-4); }
     .ds-token-name { color:var(--dem); }
@@ -96,10 +96,10 @@
       font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted);
       padding:var(--space-4) var(--space-8); cursor:pointer; transition:all 0.15s; }
     .ds-state-btn:hover { border-color:var(--subtle); color:var(--text); }
-    .ds-state-btn.active { border-color:var(--text); color:var(--text); background:var(--surface2); }
+    .ds-state-btn.active { border-color:var(--text); color:var(--text); background:var(--surface-2); }
     .ds-mini-sidebar { background:var(--surface); border:1px solid var(--border);
       border-radius:4px; padding:var(--space-8); width:180px; }
-    .ds-chart-placeholder { background:var(--surface2); border:1px dashed var(--border);
+    .ds-chart-placeholder { background:var(--surface-2); border:1px dashed var(--border);
       border-radius:3px; height:140px; display:flex; align-items:center; justify-content:center;
       color:var(--muted); font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase; }
     .ds-note { font-size:0.625rem; color:var(--muted); font-style:italic; margin-bottom:var(--space-8); }
@@ -309,7 +309,7 @@
           <tbody>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--bg);border:1px solid var(--border)"></span>--bg</td><td>warm-floor</td><td class="ds-token-hex">#F8F5EC</td><td>Page background + nav</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--surface);border:1px solid var(--border)"></span>--surface</td><td>light-card</td><td class="ds-token-hex">#FFFFFF</td><td>Cards, panels</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--surface2);border:1px solid var(--border)"></span>--surface2</td><td>warm-inset</td><td class="ds-token-hex">#EEE9E1</td><td>Chart interiors, inset elements</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--surface-2);border:1px solid var(--border)"></span>--surface-2</td><td>warm-inset</td><td class="ds-token-hex">#EEE9E1</td><td>Chart interiors, inset elements</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--border)"></span>--border</td><td>warm-rule</td><td class="ds-token-hex">#D7D1C7</td><td>Dividers, outlines</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--border-strong)"></span>--border-strong</td><td>warm-rule-dark</td><td class="ds-token-hex">#A8A099</td><td>Strong borders, nav dots default, summary chart "today" marker overlay</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--text)"></span>--text</td><td>warm-ink</td><td class="ds-token-hex">#1A1510</td><td>Primary text</td></tr>
@@ -385,9 +385,9 @@
             <div class="ds-swatch-hex">#FFFFFF</div>
             <div class="ds-swatch-desc">Cards, panels</div>
           </div>
-          <div class="ds-swatch" data-token="--surface2" data-hex="#EEE9E1">
-            <div class="ds-swatch-color" style="background:var(--surface2)"></div>
-            <div class="ds-swatch-token">--surface2</div>
+          <div class="ds-swatch" data-token="--surface-2" data-hex="#EEE9E1">
+            <div class="ds-swatch-color" style="background:var(--surface-2)"></div>
+            <div class="ds-swatch-token">--surface-2</div>
             <div class="ds-swatch-hex">#EEE9E1</div>
             <div class="ds-swatch-desc">Chart interiors, insets</div>
           </div>
@@ -625,7 +625,7 @@
             <span class="tag tag-transparent">*Active from a prior candidacy</span>
           </div>
         </div>
-        <div class="ds-component-notes"><strong>Filled-on-light pattern (2026-05-13 restyle):</strong> tags use a deep text color on a light tinted background, no border, 2px corner radius. Each partisan variant pairs the canonical party color with its <code>--xxx50</code> tint (<code>.tag-dem</code> on <code>--dem50</code>, etc.). <code>.tag-neutral</code> uses <code>--surface2</code> as background and inherits text color from the parent (typically body's <code>--text</code>). <code>.tag-inc</code> is the incumbent variant — <code>--inc</code> text on <code>--inc50</code> bg — replacing the prior <code>.incumbent-tag</code> identifier class used as a JS hook (now <code>.tag-inc</code> serves both styling and addressing). <code>.tag-transparent</code> is the quietest variant — transparent background, inherits text color — used today only by the "*Active from a prior candidacy" annotation on off-office PCC rows inside the candidate.html committees modal (see <a href="#comp-committee-rows">comp-committee-rows</a>). <strong>Slot for neutral content:</strong> seat/race labels, FEC IDs, state codes, status pairs. Inline middle-dot (<code>·</code>) is the convention for "label · value" pairings inside a single tag. <strong>Status-dot composition:</strong> nest a <code>&lt;span class="status-dot dot-active|dot-terminated"&gt;</code> as the first child of a <code>.tag-neutral</code> to prefix a 6×6 colored dot. Used on every committee-row site-wide (candidate modal, /committees browse, /search results, committee.html header) — see <a href="#comp-committee-rows">comp-committee-rows</a> for the row-level composition.</div>
+        <div class="ds-component-notes"><strong>Filled-on-light pattern (2026-05-13 restyle):</strong> tags use a deep text color on a light tinted background, no border, 2px corner radius. Each partisan variant pairs the canonical party color with its <code>--xxx50</code> tint (<code>.tag-dem</code> on <code>--dem50</code>, etc.). <code>.tag-neutral</code> uses <code>--surface-2</code> as background and inherits text color from the parent (typically body's <code>--text</code>). <code>.tag-inc</code> is the incumbent variant — <code>--inc</code> text on <code>--inc50</code> bg — replacing the prior <code>.incumbent-tag</code> identifier class used as a JS hook (now <code>.tag-inc</code> serves both styling and addressing). <code>.tag-transparent</code> is the quietest variant — transparent background, inherits text color — used today only by the "*Active from a prior candidacy" annotation on off-office PCC rows inside the candidate.html committees modal (see <a href="#comp-committee-rows">comp-committee-rows</a>). <strong>Slot for neutral content:</strong> seat/race labels, FEC IDs, state codes, status pairs. Inline middle-dot (<code>·</code>) is the convention for "label · value" pairings inside a single tag. <strong>Status-dot composition:</strong> nest a <code>&lt;span class="status-dot dot-active|dot-terminated"&gt;</code> as the first child of a <code>.tag-neutral</code> to prefix a 6×6 colored dot. Used on every committee-row site-wide (candidate modal, /committees browse, /search results, committee.html header) — see <a href="#comp-committee-rows">comp-committee-rows</a> for the row-level composition.</div>
       </div>
 
       <!-- 4. Nav item -->
@@ -1072,9 +1072,9 @@
         </div>
         <div class="ds-component-classes">.map-svg-wrap · .viz-tt · .viz-tt-label · .viz-tt-body <span style="color:var(--muted)">(hover tooltip #map-tt — shared .viz-tt surface, see Tooltip card)</span></div>
         <div class="ds-component-demo">
-          <div class="map-svg-wrap" style="max-width:400px;background:var(--surface2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;height:120px;font-size:0.625rem;color:var(--muted);letter-spacing:var(--ls-expanded);text-transform:uppercase">SVG path map</div>
+          <div class="map-svg-wrap" style="max-width:400px;background:var(--surface-2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;height:120px;font-size:0.625rem;color:var(--muted);letter-spacing:var(--ls-expanded);text-transform:uppercase">SVG path map</div>
         </div>
-        <div class="ds-component-notes">SVG paths generated via D3-style projection in <code>renderChoropleth()</code>. State fill colors interpolate a single token-sourced hue (<code>--amber</code>, via <code>CHART_COLORS.choroplethRgb</code>) at 0.1–0.92 alpha based on contribution density; no-data states use <code>--surface2</code>. <strong>Hover</strong> draws a <code>--text</code> outline of the hovered state via a single <code>fill:none</code> overlay clone (<code>.map-hover-outline</code>) appended last so it paints on top of every neighbor — a consistent outline on all edges (a per-state <code>:hover</code> stroke gets covered by later-drawn neighbors), with <strong>no fill change</strong> (the shade is the data). Tooltip (<code>#map-tt</code>, shared <code>.viz-tt</code> surface) is <code>position:fixed</code>, follows cursor via mousemove.</div>
+        <div class="ds-component-notes">SVG paths generated via D3-style projection in <code>renderChoropleth()</code>. State fill colors interpolate a single token-sourced hue (<code>--amber</code>, via <code>CHART_COLORS.choroplethRgb</code>) at 0.1–0.92 alpha based on contribution density; no-data states use <code>--surface-2</code>. <strong>Hover</strong> draws a <code>--text</code> outline of the hovered state via a single <code>fill:none</code> overlay clone (<code>.map-hover-outline</code>) appended last so it paints on top of every neighbor — a consistent outline on all edges (a per-state <code>:hover</code> stroke gets covered by later-drawn neighbors), with <strong>no fill change</strong> (the shade is the data). Tooltip (<code>#map-tt</code>, shared <code>.viz-tt</code> surface) is <code>position:fixed</code>, follows cursor via mousemove.</div>
       </div>
 
       <!-- 10. Chart container (tab bar interactive) -->

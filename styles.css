@@ -6,7 +6,7 @@
   /* Surfaces */
   --bg:           #F8F5EC;
   --surface:      #FFFFFF;
-  --surface2:     #EEE9E1;
+  --surface-2:     #EEE9E1;
   --border:       #D7D1C7;
   --border-strong:#A8A099;
 
@@ -253,7 +253,7 @@ a { color: var(--accent); }
   letter-spacing:var(--ls-expanded); padding:var(--space-8) var(--space-16);
   background:transparent; border:1px solid var(--border-strong); color:var(--subtle);
   border-radius:2px; cursor:pointer; flex-shrink:0; }
-.tab-retry-btn:hover { background:var(--surface2); }
+.tab-retry-btn:hover { background:var(--surface-2); }
 .tab-retry-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .data-note { font-size:0.625rem; color:var(--subtle); margin-top:var(--space-24);
   padding-top:var(--space-16); border-top:1px solid var(--border); line-height:var(--lh-expanded); }
@@ -312,7 +312,7 @@ a { color: var(--accent); }
 .tag-dem         { color:var(--dem); background:var(--dem50); }
 .tag-rep         { color:var(--rep); background:var(--rep50); }
 .tag-ind         { color:var(--ind); background:var(--ind50); }
-.tag-neutral     { background:var(--surface2); }
+.tag-neutral     { background:var(--surface-2); }
 .tag-inc         { color:var(--inc); background:var(--inc50); }
 .tag-transparent { background:transparent; }
 /* Editorial prose row used for sentence-format context lines. Despite the
@@ -377,7 +377,7 @@ a { color: var(--accent); }
   align-items:center; gap:var(--space-8) var(--space-16); padding:var(--space-16) var(--space-8);
   border-bottom:1px solid var(--border); transition:background 0.15s;
   text-decoration:none; color:inherit; }
-.committee-row:hover { background:var(--surface2); }
+.committee-row:hover { background:var(--surface-2); }
 .committee-name { font-size:0.875rem; font-weight:400; color:var(--text); }
 
 /* ── F: Data table ── */
@@ -396,7 +396,7 @@ a { color: var(--accent); }
 .donors-table td { padding:var(--space-8) var(--space-16); font-size:0.75rem;
   border-bottom:1px solid var(--border); vertical-align:middle; }
 .donors-table tr:last-child td { border-bottom:none; }
-.donors-table tr:hover td { background:var(--surface2); }
+.donors-table tr:hover td { background:var(--surface-2); }
 .donors-table .dn { color:var(--text); }
 .donors-table .ds { font-size:0.625rem; color:var(--muted); margin-top:var(--space-2); /* micro: sub-label sits flush beneath donor name */ }
 .donors-table .da { font-family:'IBM Plex Mono',monospace; font-size:0.75rem; font-weight:700;
@@ -607,7 +607,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   gap:var(--space-8) var(--space-16); text-decoration:none; color:inherit;
   border-bottom:1px solid var(--border);
   padding:var(--space-16) var(--space-8); transition:background 0.15s; }
-.candidate-card:hover, .race-card:hover { background:var(--surface2); }
+.candidate-card:hover, .race-card:hover { background:var(--surface-2); }
 .candidate-card-name, .race-card-name { font-family:'IBM Plex Sans',sans-serif; font-weight:400; color:var(--text);
   font-size:0.875rem; display:flex; align-items:center; gap:var(--space-8); flex-wrap:wrap; }
 .candidate-card-meta,
@@ -994,7 +994,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   color:var(--color-navy-950); font-size:1rem; line-height:1; cursor:pointer;
   transition:border-color 0.12s, background 0.12s; }
 .search-overlay-close:hover {
-  border-color:var(--color-navy-950); background:var(--surface2); }
+  border-color:var(--color-navy-950); background:var(--surface-2); }
 .search-overlay-close:focus-visible {
   outline:2px solid var(--accent); outline-offset:2px; }
 
@@ -1031,7 +1031,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .filter-chips-wrap { padding:var(--space-16) var(--page-gutter) 0;
   display:flex; flex-wrap:wrap; gap:var(--space-8); align-items:center; }
 .filter-chip { display:inline-flex; align-items:center; gap:var(--space-4); padding:var(--space-4) var(--space-8);
-  background:var(--surface2); border:1px solid var(--border); border-radius:2px;
+  background:var(--surface-2); border:1px solid var(--border); border-radius:2px;
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--subtle); }
 .chip-x { background:none; border:none; cursor:pointer; font-size:0.875rem;
   color:var(--muted); padding:0 var(--space-2); /* micro: minimal hit-area padding on × button */ line-height:var(--lh-tight); display:flex; align-items:center; }
@@ -1238,7 +1238,7 @@ a.cycle-row {
   color:inherit;
   transition:background 0.15s;
 }
-a.cycle-row:hover { background:var(--surface2); }
+a.cycle-row:hover { background:var(--surface-2); }
 .cycle-row-label { font-family:'IBM Plex Sans',sans-serif; font-size:0.875rem; font-weight:400; }
 .cycle-row-stat { font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:var(--subtle); text-align:right; }
 .cycle-row-chevron { font-size:1rem; color:var(--muted); text-align:right; padding-left:var(--space-8); }
@@ -1255,7 +1255,7 @@ div.cycle-row {
   display:flex; align-items:center; height:32px;
   padding:var(--space-8) var(--space-16);
   border-bottom:1px solid var(--border);
-  background:var(--surface2);
+  background:var(--surface-2);
 }
 /* No gap — the .tooltip trigger's own var(--space-4) padding spaces it from the
    label; the fixed 32px height keeps the band from growing with the trigger. */

@@ -1064,7 +1064,7 @@ async function renderChoropleth(byStateData) {
     var maxTotal = byStateData.length ? byStateData[0].total : 0; // sorted desc
 
     var rgb = CHART_COLORS.choroplethRgb;   // single token-sourced hue (--amber)
-    var noDataFill = getComputedStyle(document.documentElement).getPropertyValue('--surface2').trim() || '#EEE9E1';
+    var noDataFill = getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim() || '#EEE9E1';
 
     var projection = d3.geoAlbersUsa().scale(1300).translate([487.5, 305]);
     var pathGen    = d3.geoPath().projection(projection);
@@ -1089,7 +1089,7 @@ async function renderChoropleth(byStateData) {
       var total = rec ? rec.total : 0;
       var pct   = maxTotal > 0 && total > 0 ? total / maxTotal : 0;
       var alpha = total > 0 ? (0.1 + pct * 0.82).toFixed(3) : '0';
-      var fill  = total > 0 ? 'rgba('+rgb+','+alpha+')' : noDataFill;   // no-data → --surface2 token
+      var fill  = total > 0 ? 'rgba('+rgb+','+alpha+')' : noDataFill;   // no-data → --surface-2 token
 
       var path = document.createElementNS(ns, 'path');
       var dAttr = pathGen(feature);
