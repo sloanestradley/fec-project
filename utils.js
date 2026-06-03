@@ -78,6 +78,29 @@ function is429(err) {
 var TAB_ERROR_RATE_LIMIT_MSG  = '⚠ FEC API rate limit reached. Please wait a minute, then reload the page.';
 var TAB_ERROR_INIT_FAILURE_MSG = "⚠ Couldn't load this page. Please reload to try again.";
 
+// Renders a .tab-error block: picks the copy variant (429 → rate-limit + no retry;
+// init-stage → reload + no retry; else → caller's defaultMsg + retry) and reveals it.
+// errorEl must contain .tab-error-msg (+ optional .tab-retry-btn). Lifted from
+// identical inline copies on candidate.html + committee.html (T-race-inplace-cycle,
+// 2026-06-03) so all three profile pages share one source. The retry button's CLICK
+// handler is wired by each caller (this only toggles the button's visibility) —
+// race.html closes over the failed cycle, candidate/committee use a data-retry attr.
+function showTabError(errorEl, err, defaultMsg) {
+  var msgEl = errorEl.querySelector('.tab-error-msg');
+  var btnEl = errorEl.querySelector('.tab-retry-btn');
+  if (is429(err)) {
+    msgEl.textContent = TAB_ERROR_RATE_LIMIT_MSG;
+    if (btnEl) btnEl.style.display = 'none';
+  } else if (err && err.initStage) {
+    msgEl.textContent = TAB_ERROR_INIT_FAILURE_MSG;
+    if (btnEl) btnEl.style.display = 'none';
+  } else {
+    msgEl.textContent = defaultMsg;
+    if (btnEl) btnEl.style.display = '';
+  }
+  errorEl.style.display = 'flex';
+}
+
 // ── Formatting ───────────────────────────────────────────────────────────────
 
 // Compact dollar format: $3.5M, $450K, $950

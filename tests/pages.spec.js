@@ -11,7 +11,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { mockAmplitude, findTrackEvent } from './helpers/amp-mock.js';
+import { mockAmplitude, findTrackEvent, getAmplitudeQueue } from './helpers/amp-mock.js';
 import { mockFecApi } from './helpers/api-mock.js';
 
 
@@ -303,6 +303,154 @@ test.describe('race.html', () => {
 
   test('race-header starts without .compact class (full mode on load)', async ({ page }) => {
     await expect(page.locator('#race-header')).not.toHaveClass(/compact/);
+  });
+});
+
+// ── T-race-inplace-cycle — in-place cycle switching (no full reload) ─────────
+// The mock is cycle-aware: 2024 = 12 candidates (Marie incumbent first), 2022 = 8
+// (B-prefixed names), 2020 = empty. Switching the dropdown re-fetches /elections/ and
+// re-renders in place; the window sentinel surviving is the no-reload proof.
+test.describe('T-race-inplace-cycle', () => {
+  const WA24 = '/race.html?state=WA&office=H&year=2024&district=03';
+  // failStatus (optional) overrides ONLY the cycle=2022 switch fetch with that status;
+  // the initial 2024 load + /elections/search/ fall through to the normal mock. The
+  // override is registered AFTER mockFecApi so Playwright (last-registered-wins) routes
+  // cycle=2022 to it and everything else back to the catch-all via route.fallback().
+  async function load(page, url, failStatus) {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    if (failStatus) {
+      await page.route('**/api/fec/elections/**', route => {
+        const cyc = new URL(route.request().url()).searchParams.get('cycle');
+        if (cyc === '2022') return route.fulfill({ status: failStatus, contentType: 'application/json', body: '{}' });
+        return route.fallback();
+      });
+    }
+    await page.goto(url || WA24);
+    await page.waitForFunction(() => {
+      const h = document.getElementById('race-header');
+      return h && h.style.display !== 'none';
+    }, { timeout: 12000 });
+  }
+
+  test('cycle switch is in-place — sentinel survives, URL + list update', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => { window.__sentinel = 'alive'; });
+    await page.locator('#year-select').selectOption('2022');
+    await page.waitForFunction(() => location.search.includes('year=2022'));
+    expect(await page.evaluate(() => window.__sentinel)).toBe('alive');        // no reload
+    await expect(page.locator('#race-list')).toContainText('B Challenger');    // 2022 fixture (title-cased)
+    expect(await page.locator('#year-select').inputValue()).toBe('2022');
+    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (8)');
+  });
+
+  test('switch fires Page Viewed with the new cycle', async ({ page }) => {
+    await load(page);
+    await page.locator('#year-select').selectOption('2022');
+    await page.waitForFunction(() => location.search.includes('year=2022'));
+    const queue = await getAmplitudeQueue(page);
+    const pv2022 = queue.filter(e => e.name === 'track' && e.args[0] === 'Page Viewed'
+      && e.args[1] && e.args[1].year === '2022' && e.args[1].page === 'race');
+    expect(pv2022.length).toBeGreaterThan(0);
+  });
+
+  test('aria-live announces the new cycle + count', async ({ page }) => {
+    await load(page);
+    await page.locator('#year-select').selectOption('2022');
+    await page.waitForFunction(() => location.search.includes('year=2022'));
+    await expect(page.locator('#race-live')).toHaveText(/2022 cycle, 8 candidates/);
+  });
+
+  test('switch to an empty cycle renders the inline empty state', async ({ page }) => {
+    await load(page);
+    await page.locator('#year-select').selectOption('2020');
+    await page.waitForFunction(() => location.search.includes('year=2020'));
+    await expect(page.locator('#race-list .inline-status-msg')).toBeVisible();
+    await expect(page.locator('#race-list .candidate-card')).toHaveCount(0);
+    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (0)');
+  });
+
+  test('scroll + compact preserved on a same/longer switch', async ({ page }) => {
+    await load(page);
+    // Force the document tall so the switch can't be the thing that collapses it; this
+    // isolates "loadRace itself preserves scroll + compact" from any height change.
+    await page.evaluate(() => { document.querySelector('.main').style.minHeight = '2500px'; });
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => document.getElementById('race-header').classList.contains('compact'))).toBe(true);
+    const yBefore = await page.evaluate(() => window.scrollY);
+    await page.locator('#year-select').selectOption('2022');
+    await page.waitForFunction(() => location.search.includes('year=2022'));
+    await page.waitForTimeout(300);
+    expect(Math.abs(await page.evaluate(() => window.scrollY) - yBefore)).toBeLessThan(20);
+    expect(await page.evaluate(() => document.getElementById('race-header').classList.contains('compact'))).toBe(true);
+  });
+
+  test('shorter-cycle switch clamps scroll + drops compact (long → empty)', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 700 });
+    await load(page);
+    // Natural height: 12-card 2024 is taller than the viewport → compact engages.
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => document.getElementById('race-header').classList.contains('compact'))).toBe(true);
+    await page.locator('#year-select').selectOption('2020');   // empty → document shrinks
+    await page.waitForFunction(() => location.search.includes('year=2020'));
+    await page.waitForTimeout(400);  // past the 250ms compact-toggle suppression
+    expect(await page.evaluate(() => window.scrollY)).toBeLessThan(50);          // clamped
+    expect(await page.evaluate(() => document.getElementById('race-header').classList.contains('compact'))).toBe(false);
+  });
+
+  test('failed switch is non-destructive — prior list intact, dropdown + URL rolled back', async ({ page }) => {
+    await load(page, WA24, 500);
+    await page.locator('#year-select').selectOption('2022');   // this fetch 500s
+    await expect(page.locator('#race-switch-error')).toBeVisible();
+    // prior cycle (2024) still rendered + usable (names render title-cased)
+    await expect(page.locator('#race-list')).toContainText('Gluesenkamp Perez');
+    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (12)');
+    // dropdown snapped back, URL unchanged
+    expect(await page.locator('#year-select').inputValue()).toBe('2024');
+    expect(await page.evaluate(() => location.search.includes('year=2024'))).toBe(true);
+    // retry button present (non-429)
+    await expect(page.locator('#race-switch-error .tab-retry-btn')).toBeVisible();
+  });
+
+  test('429 switch shows rate-limit copy with no retry button', async ({ page }) => {
+    await load(page, WA24, 429);
+    await page.locator('#year-select').selectOption('2022');
+    await expect(page.locator('#race-switch-error')).toBeVisible();
+    await expect(page.locator('#race-switch-error .tab-error-msg')).toContainText(/rate limit/i);
+    await expect(page.locator('#race-switch-error .tab-retry-btn')).toBeHidden();
+  });
+
+  test('popstate (back) reverts the cycle in place', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => { window.__sentinel = 'alive'; });
+    await page.locator('#year-select').selectOption('2022');
+    await page.waitForFunction(() => location.search.includes('year=2022'));
+    await page.goBack();
+    await page.waitForFunction(() => location.search.includes('year=2024'));
+    expect(await page.evaluate(() => window.__sentinel)).toBe('alive');        // still no reload
+    expect(await page.locator('#year-select').inputValue()).toBe('2024');
+    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (12)');
+  });
+
+  test('bare-URL load canonicalizes ?year= via replaceState (no new history entry)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    const lenBefore = await page.evaluate(() => history.length).catch(() => null);
+    await page.goto('/race.html?state=WA&office=H&district=03');   // no ?year=
+    await page.waitForFunction(() => {
+      const h = document.getElementById('race-header');
+      return h && h.style.display !== 'none';
+    }, { timeout: 12000 });
+    // default resolves to 2024 (newest available cycle) and is written into the URL
+    expect(await page.evaluate(() => new URLSearchParams(location.search).get('year'))).toBe('2024');
+  });
+
+  test('non-cycle ?year= canonicalizes to the snapped cycle', async ({ page }) => {
+    await load(page, '/race.html?state=WA&office=H&district=03&year=2026');  // 2026 not in cycles
+    expect(await page.evaluate(() => new URLSearchParams(location.search).get('year'))).toBe('2024');
+    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (12)');
   });
 });
 

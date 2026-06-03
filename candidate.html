@@ -1202,25 +1202,11 @@ function renderTopConduits(conduits) {
 }
 
 // ── Raised tab: orchestrate render ──────────────────
-// T12.5 — tab-error UI helper. Three variants: rate-limit (429), init-stage non-429
-// (loadCycle's eager init sequence threw before kickoffs could fire), and the existing
-// T12 retry-button shape for tab-fetch failures. The copy strings live in utils.js so
-// edits don't drift between candidate.html and committee.html.
-function showTabError(errorEl, err, defaultMsg) {
-  var msgEl = errorEl.querySelector('.tab-error-msg');
-  var btnEl = errorEl.querySelector('.tab-retry-btn');
-  if (is429(err)) {
-    msgEl.textContent = TAB_ERROR_RATE_LIMIT_MSG;
-    if (btnEl) btnEl.style.display = 'none';
-  } else if (err && err.initStage) {
-    msgEl.textContent = TAB_ERROR_INIT_FAILURE_MSG;
-    if (btnEl) btnEl.style.display = 'none';
-  } else {
-    msgEl.textContent = defaultMsg;
-    if (btnEl) btnEl.style.display = '';
-  }
-  errorEl.style.display = 'flex';
-}
+// T12.5 — tab-error UI helper `showTabError(errorEl, err, defaultMsg)` lives in
+// utils.js (lifted from identical inline copies on candidate + committee in
+// T-race-inplace-cycle, 2026-06-03). Three variants: rate-limit (429), init-stage
+// non-429 (loadCycle's eager init threw before kickoffs fired), and the T12 retry
+// shape for tab-fetch failures. Retry click wiring stays per-page.
 
 // T12 progressive rendering. Donut renders synchronously from totals data. Fast tier
 // (choropleth) and slow tier (top committees + top conduits) each render independently

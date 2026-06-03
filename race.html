@@ -98,14 +98,33 @@
   <div class="main-inner">
     <div class="profile-content" id="race-content" style="display:none">
       <div id="tab-candidates">
-        <div class="section-title" id="race-candidates-label"></div>
-        <div class="race-list" id="race-list"></div>
+        <!-- Inline cycle-switch error (non-destructive — the prior list stays
+             below and usable). Reuses the shared .tab-error family + showTabError. -->
+        <div class="tab-error" id="race-switch-error" style="display:none">
+          <span class="tab-error-msg"></span>
+          <button type="button" class="tab-retry-btn">Retry</button>
+        </div>
+        <!-- Count + list are held/hidden/rolled-back atomically during a switch. -->
+        <div id="race-results-region">
+          <div class="section-title" id="race-candidates-label"></div>
+          <div class="race-list" id="race-list"></div>
+        </div>
       </div>
       <div id="tab-insights" style="display:none">
         <div class="placeholder">Race insights coming soon</div>
       </div>
     </div>
   </div><!-- /.main-inner -->
+
+  <!-- Cycle-switch loading spinner — fixed/viewport-centered, reuses .state-msg/.loader.
+       Shown while a switch fetch is in flight; the results region is held at prior
+       height (visibility:hidden) so scroll + compact don't collapse during the wait. -->
+  <div class="state-msg" id="race-switch-loader"
+       style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:190;">
+    <div class="loader"></div><span>Loading…</span>
+  </div>
+  <!-- Polite aria-live: announces the new cycle + candidate count on a successful switch. -->
+  <div class="sr-only" id="race-live" aria-live="polite"></div>
   </div><!-- /.main -->
 
 
@@ -117,6 +136,11 @@ var stateParam   = (urlParams.get('state') || '').toUpperCase();
 var districtParam= urlParams.get('district');
 var yearParam    = urlParams.get('year') || '2026';
 var officeParam  = (urlParams.get('office') || '').toUpperCase();
+
+// In-place cycle-switch state (T-race-inplace-cycle, 2026-06-03)
+var cyclesList  = [];    // available cycles, set once in init()
+var activeYear  = null;  // currently-rendered cycle (committed only on success)
+var switchToken = 0;     // stale-response guard — drops out-of-order switch responses
 
 // ── Param validation ────────────────────────────────────────────────────────
 var VALID_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
@@ -190,10 +214,10 @@ function buildYearSelector(cycles) {
     if (String(yr) === String(yearParam)) opt.selected = true;
     sel.appendChild(opt);
   });
+  // In-place switch — no full reload (T-race-inplace-cycle). push:true + focus the
+  // dropdown are the change-path defaults.
   sel.addEventListener('change', function() {
-    var url = new URL(window.location.href);
-    url.searchParams.set('year', sel.value);
-    window.location.href = url.toString();
+    loadRace(sel.value);
   });
 }
 
@@ -215,6 +239,113 @@ function buildCandidateCard(c) {
     includeName:     false,
     extraTrackProps: { race_year: yearParam }
   });
+}
+
+// ── In-place cycle switching (T-race-inplace-cycle) ──────────────────────────
+// Build a same-path URL string with ?year= set (preserves /race vs /race.html + hash).
+function urlWithYear(year) {
+  var url = new URL(window.location.href);
+  url.searchParams.set('year', String(year));
+  return url.pathname + url.search + url.hash;
+}
+// Snap a requested year to the nearest available cycle (init's logic, reusable for
+// popstate / hand-edited URLs). Dropdown switches always pass an available cycle.
+function snapToCycle(year) {
+  var y = Number(year);
+  if (cyclesList.indexOf(y) !== -1) return y;
+  if (!cyclesList.length) return y;
+  return cyclesList.reduce(function(best, c) {
+    return Math.abs(c - y) < Math.abs(best - y) ? c : best;
+  }, cyclesList[0]);
+}
+// Page Viewed payload — matches race's existing shape; year is the only thing that
+// varies per switch. `source` stays the original ?from= (the reload preserved it).
+function pageViewedPayload(year) {
+  return { page: 'race', state: stateParam, year: String(year), office: officeParam,
+           district: districtParam, source: urlParams.get('from') || null };
+}
+// Shared render primitive — count + seat-class + list. Called by init() (first paint,
+// keeping init's parallel cold-load) and by loadRace() (each switch). Reads the
+// module yearParam, so callers MUST set yearParam before calling this.
+function renderRaceContent(results) {
+  document.getElementById('race-candidates-label').textContent =
+    'Candidates (' + results.length + ')';
+  // Always-assign so a Senate→Senate switch updates the class (and non-Senate clears it;
+  // .race-seat-class:empty then drops the empty span from flow — no stray gap).
+  var seatEl = document.getElementById('race-seat-class');
+  if (seatEl) {
+    var cls = officeParam === 'S' ? getSenateClass(yearParam) : null;
+    seatEl.textContent = cls ? 'Class ' + cls + ' seat' : '';
+  }
+  // Inline empty state (.inline-status-msg) — defined, not a void, and not the
+  // full-content #state-msg (which would break non-destructive rollback).
+  var list = document.getElementById('race-list');
+  list.innerHTML = results.length
+    ? results.map(buildCandidateCard).join('')
+    : '<div class="inline-status-msg">No candidates found for this race in the FEC system.</div>';
+}
+function announceCycle(year, count) {
+  var live = document.getElementById('race-live');
+  if (!live) return;
+  live.textContent = String(year) + ' cycle, ' +
+    (count ? count + (count === 1 ? ' candidate' : ' candidates') : 'no candidates');
+}
+function hideSwitchError() {
+  document.getElementById('race-switch-error').style.display = 'none';
+}
+// Inline, non-destructive, 429-aware (shared showTabError). Retry closes over the
+// FAILED year — NOT sel.value, which has been rolled back to the prior cycle.
+function showSwitchError(err, retryFn) {
+  var el = document.getElementById('race-switch-error');
+  showTabError(el, err, "⚠ Couldn't load this cycle.");
+  var btn = el.querySelector('.tab-retry-btn');
+  if (btn) btn.onclick = retryFn;  // .onclick (not addEventListener) avoids stacking
+}
+
+// loadRace — the in-place switch. Commits yearParam + the pushState URL only AFTER the
+// fetch succeeds; a failure leaves data, dropdown, and URL coherent on the prior cycle.
+// Content-scoped: never re-inits the compact header or touches .compact (the existing
+// scroll listener handles the long→short settle when the document shrinks).
+async function loadRace(requestedYear, opts) {
+  opts = opts || {};
+  var doPush   = opts.push !== false;          // dropdown/default push; popstate false
+  var resolved = snapToCycle(requestedYear);
+  var priorYear = activeYear;                   // rollback target (list never cleared)
+  var myToken  = ++switchToken;                 // stale-response guard
+  var sel      = document.getElementById('year-select');
+  var region   = document.getElementById('race-results-region');
+  var loader   = document.getElementById('race-switch-loader');
+
+  // Loading: hold the region's height (hide-not-clear) so scroll + compact persist.
+  region.style.visibility = 'hidden';
+  loader.style.display = 'flex';
+  hideSwitchError();
+
+  var queryParams = { state: stateParam, cycle: String(resolved),
+                      office: officeApiParam(officeParam), per_page: 50 };
+  if (districtParam) queryParams.district = districtParam;
+
+  try {
+    var data = await apiFetch('/elections/', queryParams);
+    if (myToken !== switchToken) return;        // superseded by a newer switch → drop
+    yearParam = String(resolved);               // COMMIT (only on success)
+    activeYear = resolved;
+    renderRaceContent(data.results || []);      // reads the just-set yearParam
+    region.style.visibility = '';
+    loader.style.display = 'none';
+    sel.value = String(resolved);               // sync dropdown (snap/popstate cases)
+    if (doPush) history.pushState({ year: resolved }, '', urlWithYear(resolved));
+    amplitude.track('Page Viewed', pageViewedPayload(resolved));
+    announceCycle(resolved, (data.results || []).length);
+    if (opts.focusSelect !== false) sel.focus();
+  } catch (err) {
+    if (myToken !== switchToken) return;        // superseded → drop (latest owns the UI)
+    region.style.visibility = '';               // un-hide the intact prior list
+    loader.style.display = 'none';
+    sel.value = String(priorYear);              // snap dropdown back to prior cycle
+    showSwitchError(err, function() { loadRace(requestedYear, opts); });  // failed year
+    console.error('race cycle switch error:', err);
+  }
 }
 
 function showTab(name, e) {
@@ -297,27 +428,19 @@ async function init() {
       results = data.results || [];
     }
 
+    cyclesList = cycles;
+    activeYear = Number(yearParam);
     buildYearSelector(cycles);
 
     var raceName = formatRaceLabelLong(officeParam, stateParam, districtParam);
-
     document.getElementById('race-title').textContent = raceName;
+    document.title = raceName + ' — FECLedger';   // year-independent — set once
 
-    // Senate class label in the header controls cluster
-    if (officeParam === 'S') {
-      var cls = getSenateClass(yearParam);
-      var seatEl = document.getElementById('race-seat-class');
-      if (seatEl && cls) seatEl.textContent = 'Class ' + cls + ' seat';
-    }
+    renderRaceContent(results);                    // count + seat-class + list (reads yearParam)
 
-    document.getElementById('race-candidates-label').textContent =
-      'Candidates (' + results.length + ')';
-    document.title = raceName + ' — FECLedger';
-
-    var list = document.getElementById('race-list');
-    list.innerHTML = results.length
-      ? results.map(buildCandidateCard).join('')
-      : '<div class="placeholder">No candidates found for this race in the FEC system.</div>';
+    // Canonicalize the URL to the resolved cycle (replaceState — no new history entry)
+    // so every history entry carries ?year= and popstate always resolves a cycle.
+    history.replaceState({ year: activeYear }, '', urlWithYear(activeYear));
 
     // Page-level data note (R1.a source line + R1.b completeness caveat) retired
     // 2026-06-01 — race.html isn't yet rich enough to warrant a page-level data
@@ -348,6 +471,16 @@ async function init() {
     console.error('race load error:', err);
   }
 }
+
+// Back/forward between cycles → in-place switch (no reload, no re-push). Guarded so the
+// search overlay's same-URL popstate (main.js pushes {overlay:true} at the same ?year=)
+// is a no-op here: when the resolved year is unchanged, skip the re-fetch entirely.
+window.addEventListener('popstate', function() {
+  if (!cyclesList.length) return;                 // pre-init — nothing to switch
+  var y = new URLSearchParams(window.location.search).get('year');
+  if (snapToCycle(y) === activeYear) return;      // no cycle change (e.g. overlay) → skip
+  loadRace(y, { push: false, focusSelect: false });
+});
 
 init();
 </script>

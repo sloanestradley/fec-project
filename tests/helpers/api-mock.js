@@ -267,28 +267,55 @@ const CANDIDATES_TOTALS = {
 };
 
 // Available election cycles (/elections/search/ endpoint)
+// Three cycles so T-race-inplace-cycle can exercise an in-place switch, an empty
+// cycle, and snap-to-nearest. Existing tests assert toContain 2024/2022 (additive-safe).
 const ELECTIONS_SEARCH = {
   results: [
     { cycle: 2024, district: '03', office: 'H', state: 'WA' },
     { cycle: 2022, district: '03', office: 'H', state: 'WA' },
+    { cycle: 2020, district: '03', office: 'H', state: 'WA' },
   ],
-  pagination: { count: 2 },
+  pagination: { count: 3 },
 };
 
-// Race candidates (/elections/ endpoint)
-const ELECTIONS = {
-  results: [{
-    candidate_id:              'H2WA03217',
-    candidate_name:            'GLUESENKAMP PEREZ, MARIE',
-    party_full:                'DEMOCRATIC PARTY',
-    total_receipts:            3500000,
-    total_disbursements:       3100000,
-    cash_on_hand_end_period:    450000,
-    incumbent_challenge:       'I',
-    incumbent_challenge_full:  'Incumbent',
-  }],
-  pagination: { count: 1 },
+// Race candidates (/elections/ endpoint) — cycle-aware for T-race-inplace-cycle.
+// Marie (incumbent) leads 2024 so the existing incumbent / links / figures tests hold.
+const MARIE_RACE = {
+  candidate_id:              'H2WA03217',
+  candidate_name:            'GLUESENKAMP PEREZ, MARIE',
+  party_full:                'DEMOCRATIC PARTY',
+  total_receipts:            3500000,
+  total_disbursements:       3100000,
+  cash_on_hand_end_period:    450000,
+  incumbent_challenge:       'I',
+  incumbent_challenge_full:  'Incumbent',
 };
+function mkRaceCandidate(i, prefix) {
+  return {
+    candidate_id:              prefix + 'WA03' + String(1000 + i),
+    candidate_name:            prefix + ' CHALLENGER ' + i,
+    party_full:                (i % 2 === 0 ? 'REPUBLICAN PARTY' : 'DEMOCRATIC PARTY'),
+    total_receipts:            900000 - i * 50000,
+    total_disbursements:       800000 - i * 40000,
+    cash_on_hand_end_period:   100000 - i * 5000,
+    incumbent_challenge:       'C',
+    incumbent_challenge_full:  'Challenger',
+  };
+}
+// 2024: 12 candidates — tall enough that compact engages on natural scroll, and the
+// long extreme for the shorter-cycle clamp test. 2022: 8 candidates, distinct names —
+// the observable-re-render + scroll-preserved case. 2020: empty — inline empty state
+// and the shorter-cycle clamp / compact-settle extreme.
+const ELECTIONS_2024 = {
+  results: [MARIE_RACE].concat(Array.from({ length: 11 }, (_, k) => mkRaceCandidate(k + 1, 'A'))),
+  pagination: { count: 12 },
+};
+const ELECTIONS_2022 = {
+  results: Array.from({ length: 8 }, (_, k) => mkRaceCandidate(k + 1, 'B')),
+  pagination: { count: 8 },
+};
+const ELECTIONS_2020 = { results: [], pagination: { count: 0 } };
+const ELECTIONS = ELECTIONS_2024;  // default alias for any unspecified cycle
 
 // Browse committees
 const COMMITTEES_LIST = {
@@ -499,8 +526,13 @@ function resolveFixture(path, params) {
   // elections/search/ (available cycles for a race)
   if (/\/elections\/search\//.test(path)) return ELECTIONS_SEARCH;
 
-  // elections/ (race candidates)
-  if (/\/elections\//.test(path)) return ELECTIONS;
+  // elections/ (race candidates) — cycle-aware (T-race-inplace-cycle)
+  if (/\/elections\//.test(path)) {
+    const cyc = params.get('cycle');
+    if (cyc === '2022') return ELECTIONS_2022;
+    if (cyc === '2020') return ELECTIONS_2020;
+    return ELECTIONS_2024;
+  }
 
   // filings/ (feed page)
   if (/\/filings\//.test(path)) return FILINGS;
