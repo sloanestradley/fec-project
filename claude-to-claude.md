@@ -6147,3 +6147,53 @@ The substantive lesson from the work itself: the choropleth de-partisaning is th
 - **Choropleth richer hover, if ever wanted.** The simple outline-clone shipped because the geometry approaches (scale/centroid-clone) broke on California's multi-polygon. If true hover-elevate is ever desired, that multi-part-polygon sliver is the known blocker — needs a deliberate approach decision before reopening.
 - **§1 tooltip set is fully closed** — the conduit-sources explanation (V2 row 5 / C8.d / K8) shipped this arc as the `Conduit` column-header tooltip in `69e45b1`; there is no remaining unmounted §1 tooltip. (Noting this here only to correct a stale claim in the 2026-06-01 afternoon entry, which called V2 row 5 "the only unmounted §1 tooltip left" — true at that moment, shipped that evening.) Nothing to action.
 - **Ritual cadence vs. context limits.** This session was only recoverable because Sloane had screenshots. Worth a quick retro: log incrementally per-commit (cheap) rather than betting the whole session's narrative on reaching the end-of-session ritual before context runs out.
+
+---
+2026-06-03 — Data-viz color-system cleanup (full arc, 13 commits)
+
+## Process log draft
+
+**Title:** A whole session inside the color system
+
+**Summary (Sloane's voice):** I went in meaning to do a couple of small data-viz fixes and came out having rebuilt the color system down to the studs. It started with legend formatting and removing a map legend that wasn't earning its place, and turned into tokenizing every donut category, retiring the bespoke chart tokens, collapsing two near-identical navies into one, renaming the brand primitives, and decoupling every doc/reference surface from the partisan color tokens. By the end, every color is single-sourced and nothing in the data-viz layer is a raw literal or a misused partisan token.
+
+**Changelog:**
+- Donut + purpose-bar legends now read `$` before `%`, with the `%` emphasized.
+- Removed the choropleth "Less → More" map legend — the single-hue ramp already implies it and the exact value is on hover.
+- Fixed the summary chart clipping its own "today" label + edge dots; gave the legend swatch a centered dot so the three line colors are easier to tell apart; added breathing room under the chart.
+- Consolidated all donut category colors into one `CATEGORY_COLORS` map, iterated a first-pass navy→parchment ramp, then promoted it to a `--cat-*` token sequence.
+- Retired the bespoke `--chart-*` tokens — the summary chart now reuses the general palette.
+- Renamed `--surface2 → --surface-2` for format consistency.
+- Collapsed the Democrat navy (`#1E3A5F`) into the brand navy (`#05234F`); renamed `--color-navy-950 → --navy-deep` and `--color-red-700 → --red-deep`; collapsed `--rep`/`--red` to reference `--red-deep`.
+- Decoupled the palette/design-system badges from partisan tokens (border + background + text all on primitives now).
+- Cold-read audit at the close: live surfaces clean, two small doc drifts fixed.
+
+**Field notes:** The thread running through the whole day was one question asked over and over: *does this color reference earn its place, and is it pointing at the right thing?* Removing the map legend, retiring `--chart-*`, collapsing the two navies, decoupling the badges — each was the same move in a different spot: strip the redundant or mis-semantic, leave one honest source. What surprised me was how much of the system was accidental duplication — two navies that were the same idea, a partisan token doing plain visual-category duty on a non-partisan badge, chart colors that numerically copied tokens without referencing them. The standalone palette page kept paying for itself as a *thinking* surface: being able to see every color and its source in one place is what made the "this is coupled wrong" cases jump out. Worth banking: a big consolidation reads as risky, but when each step is zero-visual-change and single-sourced, you can move fast and the tests stay green the whole way.
+
+**Stack tags:** None new — reused `color-mix()` for primitive-derived tints (badge backgrounds), the `getComputedStyle` IIFE pattern for token-reading JS maps (`CATEGORY_COLORS` now mirrors `CHART_COLORS`), and CSS custom-property lazy resolution (`--dem` references a later-defined `--navy-deep` in the same `:root`).
+
+## How Sloane steered the work
+
+**"Is removing the clipping the right call?"** On the chart-clipping fix you didn't just say "remove it" — you asked whether that was the right lever. That forced the diagnosis, which found the real cause (Chart.js clipping its own drawing, not a CSS `overflow`), so the fix landed in the right place instead of churning the card's overflow and risking a layout regression.
+
+**The map legend "does it earn its place" call.** You questioned whether the "Less → More" legend was telling users anything the color ramp + hover didn't already. It wasn't. Removing-over-decorating.
+
+**"Iterate literals first, then tokenize."** On the donut colors you explicitly wanted to test the palette in the real UI before committing to token names. Explore in cheap material, formalize once it's settled — and you chose the JS-map consolidation so you had a single source *during* iteration, not just after.
+
+**"Repoint to the primitives instead of semantics."** You caught that I'd pointed the reference badges at `--dem`/`--rep` — partisan tokens doing non-partisan visual-category duty. That correction is the cleanest statement of the day's theme. Then you picked the color-mix-derived tint (option A) so the backgrounds came fully off the partisan tokens without minting new ones.
+
+**"Collapse #1E3A5F into #05234F — I've already done the assessment."** You'd done the visual-risk check yourself and directed the navy merge, which is what unblocked the whole rename (it freed up the "navy-deep" name). Decision made with the homework already done.
+
+**Deferring step D, then "do step D now."** You parked the red consolidation until you'd investigated, then greenlit it deliberately. The pattern: don't collapse a value until you've confirmed it's safe and intended.
+
+**"Should we do a cold read?"** You proactively asked for the end-of-session stale-reference audit on a 13-commit token-rename session — exactly the case where grep-based drift is the real risk.
+
+**Through-line:** You steer for honest, single-source structure and for decoupling things that shouldn't be coupled — and you consistently ask for the *diagnosis* before the fix, and test in cheap material before formalizing. The whole session was a sustained "is this pointing at the right thing, and does it earn its place?" — applied until the color system had one source per color and nothing partisan leaking into the data-viz or doc layers.
+
+## What to bring to Claude Chat
+
+- **The color system is now fully tokenized + single-sourced — what's the next data-viz priority?** Spent-tab spend-over-time timeline (banked) and whether any other viz needs the same treatment. Worth a "is data-viz done enough to move to other Phase work?" step-back.
+- **The unitemized donut legend swatch is `#F8F5EC` (parchment) — near-invisible on the card.** Banked design tweak from the ramp iteration; now a one-token edit. Decide whether to bump it.
+- **`chart-color-palette.html` lifecycle.** Still local-only. Now that it doubled as the thinking surface for this cleanup — permanent design-system sibling (deploy + test), fold into `design-system.html`, or keep local-only?
+- **Non-partisan color as a written system principle.** Proposed as a CLAUDE.md addition — confirm the wording / whether it should be a stated design-system stance.
+- **Flaky `tooltip.spec.js › scroll closes the popup`.** Failed once in a full run, passed on isolated re-run. Stabilize if it recurs.
