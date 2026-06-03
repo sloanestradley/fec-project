@@ -36,7 +36,7 @@
     .ds-status { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
       padding:var(--space-4) var(--space-8); border-radius:2px; font-weight:500; border:1px solid; }
     .ds-status.stable      { color:var(--green);  border-color:rgba(30,102,68,0.3);   background:rgba(30,102,68,0.06); }
-    .ds-status.candidate-only { color:var(--dem); border-color:rgba(30,58,95,0.3);   background:rgba(30,58,95,0.06); }
+    .ds-status.candidate-only { color:var(--dem); border-color:var(--navy-deep);   background:color-mix(in srgb, var(--navy-deep) 8%, transparent); }
     .ds-status.log-only    { color:var(--ind);   border-color:rgba(90,74,122,0.3);   background:rgba(90,74,122,0.06); }
     .ds-status.planned     { color:var(--muted); border-color:var(--border);          background:var(--surface-2); }
     .ds-status.deprecated  { color:var(--red);   border-color:rgba(168,50,40,0.3);   background:rgba(168,50,40,0.06); }
@@ -286,17 +286,15 @@
             <tr><td><span class="ds-token-dot" style="background:#46403A"></span>warm-ink-2</td><td class="ds-token-hex">#46403A</td><td>Secondary text</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#625B52"></span>warm-ink-3</td><td class="ds-token-hex">#625B52</td><td>Tertiary text</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#2C5282"></span>blue-mid</td><td class="ds-token-hex">#2C5282</td><td>Accent / interactive</td></tr>
-            <tr><td><span class="ds-token-dot" style="background:#1E3A5F"></span>navy-deep</td><td class="ds-token-hex">#1E3A5F</td><td>Democrat</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#E6EBEF;border:1px solid #D7D1C7"></span>blue-light</td><td class="ds-token-hex">#E6EBEF</td><td>Democrat tag tint</td></tr>
-            <tr><td><span class="ds-token-dot" style="background:#A83228"></span>red-deep</td><td class="ds-token-hex">#A83228</td><td>Republican / error</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#A83228"></span>red-deep</td><td class="ds-token-hex">#A83228</td><td>Republican tag (--rep), error/stressed (--red), nav logo "FEC", active tab, summary chart Spent line</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#F5E2E0;border:1px solid #D7D1C7"></span>red-light</td><td class="ds-token-hex">#F5E2E0</td><td>Republican tag tint</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#5A4A7A"></span>purple-deep</td><td class="ds-token-hex">#5A4A7A</td><td>Independent</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#EDE7FA;border:1px solid #D7D1C7"></span>purple-light</td><td class="ds-token-hex">#EDE7FA</td><td>Independent tag tint</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#1E6644"></span>green-deep</td><td class="ds-token-hex">#1E6644</td><td>Success</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#8A5F10"></span>amber-deep</td><td class="ds-token-hex">#8A5F10</td><td>Warning / watch — also backs --inc</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#F6E9CE;border:1px solid #D7D1C7"></span>amber-light</td><td class="ds-token-hex">#F6E9CE</td><td>Incumbent tag tint</td></tr>
-            <tr><td><span class="ds-token-dot" style="background:#05234F"></span>navy-950</td><td class="ds-token-hex">#05234F</td><td>Nav logo "Ledger", tabs-bar navy line (T14.5: ::after pseudo-element, was border-bottom), tab text, cycle select text, summary chart Raised line</td></tr>
-            <tr><td><span class="ds-token-dot" style="background:#A83228"></span>red-700</td><td class="ds-token-hex">#A83228</td><td>Nav logo "FEC", active tab indicator, summary chart Spent line — also backs --rep and --red</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#05234F"></span>navy-deep</td><td class="ds-token-hex">#05234F</td><td>Nav logo "Ledger", tabs-bar navy line, tab text, cycle select text, summary chart Raised line, Democrat tag (--dem), --cat-1</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#3DBF7A"></span>green-500</td><td class="ds-token-hex">#3DBF7A</td><td>Active filing dot (backs --filing-active)</td></tr>
           </tbody>
         </table>
@@ -315,7 +313,7 @@
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--text)"></span>--text</td><td>warm-ink</td><td class="ds-token-hex">#1A1510</td><td>Primary text</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--subtle)"></span>--subtle</td><td>warm-ink-2</td><td class="ds-token-hex">#46403A</td><td>Secondary text</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--muted)"></span>--muted</td><td>warm-ink-3</td><td class="ds-token-hex">#625B52</td><td>Tertiary / label text</td></tr>
-            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--dem)"></span>--dem</td><td>navy-deep</td><td class="ds-token-hex">#1E3A5F</td><td>Democrat party color (tag text)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--dem)"></span>--dem</td><td>navy-deep</td><td class="ds-token-hex">#05234F</td><td>Democrat party color (tag text) — collapsed into the brand navy</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--dem50);border:1px solid var(--border)"></span>--dem50</td><td>blue-light</td><td class="ds-token-hex">#E6EBEF</td><td>Democrat tag background tint</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--rep)"></span>--rep ⚠</td><td>red-deep</td><td class="ds-token-hex">#A83228</td><td>Republican party color (tag text)</td></tr>
             <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--rep50);border:1px solid var(--border)"></span>--rep50</td><td>red-light</td><td class="ds-token-hex">#F5E2E0</td><td>Republican tag background tint</td></tr>
@@ -372,7 +370,7 @@
             <tr><td class="ds-token-name">--ls-expanded</td><td>—</td><td class="ds-token-hex">0.05em</td><td>Small uppercase labels — <code style="font-size:0.625rem">.stat-label</code>, <code style="font-size:0.625rem">.tag</code>, table headers (proportional em). Tightened from 0.1em on 2026-05-13 — single canonical value across all label-shape rules.</td></tr>
           </tbody>
         </table>
-        <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#A83228</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). Both are backed by the <code>--color-red-700</code> primitive. If the status system diverges from the partisan palette in the future, they should split into separate primitives at that point.</div>
+        <div class="callout">⚠ <strong>Known overlap:</strong> <code>--red</code> and <code>--rep</code> both resolve to <code>#A83228</code>. This is intentional — <code>--rep</code> is a partisan color; <code>--red</code> is a status color (stressed/error). Both are backed by the <code>--red-deep</code> primitive. If the status system diverges from the partisan palette in the future, they should split into separate primitives at that point.</div>
       </div>
     </section>
 
@@ -437,10 +435,10 @@
       <div class="ds-swatch-group">
         <div class="ds-swatch-group-label">Partisan — deep (tag text)</div>
         <div class="ds-swatch-grid">
-          <div class="ds-swatch" data-token="--dem" data-hex="#1E3A5F">
+          <div class="ds-swatch" data-token="--dem" data-hex="#05234F">
             <div class="ds-swatch-color" style="background:var(--dem)"></div>
             <div class="ds-swatch-token">--dem</div>
-            <div class="ds-swatch-hex">#1E3A5F</div>
+            <div class="ds-swatch-hex">#05234F</div>
             <div class="ds-swatch-desc">Democrat</div>
           </div>
           <div class="ds-swatch" data-token="--rep" data-hex="#A83228">
@@ -588,7 +586,7 @@
         <div class="ds-type-group-label">Named type styles</div>
         <div class="ds-type-row">
           <span class="page-title" style="margin-bottom:0">Candidate Profile</span>
-          <span class="ds-type-meta"><strong>display</strong><br>Oswald 600 · clamp(2–4.5rem) · --ls-tight · --lh-tight · color:var(--color-navy-950)<br>.page-title</span>
+          <span class="ds-type-meta"><strong>display</strong><br>Oswald 600 · clamp(2–4.5rem) · --ls-tight · --lh-tight · color:var(--navy-deep)<br>.page-title</span>
         </div>
         <div class="ds-type-row">
           <span class="stat-value" style="margin-bottom:0">$1.24M</span>
@@ -1103,7 +1101,7 @@
           <br><br>
           <strong>Per-context shape:</strong> candidate cycle-index has 3 cards (History + Career Raised + Career Spent — 1+2 cols); candidate cycle-detail has 5 cards (Cycle + Ratio left, Raised + Spent + COH right — 2+3 cols, shown in demo above); committee cycle-index has 3 cards (History + Lifetime Raised + Lifetime Spent — 1+2 cols); committee cycle-detail has 4 cards (Cycle left, Raised + Spent + COH right — 1+3 cols).
           <br><br>
-          <strong>Cycle card with inline back chevron (T14.5):</strong> <code>.stat-card-cycle</code> is a flex row that pairs <code>.cycle-back-btn</code> with the <code>.stat-card-body</code> column (label + value). Chevron is 40×40 desktop / 32×32 mobile, pill border-radius (99px), filled-navy treatment (<code>background:var(--color-navy-950)</code>, <code>color:var(--bg)</code> icon stroke, <code>opacity:0.88</code> hover — same mechanic as <a href="#comp-menu-btn">.menu-btn</a>), accent focus-visible outline + 2px offset. Click handler always calls <code>history.replaceState('', '', location.pathname)</code> + <code>view.switchTo(false, NaN)</code> — no <code>wasIndexShown</code> conditional. The helper-internal <code>indexScrollY</code> capture/restore handles in-session and fresh-load uniformly.
+          <strong>Cycle card with inline back chevron (T14.5):</strong> <code>.stat-card-cycle</code> is a flex row that pairs <code>.cycle-back-btn</code> with the <code>.stat-card-body</code> column (label + value). Chevron is 40×40 desktop / 32×32 mobile, pill border-radius (99px), filled-navy treatment (<code>background:var(--navy-deep)</code>, <code>color:var(--bg)</code> icon stroke, <code>opacity:0.88</code> hover — same mechanic as <a href="#comp-menu-btn">.menu-btn</a>), accent focus-visible outline + 2px offset. Click handler always calls <code>history.replaceState('', '', location.pathname)</code> + <code>view.switchTo(false, NaN)</code> — no <code>wasIndexShown</code> conditional. The helper-internal <code>indexScrollY</code> capture/restore handles in-session and fresh-load uniformly.
           <br><br>
           <strong>Cycle card label asymmetry (T-cycle-semantics, 2026-05-19):</strong> The label TEXT inside the cycle card reads <strong>"Election"</strong> on candidate.html (value = single election year, e.g. "2026") and <strong>"Cycle"</strong> on committee.html (value = 2-year FEC reporting period, e.g. "2025–2026"). Asymmetry matches FEC.gov's own convention — "Election" is the unit of meaning for candidate pages; "Two-year period" is FEC's filing mechanism for committee pages. Component identifiers (<code>.stat-card-cycle</code>, <code>#stat-cycle</code>) stay the same on both pages; only the user-facing label text differs. Demo above shows the candidate.html variant.
           <br><br>
@@ -1169,8 +1167,8 @@
               <div class="chart-header">
                 <div class="chart-title">Raised · Spent · Cash on Hand over cycle</div>
                 <div class="chart-legend">
-                  <div class="legend-item"><div class="legend-swatch" style="color:var(--color-navy-950)"></div>Raised</div>
-                  <div class="legend-item"><div class="legend-swatch" style="color:var(--color-red-700)"></div>Spent</div>
+                  <div class="legend-item"><div class="legend-swatch" style="color:var(--navy-deep)"></div>Raised</div>
+                  <div class="legend-item"><div class="legend-swatch" style="color:var(--red-deep)"></div>Spent</div>
                   <div class="legend-item"><div class="legend-swatch" style="color:var(--green)"></div>Cash on Hand</div>
                 </div>
               </div>
@@ -1178,7 +1176,7 @@
             </div>
           </div>
         </div>
-        <div class="ds-component-notes">Chart line/point colors use the <code>CHART_COLORS</code> JS constant (<code>utils.js</code>), which now reads <strong>general semantic tokens</strong> — Raised → <code>--color-navy-950</code>, Spent → <code>--color-red-700</code>, Cash on Hand → <code>--green</code>, "today" marker → <code>--border-strong</code>, axis → <code>--border</code>/<code>--muted</code>. The bespoke <code>--chart-*</code> token set (and its <code>blue-500</code>/<code>red-500</code> primitives) was <strong>retired 2026-06-03</strong> — the summary chart now reuses the general palette. HTML legend swatches reference those same tokens directly (<code>var(--color-navy-950)</code> / <code>var(--color-red-700)</code> / <code>var(--green)</code>). — The cycle <code>&lt;select&gt;</code> uses <code>.cycle-select.form-select</code> in <code>styles.css</code> (Oswald 400, 1.25rem, no border, <code>color:var(--text)</code>) — specificity bump ensures it overrides <code>.form-select</code> defaults. <strong>T16 (2026-05-14) retired the candidate.html + committee.html cycle-switcher inside their tabs-bars</strong>; cycle changes on those pages now happen via the Cycle card chevron → cycle index → row click path. The <code>.cycle-select</code> variant lives on as the cycle picker in <code>race.html</code>'s tabs-bar. The demo above keeps the variant in its tabs-bar context for documentation continuity. <strong>T14.5 follow-up (2026-05-14):</strong> the navy 2px bottom rule on <code>.tabs-bar</code> migrated from <code>border-bottom</code> to a <code>::after</code> pseudo-element anchored at <code>left/right:var(--page-gutter); bottom:0; z-index:-1</code> so the line ends at the gutter-inset edge (matching the borders on <code>#summary-strip</code>'s children above). The <code>z-index:-1</code> keeps <code>.tab.active</code>'s 4px red underline (in normal flow) above the navy in stacking order so the red wins where they overlap; the previous <code>.tab { margin-bottom:-2px }</code> trick (which clipped the red 2px under <code>overflow-y:hidden</code>) retired with it. Tabs-bar padding is <code>0 var(--page-gutter)</code> on desktop and mobile (tabs sit flush at the gutter, aligned with the navy line at the same edge; mobile keeps the line edge-to-edge via the <code>::after</code> override).</div>
+        <div class="ds-component-notes">Chart line/point colors use the <code>CHART_COLORS</code> JS constant (<code>utils.js</code>), which now reads <strong>general semantic tokens</strong> — Raised → <code>--navy-deep</code>, Spent → <code>--red-deep</code>, Cash on Hand → <code>--green</code>, "today" marker → <code>--border-strong</code>, axis → <code>--border</code>/<code>--muted</code>. The bespoke <code>--chart-*</code> token set (and its <code>blue-500</code>/<code>red-500</code> primitives) was <strong>retired 2026-06-03</strong> — the summary chart now reuses the general palette. HTML legend swatches reference those same tokens directly (<code>var(--navy-deep)</code> / <code>var(--red-deep)</code> / <code>var(--green)</code>). — The cycle <code>&lt;select&gt;</code> uses <code>.cycle-select.form-select</code> in <code>styles.css</code> (Oswald 400, 1.25rem, no border, <code>color:var(--text)</code>) — specificity bump ensures it overrides <code>.form-select</code> defaults. <strong>T16 (2026-05-14) retired the candidate.html + committee.html cycle-switcher inside their tabs-bars</strong>; cycle changes on those pages now happen via the Cycle card chevron → cycle index → row click path. The <code>.cycle-select</code> variant lives on as the cycle picker in <code>race.html</code>'s tabs-bar. The demo above keeps the variant in its tabs-bar context for documentation continuity. <strong>T14.5 follow-up (2026-05-14):</strong> the navy 2px bottom rule on <code>.tabs-bar</code> migrated from <code>border-bottom</code> to a <code>::after</code> pseudo-element anchored at <code>left/right:var(--page-gutter); bottom:0; z-index:-1</code> so the line ends at the gutter-inset edge (matching the borders on <code>#summary-strip</code>'s children above). The <code>z-index:-1</code> keeps <code>.tab.active</code>'s 4px red underline (in normal flow) above the navy in stacking order so the red wins where they overlap; the previous <code>.tab { margin-bottom:-2px }</code> trick (which clipped the red 2px under <code>overflow-y:hidden</code>) retired with it. Tabs-bar padding is <code>0 var(--page-gutter)</code> on desktop and mobile (tabs sit flush at the gutter, aligned with the navy line at the same edge; mobile keeps the line edge-to-edge via the <code>::after</code> override).</div>
       </div>
 
       <!-- 10. Section title + committee rows -->
@@ -1385,7 +1383,7 @@
           <span class="ds-component-name">button-group</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.button-group · .button-group-btn — inline-flex toggle button group; mono label style, height:34px (matches .form-input/.form-select), collapsed borders, active state navy-950 fill. Same navy-950 fill appears on the <a href="#comp-menu-btn">menu-btn</a> (the "selected / primary action" color family) but each component keeps its own identity class and sizing rule.</div>
+        <div class="ds-component-classes">.button-group · .button-group-btn — inline-flex toggle button group; mono label style, height:34px (matches .form-input/.form-select), collapsed borders, active state navy-deep fill. Same navy-deep fill appears on the <a href="#comp-menu-btn">menu-btn</a> (the "selected / primary action" color family) but each component keeps its own identity class and sizing rule.</div>
         <div class="ds-component-demo">
           <div style="display:flex;gap:var(--space-16);align-items:flex-end;flex-wrap:wrap">
             <div class="form-field">
@@ -1407,7 +1405,7 @@
             </div>
           </div>
         </div>
-        <div class="ds-component-notes">Used on <code>feed.html</code> for office and time window filters. Wraps in <code>.form-field</code> with <code>.form-label</code> above — same structure as other filter controls. <code>height:34px</code> explicitly matches <code>.form-select</code> and <code>.form-input</code>. Adjacent buttons collapse shared borders via <code>.button-group-btn + .button-group-btn { border-left:none }</code>. The navy-950 active fill is the "selected" semantic — also appears on the <a href="#comp-menu-btn">menu-btn</a> with its own sizing rule.</div>
+        <div class="ds-component-notes">Used on <code>feed.html</code> for office and time window filters. Wraps in <code>.form-field</code> with <code>.form-label</code> above — same structure as other filter controls. <code>height:34px</code> explicitly matches <code>.form-select</code> and <code>.form-input</code>. Adjacent buttons collapse shared borders via <code>.button-group-btn + .button-group-btn { border-left:none }</code>. The navy-deep active fill is the "selected" semantic — also appears on the <a href="#comp-menu-btn">menu-btn</a> with its own sizing rule.</div>
       </div>
 
       <!-- 12. End of results -->

@@ -46,7 +46,7 @@
   --overlay-bg: rgba(26,21,16,0.65);
 
   /* Partisan / data — deep color + light tint pair per party */
-  --dem:   #1E3A5F;
+  --dem:   var(--navy-deep);  /* collapsed into the brand navy 2026-06-03 — Democrat = #05234F (was #1E3A5F) */
   --dem50: #E6EBEF;  /* light blue tint — filled tag bg */
   --rep:   #A83228;
   --rep50: #F5E2E0;  /* light red tint — filled tag bg */
@@ -63,8 +63,8 @@
   --inc50:     #F6E9CE; /* amber-light tint — incumbent tag bg */
 
   /* Brand primitives */
-  --color-navy-950: #05234F; /* nav logo "Ledger", future brand accent */
-  --color-red-700:  #A83228; /* nav logo "FEC"; also backs --rep and --red */
+  --navy-deep: #05234F; /* nav logo "Ledger", brand accent — also backs --dem (Democrat) + summary chart Raised + --cat-1 */
+  --red-deep:  #A83228; /* nav logo "FEC", active tab, summary chart Spent — also backs --rep/--red (same #A83228, independent literals). Renamed from --color-red-700 2026-06-03 */
 
   /* Data-category sequence — donut wedges (raised + spent, shared by ring
      position). Self-contained: deliberately own values, NOT references to
@@ -109,7 +109,7 @@
 }
 
 /* ── Global banner ── */
-.global-banner { background:var(--color-navy-950); height:var(--banner-h);
+.global-banner { background:var(--navy-deep); height:var(--banner-h);
   display:flex; align-items:center; justify-content:center; }
 .global-banner-text { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
   text-transform:uppercase; letter-spacing:var(--ls-expanded);
@@ -147,8 +147,8 @@ a { color: var(--accent); }
 .top-nav-logo { font-family:'Oswald',sans-serif; font-size:1.25rem;
   font-weight:600; text-transform:uppercase; text-decoration:none;
   white-space:nowrap; flex-shrink:0; }
-.logo-fec    { color: var(--color-red-700); }
-.logo-ledger { color: var(--color-navy-950); }
+.logo-fec    { color: var(--red-deep); }
+.logo-ledger { color: var(--navy-deep); }
 .top-nav-links { display:flex; align-items:center; }
 .nav-link { font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem;
   color:var(--text); padding:0 var(--space-16); height:var(--header-h);
@@ -302,19 +302,19 @@ a { color: var(--accent); }
    the .tab in stacking order so the red wins where they overlap. */
 .tabs-bar::after { content:''; position:absolute;
   left:var(--page-gutter); right:var(--page-gutter); bottom:0; height:2px;
-  background:var(--color-navy-950); z-index:-1; }
+  background:var(--navy-deep); z-index:-1; }
 .tabs-bar::-webkit-scrollbar { display:none; }
 .tabs-bar.visible { opacity:1; }
 .cycle-select.form-select { align-self:stretch; border:none; border-radius:0;
   font-family:'Oswald',sans-serif; font-weight:400; font-size:1.25rem; padding:0 var(--space-8); min-width:5.5rem; margin-left:auto;
-  background:var(--bg); color:var(--color-navy-950); cursor:pointer; }
-.cycle-select.form-select:focus { outline:none; color:var(--color-navy-950); }
+  background:var(--bg); color:var(--navy-deep); cursor:pointer; }
+.cycle-select.form-select:focus { outline:none; color:var(--navy-deep); }
 .meta-row { display:flex; align-items:center; gap:var(--space-4) var(--space-8); flex-wrap:wrap; }
-.tab { font-family:'Oswald',sans-serif; padding:var(--space-4) 0; font-size:1.25rem; text-transform:none; color:var(--color-navy-950); cursor:pointer;
+.tab { font-family:'Oswald',sans-serif; padding:var(--space-4) 0; font-size:1.25rem; text-transform:none; color:var(--navy-deep); cursor:pointer;
   border-bottom:4px solid transparent;
   transition:all 0.15s; text-decoration:none; white-space:nowrap; flex-shrink:0; }
 .tab:hover { color:var(--muted); }
-.tab.active { color:var(--color-navy-950); border-bottom-color:var(--color-red-700); }
+.tab.active { color:var(--navy-deep); border-bottom-color:var(--red-deep); }
 
 /* ── B: Tags ── */
 /* Filled-on-light pattern: deep text color on a tinted background, no border,
@@ -498,12 +498,12 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   font-size:1.25rem; padding:var(--space-4); transition:color 0.15s; line-height:var(--lh-tight); }
 .modal-close:hover { color:var(--text); }
 .modal-tabs { display:flex; gap:var(--space-24); padding:0 var(--space-24);
-  border-bottom:1px solid var(--color-navy-950); flex-shrink:0; }
+  border-bottom:1px solid var(--navy-deep); flex-shrink:0; }
 .modal-tab-btn { background:none; border:none; border-bottom:2px solid transparent;
   padding:var(--space-8) 0; font-family:'IBM Plex Sans',sans-serif; font-size:0.875rem;
   font-weight:400; color:var(--muted);
   cursor:pointer; transition:color 0.15s, border-color 0.15s; }
-.modal-tab-btn.active { color:var(--text); border-bottom-color:var(--color-red-700); }
+.modal-tab-btn.active { color:var(--text); border-bottom-color:var(--red-deep); }
 .modal-tab-btn:hover:not(.active) { color:var(--subtle); }
 .modal-body { overflow-y:auto; padding:var(--space-32) var(--space-24); flex:1; }
 /* Section-title spacing inside the committees modal — only when a title
@@ -593,7 +593,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .stat-label { font-size:0.625rem; letter-spacing:var(--ls-expanded); text-transform:uppercase;
   color:var(--muted); margin-bottom:var(--space-4); }
 .stat-value { font-family:'Oswald',sans-serif; font-size:2rem; font-weight:400;
-  line-height:var(--lh-tight); color:var(--color-navy-950); margin-bottom:var(--space-4); }
+  line-height:var(--lh-tight); color:var(--navy-deep); margin-bottom:var(--space-4); }
 .stat-sub { font-size:0.625rem; color:var(--muted); }
 .stat-sub.pos { color:var(--green); }
 .stat-sub.neg { color:var(--red); }
@@ -607,7 +607,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .cycle-back-btn {
   width:40px; height:40px; padding:0; display:flex;
   align-items:center; justify-content:center; flex-shrink:0;
-  background:var(--color-navy-950); border:none; color:var(--bg);
+  background:var(--navy-deep); border:none; color:var(--bg);
   border-radius:99px; cursor:pointer;
   transition:opacity 0.15s; }
 .cycle-back-btn:hover { opacity:0.88; }
@@ -662,7 +662,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .page-title { font-family:'Oswald',sans-serif;
   font-size:clamp(2rem,5vw,4.5rem); font-weight:600; line-height:var(--lh-tight);
   letter-spacing:var(--ls-tight); text-transform:uppercase;
-  color:var(--color-navy-950); }
+  color:var(--navy-deep); }
 /* Title sits inside .title-meta-stack (column flex). min-width:0 is defensive —
    keeps the title from forcing the stack wider than its flex:1 allocation if
    the title's intrinsic width somehow exceeds the stack width. The previous
@@ -1007,10 +1007,10 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
   display:flex; align-items:center; justify-content:center;
   width:40px; height:40px; background:none;
   border:1px solid var(--border-strong); border-radius:2px;
-  color:var(--color-navy-950); font-size:1rem; line-height:1; cursor:pointer;
+  color:var(--navy-deep); font-size:1rem; line-height:1; cursor:pointer;
   transition:border-color 0.12s, background 0.12s; }
 .search-overlay-close:hover {
-  border-color:var(--color-navy-950); background:var(--surface-2); }
+  border-color:var(--navy-deep); background:var(--surface-2); }
 .search-overlay-close:focus-visible {
   outline:2px solid var(--accent); outline-offset:2px; }
 
@@ -1068,8 +1068,8 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .button-group-btn:hover { color:var(--text); }
 /* Selected toggle navy fill. */
 .button-group-btn.active {
-  background:var(--color-navy-950); color:var(--bg);
-  border:1px solid var(--color-navy-950); }
+  background:var(--navy-deep); color:var(--bg);
+  border:1px solid var(--navy-deep); }
 .button-group-btn.active + .button-group-btn { border-left:none; }
 
 /* ── Menu button (action menu — split button + dropdown) ── */
@@ -1081,7 +1081,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    interaction model (toggle dropdown vs single press). */
 .menu-btn-wrap { position:relative; display:inline-block; }
 .menu-btn { display:inline-flex; align-items:stretch;
-  background:var(--color-navy-950); color:var(--bg);
+  background:var(--navy-deep); color:var(--bg);
   border:none; border-radius:2px; cursor:pointer; padding:0;
   /* 40px is an intentional new value — NOT on the 8px spacing scale, and
      distinct from the 34px form-control height. A form-control height
@@ -1115,7 +1115,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .menu-item {
   display:flex; align-items:center; gap:var(--space-8);
   min-height:40px; padding:var(--space-8) var(--space-16);
-  background:var(--surface); color:var(--color-navy-950);
+  background:var(--surface); color:var(--navy-deep);
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem; font-weight:400;
   text-transform:uppercase; letter-spacing:var(--ls-expanded);
   text-decoration:none; border:none; cursor:pointer;

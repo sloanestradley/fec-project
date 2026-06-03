@@ -464,8 +464,8 @@ var CHART_COLORS = (function() {
   var s = getComputedStyle(document.documentElement);
   var v = function(name) { return s.getPropertyValue(name).trim(); };
   return {
-    raised:           v('--color-navy-950'),
-    spent:            v('--color-red-700'),
+    raised:           v('--navy-deep'),
+    spent:            v('--red-deep'),
     coh:              v('--green'),
     overlayToday:     v('--border-strong'),
     axisGrid:         v('--border'),

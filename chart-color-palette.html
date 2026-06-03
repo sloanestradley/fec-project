@@ -18,7 +18,7 @@
     /* ── Masthead ── */
     .cc-title { font-family:'Oswald',sans-serif; font-weight:600; font-size:clamp(2rem,5vw,3.5rem);
       text-transform:uppercase; letter-spacing:var(--ls-tight); line-height:var(--lh-tight);
-      color:var(--color-navy-950); margin:0 0 var(--space-8); }
+      color:var(--navy-deep); margin:0 0 var(--space-8); }
     .cc-sub { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; text-transform:uppercase;
       letter-spacing:var(--ls-expanded); color:var(--muted); margin:0 0 var(--space-24); }
     .cc-lede { font-family:'IBM Plex Serif',serif; font-size:0.875rem; line-height:var(--lh-expanded);
@@ -56,8 +56,8 @@
       text-transform:uppercase; letter-spacing:var(--ls-expanded); padding:1px var(--space-4);
       border-radius:2px; border:1px solid; margin-bottom:var(--space-8); }
     .cc-src--token   { color:var(--green); border-color:rgba(30,102,68,0.35);  background:rgba(30,102,68,0.06); }
-    .cc-src--cc      { color:var(--dem);   border-color:rgba(30,58,95,0.35);   background:rgba(30,58,95,0.06); }
-    .cc-src--literal { color:var(--red);   border-color:rgba(168,50,40,0.35);  background:rgba(168,50,40,0.06); }
+    .cc-src--cc      { color:var(--dem);   border-color:var(--navy-deep);   background:color-mix(in srgb, var(--navy-deep) 8%, transparent); }
+    .cc-src--literal { color:var(--red);   border-color:var(--red-deep);    background:color-mix(in srgb, var(--red-deep) 8%, transparent); }
 
     /* ── Pattern fill (CSS approximation of the canvas makeStripePattern) ── */
     .cc-pattern {
@@ -196,7 +196,7 @@
       <h2 class="cc-section-title">Summary timeline · candidate only</h2>
       <p class="cc-section-note">Line chart, 3 series + an overlay marker. The only fully token-driven chart
         surface (via <code>CHART_COLORS</code>, which now reads general semantic / brand tokens at runtime —
-        <code>--color-navy-950</code> / <code>--color-red-700</code> / <code>--green</code>). The <code>-solid</code>
+        <code>--navy-deep</code> / <code>--red-deep</code> / <code>--green</code>). The <code>-solid</code>
         point variants resolve to the same tokens as the lines now, so the Spent line's former overspend
         opacity-shift no longer applies.</p>
       <div class="cc-grid" id="timeline"></div>
@@ -505,9 +505,9 @@
 
     // ── source layers ─────────────────────────────────────────────────────
     fill('layers', [
-      { name: 'CSS token', color: 'var(--color-navy-950)', val: 'styles.css :root → semantic / brand tokens', src: 'token',
+      { name: 'CSS token', color: 'var(--navy-deep)', val: 'styles.css :root → semantic / brand tokens', src: 'token',
         key: 'timeline · purpose bar · UI chrome' },
-      { name: 'CHART_COLORS (JS)', color: 'var(--color-red-700)', val: 'utils.js · reads general tokens + choroplethRgb (--amber)', src: 'chart_colors',
+      { name: 'CHART_COLORS (JS)', color: 'var(--red-deep)', val: 'utils.js · reads general tokens + choroplethRgb (--amber)', src: 'chart_colors',
         key: 'timeline series + axes · choropleth hue' },
       { name: 'CATEGORY_COLORS (JS)', color: 'var(--cat-1)', val: 'utils.js · reads --cat-* sequence tokens', src: 'token',
         key: 'donut categories' }
@@ -515,8 +515,8 @@
 
     // ── timeline (CHART_COLORS now reads general tokens, not bespoke --chart-*) ──
     fill('timeline', [
-      { name: 'Raised', color: 'var(--color-navy-950)', val: '--color-navy-950 · #05234F', key: 'CHART_COLORS.raised · raisedSolid = same token', src: 'chart_colors' },
-      { name: 'Spent', color: 'var(--color-red-700)', val: '--color-red-700 · #A83228', key: 'CHART_COLORS.spent · spentSolid = same token (overspend no longer shifts)', src: 'chart_colors' },
+      { name: 'Raised', color: 'var(--navy-deep)', val: '--navy-deep · #05234F', key: 'CHART_COLORS.raised · raisedSolid = same token', src: 'chart_colors' },
+      { name: 'Spent', color: 'var(--red-deep)', val: '--red-deep · #A83228', key: 'CHART_COLORS.spent · spentSolid = same token (overspend no longer shifts)', src: 'chart_colors' },
       { name: 'Cash on Hand', color: 'var(--green)', val: '--green · #1E6644', key: 'CHART_COLORS.coh · cohSolid = same token', src: 'chart_colors' },
       { name: '"Today" overlay line', color: 'var(--border-strong)', val: '--border-strong · #A8A099', key: 'CHART_COLORS.overlayToday', src: 'chart_colors' }
     ]);
