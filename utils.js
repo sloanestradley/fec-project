@@ -493,29 +493,29 @@ var CHART_COLORS = (function() {
 //     separate keys — same value today, free to diverge later.
 var CATEGORY_COLORS = {
   raised: {
-    individualsItemized:   'rgba(74,144,217,1)',
-    individualsUnitemized: 'rgba(74,144,217,0.65)',
-    individualsHatchA:     'rgba(74,144,217,0.7)',
-    individualsHatchB:     'rgba(74,144,217,0.12)',
-    pacs:                  'rgba(232,160,32,0.9)',
-    party:                 'rgba(61,191,122,0.85)',
-    candidateAuthorized:   'rgba(155,142,212,0.85)',
-    candidateSelfFunding:  'rgba(90,96,112,0.8)',
-    candidateContribLoans: 'rgba(90,96,112,0.8)',
-    otherReceipts:         'rgba(90,96,112,0.4)',
-    loans:                 'rgba(200,150,80,0.75)',
-    federalFunds:          'rgba(61,191,122,0.5)',
-    refundsOffsets:        'rgba(90,96,112,0.25)'
+    individualsItemized:   '#05234F',
+    individualsUnitemized: '#05234F',
+    individualsHatchA:     '#05234F',
+    individualsHatchB:     '#F8F5EC',
+    pacs:                  '#1d5a6d',
+    party:                 '#437772',
+    candidateAuthorized:   '#75917b',
+    candidateSelfFunding:  '#a7aa91',
+    candidateContribLoans: '#a7aa91',
+    otherReceipts:         '#D7D1C7',
+    loans:                 '#d4c4b5',
+    federalFunds:          '#f5e2e0',
+    refundsOffsets:        '#EEE9E1'
   },
   spent: {
-    operatingExpenditures:   'rgba(217,74,74,0.85)',
-    sharedNonfedOpex:        'rgba(194,85,62,0.8)',
-    transfersOut:            'rgba(232,160,32,0.85)',
-    candidateContributions:  'rgba(44,82,130,0.8)',
-    independentExpenditures: 'rgba(90,74,122,0.8)',
-    loanRepayments:          'rgba(88,100,140,0.85)',
-    contributionRefunds:     'rgba(61,191,122,0.65)',
-    otherDisbursements:      'rgba(90,96,112,0.7)'
+    operatingExpenditures:   '#05234F',
+    sharedNonfedOpex:        '#1d5a6d',
+    transfersOut:            '#437772',
+    candidateContributions:  '#75917b',
+    independentExpenditures: '#a7aa91',
+    loanRepayments:          '#d4c4b5',
+    contributionRefunds:     '#f5e2e0',
+    otherDisbursements:      '#D7D1C7'
   }
 };
 

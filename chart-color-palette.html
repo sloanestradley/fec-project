@@ -61,10 +61,10 @@
 
     /* ── Pattern fill (CSS approximation of the canvas makeStripePattern) ── */
     .cc-pattern {
-      background-color: rgba(74,144,217,0.12);
+      background-color: #F8F5EC;
       background-image: repeating-linear-gradient(135deg,
-        rgba(74,144,217,0.7) 0, rgba(74,144,217,0.7) 2px,
-        rgba(74,144,217,0.12) 2px, rgba(74,144,217,0.12) 6px); }
+        #05234F 0, #05234F 2px,
+        #F8F5EC 2px, #F8F5EC 6px); }
 
     /* ── Choropleth gradient bars ── */
     .cc-gradbar-row { display:flex; align-items:center; gap:var(--space-16); margin-bottom:var(--space-16); flex-wrap:wrap; }
@@ -74,17 +74,6 @@
       border:1px solid var(--border); }
     .cc-gradbar-ends { display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace;
       font-size:0.5625rem; color:var(--muted); margin-top:var(--space-2); }
-
-    /* ── Side-by-side comparison blocks ── */
-    .cc-compare { display:flex; gap:var(--space-16); flex-wrap:wrap; margin-bottom:var(--space-24); }
-    .cc-compare-cell { flex:1; min-width:200px; border:1px solid var(--border); border-radius:2px;
-      background:var(--surface); overflow:hidden; }
-    .cc-compare-cell .cc-chip { height:80px; }
-    .cc-stack { border:1px solid var(--border); border-radius:2px; overflow:hidden; max-width:520px; }
-    .cc-stack-row { display:flex; align-items:stretch; border-bottom:1px solid var(--border); }
-    .cc-stack-row:last-child { border-bottom:none; }
-    .cc-stack-chip { width:96px; flex-shrink:0; }
-    .cc-stack-meta { padding:var(--space-8) var(--space-16); background:var(--surface); flex:1; }
 
     /* ── Monochrome purpose bars ── */
     .cc-purpose { max-width:560px; }
@@ -192,10 +181,12 @@
       <h2 class="cc-section-title">The three color-source layers</h2>
       <p class="cc-section-note">Colors live in three disconnected places. The <strong>timeline</strong>, the
         <strong>choropleth</strong> (sourced from <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>),
-        the monochrome purpose bars, and non-chart UI chrome flow from CSS tokens. The <strong>donuts are still
-        hardcoded literals</strong> that numerically duplicate token values without referencing them — so retuning a
-        token moves the timeline and choropleth but <em>not</em> the matching donut wedge. The badges throughout this
-        page mark which layer each swatch belongs to.</p>
+        the monochrome purpose bars, and non-chart UI chrome flow from CSS tokens. The <strong>donut categories are
+        raw literals</strong>, now consolidated into <code>CATEGORY_COLORS</code> in <code>utils.js</code> (Phase 1 of
+        the color-system cleanup) so both pages share one source — but they're still literal values, not tokens, so
+        retuning a token moves the timeline and choropleth but <em>not</em> the matching donut wedge (Phase 3 will
+        promote them to <code>--cat-*</code> tokens). The badges throughout this page mark which layer each swatch
+        belongs to.</p>
       <div class="cc-grid" id="layers"></div>
     </section>
 
@@ -233,10 +224,10 @@
     <!-- ── Raised donut ── -->
     <section class="cc-section cc-section--rehover">
       <h2 class="cc-section-title">Raised breakdown donut · both pages (identical)</h2>
-      <p class="cc-section-note">10 categories, each an <strong>inline rgba literal</strong> in a <code>cats</code>
-        array inside the render function (<code>candidate.html:977</code> / <code>committee.html:1466</code>).
-        Byte-identical across both pages — only one label word differs ("Candidate self-funding" vs "Candidate
-        contributions &amp; loans"). One category — <strong>Individuals (unitemized)</strong> — is the lone
+      <p class="cc-section-note">10 categories. Each <code>cats</code> entry now references
+        <code>CATEGORY_COLORS.raised.*</code> (<code>utils.js</code>) instead of an inline literal, so both pages draw
+        from one source — identical across both, with only one label word differing ("Candidate self-funding" vs
+        "Candidate contributions &amp; loans"). One category — <strong>Individuals (unitemized)</strong> — is the lone
         pattern fill on the entire site.</p>
       <div class="cc-grid" id="raised"></div>
 
@@ -249,17 +240,17 @@
         <div class="cc-legend-demo-col">
           <div class="cc-legend-demo-big cc-pattern"></div>
           <span class="cc-legend-demo-cap">Wedge fill — stripes</span>
-          <span class="cc-val">canvas pattern · rgba(74,144,217,0.7) on 0.12</span>
+          <span class="cc-val">canvas pattern · #05234F on #F8F5EC</span>
         </div>
         <div class="cc-legend-demo-col">
-          <div class="cc-legend-demo-big" style="background:rgba(74,144,217,0.65)"></div>
+          <div class="cc-legend-demo-big" style="background:#05234F"></div>
           <span class="cc-legend-demo-cap">Legend swatch — flat</span>
-          <span class="cc-val">legendColor · rgba(74,144,217,0.65)</span>
+          <span class="cc-val">legendColor · #05234F</span>
         </div>
         <div class="cc-legend-demo-col" style="align-items:flex-start;max-width:240px">
           <span class="cc-legend-demo-cap">As it appears in-legend</span>
           <span class="cc-name"><span class="cc-legend-sw cc-pattern"></span> shown as &rarr;
-            <span class="cc-legend-sw" style="background:rgba(74,144,217,0.65)"></span> Individuals (unitemized)</span>
+            <span class="cc-legend-sw" style="background:#05234F"></span> Individuals (unitemized)</span>
           <span class="cc-val">render: <code style="font-family:'IBM Plex Mono'">(c.legendColor || c.color)</code></span>
         </div>
       </div>
@@ -267,24 +258,23 @@
       <h3 class="cc-subhead">Hover behavior — wedge vs. legend</h3>
       <div class="cc-hover-panel">
         <div class="cc-hov-demo">
-          <span class="cc-hov-wedge" style="background:#4A90D9"></span>
+          <span class="cc-hov-wedge" style="background:#05234F"></span>
           <span class="cc-hov-cap">hover — pops out 4px</span>
         </div>
         <div class="cc-hov-demo">
-          <div class="cc-split"><span style="background:#4A90D9"></span><span style="background:#097FFD"></span></div>
+          <div class="cc-split"><span style="background:#05234F"></span><span style="background:#01152F"></span></div>
           <div class="cc-split-labels"><span>default</span><span>hover</span></div>
         </div>
         <div class="cc-hov-desc">
           <span class="cc-hov-mech">Chart.js getHoverColor (saturate + darken) · + hoverOffset 4</span>
           <span class="cc-hov-text">The hovered wedge <strong>recolors and offsets</strong>. Color: Chart.js
-            auto-derives a hover fill via <code>getHoverColor</code> (saturate + darken) — itemized blue
-            <code>#4A90D9</code> → <code>#097FFD</code>, PACs amber <code>#E8A020</code> → <code>#EE9600</code>; the
-            1px <code>--bg</code> ring brightens too (<code>#F8F5EC</code> → <code>#F4E8C0</code>). Geometry:
-            <code>hoverOffset 4</code> pops it 4px outward. <strong>Exception — the unitemized stripe wedge is a
-            CanvasPattern, which <code>getHoverColor</code> leaves untouched: it only offsets, no recolor.</strong>
-            <strong>The legend has no hover at all</strong> — rows don't cross-highlight their wedge (no
-            <code>.donut-row:hover</code>, no JS link). Reference swatches pop 4px on hover; the split shows the
-            real color delta.</span>
+            auto-derives a hover fill via <code>getHoverColor</code> (saturate + darken) — the exact post-hover
+            value is Chart.js-derived from each wedge's own color; the 1px <code>--bg</code> ring brightens too.
+            Geometry: <code>hoverOffset 4</code> pops it 4px outward. <strong>Exception — the unitemized stripe
+            wedge is a CanvasPattern, which <code>getHoverColor</code> leaves untouched: it only offsets, no
+            recolor.</strong> <strong>The legend has no hover at all</strong> — rows don't cross-highlight their
+            wedge (no <code>.donut-row:hover</code>, no JS link). The split illustrates the recolor (representative —
+            the exact delta is Chart.js-derived).</span>
           <span class="cc-hov-badge cc-hov-badge--color">color change (Chart.js) + geometry</span>
         </div>
       </div>
@@ -299,18 +289,17 @@
       <h3 class="cc-subhead">Hover behavior</h3>
       <div class="cc-hover-panel">
         <div class="cc-hov-demo">
-          <span class="cc-hov-wedge" style="background:#D94A4A"></span>
+          <span class="cc-hov-wedge" style="background:#05234F"></span>
           <span class="cc-hov-cap">hover — pops out 4px</span>
         </div>
         <div class="cc-hov-demo">
-          <div class="cc-split"><span style="background:#D94A4A"></span><span style="background:#FD0909"></span></div>
+          <div class="cc-split"><span style="background:#05234F"></span><span style="background:#01152F"></span></div>
           <div class="cc-split-labels"><span>default</span><span>hover</span></div>
         </div>
         <div class="cc-hov-desc">
           <span class="cc-hov-mech">Chart.js getHoverColor (saturate + darken) · + hoverOffset 4</span>
           <span class="cc-hov-text">Identical mechanism to the raised donut — every solid wedge recolors (Chart.js
-            <code>getHoverColor</code>: Operating Expenditures red <code>#D94A4A</code> → <code>#FD0909</code>)
-            <em>and</em> offsets 4px. No legend hover.</span>
+            <code>getHoverColor</code>, saturate + darken) <em>and</em> offsets 4px. No legend hover.</span>
           <span class="cc-hov-badge cc-hov-badge--color">color change (Chart.js) + geometry</span>
         </div>
       </div>
@@ -319,27 +308,26 @@
     <!-- ── Spent donut committee ── -->
     <section class="cc-section cc-section--rehover">
       <h2 class="cc-section-title">Spent breakdown donut · committee (8 categories) — diverges</h2>
-      <p class="cc-section-note">Committee has a richer disbursement schema (<code>committee.html:2005</code>):
-        it adds Shared Non-Federal OpEx, Candidate Contributions, and Independent Expenditures. Overlapping
-        categories reuse the candidate literals. Note two literals that silently equal existing tokens:
-        <strong>Candidate Contributions = <code>--accent</code></strong> (#2C5282) and
-        <strong>Independent Expenditures = <code>--ind</code></strong> (#5A4A7A) — duplicated as literals, not referenced.</p>
+      <p class="cc-section-note">Committee has a richer disbursement schema (<code>committee.html:2001</code>):
+        it adds Shared Non-Federal OpEx, Candidate Contributions, and Independent Expenditures. All eight reference
+        <code>CATEGORY_COLORS.spent.*</code>; the five categories shared with the candidate donut resolve to the same
+        values on both pages.</p>
       <div class="cc-grid" id="spentComm"></div>
       <h3 class="cc-subhead">Hover behavior</h3>
       <div class="cc-hover-panel">
         <div class="cc-hov-demo">
-          <span class="cc-hov-wedge" style="background:#D94A4A"></span>
+          <span class="cc-hov-wedge" style="background:#05234F"></span>
           <span class="cc-hov-cap">hover — pops out 4px</span>
         </div>
         <div class="cc-hov-demo">
-          <div class="cc-split"><span style="background:#D94A4A"></span><span style="background:#FD0909"></span></div>
+          <div class="cc-split"><span style="background:#05234F"></span><span style="background:#01152F"></span></div>
           <div class="cc-split-labels"><span>default</span><span>hover</span></div>
         </div>
         <div class="cc-hov-desc">
           <span class="cc-hov-mech">Chart.js getHoverColor (saturate + darken) · + hoverOffset 4</span>
-          <span class="cc-hov-text">Same as every donut — Chart.js recolors the wedge (<code>getHoverColor</code>:
-            Operating Expenditures red <code>#D94A4A</code> → <code>#FD0909</code>) and <code>hoverOffset: 4</code>
-            pops it out, across all 8 categories. (No legend hover.)</span>
+          <span class="cc-hov-text">Same as every donut — Chart.js recolors the wedge (<code>getHoverColor</code>,
+            saturate + darken) and <code>hoverOffset: 4</code> pops it out, across all 8 categories.
+            (No legend hover.)</span>
           <span class="cc-hov-badge cc-hov-badge--color">color change (Chart.js) + geometry</span>
         </div>
       </div>
@@ -423,9 +411,9 @@
       <ul class="cc-findings">
         <li><strong>Hover recolors the data marks — automatically.</strong> Even though no
           <code>hoverBackgroundColor</code> is set anywhere, Chart.js auto-derives one via <code>getHoverColor</code>
-          (saturate + darken): timeline points and solid donut wedges shift (e.g. blue <code>#4A90D9</code> →
-          <code>#097FFD</code>, amber <code>#E8A020</code> → <code>#EE9600</code>), and the donut's 1px ring
-          brightens too. This is the effect you see on hover — it is <em>not</em> "geometry only."</li>
+          (saturate + darken): timeline points and solid donut wedges shift to a Chart.js-derived darker/saturated
+          tone, and the donut's 1px ring brightens too. This is the effect you see on hover — it is <em>not</em>
+          "geometry only."</li>
         <li><strong>Canvas recolor is Chart.js's, not ours.</strong> The canvas charts recolor via Chart.js
           <code>getHoverColor</code> (a saturate + darken transform) — automatic, not governed by a token. The
           choropleth deliberately does <em>not</em> recolor: its fill shade encodes the data, so it outlines
@@ -441,47 +429,6 @@
       </ul>
     </section>
 
-    <!-- ── Cross-cutting: token/literal split ── -->
-    <section class="cc-section">
-      <h2 class="cc-section-title">Collision watch — same number, different surface</h2>
-
-      <h3 class="cc-subhead">1 · Token vs literal — the same blue, two sources</h3>
-      <p class="cc-section-note">The timeline Raised line is token-driven; the donut "Individuals (itemized)"
-        wedge is a literal. Same hue family, <em>different alpha</em> (0.9 vs 1.0), and a token change touches only
-        the left one.</p>
-      <div class="cc-compare">
-        <div class="cc-compare-cell">
-          <span class="cc-chip" style="background:rgba(74,144,217,0.9)"></span>
-          <div class="cc-swatch-body"><span class="cc-src cc-src--token">token</span>
-            <span class="cc-name">Timeline · Raised line</span>
-            <span class="cc-val">--chart-raised · rgba(74,144,217,0.9)</span></div>
-        </div>
-        <div class="cc-compare-cell">
-          <span class="cc-chip" style="background:rgba(74,144,217,1)"></span>
-          <div class="cc-swatch-body"><span class="cc-src cc-src--literal">literal</span>
-            <span class="cc-name">Raised donut · Individuals (itemized)</span>
-            <span class="cc-val">literal · rgba(74,144,217,1)</span></div>
-        </div>
-      </div>
-
-      <h3 class="cc-subhead">2 · One grey, three meanings (alpha-only distinction)</h3>
-      <p class="cc-section-note">Three raised-donut categories are the <em>same</em> grey
-        <code>90,96,112</code>, separated only by opacity. Stacked over the page background:</p>
-      <div class="cc-stack" id="greyStack"></div>
-
-      <h3 class="cc-subhead">3 · One green, many meanings</h3>
-      <p class="cc-section-note">The green <code>61,191,122</code> (and its token forms) carries at least five
-        unrelated meanings across the charts; nearby <code>--green</code> and <code>--filing-active</code> add two
-        more green meanings in the UI.</p>
-      <div class="cc-grid" id="greenCluster"></div>
-
-      <h3 class="cc-subhead">4 · "Amber" is two different colors</h3>
-      <p class="cc-section-note">The donuts' "amber" is a gold <em>literal</em> (<code>#E8A020</code>); the
-        choropleth's new amber is the <code>--amber</code> <em>token</em> (<code>#8A5F10</code>, much darker). Same
-        word, different colors and different source layers.</p>
-      <div class="cc-grid" id="amberCluster"></div>
-    </section>
-
     <!-- ── Findings text ── -->
     <section class="cc-section">
       <h2 class="cc-section-title">Findings (condensed)</h2>
@@ -489,11 +436,12 @@
         <li><strong>Three disconnected color layers.</strong> CSS tokens (<code>--chart-*</code>, partisan,
           status) → drive the timeline, purpose bars, and UI chrome. <code>CHART_COLORS</code> (utils.js) mirrors
           the <code>--chart-*</code> tokens into JS for the timeline, and the choropleth reads <code>--amber</code>
-          via <code>CHART_COLORS.choroplethRgb</code>. <strong>Inline rgba/RGB literals</strong> still drive the
-          donuts — duplicating token numbers without referencing them, so a token retune won't propagate to the
-          donut wedges.</li>
+          via <code>CHART_COLORS.choroplethRgb</code>. The donut categories are <strong>raw literals</strong>,
+          consolidated into <code>CATEGORY_COLORS</code> (utils.js, Phase 1) so both pages share one source — but
+          still literal values, not tokens, so a token retune won't propagate to the donut wedges until Phase 3
+          promotes them to <code>--cat-*</code> tokens.</li>
         <li><strong>Category color is fixed; geographic color is a single token ramp.</strong> Donut colors are
-          assigned per-category, hardcoded by identity — "Individuals (itemized)" is <code>rgba(74,144,217,1)</code>
+          assigned per-category, fixed by identity — "Individuals (itemized)" is <code>#05234F</code>
           on every page, cycle, and candidate. The choropleth is a single <code>--amber</code> ramp on both pages,
           party-independent.</li>
         <li><strong>One pattern, capacity 1.</strong> A single diagonal-stripe canvas pattern exists, used only
@@ -507,10 +455,11 @@
         <li><strong>Cross-page:</strong> raised donut identical; spent donut diverges (candidate 5 vs committee
           8 categories); choropleth identical on both (a single <code>--amber</code> ramp, party-agnostic);
           timeline is candidate-only; purpose bars identical (monochrome).</li>
-        <li><strong>Collisions:</strong> three greys distinguished only by alpha; one green carries many
-          meanings; "amber" is two different colors (donut gold literal vs the <code>--amber</code> token on the
-          map); and several committee-spent literals (<code>--accent</code>, <code>--ind</code>) silently equal
-          existing tokens.</li>
+        <li><strong>Palette mid-iteration (first pass).</strong> The donut categories were recolored to a single
+          sequential navy → parchment ramp, applied positionally so raised-slot-N and spent-slot-N share a value —
+          retiring the old per-hue collisions (the three alpha-only greys, the multi-meaning green, the
+          gold-vs-token "amber"). The ramp introduces its own exact-duplicate pairs (e.g. Federal funds and
+          Contribution Refunds are both <code>#f5e2e0</code>); not yet finalized.</li>
       </ul>
     </section>
 
@@ -557,7 +506,7 @@
         key: 'timeline · purpose bar · UI chrome' },
       { name: 'CHART_COLORS (JS)', color: 'var(--chart-spent)', val: 'utils.js · mirrors --chart-* + choroplethRgb (--amber)', src: 'chart_colors',
         key: 'timeline series + axes · choropleth hue' },
-      { name: 'Inline literal', color: 'rgba(155,142,212,0.85)', val: 'hardcoded rgba in render fn', src: 'literal',
+      { name: 'Raw literal', color: '#05234F', val: 'CATEGORY_COLORS (utils.js) · raw values, not tokens', src: 'literal',
         key: 'donut categories' }
     ]);
 
@@ -571,37 +520,37 @@
 
     // ── raised donut (10) ────────────────────────────────────────────────
     fill('raised', [
-      { name: 'Individuals (itemized)', color: 'rgba(74,144,217,1)', val: 'rgba(74,144,217,1)', key: 'individual_itemized_contributions', src: 'literal' },
-      { name: 'Individuals (unitemized)', pattern: true, val: 'PATTERN · stripes rgba(74,144,217,0.7) on 0.12', key: 'individual_unitemized_contributions · legendColor rgba(74,144,217,0.65)', src: 'literal' },
-      { name: 'PACs & other committees', color: 'rgba(232,160,32,0.9)', val: 'rgba(232,160,32,0.9)', key: 'other_political_committee_contributions', src: 'literal' },
-      { name: 'Party committees', color: 'rgba(61,191,122,0.85)', val: 'rgba(61,191,122,0.85)', key: 'political_party_committee_contributions', src: 'literal' },
-      { name: 'Candidate authorized committees', color: 'rgba(155,142,212,0.85)', val: 'rgba(155,142,212,0.85)', key: 'transfers_from_other_authorized_committee', src: 'literal' },
-      { name: 'Candidate self-funding *', color: 'rgba(90,96,112,0.8)', val: 'rgba(90,96,112,0.8)', key: 'candidate_contribution + loans_made_by_candidate · * committee: "Candidate contributions & loans"', src: 'literal' },
-      { name: 'Other receipts', color: 'rgba(90,96,112,0.4)', val: 'rgba(90,96,112,0.4)', key: 'other_receipts', src: 'literal' },
-      { name: 'Loans', color: 'rgba(200,150,80,0.75)', val: 'rgba(200,150,80,0.75)', key: 'all_other_loans', src: 'literal' },
-      { name: 'Federal funds', color: 'rgba(61,191,122,0.5)', val: 'rgba(61,191,122,0.5)', key: 'federal_funds', src: 'literal' },
-      { name: 'Refunds & offsets', color: 'rgba(90,96,112,0.25)', val: 'rgba(90,96,112,0.25)', key: 'offsets_to_* (summed)', src: 'literal' }
+      { name: 'Individuals (itemized)', color: '#05234F', val: '#05234F', key: 'individual_itemized_contributions', src: 'literal' },
+      { name: 'Individuals (unitemized)', pattern: true, val: 'PATTERN · stripes #05234F on #F8F5EC · legend #05234F', key: 'individual_unitemized_contributions · legendColor #05234F', src: 'literal' },
+      { name: 'PACs & other committees', color: '#1d5a6d', val: '#1d5a6d', key: 'other_political_committee_contributions', src: 'literal' },
+      { name: 'Party committees', color: '#437772', val: '#437772', key: 'political_party_committee_contributions', src: 'literal' },
+      { name: 'Candidate authorized committees', color: '#75917b', val: '#75917b', key: 'transfers_from_other_authorized_committee', src: 'literal' },
+      { name: 'Candidate self-funding *', color: '#a7aa91', val: '#a7aa91', key: 'candidate_contribution + loans_made_by_candidate · * committee: "Candidate contributions & loans"', src: 'literal' },
+      { name: 'Other receipts', color: '#D7D1C7', val: '#D7D1C7', key: 'other_receipts', src: 'literal' },
+      { name: 'Loans', color: '#d4c4b5', val: '#d4c4b5', key: 'all_other_loans', src: 'literal' },
+      { name: 'Federal funds', color: '#f5e2e0', val: '#f5e2e0', key: 'federal_funds', src: 'literal' },
+      { name: 'Refunds & offsets', color: '#EEE9E1', val: '#EEE9E1', key: 'offsets_to_* (summed)', src: 'literal' }
     ]);
 
     // ── spent donut candidate (5) ────────────────────────────────────────
     fill('spentCand', [
-      { name: 'Operating Expenditures', color: 'rgba(217,74,74,0.85)', val: 'rgba(217,74,74,0.85)', key: 'operating_expenditures', src: 'literal' },
-      { name: 'Transfers Out', color: 'rgba(232,160,32,0.85)', val: 'rgba(232,160,32,0.85)', key: 'transfers_to_other_authorized_committee', src: 'literal' },
-      { name: 'Loan Repayments', color: 'rgba(88,100,140,0.85)', val: 'rgba(88,100,140,0.85)', key: 'loan_repayments_made', src: 'literal' },
-      { name: 'Contribution Refunds', color: 'rgba(61,191,122,0.65)', val: 'rgba(61,191,122,0.65)', key: 'contribution_refunds', src: 'literal' },
-      { name: 'Other Disbursements', color: 'rgba(90,96,112,0.7)', val: 'rgba(90,96,112,0.7)', key: 'other_disbursements', src: 'literal' }
+      { name: 'Operating Expenditures', color: '#05234F', val: '#05234F', key: 'operating_expenditures', src: 'literal' },
+      { name: 'Transfers Out', color: '#437772', val: '#437772', key: 'transfers_to_other_authorized_committee', src: 'literal' },
+      { name: 'Loan Repayments', color: '#d4c4b5', val: '#d4c4b5', key: 'loan_repayments_made', src: 'literal' },
+      { name: 'Contribution Refunds', color: '#f5e2e0', val: '#f5e2e0', key: 'contribution_refunds', src: 'literal' },
+      { name: 'Other Disbursements', color: '#D7D1C7', val: '#D7D1C7', key: 'other_disbursements', src: 'literal' }
     ]);
 
     // ── spent donut committee (8) ────────────────────────────────────────
     fill('spentComm', [
-      { name: 'Operating Expenditures', color: 'rgba(217,74,74,0.85)', val: 'rgba(217,74,74,0.85)', key: 'operating_expenditures', src: 'literal' },
-      { name: 'Shared Non-Federal OpEx', color: 'rgba(194,85,62,0.8)', val: 'rgba(194,85,62,0.8)', key: 'shared_nonfed_operating_expenditures', src: 'literal' },
-      { name: 'Transfers Out', color: 'rgba(232,160,32,0.85)', val: 'rgba(232,160,32,0.85)', key: 'transfers_to_affiliated_committee', src: 'literal' },
-      { name: 'Candidate Contributions', color: 'rgba(44,82,130,0.8)', val: 'rgba(44,82,130,0.8)', key: 'fed_candidate_committee_contributions · = --accent #2C5282', src: 'literal' },
-      { name: 'Independent Expenditures', color: 'rgba(90,74,122,0.8)', val: 'rgba(90,74,122,0.8)', key: 'independent_expenditures · = --ind #5A4A7A', src: 'literal' },
-      { name: 'Loan Repayments', color: 'rgba(88,100,140,0.85)', val: 'rgba(88,100,140,0.85)', key: 'loan_repayments_made', src: 'literal' },
-      { name: 'Contribution Refunds', color: 'rgba(61,191,122,0.65)', val: 'rgba(61,191,122,0.65)', key: 'contribution_refunds', src: 'literal' },
-      { name: 'Other Disbursements', color: 'rgba(90,96,112,0.7)', val: 'rgba(90,96,112,0.7)', key: 'other_disbursements (+ remainder)', src: 'literal' }
+      { name: 'Operating Expenditures', color: '#05234F', val: '#05234F', key: 'operating_expenditures', src: 'literal' },
+      { name: 'Shared Non-Federal OpEx', color: '#1d5a6d', val: '#1d5a6d', key: 'shared_nonfed_operating_expenditures', src: 'literal' },
+      { name: 'Transfers Out', color: '#437772', val: '#437772', key: 'transfers_to_affiliated_committee', src: 'literal' },
+      { name: 'Candidate Contributions', color: '#75917b', val: '#75917b', key: 'fed_candidate_committee_contributions', src: 'literal' },
+      { name: 'Independent Expenditures', color: '#a7aa91', val: '#a7aa91', key: 'independent_expenditures', src: 'literal' },
+      { name: 'Loan Repayments', color: '#d4c4b5', val: '#d4c4b5', key: 'loan_repayments_made', src: 'literal' },
+      { name: 'Contribution Refunds', color: '#f5e2e0', val: '#f5e2e0', key: 'contribution_refunds', src: 'literal' },
+      { name: 'Other Disbursements', color: '#D7D1C7', val: '#D7D1C7', key: 'other_disbursements (+ remainder)', src: 'literal' }
     ]);
 
     // ── choropleth gradient bar (single token-sourced --amber hue) ───────
@@ -635,37 +584,6 @@
         '<div class="cc-purpose-track"><div class="cc-purpose-fill" style="width:' + p.pct + '%"></div></div>' +
       '</div>';
     }).join('') + '<p class="cc-val" style="margin-top:var(--space-8)">every bar = --amber · #8A5F10</p>';
-
-    // ── grey-alpha stack ─────────────────────────────────────────────────
-    var greys = [
-      { a: '0.8', name: 'Candidate self-funding' },
-      { a: '0.4', name: 'Other receipts' },
-      { a: '0.25', name: 'Refunds & offsets' }
-    ];
-    document.getElementById('greyStack').innerHTML = greys.map(function (g) {
-      return '<div class="cc-stack-row">' +
-        '<div class="cc-stack-chip" style="background:rgba(90,96,112,' + g.a + ')"></div>' +
-        '<div class="cc-stack-meta"><span class="cc-name">' + g.name + '</span>' +
-          '<span class="cc-val">rgba(90,96,112,' + g.a + ') · base #5A6070</span></div>' +
-      '</div>';
-    }).join('');
-
-    // ── green cluster ────────────────────────────────────────────────────
-    fill('greenCluster', [
-      { name: 'Party committees (raised)', color: 'rgba(61,191,122,0.85)', val: 'rgba(61,191,122,0.85)', src: 'literal' },
-      { name: 'Federal funds (raised)', color: 'rgba(61,191,122,0.5)', val: 'rgba(61,191,122,0.5)', src: 'literal' },
-      { name: 'Contribution Refunds (spent)', color: 'rgba(61,191,122,0.65)', val: 'rgba(61,191,122,0.65)', src: 'literal' },
-      { name: 'Cash on Hand (timeline)', color: 'rgba(61,191,122,0.85)', val: 'rgba(61,191,122,0.85)', key: '--chart-coh', src: 'chart_colors' },
-      { name: 'Healthy status (chrome)', color: 'var(--green)', val: '--green · #1E6644', src: 'token' },
-      { name: 'Active filing dot (chrome)', color: 'var(--filing-active)', val: '--filing-active · #3DBF7A', src: 'token' }
-    ]);
-
-    // ── amber cluster ────────────────────────────────────────────────────
-    fill('amberCluster', [
-      { name: 'PACs & other committees (raised)', color: 'rgba(232,160,32,0.9)', val: 'rgba(232,160,32,0.9)', key: 'donut "gold" literal', src: 'literal' },
-      { name: 'Transfers Out (spent)', color: 'rgba(232,160,32,0.85)', val: 'rgba(232,160,32,0.85)', key: 'same donut gold', src: 'literal' },
-      { name: 'Choropleth hue (both pages)', color: 'var(--amber)', val: '--amber · #8A5F10', key: 'the system token — a different, darker amber', src: 'token' }
-    ]);
   })();
   </script>
 </body>
