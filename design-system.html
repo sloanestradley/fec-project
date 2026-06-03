@@ -338,6 +338,16 @@
   <td class="ds-token-hex">rgba(26,21,16,0.65)</td>
   <td>Modal and drawer overlay scrim</td>
 </tr>
+            <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Data-category sequence (donut wedges — self-contained, not derived from other tokens):</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--cat-1)"></span>--cat-1</td><td>—</td><td class="ds-token-hex">#05234F</td><td>Donut category 1 (Individuals itemized / Operating Expenditures)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--cat-2)"></span>--cat-2</td><td>—</td><td class="ds-token-hex">#1D5A6D</td><td>Donut category 2 (PACs / Shared Non-Fed OpEx)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--cat-3)"></span>--cat-3</td><td>—</td><td class="ds-token-hex">#437772</td><td>Donut category 3 (Party / Transfers Out)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--cat-4)"></span>--cat-4</td><td>—</td><td class="ds-token-hex">#75917B</td><td>Donut category 4 (Cand. authorized / Cand. Contributions)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--cat-5)"></span>--cat-5</td><td>—</td><td class="ds-token-hex">#A7AA91</td><td>Donut category 5 (Cand. self-funding / Independent Expenditures)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--cat-6)"></span>--cat-6</td><td>—</td><td class="ds-token-hex">#D4C4B5</td><td>Donut category 6 (Loans / Loan Repayments)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--cat-7)"></span>--cat-7</td><td>—</td><td class="ds-token-hex">#F5E2E0</td><td>Donut category 7 (Federal funds / Contribution Refunds)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--cat-other)"></span>--cat-other</td><td>—</td><td class="ds-token-hex">#D7D1C7</td><td>Donut neutral catch-all (Other receipts / Other Disbursements)</td></tr>
+            <tr><td class="ds-token-name"><span class="ds-token-dot" style="background:var(--cat-other-2)"></span>--cat-other-2</td><td>—</td><td class="ds-token-hex">#EEE9E1</td><td>Donut neutral catch-all 2 (Refunds & offsets)</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Spacing scale tokens (8px grid):</td></tr>
             <tr><td class="ds-token-name">--space-2</td><td>—</td><td class="ds-token-hex">2px</td><td>Micro — fine-tuning only; every call site must have an inline comment explaining the rationale</td></tr>
             <tr><td class="ds-token-name">--space-4</td><td>—</td><td class="ds-token-hex">0.25rem (4px)</td><td>Tag padding, chip gap, form-field label gap, sub-label margin</td></tr>
@@ -504,6 +514,66 @@
             <div class="ds-swatch-token">--inc50</div>
             <div class="ds-swatch-hex">#F6E9CE</div>
             <div class="ds-swatch-desc">Incumbent tag bg</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-swatch-group">
+        <div class="ds-swatch-group-label">Data-viz categories (donut sequence)</div>
+        <div class="ds-swatch-grid">
+          <div class="ds-swatch" data-token="--cat-1" data-hex="#05234F">
+            <div class="ds-swatch-color" style="background:var(--cat-1)"></div>
+            <div class="ds-swatch-token">--cat-1</div>
+            <div class="ds-swatch-hex">#05234F</div>
+            <div class="ds-swatch-desc">Category 1</div>
+          </div>
+          <div class="ds-swatch" data-token="--cat-2" data-hex="#1D5A6D">
+            <div class="ds-swatch-color" style="background:var(--cat-2)"></div>
+            <div class="ds-swatch-token">--cat-2</div>
+            <div class="ds-swatch-hex">#1D5A6D</div>
+            <div class="ds-swatch-desc">Category 2</div>
+          </div>
+          <div class="ds-swatch" data-token="--cat-3" data-hex="#437772">
+            <div class="ds-swatch-color" style="background:var(--cat-3)"></div>
+            <div class="ds-swatch-token">--cat-3</div>
+            <div class="ds-swatch-hex">#437772</div>
+            <div class="ds-swatch-desc">Category 3</div>
+          </div>
+          <div class="ds-swatch" data-token="--cat-4" data-hex="#75917B">
+            <div class="ds-swatch-color" style="background:var(--cat-4)"></div>
+            <div class="ds-swatch-token">--cat-4</div>
+            <div class="ds-swatch-hex">#75917B</div>
+            <div class="ds-swatch-desc">Category 4</div>
+          </div>
+          <div class="ds-swatch" data-token="--cat-5" data-hex="#A7AA91">
+            <div class="ds-swatch-color" style="background:var(--cat-5)"></div>
+            <div class="ds-swatch-token">--cat-5</div>
+            <div class="ds-swatch-hex">#A7AA91</div>
+            <div class="ds-swatch-desc">Category 5</div>
+          </div>
+          <div class="ds-swatch" data-token="--cat-6" data-hex="#D4C4B5">
+            <div class="ds-swatch-color" style="background:var(--cat-6)"></div>
+            <div class="ds-swatch-token">--cat-6</div>
+            <div class="ds-swatch-hex">#D4C4B5</div>
+            <div class="ds-swatch-desc">Category 6</div>
+          </div>
+          <div class="ds-swatch" data-token="--cat-7" data-hex="#F5E2E0">
+            <div class="ds-swatch-color" style="background:var(--cat-7)"></div>
+            <div class="ds-swatch-token">--cat-7</div>
+            <div class="ds-swatch-hex">#F5E2E0</div>
+            <div class="ds-swatch-desc">Category 7</div>
+          </div>
+          <div class="ds-swatch" data-token="--cat-other" data-hex="#D7D1C7">
+            <div class="ds-swatch-color" style="background:var(--cat-other)"></div>
+            <div class="ds-swatch-token">--cat-other</div>
+            <div class="ds-swatch-hex">#D7D1C7</div>
+            <div class="ds-swatch-desc">Neutral catch-all</div>
+          </div>
+          <div class="ds-swatch" data-token="--cat-other-2" data-hex="#EEE9E1">
+            <div class="ds-swatch-color" style="background:var(--cat-other-2)"></div>
+            <div class="ds-swatch-token">--cat-other-2</div>
+            <div class="ds-swatch-hex">#EEE9E1</div>
+            <div class="ds-swatch-desc">Neutral catch-all 2</div>
           </div>
         </div>
       </div>
@@ -1609,6 +1679,7 @@
             </div>
           </div>
         </div>
+        <div class="ds-component-notes">Wedge + legend colors come from the <code>CATEGORY_COLORS</code> JS map (<code>utils.js</code>), which reads the <strong>data-category sequence tokens</strong> (<code>--cat-1</code>…<code>--cat-7</code>, <code>--cat-other</code>, <code>--cat-other-2</code>) at load — one token per ring position, shared by Raised + Spent. Colors are keyed by category identity, so order is fixed by declaration (never re-sorted by magnitude) and a category always renders the same color; empty categories are filtered out. The unitemized wedge is the lone canvas pattern — <code>--cat-1</code> fill with <code>--bg</code> stripes (the page bg showing through) — and its legend swatch falls back to a flat <code>--bg</code>.</div>
       </div>
 
       <!-- 14. Timeline entry -->

@@ -144,7 +144,7 @@ Rows without a committee_id render plain (no `.donors-link-row` class, no link, 
 - **Tier 2 — Semantic tokens:** CSS vars in `styles.css :root`. Named by meaning, not appearance (`--bg`, `--surface`, `--dem`, `--green`). New tokens always go here first. Add to `styles.css :root` and document in `design-system.html`.
 - **Tier 3 — Component tokens:** Not yet built. Would be things like `--tag-dem-bg`. Document as `planned` in `design-system.html` before building.
 
-**Rgba semantic token refactor — deferred:** Several semantic tokens in `:root` (`--chart-raised`, `--chart-spent`, `--chart-overlay-*`, etc.) are expressed as raw `rgba()` values rather than `color-mix()` derivations from primitives. This is a known cleanup item. Blocked on a decision about whether blue-500 (`#4A90D9`), red-500 (`#D94A4A`), and chart-amber (`rgba(232,160,32,...)`) should be promoted to `:root` as explicit primitive tokens. Do not refactor piecemeal — address as a single pass when unblocked.
+**Rgba semantic token refactor — mostly resolved:** The chart/donut palette that motivated this note is now fully tokenized — the bespoke `--chart-*` tokens were retired (chart reuses general `--color-*`/`--green`/`--border-strong` tokens, 2026-06-03) and the donut categories became the `--cat-*` sequence (Phase 3, 2026-06-03). The `blue-500` (`#4A90D9`), `red-500` (`#D94A4A`), and chart-amber (`rgba(232,160,32,…)`) primitives that blocked it are all retired/unused. What remains as raw `rgba()` in `:root` is only `--accent-dim` and `--overlay-bg` (both legitimately alpha-composited UI scrims, not data-viz colors) — low priority, no longer blocked on anything.
 
 **Spacing token system (8px grid):** All padding, margin, and gap declarations in `styles.css` AND inline `<style>` blocks use `--space-*` tokens exclusively. Do not write raw rem spacing values in either location — map to the nearest token using the table below. The only permitted raw values are sub-floor fine-tunes (below 0.1rem) and values above the scale ceiling (above 4rem), both must be documented with an inline comment.
 
@@ -223,6 +223,17 @@ Light "broadsheet" theme. Key CSS variables.
 --accent: #2C5282    (interactive accent, active indicators)
 --accent-dim: rgba(44,82,130,0.1)  (accent tint)
 --overlay-bg: rgba(26,21,16,0.65)  (modal and drawer overlay scrim)
+
+Data-category sequence — donut wedges (raised + spent, shared by ring position). Self-contained: own values, NOT references to --rep50/--border/etc. where hexes coincide, so the ramp stays independent (never couples a category to a partisan/brand color). Read into CATEGORY_COLORS (utils.js) at load via getComputedStyle, mirroring CHART_COLORS. --cat-1..7 are the hued sequence; --cat-other / --cat-other-2 are neutral catch-all greys. The unitemized wedge is --cat-1 fill with --bg stripes (legend swatch = --bg).
+--cat-1: #05234F       (Individuals itemized / Operating Expenditures)
+--cat-2: #1D5A6D       (PACs / Shared Non-Fed OpEx)
+--cat-3: #437772       (Party / Transfers Out)
+--cat-4: #75917B       (Candidate authorized / Candidate Contributions)
+--cat-5: #A7AA91       (Candidate self-funding / Independent Expenditures)
+--cat-6: #D4C4B5       (Loans / Loan Repayments)
+--cat-7: #F5E2E0       (Federal funds / Contribution Refunds)
+--cat-other: #D7D1C7   (Other receipts / Other Disbursements)
+--cat-other-2: #EEE9E1 (Refunds & offsets)
 
 Layout tokens (reference --space-* scale):
 --page-gutter: var(--space-48)   (48px desktop / var(--space-16) 16px mobile ≤860px)

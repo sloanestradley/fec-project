@@ -479,42 +479,48 @@ var CHART_COLORS = (function() {
 
 // ── Donut category colors (single source for both pages' Raised + Spent donuts) ──
 // One entry per category; candidate.html + committee.html reference these instead of
-// inlining literals, so a shared category can't drift between pages. Values are raw
-// rgba strings for now — Phase 1 of the color-system cleanup (consolidate literals).
-// Phase 3 will promote these to --cat-* tokens in styles.css :root and convert this to
-// a getComputedStyle IIFE, mirroring CHART_COLORS. Until then, edit values here to
-// re-color every donut on both pages in one place.
-//   • individualsUnitemized = the legend swatch; individualsHatch{A,B} = the two
-//     stripe shades of its canvas-pattern wedge fill (makeStripePattern).
+// inlining literals, so a shared category can't drift between pages. Token-sourced
+// (Phase 3): each value reads a --cat-* token from styles.css :root at load via the
+// same getComputedStyle IIFE shape as CHART_COLORS. The hued sequence --cat-1..7 is
+// shared by ring position across raised + spent; --cat-other / --cat-other-2 are the
+// neutral catch-all greys. Retune the ramp by editing the tokens in styles.css.
+//   • individualsUnitemized = the legend swatch (the parchment --bg, since the
+//     unitemized wedge is navy --cat-1 with --bg stripes showing the page through);
+//     individualsHatch{A,B} = the two stripe shades of the canvas-pattern wedge fill
+//     (makeStripePattern) — A is the parchment stripe (--bg), B the navy fill (--cat-1).
 //   • candidateSelfFunding (candidate) and candidateContribLoans (committee) are
-//     separate keys — same value today, free to diverge later.
-var CATEGORY_COLORS = {
-  raised: {
-    individualsItemized:   '#05234F',
-    individualsUnitemized: '#F8F5EC',
-    individualsHatchA:     '#F8F5EC',
-    individualsHatchB:     '#05234F',
-    pacs:                  '#1D5A6D',
-    party:                 '#437772',
-    candidateAuthorized:   '#75917B',
-    candidateSelfFunding:  '#A7AA91',
-    candidateContribLoans: '#A7AA91',
-    loans:                 '#D4C4B5',
-    federalFunds:          '#F5E2E0',
-    otherReceipts:         '#D7D1C7',
-    refundsOffsets:        '#EEE9E1'
-  },
-  spent: {
-    operatingExpenditures:   '#05234F',
-    sharedNonfedOpex:        '#1D5A6D',
-    transfersOut:            '#437772',
-    candidateContributions:  '#75917B',
-    independentExpenditures: '#A7AA91',
-    loanRepayments:          '#D4C4B5',
-    contributionRefunds:     '#F5E2E0',
-    otherDisbursements:      '#D7D1C7'
-  }
-};
+//     separate keys (both --cat-5 today) — free to diverge later.
+var CATEGORY_COLORS = (function() {
+  var s = getComputedStyle(document.documentElement);
+  var v = function(name) { return s.getPropertyValue(name).trim(); };
+  return {
+    raised: {
+      individualsItemized:   v('--cat-1'),
+      individualsUnitemized: v('--bg'),
+      individualsHatchA:     v('--bg'),
+      individualsHatchB:     v('--cat-1'),
+      pacs:                  v('--cat-2'),
+      party:                 v('--cat-3'),
+      candidateAuthorized:   v('--cat-4'),
+      candidateSelfFunding:  v('--cat-5'),
+      candidateContribLoans: v('--cat-5'),
+      loans:                 v('--cat-6'),
+      federalFunds:          v('--cat-7'),
+      otherReceipts:         v('--cat-other'),
+      refundsOffsets:        v('--cat-other-2')
+    },
+    spent: {
+      operatingExpenditures:   v('--cat-1'),
+      sharedNonfedOpex:        v('--cat-2'),
+      transfersOut:            v('--cat-3'),
+      candidateContributions:  v('--cat-4'),
+      independentExpenditures: v('--cat-5'),
+      loanRepayments:          v('--cat-6'),
+      contributionRefunds:     v('--cat-7'),
+      otherDisbursements:      v('--cat-other')
+    }
+  };
+})();
 
 // ── Shared data-viz hover tooltip (charts + choropleth) ──
 // Chart.js `external` handler used by the summary timeline + Raised/Spent donuts

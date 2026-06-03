@@ -170,23 +170,24 @@
       a <strong>source-layer badge</strong>: <span class="cc-src cc-src--token">token</span> reads a
       CSS variable (a semantic / brand token),
       <span class="cc-src cc-src--cc">chart_colors</span> reads those tokens through the JS helper, and
-      <span class="cc-src cc-src--literal">literal</span> is a hardcoded rgba/RGB string baked into a render
-      function (not a token). Each chart section also documents its <strong>hover behavior</strong> with a faithful
+      <span class="cc-src cc-src--literal">literal</span> was a hardcoded rgba/RGB string baked into a render
+      function — now retired (the donut categories that used it became <code>--cat-*</code> tokens in Phase 3).
+      Each chart section also documents its <strong>hover behavior</strong> with a faithful
       interactive demo (hover the swatches and demos to see the real effect), summarized in the
       <a href="#" onclick="document.querySelector('.cc-audit').scrollIntoView({behavior:'smooth'});return false;"
         style="color:var(--accent)">hover-state audit</a> below. Reference only — no color changes.</p>
 
     <!-- ── Source layers ── -->
     <section class="cc-section">
-      <h2 class="cc-section-title">The three color-source layers</h2>
-      <p class="cc-section-note">Colors live in three disconnected places. The <strong>timeline</strong>, the
-        <strong>choropleth</strong> (sourced from <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>),
-        the monochrome purpose bars, and non-chart UI chrome flow from CSS tokens. The <strong>donut categories are
-        raw literals</strong>, now consolidated into <code>CATEGORY_COLORS</code> in <code>utils.js</code> (Phase 1 of
-        the color-system cleanup) so both pages share one source — but they're still literal values, not tokens, so
-        retuning a token moves the timeline and choropleth but <em>not</em> the matching donut wedge (Phase 3 will
-        promote them to <code>--cat-*</code> tokens). The badges throughout this page mark which layer each swatch
-        belongs to.</p>
+      <h2 class="cc-section-title">The color-source layers</h2>
+      <p class="cc-section-note">Everything now flows from CSS tokens, read two ways. The <strong>timeline</strong>,
+        the <strong>choropleth</strong> (sourced from <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>),
+        the monochrome purpose bars, and non-chart UI chrome read tokens directly or via the <code>CHART_COLORS</code>
+        JS helper. The <strong>donut categories are token-sourced too</strong>: <code>CATEGORY_COLORS</code> in
+        <code>utils.js</code> reads the <code>--cat-*</code> sequence tokens at load (Phase 3 of the color-system
+        cleanup), mirroring <code>CHART_COLORS</code> — so retuning a <code>--cat-*</code> token moves the matching
+        donut wedge on both pages. Raw color literals are no longer used in production. The badges throughout this
+        page mark which layer each swatch belongs to.</p>
       <div class="cc-grid" id="layers"></div>
     </section>
 
@@ -437,13 +438,13 @@
         <li><strong>Three color layers.</strong> CSS tokens (partisan, status, brand) drive the timeline, purpose
           bars, and UI chrome. <code>CHART_COLORS</code> (utils.js) reads those general tokens into JS for the
           timeline (the bespoke <code>--chart-*</code> set was retired 2026-06-03), and the choropleth reads
-          <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>. The donut categories are <strong>raw
-          literals</strong>,
-          consolidated into <code>CATEGORY_COLORS</code> (utils.js, Phase 1) so both pages share one source — but
-          still literal values, not tokens, so a token retune won't propagate to the donut wedges until Phase 3
-          promotes them to <code>--cat-*</code> tokens.</li>
+          <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>. The donut categories are
+          <strong>token-sourced</strong> too (Phase 3, 2026-06-03): <code>CATEGORY_COLORS</code> (utils.js) reads the
+          <code>--cat-1</code>…<code>--cat-7</code> / <code>--cat-other</code>(<code>-2</code>) sequence tokens at
+          load, so a <code>--cat-*</code> retune now propagates to both pages' donut wedges. No raw color literals
+          remain in production.</li>
         <li><strong>Category color is fixed; geographic color is a single token ramp.</strong> Donut colors are
-          assigned per-category, fixed by identity — "Individuals (itemized)" is <code>#05234F</code>
+          assigned per-category, fixed by identity — "Individuals (itemized)" is <code>--cat-1</code> (#05234F)
           on every page, cycle, and candidate. The choropleth is a single <code>--amber</code> ramp on both pages,
           party-independent.</li>
         <li><strong>One pattern, capacity 1.</strong> A single diagonal-stripe canvas pattern exists, used only
@@ -508,7 +509,7 @@
         key: 'timeline · purpose bar · UI chrome' },
       { name: 'CHART_COLORS (JS)', color: 'var(--color-red-700)', val: 'utils.js · reads general tokens + choroplethRgb (--amber)', src: 'chart_colors',
         key: 'timeline series + axes · choropleth hue' },
-      { name: 'Raw literal', color: '#05234F', val: 'CATEGORY_COLORS (utils.js) · raw values, not tokens', src: 'literal',
+      { name: 'CATEGORY_COLORS (JS)', color: 'var(--cat-1)', val: 'utils.js · reads --cat-* sequence tokens', src: 'token',
         key: 'donut categories' }
     ]);
 
@@ -522,37 +523,37 @@
 
     // ── raised donut (10) ────────────────────────────────────────────────
     fill('raised', [
-      { name: 'Individuals (itemized)', color: '#05234F', val: '#05234F', key: 'individual_itemized_contributions', src: 'literal' },
-      { name: 'Individuals (unitemized)', pattern: true, val: 'PATTERN · stripes #F8F5EC on #05234F · legend #F8F5EC', key: 'individual_unitemized_contributions · legendColor #F8F5EC', src: 'literal' },
-      { name: 'PACs & other committees', color: '#1d5a6d', val: '#1d5a6d', key: 'other_political_committee_contributions', src: 'literal' },
-      { name: 'Party committees', color: '#437772', val: '#437772', key: 'political_party_committee_contributions', src: 'literal' },
-      { name: 'Candidate authorized committees', color: '#75917b', val: '#75917b', key: 'transfers_from_other_authorized_committee', src: 'literal' },
-      { name: 'Candidate self-funding *', color: '#a7aa91', val: '#a7aa91', key: 'candidate_contribution + loans_made_by_candidate · * committee: "Candidate contributions & loans"', src: 'literal' },
-      { name: 'Loans', color: '#d4c4b5', val: '#d4c4b5', key: 'all_other_loans', src: 'literal' },
-      { name: 'Federal funds', color: '#f5e2e0', val: '#f5e2e0', key: 'federal_funds', src: 'literal' },
-      { name: 'Other receipts', color: '#D7D1C7', val: '#D7D1C7', key: 'other_receipts', src: 'literal' },
-      { name: 'Refunds & offsets', color: '#EEE9E1', val: '#EEE9E1', key: 'offsets_to_* (summed)', src: 'literal' }
+      { name: 'Individuals (itemized)', color: 'var(--cat-1)', val: '--cat-1 · #05234F', key: 'individual_itemized_contributions', src: 'token' },
+      { name: 'Individuals (unitemized)', pattern: true, val: 'PATTERN · --cat-1 fill, --bg stripes · legend --bg', key: 'individual_unitemized_contributions · legendColor --bg', src: 'token' },
+      { name: 'PACs & other committees', color: 'var(--cat-2)', val: '--cat-2 · #1D5A6D', key: 'other_political_committee_contributions', src: 'token' },
+      { name: 'Party committees', color: 'var(--cat-3)', val: '--cat-3 · #437772', key: 'political_party_committee_contributions', src: 'token' },
+      { name: 'Candidate authorized committees', color: 'var(--cat-4)', val: '--cat-4 · #75917B', key: 'transfers_from_other_authorized_committee', src: 'token' },
+      { name: 'Candidate self-funding *', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'candidate_contribution + loans_made_by_candidate · * committee: "Candidate contributions & loans"', src: 'token' },
+      { name: 'Loans', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'all_other_loans', src: 'token' },
+      { name: 'Federal funds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'federal_funds', src: 'token' },
+      { name: 'Other receipts', color: 'var(--cat-other)', val: '--cat-other · #D7D1C7', key: 'other_receipts', src: 'token' },
+      { name: 'Refunds & offsets', color: 'var(--cat-other-2)', val: '--cat-other-2 · #EEE9E1', key: 'offsets_to_* (summed)', src: 'token' }
     ]);
 
     // ── spent donut candidate (5) ────────────────────────────────────────
     fill('spentCand', [
-      { name: 'Operating Expenditures', color: '#05234F', val: '#05234F', key: 'operating_expenditures', src: 'literal' },
-      { name: 'Transfers Out', color: '#437772', val: '#437772', key: 'transfers_to_other_authorized_committee', src: 'literal' },
-      { name: 'Loan Repayments', color: '#d4c4b5', val: '#d4c4b5', key: 'loan_repayments_made', src: 'literal' },
-      { name: 'Contribution Refunds', color: '#f5e2e0', val: '#f5e2e0', key: 'contribution_refunds', src: 'literal' },
-      { name: 'Other Disbursements', color: '#D7D1C7', val: '#D7D1C7', key: 'other_disbursements', src: 'literal' }
+      { name: 'Operating Expenditures', color: 'var(--cat-1)', val: '--cat-1 · #05234F', key: 'operating_expenditures', src: 'token' },
+      { name: 'Transfers Out', color: 'var(--cat-3)', val: '--cat-3 · #437772', key: 'transfers_to_other_authorized_committee', src: 'token' },
+      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments_made', src: 'token' },
+      { name: 'Contribution Refunds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'contribution_refunds', src: 'token' },
+      { name: 'Other Disbursements', color: 'var(--cat-other)', val: '--cat-other · #D7D1C7', key: 'other_disbursements', src: 'token' }
     ]);
 
     // ── spent donut committee (8) ────────────────────────────────────────
     fill('spentComm', [
-      { name: 'Operating Expenditures', color: '#05234F', val: '#05234F', key: 'operating_expenditures', src: 'literal' },
-      { name: 'Shared Non-Federal OpEx', color: '#1d5a6d', val: '#1d5a6d', key: 'shared_nonfed_operating_expenditures', src: 'literal' },
-      { name: 'Transfers Out', color: '#437772', val: '#437772', key: 'transfers_to_affiliated_committee', src: 'literal' },
-      { name: 'Candidate Contributions', color: '#75917b', val: '#75917b', key: 'fed_candidate_committee_contributions', src: 'literal' },
-      { name: 'Independent Expenditures', color: '#a7aa91', val: '#a7aa91', key: 'independent_expenditures', src: 'literal' },
-      { name: 'Loan Repayments', color: '#d4c4b5', val: '#d4c4b5', key: 'loan_repayments_made', src: 'literal' },
-      { name: 'Contribution Refunds', color: '#f5e2e0', val: '#f5e2e0', key: 'contribution_refunds', src: 'literal' },
-      { name: 'Other Disbursements', color: '#D7D1C7', val: '#D7D1C7', key: 'other_disbursements (+ remainder)', src: 'literal' }
+      { name: 'Operating Expenditures', color: 'var(--cat-1)', val: '--cat-1 · #05234F', key: 'operating_expenditures', src: 'token' },
+      { name: 'Shared Non-Federal OpEx', color: 'var(--cat-2)', val: '--cat-2 · #1D5A6D', key: 'shared_nonfed_operating_expenditures', src: 'token' },
+      { name: 'Transfers Out', color: 'var(--cat-3)', val: '--cat-3 · #437772', key: 'transfers_to_affiliated_committee', src: 'token' },
+      { name: 'Candidate Contributions', color: 'var(--cat-4)', val: '--cat-4 · #75917B', key: 'fed_candidate_committee_contributions', src: 'token' },
+      { name: 'Independent Expenditures', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'independent_expenditures', src: 'token' },
+      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments_made', src: 'token' },
+      { name: 'Contribution Refunds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'contribution_refunds', src: 'token' },
+      { name: 'Other Disbursements', color: 'var(--cat-other)', val: '--cat-other · #D7D1C7', key: 'other_disbursements (+ remainder)', src: 'token' }
     ]);
 
     // ── choropleth gradient bar (single token-sourced --amber hue) ───────

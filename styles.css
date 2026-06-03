@@ -66,6 +66,22 @@
   --color-navy-950: #05234F; /* nav logo "Ledger", future brand accent */
   --color-red-700:  #A83228; /* nav logo "FEC"; also backs --rep and --red */
 
+  /* Data-category sequence — donut wedges (raised + spent, shared by ring
+     position). Self-contained: deliberately own values, NOT references to
+     --rep50/--border/etc. where hexes coincide, so the ramp stays independent
+     and retunable (and never couples a category to a partisan/brand color).
+     --cat-1..7 are the hued sequence; --cat-other / --cat-other-2 are the
+     neutral catch-all greys. Read into CATEGORY_COLORS (utils.js) at load. */
+  --cat-1:       #05234F;
+  --cat-2:       #1D5A6D;
+  --cat-3:       #437772;
+  --cat-4:       #75917B;
+  --cat-5:       #A7AA91;
+  --cat-6:       #D4C4B5;
+  --cat-7:       #F5E2E0;
+  --cat-other:   #D7D1C7;
+  --cat-other-2: #EEE9E1;
+
   /* Spacing — 8px grid */
   --space-2:  2px;     /* micro: fine-tuning only — leave inline comment at every call site */
   --space-4:  0.25rem; /* 4px  — tag padding, chip gap, sub-label margin */
