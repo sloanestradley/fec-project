@@ -195,12 +195,14 @@ test.describe('race.html', () => {
     expect(text?.trim()).toBe('');
   });
 
-  test('Senate race shows class indicator in tabs bar', async ({ page }) => {
-    // Navigate to a Senate race — 2024 is Class I
+  test('Senate race shows class indicator in header', async ({ page }) => {
+    // Navigate to a Senate race — 2024 is Class I.
+    // T-move-race-year-select (2026-06-03): seat-class lives in #race-header now.
     await page.goto('/race.html?state=WA&office=S&year=2024');
     await waitForRaceLoad(page);
     const seatClass = page.locator('#race-seat-class');
     await expect(seatClass).toBeAttached();
+    await expect(page.locator('#race-header #race-seat-class')).toBeAttached();
     const text = await seatClass.textContent();
     expect(text).toContain('Class I seat');
   });
@@ -264,8 +266,31 @@ test.describe('race.html', () => {
     await expect(page.locator('#tab-insights')).toBeHidden();
   });
 
-  test('#year-select is inside .tabs-bar', async ({ page }) => {
-    await expect(page.locator('.tabs-bar #year-select')).toBeAttached();
+  // T-move-race-year-select (2026-06-03): #year-select + #race-seat-class
+  // relocated from .tabs-bar into #race-header (header controls cluster) so
+  // they stay visible in the compact header. .tabs-bar keeps only the two tabs.
+  test('#year-select is inside #race-header, not .tabs-bar', async ({ page }) => {
+    await expect(page.locator('#race-header #year-select')).toBeAttached();
+    await expect(page.locator('.tabs-bar #year-select')).toHaveCount(0);
+  });
+
+  test('#race-seat-class is inside #race-header, not .tabs-bar', async ({ page }) => {
+    await expect(page.locator('#race-header #race-seat-class')).toBeAttached();
+    await expect(page.locator('.tabs-bar #race-seat-class')).toHaveCount(0);
+  });
+
+  test('header controls (year-select) stay visible + un-stretched in compact', async ({ page }) => {
+    // Force the page tall enough to scroll past the compact threshold.
+    await page.evaluate(() => { document.querySelector('.main').style.minHeight = '2000px'; });
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(300); // past the 250ms suppression window
+    await expect(page.locator('#race-header')).toHaveClass(/compact/);
+    const sel = page.locator('#race-header #year-select');
+    await expect(sel).toBeVisible();
+    // Regression-lock for the align-self:stretch insulation: the select must
+    // keep its natural ~34px height, not stretch to the header row / title.
+    const h = await sel.evaluate(el => el.getBoundingClientRect().height);
+    expect(h).toBeLessThan(45);
   });
 
   test('#race-meta is not present in DOM (candidate count removed)', async ({ page }) => {

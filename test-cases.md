@@ -36,8 +36,8 @@
 - [ ] ✅ No uncaught JS errors on load
 - [ ] Page loads without console errors (open DevTools — automated checks miss network/CORS noise)
 - [ ] Light broadsheet theme applied — visually warm parchment, not dark or white
-- [ ] Barlow Condensed used for headings and display text
-- [ ] DM Sans used for body and nav text
+- [ ] Oswald used for headings and display text
+- [ ] IBM Plex Sans used for body and nav text
 - [ ] IBM Plex Mono used for data labels and monospaced values
 - [ ] Top nav visible and fixed at both desktop and mobile widths
 - [ ] At ≤860px: nav links hidden, hamburger and search toggle visible; mobile nav drawer drops down on hamburger click
@@ -115,7 +115,7 @@
 
 ### Header template (shared with committee.html and race.html)
 - [ ] Header uses `.page-header` wrapper — same padding and border-bottom as committee and race headers
-- [ ] Candidate name uses `.page-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase as other profile pages
+- [ ] Candidate name uses `.page-title` — same Oswald 600, clamp(2rem,5vw,4.5rem), uppercase as other profile pages
 
 ### Header animation
 - [ ] Profile header, tab bar, and content area all fade in together on load (no element pops in before others)
@@ -358,7 +358,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 ### Breadcrumb
 ### Header template (shared with candidate.html and race.html)
 - [ ] Header uses `.page-header` wrapper — same padding and border-bottom as candidate and race headers
-- [ ] Committee name uses `.page-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase as other profile pages (accepts wrapping for long names)
+- [ ] Committee name uses `.page-title` — same Oswald 600, clamp(2rem,5vw,4.5rem), uppercase as other profile pages (accepts wrapping for long names)
 - [ ] Header fades in on load (opacity transition via `.page-header-reveal`)
 
 ### Profile header
@@ -602,26 +602,23 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 
 ### Header template (shared with candidate.html and committee.html)
 - [ ] Header uses `.page-header` wrapper — same padding and border-bottom as candidate and committee headers
-- [ ] Race title uses `.page-title` — same Barlow Condensed 800, clamp(1.6rem,3vw,2.4rem), uppercase
+- [ ] Race title uses `.page-title` — same Oswald 600, clamp(2rem,5vw,4.5rem), uppercase
 - [ ] Header fades in on load (opacity transition via `.page-header-reveal`)
 
 ### Race header + tabs bar
 - [ ] Race title reads "US HOUSE: WASHINGTON'S 3RD DISTRICT" (long-form, uppercase via `.page-title`)
 - [ ] Browser tab title reads "US House: Washington's 3rd District — FECLedger"
-- [ ] Tabs bar visible below header with "Candidates" (active) and "Insights" tabs
-- [ ] Year dropdown is inside the tabs bar, right-aligned
+- [ ] Tabs bar visible below header with "Candidates" (active) and "Insights" tabs (tabs only — year dropdown + seat-class no longer live here)
+- [ ] Year dropdown is inside `#race-header` (controls cluster), right-aligned (T-move-race-year-select, 2026-06-03)
+- [ ] Year dropdown + seat-class cluster top-aligns to the title row; seat-class stays vertically centered with the dropdown
+- [ ] Scroll into compact header: year dropdown stays visible + un-stretched (~34px), right-aligned in the slim strip
 - [ ] No candidate count in header or meta (removed)
 - [ ] Changing year dropdown to 2022 reloads page with `year=2022` in URL
 - [ ] ✅ Year dropdown shows 2024 as selected value when URL param is `year=2024`
 - [ ] Clicking "Insights" tab shows coming-soon message; clicking "Candidates" shows candidate list
 
-### Page-level data note (R1.a + R1.b, Phase 2 race-first prototype, 2026-05-28)
-- [ ] ✅ `#race-note` sits OUTSIDE both `#tab-candidates` and `#tab-insights` — sibling within `#race-content` (automated regression-lock)
-- [ ] `#race-note` is visible on both Candidates and Insights tabs (tab switch doesn't hide it)
-- [ ] Content reads exactly: "Source: FEC. Candidates may not yet have filed for all periods." with `FEC` rendered as a link
-- [ ] FEC link href = `https://www.fec.gov/` (consumer site, not API root)
-- [ ] FEC link opens in same tab (no `target="_blank"`)
-- [ ] FEC link inherits `.data-note` text color treatment; underline is the default link affordance
+### Page-level data note — RETIRED (2026-06-01)
+- [ ] ✅ `#race-note` is NOT present in the DOM (element + populating JS removed entirely; automated regression-lock in pages.spec.js). race.html isn't yet rich enough to warrant a page-level data note — deliberate divergence from candidate.html / committee.html, which keep `#page-note`.
 
 ### Dynamic cycle dropdown
 - [ ] ✅ Year dropdown options populated from `/elections/search/` endpoint (not hardcoded)
@@ -633,11 +630,11 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Year in URL not in dropdown (e.g. `year=2028` with no data): page snaps to nearest valid cycle
 
 ### Senate class indicator
-- [ ] Senate race shows class label in the tabs bar left of the year dropdown (e.g. "Class I seat")
-- [ ] ✅ House race does NOT show class label
+- [ ] Senate race shows class label in `#race-header` left of the year dropdown (e.g. "Class I seat")
+- [ ] ✅ House race does NOT show class label (`.race-seat-class:empty` → no stray gap beside the dropdown)
 - [ ] WA Senate 2024 → "Class I seat"; WA Senate 2022 → "Class III seat"
 - [ ] Switching year on Senate race: class label updates correctly on reload
-- [ ] Class label uses Oswald 400 1.25rem, `--muted` color
+- [ ] Class label uses caption type role (IBM Plex Mono 400 · 0.625rem), `--muted` color (T-move-race-year-select restyle, 2026-06-03)
 
 ### URL param validation
 - [ ] ✅ Invalid state (e.g. `state=ZZ`) shows error with back link to /races
@@ -833,8 +830,8 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Inspect any swatch element: `data-token` and `data-hex` attributes present
 
 ### Typography
-- [ ] Barlow Condensed specimen renders
-- [ ] DM Sans specimen renders
+- [ ] Oswald specimen renders
+- [ ] IBM Plex Sans specimen renders
 - [ ] IBM Plex Mono specimen renders
 
 ### Component cards
@@ -1061,3 +1058,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-06-02 | **Choropleth → single token-sourced `--amber` hue; party logic removed (both pages) (commit 2e94c9b).** Replaced the party-derived choropleth hue (REP→red / DEM→blue / else→purple) with a single party-agnostic `--amber` ramp composited per-state as `rgba(r,g,b,α)`. Added `hexToRgbTriplet(hex)` (utils.js) + `CHART_COLORS.choroplethRgb` (sourced from the `--amber` token via the triplet helper); removed the now-dead `CAND_PARTY` / `COMM_PARTY` vars that fed the old hue. Spending-by-Purpose bars recolored to amber in the same pass. Aligns the map with the product's non-partisan framing. | candidate.html, committee.html, utils.js, chart-color-palette.html, design-system.html, CLAUDE.md | Verified by Sloane in local. Manual check: candidate + committee Raised-tab choropleth renders a single amber ramp (no red/blue/purple); Spent-tab purpose bars are amber. | 811/811 (no test count change) |
 | 2026-06-02 | **Choropleth no-data + hover polish; token cleanup (both pages) (commit a307218).** No-data states render a `--surface` fill; hover paints a single `--amber` outline-clone `path` on top of all states (so the hovered state isn't occluded by neighbors), with the fill left unchanged. Two earlier approaches — grow-on-hover `scale()` and a clone-with-computed-centroid transform — were built, hit a California multi-polygon "double-edge sliver" artifact, and were reverted to the simple outline-clone (deliberate keep-it-simple call). Dead-token cleanup: `--chart-spent-bar` token removed; remaining dead `CHART_COLORS` keys removed. | candidate.html, committee.html, styles.css, utils.js, chart-color-palette.html, design-system.html | Verified by Sloane in local; CA sliver gone in the simple version. **Watch:** if future choropleth work reintroduces geometry scaling, the CA multi-polygon sliver can recur — keep the outline-clone (no scaling) approach. | 811/811 (no test count change) |
 | 2026-06-03 | **Data-viz color-system cleanup — full arc (13 commits `57d0d54`..`1d8d1bf`).** Progressive consolidation of the entire chart/donut color system, all zero-visual-change except the deliberate polish items. **Polish:** donut legend + purpose bars → `$` before `%` with `%` emphasized in `--text` (`57d0d54`); choropleth "Less → More" map legend removed — the single-hue ramp implies it, exact values are on hover (`579b5db`); summary-chart edge clipping fixed (`layout.padding` + `clip:false` so the "today" label + edge dots aren't cut), legend swatch → line-with-centered-dot for color legibility, `.callout` margin-top → `--space-24` (`5ca3899`); tabs-bar desktop padding → `0 var(--page-gutter)` (flush; first tab aligns with page text) (`83384e2`). **Tokenization:** donut category colors consolidated to a `CATEGORY_COLORS` map (`6e6db29`), iterated to a first-pass navy→parchment sequential ramp (`75053c2`), promoted to a `--cat-1..7` + `--cat-other`/`--cat-other-2` token sequence read via getComputedStyle IIFE (`e3550f4`); bespoke `--chart-*` tokens retired — summary chart reuses general tokens (`--navy-deep`/`--red-deep`/`--green`/`--border-strong`), `blue-500`/`red-500` primitives retired (`d6c32c5`); `CHART_COLORS` `*Solid` redundant keys removed (`83384e2`). **Token cleanup:** `--surface2` → `--surface-2` (`035582c`); `#1E3A5F` collapsed into `#05234F` (`--dem` references `--navy-deep`); brand vars renamed `--color-navy-950`→`--navy-deep`, `--color-red-700`→`--red-deep` (`f2f8ae8`); `--rep`/`--red` collapsed to reference `--red-deep` (step D, `7d198f6`); doc/reference badges (`.cc-src--cc`/`.cc-src--literal`/`.ds-status.candidate-only`) decoupled from partisan tokens → primitive var border + color-mix tint + primitive text (`f2f8ae8`+`cb7974c`). **Close:** cold-read stale-ref sweep — live surfaces clean, fixed 2 test-cases drifts (`1d8d1bf`). | candidate.html, committee.html, styles.css, utils.js, design-system.html, chart-color-palette.html, CLAUDE.md, test-cases.md | Zero production visual change except the named polish items. **Manual check (visual-only, tests can't see color):** both donuts render identical to before with the new ramp; legend reads `$1.2M  31%` with `%` emphasized + line-with-dot swatch; summary chart "today" label + edge dots fully visible; choropleth has no map legend; brand/Democrat navy + status/partisan red render unchanged. One flaky `tooltip.spec.js › scroll closes the popup` (passes on isolated re-run). | 811/811 (no test count change — all refactor/polish) |
+| 2026-06-03 | **T-move-race-year-select — relocated `#year-select` + `#race-seat-class` from race.html's `.tabs-bar` into `#race-header`.** New `.profile-header-row` > `.title-meta-stack` (title) + `.race-header-controls` cluster (seat-class + select), mirroring the menu-btn placement on candidate/committee so the cycle picker stays visible in the compact header. Cluster `align-self:flex-start` (top-aligned to the title row) full mode, `align-self:center` compact; seat-class restyled Oswald 1.25rem → caption (IBM Plex Mono 0.625rem); `.race-seat-class:empty { display:none }` kills the House empty-gap; `.race-header-controls .cycle-select { align-self:center }` insulates the shared `align-self:stretch`. Compact `#race-header.compact .profile-header-row` rule added to styles.css beside the candidate/committee siblings. No JS rewiring — change handler bound directly to the node, full-reload navigation contract preserved. Tests: flipped `#year-select is inside #race-header, not .tabs-bar` + added seat-class-in-header + compact-visible-and-un-stretched locks (+2 net, 811→813). | race.html, styles.css, tests/pages.spec.js, CLAUDE.md, design-system.html, test-cases.md, TESTING.md | Live-verified on dev server (House WA-03 2024 + Senate PA 2024): cluster top-aligned (`cluster_topAlignedInRow:0`), seat/select co-centered (`delta:0`), select un-stretched (34px), Senate "Class I seat" renders, House empty (no gap). Browser QA: desktop + compact scroll + ≤860px no overflow. | 813/813 |

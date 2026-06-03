@@ -11,10 +11,26 @@
   <!-- Amplitude Analytics -->
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
-    /* Race header — shared base via .page-header and .page-title in styles.css */
-    .race-seat-class { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;
-      text-transform:none; color:var(--muted); align-self:center; white-space:nowrap; margin-left:auto; }
+    /* Race header — shared base via .page-header and .page-title in styles.css.
+       Year-select + seat-class relocated from .tabs-bar into #race-header
+       (T-move-race-year-select, 2026-06-03) so they stay visible in the compact
+       header, mirroring the menu-btn placement on candidate/committee. */
+    /* Controls cluster — right-aligned by .title-meta-stack's flex:1. The cluster
+       shrink-wraps to content, insulating the select's shared align-self:stretch
+       from the tall header row; .cycle-select align-self:center is a defensive
+       belt-and-suspenders against that stretch. */
+    .race-header-controls { display:flex; align-items:center; gap:var(--space-8); align-self:flex-start; }
+    .race-header-controls .cycle-select { align-self:center; }
+    /* Compact: center the cluster in the slim single-line strip (mirrors the
+       menu-btn's flex-start → center compact handoff on candidate/committee). */
+    #race-header.compact .race-header-controls { align-self:center; }
     #year-select.cycle-select { margin-left:0; }
+    /* Senate seat-class indicator — design-system "caption" type role
+       (IBM Plex Mono 0.625rem). :empty drops the span from flex flow on House
+       races so the empty state introduces no stray gap beside the select. */
+    .race-seat-class { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; font-weight:400;
+      text-transform:none; color:var(--muted); white-space:nowrap; }
+    .race-seat-class:empty { display:none; }
 
     .race-list { display:flex; flex-direction:column; margin-bottom:var(--space-24); }
   </style>
@@ -63,14 +79,20 @@
   </div><!-- /.main-inner -->
   <div id="profile-header-sentinel" aria-hidden="true" style="height:0;pointer-events:none"></div>
   <div class="race-header page-header page-header-reveal" id="race-header" style="display:none">
-    <div class="page-title" id="race-title">—</div>
+    <div class="profile-header-row">
+      <div class="title-meta-stack">
+        <div class="page-title" id="race-title">—</div>
+      </div>
+      <div class="race-header-controls">
+        <span class="race-seat-class" id="race-seat-class"></span>
+        <select id="year-select" class="form-select cycle-select" aria-label="Election cycle year"></select>
+      </div>
+    </div>
   </div>
 
   <div class="tabs-bar" id="tabs-bar" style="display:none">
     <a class="tab active" href="#candidates" onclick="showTab('candidates',event)">Candidates</a>
     <a class="tab"        href="#insights"   onclick="showTab('insights',event)">Insights</a>
-    <span class="race-seat-class" id="race-seat-class"></span>
-    <select id="year-select" class="form-select cycle-select" aria-label="Election cycle year"></select>
   </div>
 
   <div class="main-inner">
@@ -281,7 +303,7 @@ async function init() {
 
     document.getElementById('race-title').textContent = raceName;
 
-    // Senate class label in tabs bar
+    // Senate class label in the header controls cluster
     if (officeParam === 'S') {
       var cls = getSenateClass(yearParam);
       var seatEl = document.getElementById('race-seat-class');

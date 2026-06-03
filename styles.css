@@ -728,7 +728,12 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 #profile-header.compact .menu-btn-wrap,
 #committee-header.compact .menu-btn-wrap { align-self:center; }
 
-/* Race compact: title only (no meta-row in race header) */
+/* Race compact: title + right-aligned controls cluster (year-select +
+   seat-class). Mirrors the candidate/committee rule above so the
+   .title-meta-stack (flex:1) absorbs the squeeze and the cluster stays
+   right-aligned + visible in the slim compact strip. No meta-row in race.
+   T-move-race-year-select (2026-06-03). */
+#race-header.compact .profile-header-row { display:flex; align-items:center; flex:1; min-width:0; flex-wrap:nowrap; gap:var(--space-16); }
 
 /* ── T-profile-header-transition: animate full ↔ compact ─────────────────── */
 /* Gated by .transitions-ready (added to <html> via double-rAF in
