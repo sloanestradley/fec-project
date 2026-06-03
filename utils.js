@@ -465,11 +465,8 @@ var CHART_COLORS = (function() {
   var v = function(name) { return s.getPropertyValue(name).trim(); };
   return {
     raised:           v('--color-navy-950'),
-    raisedSolid:      v('--color-navy-950'),
     spent:            v('--color-red-700'),
-    spentSolid:       v('--color-red-700'),
     coh:              v('--green'),
-    cohSolid:         v('--green'),
     overlayToday:     v('--border-strong'),
     axisGrid:         v('--border'),
     axisTick:         v('--muted'),
@@ -502,9 +499,9 @@ var CATEGORY_COLORS = {
     candidateAuthorized:   '#75917B',
     candidateSelfFunding:  '#A7AA91',
     candidateContribLoans: '#A7AA91',
-    otherReceipts:         '#D7D1C7',
     loans:                 '#D4C4B5',
     federalFunds:          '#F5E2E0',
+    otherReceipts:         '#D7D1C7',
     refundsOffsets:        '#EEE9E1'
   },
   spent: {

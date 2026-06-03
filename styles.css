@@ -271,11 +271,10 @@ a { color: var(--accent); }
 .tabs-bar { position:sticky; top:var(--compact-header-h); z-index:185;
   background:var(--bg);
   max-width:1600px; margin-left:auto; margin-right:auto;
-  /* Total horizontal padding = gutter + 16px internal so tabs sit 16px in
-     from the navy ::after line (which anchors at var(--page-gutter)) —
-     mirrors the internal breathing room on .banner and #race-context-bar.
-     Mobile reverts to just the gutter (see media query below). */
-  padding:0 calc(var(--page-gutter) + var(--space-16));
+  /* Tabs sit flush at the gutter so the first tab left-aligns with the page
+     text above and with the navy ::after line below (both anchor at
+     var(--page-gutter)) — content flush to the border edge. */
+  padding:0 var(--page-gutter);
   display:flex; gap:var(--space-16); overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
   opacity:0;
   transition:opacity 0.4s ease; }
@@ -1327,10 +1326,9 @@ div.cycle-row {
      mobile rule keeps the existing instances untouched. */
   #cycle-index .tab-error { margin-left:var(--page-gutter); margin-right:var(--page-gutter); }
   /* .tabs-bar pseudo-element border: zero the gutter inset so the navy line
-     goes edge-to-edge on mobile, matching the other bordered children.
-     Strip its internal breathing room too — on mobile, tabs sit at the
-     standard 16px gutter inset (no extra 16 like desktop). */
-  .tabs-bar { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+     goes edge-to-edge on mobile, matching the other bordered children. The
+     base padding (0 var(--page-gutter)) already resolves to the mobile gutter,
+     so no padding override is needed here anymore. */
   .tabs-bar::after { left:0; right:0; }
   .tab-section-header { flex-direction:column; align-items:flex-start; }
   .typeahead-dropdown { max-width:100%; }
