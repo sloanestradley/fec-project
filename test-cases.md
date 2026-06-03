@@ -177,7 +177,7 @@
 
 ### Cycle card back-chevron behavior (T14.5)
 - [ ] Cycle card (leftmost card in `#summary-strip` stats-grid on cycle-detail) shows `.cycle-back-btn` chevron-left button inline with the "Cycle" label + year-range value
-- [ ] Chevron button is 40×40 desktop / 32×32 mobile (≤860px); circular pill border-radius; transparent background with 1px border-strong border; hover background = surface2; focus-visible outline = 2px accent
+- [ ] Chevron button is 40×40 desktop / 32×32 mobile (≤860px); circular pill border-radius; transparent background with 1px border-strong border; hover background = surface-2; focus-visible outline = 2px accent
 - [ ] Chevron aria-label reads "Back to all cycles"
 - [ ] Cycle index → click cycle row → cycle detail → click cycle-card chevron: returns to cycle index, scroll position restored (in-session via `indexScrollY` capture/restore)
 - [ ] Paste detail URL in new tab (`/candidate/H2WA03217#2024#summary`) → click cycle-card chevron: navigates to cycle index for the entity, top of page (fresh-load case — `indexScrollY` defaults to 0)
@@ -425,7 +425,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] "Financial Summary" section title is NOT present above the stats grid (removed in summary-strip refactor)
 
 ### Cycle card back-chevron behavior (T14.5)
-- [ ] Cycle card chevron button is 40×40 desktop / 32×32 mobile (≤860px); circular pill border-radius; transparent background with 1px border-strong border; hover background = surface2; focus-visible outline = 2px accent
+- [ ] Cycle card chevron button is 40×40 desktop / 32×32 mobile (≤860px); circular pill border-radius; transparent background with 1px border-strong border; hover background = surface-2; focus-visible outline = 2px accent
 - [ ] Chevron aria-label reads "Back to all cycles"
 - [ ] Cycle index → click cycle row → cycle detail → click cycle-card chevron: returns to cycle index, scroll position restored
 - [ ] Paste detail URL in new tab (`/committee/C00806174#2024#summary`) → click cycle-card chevron: navigates to cycle index for the entity, top of page
@@ -468,7 +468,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] KV-backed Top Individual Contributors + Top Committee Contributors (committee.html fast tier on KV hit) resolve sub-400ms typical
 - [ ] Slow-tier skeletons remain on Top Conduit Sources (always) + KV-miss fallback surfaces while Schedule A non-individual paginates
 - [ ] Raised breakdown donut renders with legend rows and percentage labels
-- [ ] Legend rows tagged with tooltips show ⓘ icon next to label (Candidate authorized committees, Candidate contributions & loans, Other receipts, Loans, Federal funds, Refunds & offsets)
+- [ ] Legend rows tagged with tooltips show ⓘ icon next to label (Candidate authorized committees, Candidate contributions & loans, Loans, Federal funds, Other receipts, Refunds & offsets)
 - [ ] For a principal campaign committee with candidate loans, "Candidate contributions & loans" segment renders; for a leadership PAC / super PAC, the segment is suppressed
 - [ ] Donut center shows total raised amount (formatted dollar)
 - [ ] Choropleth map SVG renders; WA state is filled (not grey) for Marie for Congress
