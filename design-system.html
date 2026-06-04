@@ -1223,7 +1223,7 @@
           <span class="ds-component-name">candidate-card</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.candidate-card · .candidate-card-name · .candidate-card-meta · .candidate-card-stats · .candidate-card-stat · .candidate-card-stat-lbl · .candidate-card-stat-val — grid: 1fr auto (name left, meta right). .candidate-card-meta comma-grouped with .committee-card-meta (shared flex rules). .candidate-card-stats uses grid-column:1/-1 to span full width. <strong>Two structural variants:</strong> (1) canonical 3-tag shape on candidates.html + search.html — rendered via <code>candidateCardHTML(c, opts)</code> in utils.js (race tag + party tag + latest-cycle tag inside .candidate-card-meta); (2) stats variant on race.html only — tags live inline inside .candidate-card-name (not a -meta div), with the .candidate-card-stats grid spanning full width below. races.html uses the sibling .race-card class (see comp-race-card).</div>
+        <div class="ds-component-classes">.candidate-card · .candidate-card-name · .candidate-card-meta · .candidate-card-stats · .candidate-card-stat · .candidate-card-stat-lbl · .candidate-card-stat-val — grid: 1fr auto (name left, meta right). .candidate-card-meta comma-grouped with .committee-card-meta (shared flex rules). .candidate-card-stats uses grid-column:1/-1 to span full width. <strong>Two structural variants:</strong> (1) canonical 3-tag shape on candidates.html + search.html — rendered via <code>candidateCardHTML(c, opts)</code> in utils.js (race tag + party tag + latest-cycle tag inside .candidate-card-meta); (2) stats variant on race.html only — tags live inline inside .candidate-card-name (not a -meta div). <strong>T-race-page-UI (2026-06-03)</strong> refined this variant, scoped under <code>#race-list</code> so the shared base is untouched: name ↔ stats sit <strong>side-by-side</strong> on desktop (stats moved into the grid's 2nd column, vertically centered), in a <strong>fixed 3×88px grid, right-aligned</strong> so the same stat lines up across stacked cards; ≤860px stacks them full-width, equal-thirds (capped at <code>max-width:332px</code>), left-aligned. The card's gap/padding inherit the shared base (the per-#race-list spacing override was dropped). A candidate with no filings (both totals falsy — the live /elections/ endpoint returns 0.0, not null, so the gate is truthy not != null) renders <code>.candidate-card-nofiling</code> "No financial activity reported" (body type, --muted) in the stats slot instead — both layouts. (Card spacing/divider note: the prior <code>.candidate-card-stats</code> top-border divider was retired; no divider in either layout.) races.html uses the sibling .race-card class (see comp-race-card).</div>
         <div class="ds-component-demo">
           <a class="candidate-card" href="#">
             <div class="candidate-card-name">Maria Cantwell</div>
@@ -1233,28 +1233,37 @@
               <span class="tag tag-dem">Democrat</span>
             </div>
           </a>
-          <a class="candidate-card" href="#">
-            <div class="candidate-card-name">Gluesenkamp Perez, Marie</div>
-            <div class="candidate-card-meta">
-              <span class="tag tag-neutral">House · WA-03</span>
-              <span class="tag tag-neutral">2024</span>
-              <span class="tag tag-dem">Democrat</span>
-            </div>
-            <div class="candidate-card-stats">
-              <div class="candidate-card-stat">
-                <span class="candidate-card-stat-lbl">Raised</span>
-                <span class="candidate-card-stat-val">$4.1M</span>
+          <!-- race.html 'inline' stats variant — tags inside the name (no meta block),
+               stats side-by-side on the right. Wrapped in #race-list so the scoped
+               T-race-page-UI rules apply (fixed 3-col grid, right-aligned, no-filings). -->
+          <div id="race-list">
+            <a class="candidate-card" href="#">
+              <div class="candidate-card-name">Gluesenkamp Perez, Marie
+                <span class="tag tag-dem">Democrat</span>
+                <span class="tag tag-inc">Incumbent</span>
               </div>
-              <div class="candidate-card-stat">
-                <span class="candidate-card-stat-lbl">Spent</span>
-                <span class="candidate-card-stat-val">$3.8M</span>
+              <div class="candidate-card-stats">
+                <div class="candidate-card-stat">
+                  <span class="candidate-card-stat-lbl">Raised</span>
+                  <span class="candidate-card-stat-val">$4.1M</span>
+                </div>
+                <div class="candidate-card-stat">
+                  <span class="candidate-card-stat-lbl">Spent</span>
+                  <span class="candidate-card-stat-val">$3.8M</span>
+                </div>
+                <div class="candidate-card-stat">
+                  <span class="candidate-card-stat-lbl">Cash on Hand</span>
+                  <span class="candidate-card-stat-val">$312K</span>
+                </div>
               </div>
-              <div class="candidate-card-stat">
-                <span class="candidate-card-stat-lbl">Cash on Hand</span>
-                <span class="candidate-card-stat-val">$312K</span>
+            </a>
+            <a class="candidate-card" href="#">
+              <div class="candidate-card-name">Kent, Joseph
+                <span class="tag tag-rep">Republican</span>
               </div>
-            </div>
-          </a>
+              <div class="candidate-card-nofiling">No financial activity reported</div>
+            </a>
+          </div>
         </div>
       </div>
 

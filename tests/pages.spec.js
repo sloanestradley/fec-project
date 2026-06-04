@@ -304,6 +304,39 @@ test.describe('race.html', () => {
   test('race-header starts without .compact class (full mode on load)', async ({ page }) => {
     await expect(page.locator('#race-header')).not.toHaveClass(/compact/);
   });
+
+  // ── T-race-page-UI — candidate-card refinements (race.html only) ──────────
+  test('#race-candidates-label uses .raised-cell-title', async ({ page }) => {
+    await expect(page.locator('#race-candidates-label')).toHaveClass(/raised-cell-title/);
+  });
+
+  test('race card stats are a 3-column grid, side-by-side with the name (desktop)', async ({ page }) => {
+    const info = await page.evaluate(() => {
+      const card = document.querySelector('#race-list .candidate-card');
+      const stats = card.querySelector('.candidate-card-stats');
+      const cs = getComputedStyle(stats);
+      const nameR = card.querySelector('.candidate-card-name').getBoundingClientRect();
+      const statsR = stats.getBoundingClientRect();
+      return {
+        display: cs.display,
+        cols: cs.gridTemplateColumns.split(' ').length,
+        sideBySide: Math.abs(statsR.top - nameR.top) < 30,   // ~same row, not stacked below
+      };
+    });
+    expect(info.display).toBe('grid');
+    expect(info.cols).toBe(3);
+    expect(info.sideBySide).toBe(true);
+  });
+
+  test('race card scoping does NOT leak to a shared candidate-card (candidates browse)', async ({ page }) => {
+    // The #race-list scope must not regress candidates.html cards (shared base rule).
+    await page.goto('/candidates.html?state=WA&office=H');
+    await page.waitForSelector('.candidate-card', { timeout: 12000 });
+    const padding = await page.evaluate(() =>
+      getComputedStyle(document.querySelector('.candidate-card')).padding);
+    // base rule = 16px 8px; the race override (24px 8px) must not apply here
+    expect(padding).toBe('16px 8px');
+  });
 });
 
 // ── T-race-inplace-cycle — in-place cycle switching (no full reload) ─────────

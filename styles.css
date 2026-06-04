@@ -640,6 +640,24 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .candidate-card-stat-val { font-family:'Oswald',sans-serif; font-size:1.25rem;
   font-weight:400; text-transform:uppercase; color:var(--text); }
 
+/* ── race.html candidate-card refinements (T-race-page-UI, 2026-06-03) ────────
+   Scoped to #race-list so the shared .candidate-card base (candidates browse /
+   committee assoc / search results) is untouched. Desktop: name ↔ stats sit
+   side-by-side (the stats move from a full-width row into the grid's 2nd column,
+   vertically centered by the base align-items:center). Stats use a FIXED 3×88px
+   grid, right-aligned, so the same stat lines up across vertically-stacked cards
+   (Raised under Raised). 88px fits the widest abbreviated value ($1.5B / $999.0M
+   ~70-76px at Oswald 1.25rem). No divider (the prior border-top was retired).
+   Card gap/padding intentionally inherit the shared base (the per-#race-list
+   spacing override was tried and dropped — Sloane preferred the base spacing). */
+#race-list .candidate-card-stats {
+  grid-column:auto;                 /* override base 1/-1 → place beside the name in col 2 */
+  padding-top:0;
+  display:grid; grid-template-columns:repeat(3, 88px); gap:var(--space-16); }
+#race-list .candidate-card-stat { align-items:flex-end; }   /* right-align the lbl/val stack */
+/* No-filings slot — body type role (Plex Sans 0.75rem), muted; occupies the stats slot. */
+#race-list .candidate-card-nofiling { color:var(--muted); font-size:0.75rem; text-align:right; }
+
 /* ── Page header — shared by candidate, committee, race profile pages ─────── */
 .page-header { padding:var(--space-40) var(--page-gutter) var(--space-32); }
 .page-header-reveal { opacity:0; transition:opacity 0.4s ease; }
@@ -1302,6 +1320,11 @@ div.cycle-row {
   .candidate-card, .race-card { grid-template-columns:1fr; }
   .candidate-card-meta,
   .committee-card-meta { justify-content:flex-start; width:100%; }
+  /* race.html cards (T-race-page-UI): stacked, full-width, left-aligned. Stats
+     become equal-thirds (still aligned across cards) so values fit narrow widths. */
+  #race-list .candidate-card-stats { grid-column:1 / -1; grid-template-columns:repeat(3, minmax(0,1fr)); max-width:332px; padding-top:var(--space-8); }
+  #race-list .candidate-card-stat { align-items:flex-start; }
+  #race-list .candidate-card-nofiling { text-align:left; }
 
   /* Race context line — label takes its own row at mobile; text + link share the
      row below with link right-aligned via the existing margin-left:auto. */

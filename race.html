@@ -106,7 +106,9 @@
         </div>
         <!-- Count + list are held/hidden/rolled-back atomically during a switch. -->
         <div id="race-results-region">
-          <div class="section-title" id="race-candidates-label"></div>
+          <!-- T-race-page-UI: borrows .raised-cell-title (Oswald 1.25rem + margin-bottom)
+               per Sloane's call — coupled to that Raised-tab-purposed class by choice. -->
+          <div class="raised-cell-title" id="race-candidates-label"></div>
           <div class="race-list" id="race-list"></div>
         </div>
       </div>

@@ -107,6 +107,7 @@ function showTabError(errorEl, err, defaultMsg) {
 function fmt(n) {
   if (n == null || isNaN(n)) return '—';
   var abs = Math.abs(n);
+  if (abs >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B';  // presidential-scale; was "$1000.0M"
   if (abs >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
   if (abs >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K';
   return '$' + Math.round(n).toLocaleString();
@@ -354,8 +355,13 @@ function committeeTypeLabel(t) {
 //   showOffice       — bool, defaults true; race.html sets false (its name row carries no office tag)
 //   showLatestCycle  — bool, defaults true; race + committee set false
 //   showIncumbent    — bool, defaults false; race.html sets true (reads c.incumbent_challenge / _full)
-//   showStats        — bool, defaults false; race.html sets true (renders .candidate-card-stats row
-//                      below the name when c.total_receipts or c.total_disbursements is non-null)
+//   showStats        — bool, defaults false; race.html sets true. Renders the
+//                      .candidate-card-stats row when c.total_receipts or
+//                      c.total_disbursements is non-zero, else a
+//                      .candidate-card-nofiling "No financial activity reported" message in
+//                      the same slot. NOTE: the live /elections/ endpoint returns
+//                      0.0 (not null) for no-filing candidates, so the gate is a
+//                      truthy check, not != null (T-race-page-UI, 2026-06-03).
 //   cycleHashYear    — number | null; if set, appends #{year}#summary to href (race.html cycle-anchor)
 //
 // Default opts produce the canonical /candidates + /search 3-tag shape; race.html and
@@ -402,17 +408,25 @@ function candidateCardHTML(c, opts) {
   var partyTag     = '<span class="tag ' + pcls + '">' + plbl + '</span>';
   var incumbentTag = isIncumbent  ? '<span class="tag tag-inc">Incumbent</span>' : '';
 
-  // Stats row — only rendered when showStats AND at least one total is non-null.
+  // Stats slot — only when showStats. With at least one non-null total, the 3-stat
+  // row; otherwise a "No financial activity reported" message occupying the same slot (so the
+  // grid places it identically — col 2 desktop / full-width row mobile on race.html).
   var statsHtml = '';
-  if (opts.showStats && (c.total_receipts != null || c.total_disbursements != null)) {
-    statsHtml = '<div class="candidate-card-stats">'
-      + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Raised</span>'
-      + '<span class="candidate-card-stat-val">' + fmt(c.total_receipts) + '</span></div>'
-      + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Spent</span>'
-      + '<span class="candidate-card-stat-val">' + fmt(c.total_disbursements) + '</span></div>'
-      + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Cash on Hand</span>'
-      + '<span class="candidate-card-stat-val">' + fmt(c.cash_on_hand_end_period) + '</span></div>'
-      + '</div>';
+  if (opts.showStats) {
+    // Truthy (not `!= null`): the live /elections/ endpoint returns 0.0 — NOT null —
+    // for candidates with no filings, so both-zero must count as no-filings too.
+    if (c.total_receipts || c.total_disbursements) {
+      statsHtml = '<div class="candidate-card-stats">'
+        + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Raised</span>'
+        + '<span class="candidate-card-stat-val">' + fmt(c.total_receipts) + '</span></div>'
+        + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Spent</span>'
+        + '<span class="candidate-card-stat-val">' + fmt(c.total_disbursements) + '</span></div>'
+        + '<div class="candidate-card-stat"><span class="candidate-card-stat-lbl">Cash on Hand</span>'
+        + '<span class="candidate-card-stat-val">' + fmt(c.cash_on_hand_end_period) + '</span></div>'
+        + '</div>';
+    } else {
+      statsHtml = '<div class="candidate-card-nofiling">No financial activity reported</div>';
+    }
   }
 
   // Structural variants:

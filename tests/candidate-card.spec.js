@@ -132,11 +132,45 @@ test.describe('candidateCardHTML — inline layout (race.html shape)', () => {
     expect(r.rawHtml).toContain('2024');
   });
 
-  test('showStats:true with no totals → stats row omitted (defensive)', async ({ page }) => {
+  test('showStats:true with null totals → no-filings message in the stats slot (T-race-page-UI)', async ({ page }) => {
     const { total_receipts, total_disbursements, ...noTotals } = TRUMP;
     const c = { ...noTotals, total_receipts: null, total_disbursements: null };
     const r = await render(page, c, { layoutVariant: 'inline', showStats: true });
+    expect(r.hasStats).toBe(false);                          // no 3-stat row
+    expect(r.rawHtml).toContain('candidate-card-nofiling');  // message occupies the slot instead
+    expect(r.rawHtml).toContain('No financial activity reported');
+  });
+
+  // The LIVE /elections/ endpoint returns 0.0 (not null) for no-filing candidates —
+  // the gate must be truthy, not != null, or the message never fires on real data.
+  test('showStats:true with ZERO totals (live API shape) → no-filings message', async ({ page }) => {
+    const { total_receipts, total_disbursements, ...noTotals } = TRUMP;
+    const c = { ...noTotals, total_receipts: 0, total_disbursements: 0, cash_on_hand_end_period: 0 };
+    const r = await render(page, c, { layoutVariant: 'inline', showStats: true });
     expect(r.hasStats).toBe(false);
+    expect(r.rawHtml).toContain('No financial activity reported');
+  });
+
+  test('showStats:true with one non-zero total → stats row still renders', async ({ page }) => {
+    const { total_receipts, total_disbursements, ...noTotals } = TRUMP;
+    const c = { ...noTotals, total_receipts: 5000, total_disbursements: 0 };
+    const r = await render(page, c, { layoutVariant: 'inline', showStats: true });
+    expect(r.hasStats).toBe(true);                           // has activity → 3-stat row
+    expect(r.rawHtml).not.toContain('candidate-card-nofiling');
+  });
+});
+
+// ── fmt() — billions abbreviation (T-race-page-UI, 2026-06-03) ───────────────
+test.describe('fmt — billions', () => {
+  test('values ≥ $1B abbreviate as $X.XB (was $1000.0M)', async ({ page }) => {
+    const out = await page.evaluate(() => ({
+      b: fmt(1.5e9), b1: fmt(1.05e9), m: fmt(45.2e6), k: fmt(450e3), nul: fmt(null),
+    }));
+    expect(out.b).toBe('$1.5B');
+    expect(out.b1).toBe('$1.1B');
+    expect(out.m).toBe('$45.2M');   // millions unchanged
+    expect(out.k).toBe('$450K');    // thousands unchanged
+    expect(out.nul).toBe('—');
   });
 });
 
