@@ -549,12 +549,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 
 /* ── K1: Raised tab grid layout (candidate + committee) ── */
 .raised-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-64); margin-bottom:var(--section-gap); }
-/* No padding-top: the preceding section's margin-bottom (--section-gap) owns the
-   gap in the de-tabbed flow (T-remove-profile-tabs); the prior 24px top was
-   breathing room below the retired tabs-bar. Both cells drop it equally, so their
-   titles stay aligned. (Matches the .tab-section-panel .donors-card { padding-top:0 }
-   already in effect for the in-section contributor cards.) */
-.raised-cell { min-width:0; }
+.raised-cell { padding-top:var(--space-24); min-width:0; }
 .raised-cell-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;
   text-transform:uppercase; color:var(--text); margin-bottom:var(--space-24); }
 /* Section title carrying an info tooltip: flex row so the 32px .tooltip trigger
