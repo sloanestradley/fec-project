@@ -113,7 +113,6 @@
     .profile-header { padding:var(--space-40) 0 var(--space-32); border-bottom:1px solid var(--border); }
     /* Override reveal animation in demos — demos don't run JS to add .visible */
     .ds-component-demo .page-header-reveal { opacity:1; transition:none; }
-    .ds-component-demo .tabs-bar { padding:0; opacity:1; transition:none; }
     /* Stats — demo: suppress margin-bottom + margin-top so demo panel doesn't add section spacing */
     .stats-grid { margin-top:0; margin-bottom:0; }
 
@@ -294,7 +293,7 @@
             <tr><td><span class="ds-token-dot" style="background:#1E6644"></span>green-deep</td><td class="ds-token-hex">#1E6644</td><td>Success</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#8A5F10"></span>amber-deep</td><td class="ds-token-hex">#8A5F10</td><td>Warning / watch — also backs --inc</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#F6E9CE;border:1px solid #D7D1C7"></span>amber-light</td><td class="ds-token-hex">#F6E9CE</td><td>Incumbent tag tint</td></tr>
-            <tr><td><span class="ds-token-dot" style="background:#05234F"></span>navy-deep</td><td class="ds-token-hex">#05234F</td><td>Nav logo "Ledger", tabs-bar navy line, tab text, cycle select text, summary chart Raised line, Democrat tag (--dem), --cat-1</td></tr>
+            <tr><td><span class="ds-token-dot" style="background:#05234F"></span>navy-deep</td><td class="ds-token-hex">#05234F</td><td>Nav logo "Ledger", cycle select text, summary chart Raised line, Democrat tag (--dem), --cat-1</td></tr>
             <tr><td><span class="ds-token-dot" style="background:#3DBF7A"></span>green-500</td><td class="ds-token-hex">#3DBF7A</td><td>Active filing dot (backs --filing-active)</td></tr>
           </tbody>
         </table>
@@ -596,8 +595,8 @@
           <span class="ds-type-meta"><strong>heading</strong><br>Oswald 400 · 1.25rem · uppercase<br>.results-group-header · .entry-title · .modal-title · .donut-center-val · .candidate-card-stat-val · .error-prompt strong · .chart-title · .donors-head · .raised-cell-title</span>
         </div>
         <div class="ds-type-row">
-          <span class="tab" style="padding:0;border-bottom:none;margin-bottom:0;cursor:default">Summary</span>
-          <span class="ds-type-meta"><strong>tab</strong><br>Oswald 400 · 1.25rem<br>.tab · .cycle-select</span>
+          <span style="font-family:'Oswald',sans-serif;font-weight:400;font-size:1.25rem">2024</span>
+          <span class="ds-type-meta"><strong>tab</strong><br>Oswald 400 · 1.25rem<br>.cycle-select <em>(.tab retired 2026-06-04 — T-remove-profile-tabs)</em></span>
         </div>
         <div class="ds-type-row">
           <span class="stat-label" style="margin-bottom:0">Cycle</span>
@@ -866,7 +865,7 @@
         <div class="ds-component-notes">
           <strong>Trigger:</strong> 32 × 32 button with <code>var(--space-4)</code> padding around a 20 px Material Symbols "info" glyph. Outlined when <code>aria-expanded="false"</code>, filled when <code>aria-expanded="true"</code> — single source of truth (icon state IS popup state; keyboard <code>:focus-visible</code> keeps the icon outlined until Enter/Space reveals). Icon color: <code>var(--accent)</code> in both outlined and filled variants. <code>:focus-visible:not(:hover)</code> applied preemptively as a Safari mobile sticky-focus-on-tap guard (T-menu-btn-focus-on-open paid the same tax once).
           <br><br>
-          <strong>Popup:</strong> portaled to <code>document.body</code> with <code>position:fixed</code>, <code>z-index:250</code> (above sticky nav at 200, profile-header at 195, tabs-bar at 185; below any future modal at 300+). White surface (<code>var(--surface)</code>), <code>var(--space-8)</code> padding, 2 px border-radius, soft shadow <code>0 0 8px rgba(0,0,0,0.2)</code>, <code>max-width:216px</code>, <code>max-height:50vh</code> with <code>overflow-y:auto</code> for extreme content. Body text: IBM Plex Sans 400 · 0.75 rem · line-height 1.5 · <code>var(--text)</code>. Portal-to-body is required because consumer surfaces (chart cards, donut labels, vendor tables) carry <code>overflow:hidden</code> ancestors that would clip an inline popup.
+          <strong>Popup:</strong> portaled to <code>document.body</code> with <code>position:fixed</code>, <code>z-index:250</code> (above sticky nav at 200 and profile-header at 195; below any future modal at 300+). White surface (<code>var(--surface)</code>), <code>var(--space-8)</code> padding, 2 px border-radius, soft shadow <code>0 0 8px rgba(0,0,0,0.2)</code>, <code>max-width:216px</code>, <code>max-height:50vh</code> with <code>overflow-y:auto</code> for extreme content. Body text: IBM Plex Sans 400 · 0.75 rem · line-height 1.5 · <code>var(--text)</code>. Portal-to-body is required because consumer surfaces (chart cards, donut labels, vendor tables) carry <code>overflow:hidden</code> ancestors that would clip an inline popup.
           <br><br>
           <strong>Positioning:</strong> popup top edge is contiguous with the trigger bottom edge (zero gap per Figma — the 32 × 32 trigger plus the Figma's <code>top:32px</code> anchor lands the popup flush against the trigger's bottom), centered horizontally on the icon. Custom vanilla-JS positioning algorithm (<code>__tt_position</code> in utils.js) flips above when there isn't enough room below, and clamps horizontally to keep the popup at least 8 px inside both viewport edges. No external dependency. Close-on-scroll and close-on-resize (simpler than reposition; aligns with the "I'm done reading this" mental model).
           <br><br>
@@ -890,7 +889,7 @@
           <span class="ds-component-name">Health Banner</span>
           <span class="ds-status candidate-only">candidate-only</span>
         </div>
-        <div class="ds-component-classes">.banner · .banner-heading · .health-signal · .banner-label · .banner-desc · .banner-note — flex row with uniform 16px padding (T14.5 follow-up, 2026-05-14: was vertical-16/horizontal-page-gutter; now <code>padding:var(--space-16)</code>). The horizontal gutter inset lives on the parent <code>#summary-strip</code> on desktop, so the banner's own border-bottom ends at the gutter-inset edge while content sits 16px inside it. Mobile (#summary-strip zeroes its gutter): banner's 16px padding becomes the content inset, banner border goes edge-to-edge of the viewport. Navy #05234F border-bottom provides the strip's bottom edge against the tabs-bar; no border-top, no margin-bottom — strip context owns rhythm; the stats-grid's bottom border above provides the divider between stats and banner. <strong>.banner-heading</strong> wraps the health signal + label so the dot sits beside the label with an 8px gap; the outer .banner's 16px column-gap then provides breathing room before .banner-desc. Label uses prose-emphasis (IBM Plex Serif 700 · 0.875rem); desc uses prose (IBM Plex Serif 400 · 0.875rem); note uses caption (IBM Plex Mono 0.625rem). At ≤860px the heading group, desc, and note each take their own row (<code>flex-basis:100%</code>) — mirrors the race-context-line mobile stacking pattern. Single live consumer: candidate.html, inside #summary-strip below the stats-grid (T21 inversion, 2026-05-07). Demo drops the horizontal padding via .ds-component-demo override so it sits flush in the constrained card. <strong>Deferred reveal in production (T-cycle-empty-state-jump-mitigation, 2026-05-28):</strong> the production element carries <code>style="display:none"</code> as HTML default and is revealed only at loadCycle's Step 4 data-present branch — banner stays hidden through the cycle-detail fetch window so race-context-bar above doesn't shift on no-data cycles. The demo here always shows banner (no JS to hide it) — production behavior differs from the demo for this one reason. Click buttons to switch states.</div>
+        <div class="ds-component-classes">.banner · .banner-heading · .health-signal · .banner-label · .banner-desc · .banner-note — flex row with uniform 16px padding (T14.5 follow-up, 2026-05-14: was vertical-16/horizontal-page-gutter; now <code>padding:var(--space-16)</code>). The horizontal gutter inset lives on the parent <code>#summary-strip</code> on desktop, so the banner's own border-bottom ends at the gutter-inset edge while content sits 16px inside it. Mobile (#summary-strip zeroes its gutter): banner's 16px padding becomes the content inset, banner border goes edge-to-edge of the viewport. Navy #05234F border-bottom provides the strip's bottom edge; no border-top, no margin-bottom — strip context owns rhythm; the stats-grid's bottom border above provides the divider between stats and banner. <strong>.banner-heading</strong> wraps the health signal + label so the dot sits beside the label with an 8px gap; the outer .banner's 16px column-gap then provides breathing room before .banner-desc. Label uses prose-emphasis (IBM Plex Serif 700 · 0.875rem); desc uses prose (IBM Plex Serif 400 · 0.875rem); note uses caption (IBM Plex Mono 0.625rem). At ≤860px the heading group, desc, and note each take their own row (<code>flex-basis:100%</code>) — mirrors the race-context-line mobile stacking pattern. Single live consumer: candidate.html, inside #summary-strip below the stats-grid (T21 inversion, 2026-05-07). Demo drops the horizontal padding via .ds-component-demo override so it sits flush in the constrained card. <strong>Deferred reveal in production (T-cycle-empty-state-jump-mitigation, 2026-05-28):</strong> the production element carries <code>style="display:none"</code> as HTML default and is revealed only at loadCycle's Step 4 data-present branch — banner stays hidden through the cycle-detail fetch window so race-context-bar above doesn't shift on no-data cycles. The demo here always shows banner (no JS to hide it) — production behavior differs from the demo for this one reason. Click buttons to switch states.</div>
         <div class="ds-component-demo">
           <div class="ds-state-controls">
             <button class="ds-state-btn ds-health-btn active" data-state="healthy">Healthy</button>
@@ -1032,14 +1031,11 @@
               </div>
             </div>
 
-            <!-- Cycle select in tab bar context -->
+            <!-- Cycle select (race #race-header picker; .tabs-bar context retired) -->
             <div>
-              <div class="ds-demo-label">Cycle select — tab bar context</div>
-              <div class="tabs-bar">
-                <a class="tab active" href="#">Summary</a>
-                <a class="tab" href="#">Raised</a>
-                <a class="tab" href="#">Spent</a>
-                <select class="form-select cycle-select">
+              <div class="ds-demo-label">Cycle select</div>
+              <div style="display:flex; justify-content:flex-end; padding:var(--space-8) var(--space-16); background:var(--bg)">
+                <select class="form-select cycle-select" aria-label="Cycle (demo)">
                   <option>2024</option>
                   <option>2022</option>
                   <option>2020</option>
@@ -1146,21 +1142,18 @@
       <!-- 10. Chart container (tab bar interactive) -->
       <div class="ds-component" id="comp-chart-container" data-status="stable">
         <div class="ds-component-header">
-          <span class="ds-component-name">Tab Bar + Chart Container</span>
+          <span class="ds-component-name">Chart Container</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.tabs-bar · .tab · .tab.active · .cycle-select · .chart-card · .chart-header · .chart-title · .chart-legend · .legend-item · .legend-swatch · .legend-dashed · .legend-amber-dashed</div>
+        <div class="ds-component-classes">.cycle-select · .chart-card · .chart-header · .chart-title · .chart-legend · .legend-item · .legend-swatch · .legend-dashed · .legend-amber-dashed</div>
         <div class="ds-component-demo">
-          <div class="tabs-bar" id="demo-tabs">
-            <a class="tab active" href="#">Summary</a>
-            <a class="tab" href="#">Raised</a>
-            <a class="tab" href="#">Spent</a>
-            <select class="form-select cycle-select">
-              <option>2024</option>
-              <option>2022</option>
-            </select>
-          </div>
           <div style="padding:1.5rem">
+            <div style="display:flex; justify-content:flex-end; margin-bottom:1rem">
+              <select class="form-select cycle-select" aria-label="Cycle (demo)">
+                <option>2024</option>
+                <option>2022</option>
+              </select>
+            </div>
             <div class="chart-card">
               <div class="chart-header">
                 <div class="chart-title">Raised · Spent · Cash on Hand over cycle</div>
@@ -1174,7 +1167,7 @@
             </div>
           </div>
         </div>
-        <div class="ds-component-notes"><strong>⚠ <code>.tabs-bar</code> / <code>.tab</code> / <code>.tab.active</code> are DEPRECATED (T-remove-profile-tabs, closed out 2026-06-04):</strong> all three profile pages (candidate, committee, then race in the final pass) retired their outer tabs — detail/race views are single flowing columns now. These classes have <strong>no production consumer</strong>; this demo is the only remaining instance. The CSS (<code>styles.css</code> §C, lines ~283–317 + the ≤860px override) and this demo are <strong>retained for now, scheduled for retirement in a later focused pass</strong> — that pass must split this card to preserve the still-live <code>.cycle-select</code> and <code>.chart-card</code>/legend documentation (which is why it wasn't done inline). The <code>.cycle-select</code> and <code>.chart-card</code> portions below remain <strong>stable</strong>. — Chart line/point colors use the <code>CHART_COLORS</code> JS constant (<code>utils.js</code>), which now reads <strong>general semantic tokens</strong> — Raised → <code>--navy-deep</code>, Spent → <code>--red-deep</code>, Cash on Hand → <code>--green</code>, "today" marker → <code>--border-strong</code>, axis → <code>--border</code>/<code>--muted</code>. The bespoke <code>--chart-*</code> token set (and its <code>blue-500</code>/<code>red-500</code> primitives) was <strong>retired 2026-06-03</strong> — the summary chart now reuses the general palette. HTML legend swatches reference those same tokens directly (<code>var(--navy-deep)</code> / <code>var(--red-deep)</code> / <code>var(--green)</code>). — The cycle <code>&lt;select&gt;</code> uses <code>.cycle-select.form-select</code> in <code>styles.css</code> (Oswald 400, 1.25rem, no border, <code>color:var(--text)</code>) — specificity bump ensures it overrides <code>.form-select</code> defaults. <strong>T16 (2026-05-14) retired the candidate.html + committee.html cycle-switcher inside their tabs-bars</strong>; cycle changes on those pages now happen via the Cycle card chevron → cycle index → row click path. The <code>.cycle-select</code> variant lives on as the cycle picker in <code>race.html</code> — relocated from the tabs-bar into <code>#race-header</code> (T-move-race-year-select, 2026-06-03) so it stays visible in the compact header. The demo above keeps the variant in a tabs-bar context for documentation continuity of the <code>.cycle-select</code> styling, even though production now mounts it in the header. <strong>T14.5 follow-up (2026-05-14):</strong> the navy 2px bottom rule on <code>.tabs-bar</code> migrated from <code>border-bottom</code> to a <code>::after</code> pseudo-element anchored at <code>left/right:var(--page-gutter); bottom:0; z-index:-1</code> so the line ends at the gutter-inset edge (matching the borders on <code>#summary-strip</code>'s children above). The <code>z-index:-1</code> keeps <code>.tab.active</code>'s 4px red underline (in normal flow) above the navy in stacking order so the red wins where they overlap; the previous <code>.tab { margin-bottom:-2px }</code> trick (which clipped the red 2px under <code>overflow-y:hidden</code>) retired with it. Tabs-bar padding is <code>0 var(--page-gutter)</code> on desktop and mobile (tabs sit flush at the gutter, aligned with the navy line at the same edge; mobile keeps the line edge-to-edge via the <code>::after</code> override).</div>
+        <div class="ds-component-notes"><strong>The <code>.tabs-bar</code> / <code>.tab</code> profile-tab strip was retired</strong> (T-remove-profile-tabs, closed out 2026-06-04 — all three profile pages are single flowing columns now; the dead CSS + this card's former tab demo were removed in the cleanup). <code>.modal-tab-btn</code> (committees modal) and <code>.button-group-btn</code> (nested Raised sub-tabs) are separate systems and were unaffected. This card now documents the <strong>chart container</strong> + the <strong><code>.cycle-select</code></strong> cycle picker. — Chart line/point colors use the <code>CHART_COLORS</code> JS constant (<code>utils.js</code>), which reads <strong>general semantic tokens</strong> — Raised → <code>--navy-deep</code>, Spent → <code>--red-deep</code>, Cash on Hand → <code>--green</code>, "today" marker → <code>--border-strong</code>, axis → <code>--border</code>/<code>--muted</code>. HTML legend swatches reference those same tokens directly (<code>var(--navy-deep)</code> / <code>var(--red-deep)</code> / <code>var(--green)</code>). — The cycle <code>&lt;select&gt;</code> uses <code>.cycle-select.form-select</code> in <code>styles.css</code> (Oswald 400, 1.25rem, borderless, <code>color:var(--navy-deep)</code>, and <code>background:none</code> so it reads transparent through the glass compact header — T-compact-header-glass). Sole production consumer is <code>race.html</code>'s <code>#year-select</code> in <code>#race-header</code> (T-move-race-year-select, 2026-06-03; T16 had earlier retired the candidate/committee in-tabs-bar cycle-switchers).</div>
       </div>
 
       <!-- 10. Section title + committee rows -->
@@ -1799,7 +1792,7 @@
           <div class="cycle-empty-state">No financial filings for 2026 cycle.</div>
         </div>
         <div class="ds-component-notes">
-          Whole-view empty state used on candidate.html cycle-detail when the cycle has no financial filings (T-cycle-empty-state, 2026-05-28). Replaces the tab strip + tabbed content (<code>.tabs-bar</code> + <code>#content</code>) entirely; the summary strip + race context bar above stay visible to provide structural context. Centered body text (IBM Plex Sans 0.875rem · <code>var(--muted)</code>), no chrome — no border, no background, no icon. Padding is <code>120px var(--page-gutter)</code> on desktop (120px is intentionally above the 4rem scale ceiling — generous breathing room below the summary strip on a confirmed-no-data surface); mobile (≤860px) shifts top padding to <code>var(--space-32)</code> for compressed viewports. <strong>Distinct from <code><a href="#comp-inline-status-msg">.inline-status-msg</a></code> and <code><a href="#comp-loader">.state-msg</a></code></strong>: those are status-communication patterns for in-progress / wrapper-level states; <code>.cycle-empty-state</code> is a confirmed-empty-data pattern that replaces a major page region. <code>.cycle-empty-state</code> has no chrome by design (no border, no background); adding a border would make a non-event look like an event. Single live consumer: candidate.html via JS in <code>loadCycle</code>'s empty branch. The banner is also hidden in this case (no "No Data" / "Cycle Complete" copy renders) — the empty-state alone carries communication.
+          Whole-view empty state used on candidate.html cycle-detail when the cycle has no financial filings (T-cycle-empty-state, 2026-05-28). Replaces the flowing detail content (<code>#content</code>) entirely; the summary strip + race context bar above stay visible to provide structural context. Centered body text (IBM Plex Sans 0.875rem · <code>var(--muted)</code>), no chrome — no border, no background, no icon. Padding is <code>120px var(--page-gutter)</code> on desktop (120px is intentionally above the 4rem scale ceiling — generous breathing room below the summary strip on a confirmed-no-data surface); mobile (≤860px) shifts top padding to <code>var(--space-32)</code> for compressed viewports. <strong>Distinct from <code><a href="#comp-inline-status-msg">.inline-status-msg</a></code> and <code><a href="#comp-loader">.state-msg</a></code></strong>: those are status-communication patterns for in-progress / wrapper-level states; <code>.cycle-empty-state</code> is a confirmed-empty-data pattern that replaces a major page region. <code>.cycle-empty-state</code> has no chrome by design (no border, no background); adding a border would make a non-event look like an event. Single live consumer: candidate.html via JS in <code>loadCycle</code>'s empty branch. The banner is also hidden in this case (no "No Data" / "Cycle Complete" copy renders) — the empty-state alone carries communication.
         </div>
       </div>
 
@@ -2030,15 +2023,6 @@
 <script src="utils.js"></script>
 <script>
 (function() {
-  // Tab bar toggle
-  document.querySelectorAll('#demo-tabs .tab').forEach(function(tab) {
-    tab.addEventListener('click', function(e) {
-      e.preventDefault();
-      document.querySelectorAll('#demo-tabs .tab').forEach(function(t) { t.classList.remove('active'); });
-      tab.classList.add('active');
-    });
-  });
-
   // Health state switcher — post-C1 + C2 retirement (2026-05-28), no banner-note
   // is written on either active or closed cycles in production. The prior
   // "Best-guess assessment · Thresholds to be validated" (C1) and "Final

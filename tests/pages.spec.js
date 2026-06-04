@@ -512,7 +512,7 @@ test.describe('T-profile-header-transition — cross-page invariants', () => {
   ];
 
   for (const { name, url } of profilePages) {
-    test(`${name}: --compact-header-h equals 56px + .transitions-ready on <html> + aria-hidden on .meta-row`, async ({ page }) => {
+    test(`${name}: compact engages (.compact) + .transitions-ready on <html> + aria-hidden on .meta-row`, async ({ page }) => {
       await mockAmplitude(page);
       await mockFecApi(page);
       await page.goto(url);
@@ -526,10 +526,12 @@ test.describe('T-profile-header-transition — cross-page invariants', () => {
       // Engage compact via scroll past the threshold.
       await page.evaluate(() => window.scrollTo(0, 400));
       await page.waitForTimeout(300); // past 250ms suppression
-      const cssVar = await page.evaluate(() =>
-        getComputedStyle(document.documentElement).getPropertyValue('--compact-header-h').trim()
-      );
-      expect(cssVar).toBe('56px');
+      // Compact engaged past the threshold. (The prior `--compact-header-h === 56px`
+      // assertion was removed with the token in T-remove-profile-tabs, 2026-06-04 —
+      // the token's only consumer was the retired .tabs-bar. The .compact class is
+      // the direct signal that initCompactHeader ran and engaged compact mode.)
+      const headerId = name === 'candidate' ? 'profile-header' : name + '-header';
+      await expect(page.locator('#' + headerId)).toHaveClass(/compact/);
       // A11y invariant: when compact, .meta-row carries aria-hidden="true"
       // so screen readers don't announce the visually-hidden tags. Race.html
       // has no .meta-row; skip the check there. CDP a11y-tree spot-check

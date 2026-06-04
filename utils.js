@@ -857,12 +857,11 @@ function initComboDropdown(config) {
 // expose for getDetailScrollTarget), and T-nav-scroll (CSS-custom-property
 // write replacing the inline tabsBarEl.style.top write). The nav-scroll
 // listener that originally motivated the property-write has been reverted,
-// but the lift + property mechanism stays — both improvements on the prior
-// three-inline-copies shape.
-//
-// Writes --compact-header-h on :root. .tabs-bar's top is
-// var(--compact-header-h) — the listener owns the entire compact-state
-// composition now that the nav is no longer sticky (top:0 base).
+// and the --compact-header-h property write itself was retired 2026-06-04 with
+// .tabs-bar (T-remove-profile-tabs) — nothing reads the var anymore. The lift to
+// a single shared helper stays (improvement on the prior three-inline-copies
+// shape); the JS-local compactHeaderH literal (56) lives on for the
+// paddingBottom scroll-clamp guard below.
 //
 // STICKY_TOP is the threshold at which the profile-header pins to viewport.
 // Matches the CSS `top:0` rule on #profile-header / #committee-header /
@@ -908,7 +907,6 @@ function initCompactHeader(headerId) {
       // measurement in steady state.
       if (compactHeaderH === null) compactHeaderH = 56;
       mainEl.style.paddingBottom = Math.min(80, Math.max(0, fullH - compactHeaderH)) + 'px';
-      document.documentElement.style.setProperty('--compact-header-h', compactHeaderH + 'px');
       // A11y: exclude the meta-row from the accessibility tree when compact.
       // The .transitions-ready compact override keeps the meta-row in flow
       // (display:flex + zeroed) so it can animate, but opacity:0 + width:0
@@ -922,7 +920,6 @@ function initCompactHeader(headerId) {
     } else {
       headerEl.classList.remove('compact');
       mainEl.style.paddingBottom = '';
-      document.documentElement.style.setProperty('--compact-header-h', '0px');
       var uncompactMetaRow = headerEl.querySelector('.meta-row');
       if (uncompactMetaRow) uncompactMetaRow.removeAttribute('aria-hidden');
     }
@@ -1956,8 +1953,9 @@ function closeInfoModal() {
 // Content is treated as trusted HTML — callers own content safety. All site
 // tooltip copy is authored, not user-generated.
 //
-// Z-index: popup at 250 — above sticky nav (200), profile-header (195),
-// tabs-bar (185). Below any future modal (which would claim 300+).
+// Z-index: popup at 250 — above sticky nav (200) and profile-header (195).
+// Below any future modal (which would claim 300+). (The retired .tabs-bar
+// previously sat at 185 here.)
 var __tt_open = null;       // currently-open { host, btn, popup, abort } record
 var __tt_idSeq = 0;          // monotonic popup id counter
 var __tt_HOVER_DELAY = 100;  // ms before hover-open fires
