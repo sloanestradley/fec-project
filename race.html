@@ -262,9 +262,12 @@ function snapToCycle(year) {
 }
 // Page Viewed payload — matches race's existing shape; year is the only thing that
 // varies per switch. `source` stays the original ?from= (the reload preserved it).
-function pageViewedPayload(year) {
+// `trigger` distinguishes a fresh page load ('load') from an in-place cycle switch
+// ('cycle-switch') — race's payload has no `view` field like candidate/committee, so
+// without this the two events are indistinguishable (T-race-inplace-cycle-analytics).
+function pageViewedPayload(year, trigger) {
   return { page: 'race', state: stateParam, year: String(year), office: officeParam,
-           district: districtParam, source: urlParams.get('from') || null };
+           district: districtParam, source: urlParams.get('from') || null, trigger: trigger };
 }
 // Shared render primitive — count + seat-class + list. Called by init() (first paint,
 // keeping init's parallel cold-load) and by loadRace() (each switch). Reads the
@@ -337,7 +340,7 @@ async function loadRace(requestedYear, opts) {
     loader.style.display = 'none';
     sel.value = String(resolved);               // sync dropdown (snap/popstate cases)
     if (doPush) history.pushState({ year: resolved }, '', urlWithYear(resolved));
-    amplitude.track('Page Viewed', pageViewedPayload(resolved));
+    amplitude.track('Page Viewed', pageViewedPayload(resolved, 'cycle-switch'));
     announceCycle(resolved, (data.results || []).length);
     if (opts.focusSelect !== false) sel.focus();
   } catch (err) {
@@ -365,10 +368,7 @@ async function init() {
   var hasExplicitYear = urlParams.has('year');
   var fallbackCycles = [2026, 2024, 2022, 2020, 2018];
 
-  amplitude.track('Page Viewed', {
-    page: 'race', state: stateParam, year: yearParam, office: officeParam, district: districtParam,
-    source: urlParams.get('from') || null
-  });
+  amplitude.track('Page Viewed', pageViewedPayload(yearParam, 'load'));
 
   var validationError = validateParams();
   if (validationError) {

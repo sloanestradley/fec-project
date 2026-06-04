@@ -377,14 +377,19 @@ test.describe('T-race-inplace-cycle', () => {
     await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (8)');
   });
 
-  test('switch fires Page Viewed with the new cycle', async ({ page }) => {
+  test('switch fires Page Viewed { year, trigger:cycle-switch }; load is trigger:load', async ({ page }) => {
     await load(page);
+    // initial load fired a Page Viewed with trigger:'load'
+    const loadEv = (await getAmplitudeQueue(page)).find(e =>
+      e.name === 'track' && e.args[0] === 'Page Viewed' && e.args[1] && e.args[1].page === 'race');
+    expect(loadEv.args[1].trigger).toBe('load');
+    // switching fires a distinguishable Page Viewed with trigger:'cycle-switch'
     await page.locator('#year-select').selectOption('2022');
     await page.waitForFunction(() => location.search.includes('year=2022'));
-    const queue = await getAmplitudeQueue(page);
-    const pv2022 = queue.filter(e => e.name === 'track' && e.args[0] === 'Page Viewed'
-      && e.args[1] && e.args[1].year === '2022' && e.args[1].page === 'race');
+    const pv2022 = (await getAmplitudeQueue(page)).filter(e => e.name === 'track'
+      && e.args[0] === 'Page Viewed' && e.args[1] && e.args[1].year === '2022' && e.args[1].page === 'race');
     expect(pv2022.length).toBeGreaterThan(0);
+    expect(pv2022.some(e => e.args[1].trigger === 'cycle-switch')).toBe(true);
   });
 
   test('aria-live announces the new cycle + count', async ({ page }) => {

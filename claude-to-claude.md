@@ -6197,3 +6197,58 @@ The substantive lesson from the work itself: the choropleth de-partisaning is th
 - **`chart-color-palette.html` lifecycle.** Still local-only. Now that it doubled as the thinking surface for this cleanup — permanent design-system sibling (deploy + test), fold into `design-system.html`, or keep local-only?
 - **Non-partisan color as a written system principle.** Proposed as a CLAUDE.md addition — confirm the wording / whether it should be a stated design-system stance.
 - **Flaky `tooltip.spec.js › scroll closes the popup`.** Failed once in a full run, passed on isolated re-run. Stabilize if it recurs.
+
+---
+2026-06-03 — race.html arc (3 commits: header relocation → in-place cycle switching → candidate-card refinements) + close-out
+
+## Process log draft
+
+### Title
+Three passes over the race page, and the bugs you only see when you look
+
+### Summary (Sloane's voice)
+This session was one sustained arc on race.html: I moved the cycle picker into the header, made cycle-switching feel like an app instead of a page reload, then refined the candidate cards — and along the way hit two bugs that only surfaced because I actually looked at the running thing rather than trusting green tests.
+
+### Changelog
+- **Year picker → header.** Moved the election-cycle dropdown + Senate seat-class indicator out of the tab bar into the profile header (mirroring the menu-btn on the other profile pages) so they stay visible in the compact header. Seat-class restyled to caption type; cluster top-aligns to the title while seat-class stays centered with the dropdown.
+- **In-place cycle switching.** Switching cycles no longer reloads the page (white flash, scroll jump). It re-fetches + re-renders in place: holds the list height so scroll/compact don't collapse, commits the new URL only after the fetch succeeds, rolls back cleanly on failure with an inline retry, supports back/forward. Shared error helper lifted into utils.js (3 profile pages, one source).
+- **Candidate-card refinements.** Stats sit beside the name on desktop, right-aligned in fixed columns so the same number lines up down the page; stack on mobile. Billions abbreviate ($1.5B). No-money candidates show "No financial activity reported" instead of a row of $0s.
+- **Two bugs caught by looking, not testing.** (1) The reload-on-switch was pre-existing, not introduced — flagged by Sloane, proven with git, scoped as its own ticket. (2) The no-filings message never appeared on real pages because the FEC API returns 0.0, not null, for non-filers — the null check silently never fired. Fixed to truthy; now visible (TX-18 2024 has six).
+- **Analytics + housekeeping.** Added a `trigger` field so a cycle-switch is distinguishable from a fresh load in Amplitude; documented the 0.0-not-null quirk in the FEC notes; updated the "unserious candidates" open question to reflect zero-filing progress.
+
+### Field notes
+The theme was that tests and screenshots prove structure, not truth. The reload "regression" wasn't a regression. The no-filings feature passed every test and shipped completely non-functional, because the mock used null and reality uses 0.0 — the test and the world disagreed about the same field, and only a human loading a real race caught it. Both fixes were easy; the catch was the hard part, and it came from Sloane treating "looks done" as a hypothesis. The quiet lesson: a "good enough" formatter hides a cliff — fmt rendered $1B as "$1000.0M" forever until a fixed-width column forced the question.
+
+### Stack tags
+None new — in-place re-render via fetch + history pushState/popstate, hide-not-clear height hold, lifted shared error helper, CSS grid for cross-row column alignment.
+
+## How Sloane steered the work
+
+### "Align the cluster to the top — but keep seat-class centered with the dropdown"
+On the header move, two precise in-flight calls I'd have left to default: top-align the controls cluster to the title row, but keep the seat-class label vertically centered against the dropdown. Two different alignment intents in one small cluster — Sloane saw both.
+
+### "Now the page is fully reloading" → "Ah, it was always there"
+Sloane flagged the reload as wrong; git showed it was pre-existing; Sloane immediately re-framed: ship the current commit, scope the reload separately. Didn't let a real problem get bundled into the wrong change, didn't let me take blame for a bug I didn't introduce — kept the history honest.
+
+### The investigate → propose → decide → review rhythm
+Every ticket ran the same loop: I investigate + propose options, Sloane decides via structured questions, I build + verify live, Sloane reviews the diff before any push. Never once let "tests pass" stand in for "I've looked at it." The long→short header-settle animation QA happened because that's the bar for motion work.
+
+### "I'm still not seeing the no-filings solution"
+The sharpest steer. The feature was built, tested, merged — and Sloane caught that it didn't work by loading a real page. That one sentence surfaced the 0.0-not-null quirk every test had masked. Debug by using the product.
+
+### "What about amplitude tracking updates? Anything?"
+Proactively surfaced a dimension I'd skipped in the ritual audit. Led to the cycle-switch `trigger` field — without which an in-place switch would've been invisible as a distinct signal. Audits for the gaps the implementer is too close to see.
+
+### The reword + sequencing precision
+"No financial filings" → "No financial activity reported," because 0/0 might mean filed-but-zero — a correctness-of-language call. And on close-out: fold Amplitude first, then #3-6, save the narrative blocks for last, move the commit after them. Sequences the work as deliberately as it's scoped.
+
+### Through-line
+Sloane steers by catching what the implementer glosses over — the pre-existing reload, the feature that passed tests but didn't work, the analytics dimension, the requirements that need John — and by refusing to treat "looks done" or "tests green" as done. The most valuable moves this session were the catches, not the builds.
+
+## What to bring to Claude Chat
+
+1. **T-remove-profile-tabs is now unblocked** — the stated successor to this arc (picker out of the tab bar, switching no longer reload-dependent). Candidates/Insights tabs in #tabs-bar are the remaining piece.
+2. **"Unserious candidate" threshold — needs John.** Zero-filing extreme handled (0/0 → message); reduced visual hierarchy for low-but-nonzero candidates ($5K raised) still open. What's the "serious" cutoff a strategist wants?
+3. **Amplitude taxonomy harmonization.** Race distinguishes load vs switch via `trigger`; candidate/committee via `view`. Decide whether to standardize one convention. Also: switch-error Retry click is untracked — track it if API-failure UX is a metric.
+4. **0.0-not-null /elections/ quirk is a landmine** for any future "did they file?" feature (race totals, unserious-candidate hierarchy). Documented, but keep front-of-mind.
+5. **project-brief.md "Race Profiles" is still 'TBD'** despite three iterations of a live page — worth backfilling the requirements doc.
