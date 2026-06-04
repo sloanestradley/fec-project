@@ -565,11 +565,15 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    stays multi-column on mobile per J.5 — typography is the scaling lever).
    margin-top:var(--space-16) gives breathing room above the navy top border
    so it doesn't slide flush under the compact sticky header — added 2026-05-14
-   as a T14.5 polish. margin-bottom lives on the strip wrapper (#career-strip
-   or #summary-strip), not on .stats-grid itself — the rhythm is owned by
-   the strip context, not the component. Both wrappers carry the same
-   section-gap rhythm so the structural language reads the same in
-   cycle-index and cycle-detail. */
+   as a T14.5 polish. margin-bottom lives on the strip wrapper (#career-strip),
+   not on .stats-grid itself — the rhythm is owned by the strip context, not the
+   component. Post-T-remove-profile-tabs (2026-06-03), only #career-strip carries
+   margin-bottom: it spaces the index-view stats from #cycle-index (which has no
+   top padding). #summary-strip does NOT — the detail view's gap below it is owned
+   by .profile-content's own padding-top (32px); the sticky #tabs-bar that used to
+   sit between #summary-strip and #content was retired, so a margin-bottom there
+   would double up with that padding into a ~64px empty band. The no-data
+   #cycle-empty-state brings its own 120px top padding, so it's unaffected. */
 .stats-grid { display:grid; grid-template-columns:1fr 1fr;
   gap:0; border-top:1px solid #05234F; border-bottom:1px solid #05234F;
   margin-top:var(--space-16); }
@@ -580,8 +584,8 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
    end at the gutter edge rather than running into the page margin.
    Mobile (≤860px) reverts the lift — gutter padding moves back to the
    bordered children and their borders go edge-to-edge. */
-#career-strip, #summary-strip { padding-left:var(--page-gutter); padding-right:var(--page-gutter);
-  margin-bottom:var(--section-gap); }
+#career-strip, #summary-strip { padding-left:var(--page-gutter); padding-right:var(--page-gutter); }
+#career-strip { margin-bottom:var(--section-gap); }
 .stat-card { padding:var(--space-16); border-right:1px solid #05234F; }
 .stat-card:last-child { border-right:none; }
 /* Stat card carrying an info tooltip (Raised:Spent ratio). The 32×32 trigger is
