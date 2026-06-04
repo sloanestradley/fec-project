@@ -116,9 +116,9 @@ test.describe('candidateCardHTML — inline layout (race.html shape)', () => {
     expect(r.tagsInName[1]).toMatch(/tag-inc/);
   });
 
-  test('cycleHashYear appends #year#summary to href', async ({ page }) => {
+  test('cycleHashYear appends bare #year to href (no #summary — T-remove-profile-tabs)', async ({ page }) => {
     const r = await render(page, TRUMP, { cycleHashYear: 2024, fromPage: 'race' });
-    expect(r.href).toBe('/candidate/P00000001?from=race#2024#summary');
+    expect(r.href).toBe('/candidate/P00000001?from=race#2024');
   });
 
   test('includeName:false omits candidate_name from amplitude payload', async ({ page }) => {

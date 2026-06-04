@@ -12,9 +12,10 @@
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     /* Race header — shared base via .page-header and .page-title in styles.css.
-       Year-select + seat-class relocated from .tabs-bar into #race-header
-       (T-move-race-year-select, 2026-06-03) so they stay visible in the compact
-       header, mirroring the menu-btn placement on candidate/committee. */
+       Year-select + seat-class live in #race-header (T-move-race-year-select,
+       2026-06-03 — relocated from the since-retired .tabs-bar; T-remove-profile-tabs
+       2026-06-04) so they stay visible in the compact header, mirroring the
+       menu-btn placement on candidate/committee. */
     /* Controls cluster — right-aligned by .title-meta-stack's flex:1. The cluster
        shrink-wraps to content, insulating the select's shared align-self:stretch
        from the tall header row; .cycle-select align-self:center is a defensive
@@ -32,7 +33,8 @@
       text-transform:none; color:var(--muted); white-space:nowrap; }
     .race-seat-class:empty { display:none; }
 
-    .race-list { display:flex; flex-direction:column; margin-bottom:var(--space-24); }
+    .race-list { display:flex; flex-direction:column; margin-bottom:var(--space-24);
+      border-top:1px solid var(--border); }
   </style>
 </head>
 <body>
@@ -90,30 +92,24 @@
     </div>
   </div>
 
-  <div class="tabs-bar" id="tabs-bar" style="display:none">
-    <a class="tab active" href="#candidates" onclick="showTab('candidates',event)">Candidates</a>
-    <a class="tab"        href="#insights"   onclick="showTab('insights',event)">Insights</a>
-  </div>
-
   <div class="main-inner">
+    <!-- T-remove-profile-tabs (race, final pass): the Candidates/Insights tabs
+         were retired — the candidate list IS the page (single flowing content).
+         Insights was a stub ("Race insights coming soon") and is deferred to
+         Phase 4, which will re-add it as a flowing section, not a tab. -->
     <div class="profile-content" id="race-content" style="display:none">
-      <div id="tab-candidates">
-        <!-- Inline cycle-switch error (non-destructive — the prior list stays
-             below and usable). Reuses the shared .tab-error family + showTabError. -->
-        <div class="tab-error" id="race-switch-error" style="display:none">
-          <span class="tab-error-msg"></span>
-          <button type="button" class="tab-retry-btn">Retry</button>
-        </div>
-        <!-- Count + list are held/hidden/rolled-back atomically during a switch. -->
-        <div id="race-results-region">
-          <!-- T-race-page-UI: borrows .raised-cell-title (Oswald 1.25rem + margin-bottom)
-               per Sloane's call — coupled to that Raised-tab-purposed class by choice. -->
-          <div class="raised-cell-title" id="race-candidates-label"></div>
-          <div class="race-list" id="race-list"></div>
-        </div>
+      <!-- Inline cycle-switch error (non-destructive — the prior list stays
+           below and usable). Reuses the shared .tab-error family + showTabError. -->
+      <div class="tab-error" id="race-switch-error" style="display:none">
+        <span class="tab-error-msg"></span>
+        <button type="button" class="tab-retry-btn">Retry</button>
       </div>
-      <div id="tab-insights" style="display:none">
-        <div class="placeholder">Race insights coming soon</div>
+      <!-- Count + list are held/hidden/rolled-back atomically during a switch. -->
+      <div id="race-results-region">
+        <!-- T-race-page-UI: borrows .raised-cell-title (Oswald 1.25rem + margin-bottom)
+             per Sloane's call — coupled to that Raised-tab-purposed class by choice. -->
+        <div class="raised-cell-title" id="race-candidates-label"></div>
+        <div class="race-list" id="race-list"></div>
       </div>
     </div>
   </div><!-- /.main-inner -->
@@ -244,11 +240,12 @@ function buildCandidateCard(c) {
 }
 
 // ── In-place cycle switching (T-race-inplace-cycle) ──────────────────────────
-// Build a same-path URL string with ?year= set (preserves /race vs /race.html + hash).
+// Build a same-path URL string with ?year= set (preserves /race vs /race.html).
+// No hash component — race carries no URL fragment post-T-remove-profile-tabs.
 function urlWithYear(year) {
   var url = new URL(window.location.href);
   url.searchParams.set('year', String(year));
-  return url.pathname + url.search + url.hash;
+  return url.pathname + url.search;
 }
 // Snap a requested year to the nearest available cycle (init's logic, reusable for
 // popstate / hand-edited URLs). Dropdown switches always pass an available cycle.
@@ -353,16 +350,11 @@ async function loadRace(requestedYear, opts) {
   }
 }
 
-function showTab(name, e) {
-  if (e) e.preventDefault();
-  ['candidates','insights'].forEach(function(t) {
-    document.getElementById('tab-'+t).style.display = t===name ? 'block' : 'none';
-  });
-  document.querySelectorAll('#tabs-bar .tab').forEach(function(el) {
-    el.classList.toggle('active', el.getAttribute('href') === '#'+name);
-  });
-  if (e) amplitude.track('Tab Switched', { tab: name, state: stateParam, office: officeParam, year: yearParam });
-}
+// T-remove-profile-tabs (race, final pass): showTab() retired with the
+// Candidates/Insights tabs. The candidate list is the sole, always-visible
+// content; the `Tab Switched` event went with it. Race never wrote the URL hash
+// (showTab preventDefaulted the anchors), so there's no hash routing to unwind —
+// routing stays 100% query-param (?state/office/year/district + ?year switching).
 
 async function init() {
   var hasExplicitYear = urlParams.has('year');
@@ -452,14 +444,11 @@ async function init() {
 
     document.getElementById('state-msg').style.display = 'none';
     var headerEl  = document.getElementById('race-header');
-    var tabsBarEl = document.getElementById('tabs-bar');
     var contentEl = document.getElementById('race-content');
     headerEl.style.removeProperty('display');
-    tabsBarEl.style.display = 'flex';
     contentEl.style.display = 'block';
     requestAnimationFrame(function(){
       headerEl.classList.add('visible');
-      tabsBarEl.classList.add('visible');
       contentEl.classList.add('visible');
     });
 

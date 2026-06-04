@@ -362,7 +362,9 @@ function committeeTypeLabel(t) {
 //                      the same slot. NOTE: the live /elections/ endpoint returns
 //                      0.0 (not null) for no-filing candidates, so the gate is a
 //                      truthy check, not != null (T-race-page-UI, 2026-06-03).
-//   cycleHashYear    — number | null; if set, appends #{year}#summary to href (race.html cycle-anchor)
+//   cycleHashYear    — number | null; if set, appends #{year} to href (race.html cycle-anchor).
+//                      The target candidate/committee page reads the cycle from the bare #{year}
+//                      hash (T-remove-profile-tabs retired the #{year}#summary tab segment).
 //
 // Default opts produce the canonical /candidates + /search 3-tag shape; race.html and
 // committee.html each pass a small set of opts to opt into their structural variants.
@@ -382,9 +384,9 @@ function candidateCardHTML(c, opts) {
     ? Math.max.apply(null, c.election_years) : '';
   var isIncumbent = !!opts.showIncumbent && (c.incumbent_challenge === 'I' || c.incumbent_challenge_full === 'Incumbent');
 
-  // href: /candidate/{id}?from={fromPage}[#{year}#summary]
+  // href: /candidate/{id}?from={fromPage}[#{year}]
   var href = id ? ('/candidate/' + id + '?from=' + encodeURIComponent(fromPage)) : '#';
-  if (id && opts.cycleHashYear != null) href += '#' + opts.cycleHashYear + '#summary';
+  if (id && opts.cycleHashYear != null) href += '#' + opts.cycleHashYear;
 
   // onclick: skipped entirely when trackEvent is explicitly null
   var onclickAttr = '';

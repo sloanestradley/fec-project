@@ -145,8 +145,10 @@ test.describe('race.html', () => {
     const link = page.locator('a.candidate-card[href*="candidate"]').first();
     await expect(link).toBeAttached();
     const href = await link.getAttribute('href');
-    // Regression guard: race.html is cycle-scoped by design; link must carry #{year}#summary
-    expect(href).toMatch(/#\d{4}#summary/);
+    // Regression guard: race.html is cycle-scoped by design; link carries the bare
+    // #{year} cycle anchor (the #summary tab segment was dropped in T-remove-profile-tabs).
+    expect(href).toMatch(/#\d{4}$/);
+    expect(href).not.toContain('#summary');
   });
 
   test('no 422 errors (office sent as lowercase full word)', async ({ page }) => {
@@ -246,37 +248,39 @@ test.describe('race.html', () => {
     await expect(msg).toContainText('Invalid election year');
   });
 
-  test('tabs bar is present and visible after load', async ({ page }) => {
-    await expect(page.locator('#tabs-bar')).toBeVisible();
+  // T-remove-profile-tabs (race, final pass, 2026-06-04): the Candidates/Insights
+  // tabs were retired — the candidate list is the page; Insights deferred to Phase 4.
+  test('no outer tabs bar / .tab on race', async ({ page }) => {
+    await expect(page.locator('#tabs-bar')).toHaveCount(0);
+    await expect(page.locator('.tab')).toHaveCount(0);
   });
 
-  test('tabs bar has Candidates and Insights tabs', async ({ page }) => {
-    const tabs = page.locator('#tabs-bar .tab');
-    await expect(tabs).toHaveCount(2);
-    await expect(tabs.filter({ hasText: 'Candidates' })).toHaveCount(1);
-    await expect(tabs.filter({ hasText: 'Insights' })).toHaveCount(1);
+  test('candidate list renders directly in #race-content (no tabs, Insights gone)', async ({ page }) => {
+    await expect(page.locator('#race-content')).toBeVisible();
+    await expect(page.locator('#race-candidates-label')).toBeVisible();
+    await expect(page.locator('#race-list')).toBeVisible();
+    await expect(page.locator('#tab-candidates')).toHaveCount(0); // wrapper unwrapped
+    await expect(page.locator('#tab-insights')).toHaveCount(0);   // stub deferred to Phase 4
   });
 
-  test('Candidates tab is active by default', async ({ page }) => {
-    await expect(page.locator('.tab').filter({ hasText: 'Candidates' })).toHaveClass(/active/);
+  test('race URL carries no hash after load', async ({ page }) => {
+    expect(await page.evaluate(() => window.location.hash)).toBe('');
   });
 
-  test('#tab-candidates is visible and #tab-insights is hidden on load', async ({ page }) => {
-    await expect(page.locator('#tab-candidates')).toBeVisible();
-    await expect(page.locator('#tab-insights')).toBeHidden();
+  test('candidate-card href carries bare #{year} (no #summary — R4 cleanup)', async ({ page }) => {
+    const href = await page.locator('#race-list a').first().getAttribute('href');
+    expect(href).toMatch(/#\d{4}$/);
+    expect(href).not.toContain('#summary');
   });
 
-  // T-move-race-year-select (2026-06-03): #year-select + #race-seat-class
-  // relocated from .tabs-bar into #race-header (header controls cluster) so
-  // they stay visible in the compact header. .tabs-bar keeps only the two tabs.
-  test('#year-select is inside #race-header, not .tabs-bar', async ({ page }) => {
+  // T-move-race-year-select (2026-06-03): #year-select + #race-seat-class live in
+  // #race-header (relocated from the since-retired .tabs-bar — T-remove-profile-tabs).
+  test('#year-select is inside #race-header', async ({ page }) => {
     await expect(page.locator('#race-header #year-select')).toBeAttached();
-    await expect(page.locator('.tabs-bar #year-select')).toHaveCount(0);
   });
 
-  test('#race-seat-class is inside #race-header, not .tabs-bar', async ({ page }) => {
+  test('#race-seat-class is inside #race-header', async ({ page }) => {
     await expect(page.locator('#race-header #race-seat-class')).toBeAttached();
-    await expect(page.locator('.tabs-bar #race-seat-class')).toHaveCount(0);
   });
 
   test('header controls (year-select) stay visible + un-stretched in compact', async ({ page }) => {

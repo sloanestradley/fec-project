@@ -66,7 +66,7 @@ Top-level nav exposes only the curated/contextual experiences (Races + Feed). **
 |---|---|---|
 | `candidates.html` (any mode) | `candidate.html` | `/candidate/{candidate_id}` (clean URL — unified since 2026-03-12) |
 | `committees.html` (any mode) | `committee.html` | `/committee/{committee_id}` (clean URL — unified since 2026-03-12) |
-| `races.html` → `race.html` | `candidate.html` | `candidate.html?id={id}#{year}#summary` |
+| `races.html` → `race.html` | `candidate.html` | `candidate.html?id={id}#{year}` |
 | `search.html` | `candidate.html` | `/candidate/{candidate_id}` |
 | `search.html` | `committee.html` | `/committee/{committee_id}` |
 
@@ -76,17 +76,17 @@ Top-level nav exposes only the curated/contextual experiences (Races + Feed). **
 |---|---|---|---|
 | `candidate.html` | `committee.html` | Committees modal — click committee name | `/committee/{committee_id}` |
 | `committee.html` | `candidate.html` | Associated-candidate card on detail view | `/candidate/{candidate_id}` |
-| `race.html` | `candidate.html` | Candidate card click | `candidate.html?id={id}#{race_year}#summary` |
+| `race.html` | `candidate.html` | Candidate card click | `candidate.html?id={id}#{race_year}` |
 
 ### Race flow
 
 ```
 races.html  →  (race row click)       →  race.html?state=WA&district=03&year=2026&office=H
-race.html   →  (candidate card click) →  candidate.html?id=H2WA03217#2026#summary
+race.html   →  (candidate card click) →  candidate.html?id=H2WA03217#2026
 race.html   →  (back link)            →  races.html
 ```
 
-The `#{year}#summary` anchor on candidate links from `race.html` pre-selects the race's cycle on the candidate page, avoiding the default (latest cycle). Post-T-remove-profile-tabs (2026-06-03) the candidate page honors only the `#{year}` (cycle) part and ignores the trailing `summary` segment, canonicalizing the URL to bare `#{year}` — so these legacy links still land on the right cycle. (Trimming `#summary` from race's outbound links is a harmless cleanup deferred to the separate race pass.)
+The `#{year}` anchor on candidate links from `race.html` pre-selects the race's cycle on the candidate page, avoiding the default (latest cycle). The candidate/committee detail view reads the cycle from the bare `#{year}` hash (T-remove-profile-tabs retired the `#{year}#summary` tab segment; race's outbound links were updated to emit `#{year}` directly in the race final pass, 2026-06-04).
 
 ### Committee modal
 
@@ -103,7 +103,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 | `candidate.html` | `/candidate/{id}` | `id` (path segment) | hash: `#{cycle}` | No ID → error state. **Detail view is a single flowing column** (summary → raised → spent), no tabs (T-remove-profile-tabs, 2026-06-03). **Bare URL (no hash) → index view** (CareerStrip + cycle index table). Hash with valid cycle year → detail view. `#cycles` or any non-year hash → also index view. **Back-compat:** legacy `#{cycle}#{tab}` links honor the cycle and drop the tab segment (canonicalize to `#{cycle}`). All identity/discovery entry points should use the bare form. |
 | `candidate.html` | `/candidate/{id}#cycles` | `id` (path segment) | — | Alias for index view — `parseInt('cycles')` = NaN → ALL_CYCLES.indexOf(NaN) = -1 → index view. Same landing state as bare URL. |
 | `committee.html` | `/committee/{id}` | `id` (path segment) | hash: `#{cycle}` | No ID → error state. **Detail view is a single flowing column** (summary → raised → spent), no tabs (T-remove-profile-tabs, 2026-06-03). **Bare URL (no hash) → index view** (CareerStrip + cycle index table). Hash with valid cycle year → detail view. `#cycles` or any non-year hash → also index view. **Back-compat:** legacy `#{cycle}#{tab}` and old `#all#{tab}` bookmarks resolve via cycle-only parsing (canonicalize to `#{cycle}`; `#all`→index via NaN routing, post-T8). |
-| `race.html` | `/race` | `state`, `year`, `office` | `district` (required for House) | No params → error state. **Cycle switching is in-place (T-race-inplace-cycle, 2026-06-03):** changing the year re-renders without a reload and `pushState`s the new `?year=` (shareable + back/forward); a bare load canonicalizes `?year=` to the resolved cycle via `replaceState`. |
+| `race.html` | `/race` | `state`, `year`, `office` | `district` (required for House) | No params → error state. **No URL hash** (T-remove-profile-tabs, 2026-06-04 — the Candidates/Insights tabs were retired; the candidate list is the single flowing page, Insights deferred to Phase 4). **Cycle switching is in-place (T-race-inplace-cycle, 2026-06-03):** changing the year re-renders without a reload and `pushState`s the new `?year=` (shareable + back/forward); a bare load canonicalizes `?year=` to the resolved cycle via `replaceState`. |
 | `races.html` | `/races` | — | `cycle`, `office`, `state` | URL sync on all three filters — `pushState` on every filter change, params restored on init. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). |
 | `candidates.html` | `/candidates` | — | `state`, `office`, `party`, `cycle`, `q` | All params are unified — filter bar always visible, results auto-load on page visit. `?q=` populates the inline search field and pre-fires search. All result cards link to `/candidate/{id}`. Filter chips + URL sync on every change. |
 | `committees.html` | `/committees` | — | `state`, `type`, `q` | Same unified control surface as candidates. Filter bar always visible; `?q=` populates search field. All rows link to `/committee/{id}`. Treasurer always shown. |
@@ -113,7 +113,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 **FEC candidate_id format:** `H2WA03217` — office (H/S/P) + cycle digits + state + district + sequence
 **FEC committee_id format:** `C00744946` — always starts with `C`, 8 digits
 **Cycle year:** Even number (FEC 2-year cycle end year). E.g. 2026, 2024, 2022.
-**Section ids (candidate/committee detail):** `#tab-summary` | `#tab-raised` | `#tab-spent` — inert section containers in a single flowing view (no longer URL tabs; the stale `tab-` prefix is retained as section hooks post-T-remove-profile-tabs). **Race tabs** (`race.html`) — `candidates` | `insights` — remain real tabs.
+**Section ids (candidate/committee detail):** `#tab-summary` | `#tab-raised` | `#tab-spent` — inert section containers in a single flowing view (no longer URL tabs; the stale `tab-` prefix is retained as section hooks post-T-remove-profile-tabs). **No tabs anywhere as of T-remove-profile-tabs (closed out 2026-06-04):** race.html de-tabbed too — its candidate list is the page, and its Insights tab was deferred to Phase 4 (to return as a flowing section, not a tab).
 
 ---
 
