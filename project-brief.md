@@ -67,7 +67,7 @@ A visual, non-partisan tool for answering one question fast: *where is money flo
 - Ability to view multiple candidates side-by-side; show candidate information in columns borrowing from the candidate page layout; make visual comparison easy across all candidates
 
 **Financials broken down by: Summary, Raised, Spent**
-- Each tab has its own anchor link for direct sharing (e.g. `#summary`, `#raised`, `#spent`)
+- ~~Each tab has its own anchor link for direct sharing (e.g. `#summary`, `#raised`, `#spent`)~~ — superseded by T-remove-profile-tabs (2026-06-03): the Summary/Raised/Spent tabs were retired in favor of a single flowing detail view, so the URL hash now encodes the cycle only (`#{cycle}`); there are no per-tab anchors. Legacy `#{cycle}#{tab}` links still resolve (cycle honored, tab segment ignored).
 - Cycle is also encoded in the URL anchor (e.g. `#2024#summary`)
 
 *Summary*

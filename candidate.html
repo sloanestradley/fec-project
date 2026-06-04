@@ -27,8 +27,9 @@
     #race-context-bar { padding:var(--space-16); border-bottom:1px solid #05234f;
       min-height:var(--space-32); }
     /* Summary strip — persistent cycle stats + health banner. Lives in its own
-       .main-inner between #profile-header and #tabs-bar so it scrolls away
-       under the sticky tabs-bar as users move into tab content. Gutter
+       .main-inner between #profile-header and the flowing #content so it scrolls
+       away under the sticky #profile-header as users move down (T-remove-profile-
+       tabs retired the sticky tabs-bar that used to sit below it). Gutter
        padding lives on the strip itself (see styles.css) so bordered children
        (.stats-grid, .banner, #race-context-bar) end at the gutter-inset edge
        on desktop. Mobile reverts to per-child gutter padding so borders go
@@ -147,11 +148,6 @@
       <div id="race-context-bar"><span id="race-context"></span></div>
     </div>
   </div>
-  <div class="tabs-bar" id="tabs-bar" style="display:none">
-    <a class="tab active" href="#summary" onclick="showTab('summary',event)">Summary</a>
-    <a class="tab"        href="#raised"  onclick="showTab('raised',event)">Raised</a>
-    <a class="tab"        href="#spent"   onclick="showTab('spent',event)">Spent</a>
-  </div>
   <div class="main-inner">
 
     <!-- Career overview — index view only (hidden in detail view) -->
@@ -184,9 +180,17 @@
          the same max-width and gutter constraints as #content. -->
     <div class="cycle-empty-state" id="cycle-empty-state" style="display:none"></div>
 
+    <!-- T-remove-profile-tabs (2026-06-03): the outer Summary/Raised/Spent tabs
+         were retired — detail view is now a single flowing column. #tab-summary /
+         #tab-raised / #tab-spent are kept as INERT, always-visible section
+         containers (no display toggling) in their natural DOM order (summary →
+         raised → spent → #page-note), which is exactly the desired flow order.
+         The stale tab-* ids are deliberate: they're ready-made grouping hooks for
+         a future section-headings pass. Per-section skeleton/error states (T12)
+         render in-flow now instead of behind a tab. -->
     <div class="profile-content" id="content" style="display:none">
 
-      <!-- Summary tab -->
+      <!-- Summary section -->
       <div id="tab-summary">
         <div class="chart-card">
           <div class="chart-header">
@@ -214,7 +218,7 @@
            fast tier (choropleth) shows skeleton until by_state resolves,
            slow tier (top committees + top conduits) shows skeletons until
            Schedule A non-indiv pagination resolves. -->
-      <div id="tab-raised" style="display:none">
+      <div id="tab-raised">
         <div class="raised-grid">
           <div class="raised-cell">
             <div class="raised-cell-title">Raised breakdown</div>
@@ -297,7 +301,7 @@
       </div>
 
       <!-- Spent tab — per-section skeletons; titles always visible -->
-      <div id="tab-spent" style="display:none">
+      <div id="tab-spent">
         <div class="raised-grid">
           <div class="raised-cell">
             <div class="raised-cell-title">Spending by Category</div>
@@ -621,28 +625,13 @@ function getSubCycles(cycle) {
   for (var c = cycle - span + 2; c <= cycle; c += 2) subs.push(c);
   return subs;
 }
-// ── Tab routing ─────────────────────────────────────
-function showTab(name, e) {
-  if (e) e.preventDefault();
-  // Lock document height before switching to a tab whose progressive render is incomplete.
-  // T12 skeletons have explicit pixel heights so this is mostly redundant, but kept as a
-  // belt-and-suspenders guard against scroll clamping (T6.5/T10 pattern).
-  var mainEl = document.querySelector('.main');
-  var raisedFullyRendered = raisedDonutRendered && raisedFastRendered && raisedSlowRendered;
-  if ((name === 'raised' && !raisedFullyRendered) || (name === 'spent' && !spentRendered)) {
-    mainEl.style.minHeight = document.body.scrollHeight + 'px';
-  }
-  ['summary','raised','spent'].forEach(function(t) {
-    document.getElementById('tab-'+t).style.display = t===name ? 'block' : 'none';
-  });
-  document.querySelectorAll('.tab').forEach(function(el) {
-    el.classList.toggle('active', el.getAttribute('href')==='#'+name);
-  });
-  history.replaceState(null, '', '#'+activeCycle+'#'+name);
-  if (e) amplitude.track('Tab Switched', { tab: name, candidate_id: CANDIDATE_ID, candidate_name: CAND_NAME });
-  if (name === 'raised') renderRaisedIfReady();
-  if (name === 'spent')  renderSpentIfReady();
-}
+// T-remove-profile-tabs (2026-06-03): showTab() retired with the outer tabs.
+// The three sections (#tab-summary/-raised/-spent) are always visible in a single
+// flow; renderRaisedIfReady/renderSpentIfReady now render on data-resolve (no
+// tab-active gate) and the URL hash is the bare #cycle (no #tab segment). The
+// old showTab minHeight scroll-clamp guard went with it — the switchTo floor
+// (initViewSwitcher) plus the render-time floor-release below cover scroll
+// stability now that there's no display:none→block tab transition to guard.
 
 // ── Health assessment ───────────────────────────────
 function assessHealth(raised, spent, coh, debt) {
@@ -1213,9 +1202,11 @@ function renderTopConduits(conduits) {
 // when their fetch resolves. Idempotent — safe to call multiple times (each tier short-
 // circuits via *Rendered flag once rendered or errored).
 function renderRaisedIfReady() {
-  // Render only when user is on Raised tab — Chart.js needs a visible canvas
-  var curTab = document.querySelector('.tab.active');
-  if (!curTab || curTab.getAttribute('href') !== '#raised') return;
+  // T-remove-profile-tabs: no tab gate. The Raised section is always visible in
+  // the flow, so its canvases have real layout dimensions whenever data resolves
+  // — render as soon as each tier lands. (The old gate existed only because a
+  // display:none tab panel gave Chart.js a zero-width canvas.) Idempotency is
+  // preserved by the *Rendered flags below (render-once) + destroy-before-recreate.
 
   // Donut — synchronous from totals once they land. Skeleton holds during the
   // window between cycle reset and currentTotalsBreakdown being set (init still
@@ -1288,7 +1279,8 @@ function renderRaisedIfReady() {
     raisedSlowRendered = true;
   }
 
-  // Once both tiers are settled (rendered or errored), release the showTab minHeight floor
+  // Once both tiers are settled (rendered or errored), release the switchTo minHeight floor
+  // (the in-flow content is now laid out, so the document no longer needs the floor)
   if (raisedDonutRendered && raisedFastRendered && raisedSlowRendered) {
     document.querySelector('.main').style.minHeight = '';
   }
@@ -1481,9 +1473,9 @@ function renderSpendDetail(transactions) {
 // error UI with retry on fetch failure.
 function renderSpentIfReady() {
   if (spentRendered) return;
-  // Render only when user is on Spent tab — Chart.js needs a visible canvas
-  var curTab = document.querySelector('.tab.active');
-  if (!curTab || curTab.getAttribute('href') !== '#spent') return;
+  // T-remove-profile-tabs: no tab gate — the Spent section is always visible in
+  // the flow. Render on data-resolve. spentRendered (top of fn) is the render-once
+  // guard; renderSpentDonut destroys before recreating.
 
   if (spentError) {
     document.getElementById('spent-donut-skeleton').style.display = 'none';
@@ -1734,17 +1726,17 @@ async function loadCycle(cycle) {
   document.getElementById('page-note').innerHTML = '';
 
   // T-cycle-empty-state — reset the whole-view empty-state element AND
-  // restore tabs-bar + content visibility. The empty branch (Step 3 else)
-  // swaps these — tabs/content go hidden and the empty-state shows. On
-  // cycle-switch from no-data → data-present, this reset block restores
-  // tabs/content to their normal visibility before Step 3 runs. The empty-
-  // state is also hidden in the catch path naturally (we hide it here; the
-  // catch branch never re-shows it — chart-error overlay carries the
-  // user-facing failure messaging).
+  // restore content visibility. The empty branch (Step 3 else) swaps these —
+  // the flowing content goes hidden and the empty-state shows. On cycle-switch
+  // from no-data → data-present, this reset block restores content to its
+  // normal visibility before Step 3 runs. The empty-state is also hidden in the
+  // catch path naturally (we hide it here; the catch branch never re-shows it —
+  // chart-error overlay carries the user-facing failure messaging).
+  // T-remove-profile-tabs: no #tabs-bar to restore — #content is the sole
+  // detail surface now.
   var emptyStateEl = document.getElementById('cycle-empty-state');
   emptyStateEl.innerHTML = '';
   emptyStateEl.style.display = 'none';
-  document.getElementById('tabs-bar').style.display = 'flex';
   document.getElementById('content').style.display = 'block';
   // Banner reveal is deferred to Step 4 below (T-cycle-empty-state-jump-mitigation,
   // 2026-05-28). The HTML default of style="display:none" on #banner keeps it hidden
@@ -1843,10 +1835,12 @@ async function loadCycle(cycle) {
       kickoffRaisedSlowFetch(myFetchId);
       kickoffSpentFetch(myFetchId);
 
-      // If user is already on raised or spent tab, render whatever has settled (donut renders instantly)
-      var curTabEl = document.querySelector('.tab.active');
-      if (curTabEl && curTabEl.getAttribute('href') === '#raised') renderRaisedIfReady();
-      if (curTabEl && curTabEl.getAttribute('href') === '#spent')  renderSpentIfReady();
+      // T-remove-profile-tabs: render synchronously whatever has already settled
+      // (the donuts render instantly from totals already in memory). No tab gate —
+      // both sections are visible in the flow. The fast/slow/spent kickoffs above
+      // also call these on resolve; the *Rendered guards make the double-call safe.
+      renderRaisedIfReady();
+      renderSpentIfReady();
     }
 
     var electionsData = [];
@@ -1968,13 +1962,13 @@ async function loadCycle(cycle) {
       ['stat-raised','stat-spent','stat-coh','stat-ratio'].forEach(function(id) {
         document.getElementById(id).textContent = '—';
       });
-      // T-cycle-empty-state — swap the tabs + tabbed content for a single
+      // T-cycle-empty-state — swap the flowing detail content for a single
       // whole-view empty state. The summary strip (stats grid + race context
-      // bar) stays visible above; this empty state takes the place of
-      // tabs-bar + #content entirely. C5 string (revised — "found" and "the"
-      // dropped, period removed) lives here, in the whole-view empty state,
-      // not inside a tab panel (which isn't rendered when #content is hidden).
-      document.getElementById('tabs-bar').style.display = 'none';
+      // bar) stays visible above; this empty state takes the place of #content
+      // entirely. C5 string (revised — "found" and "the" dropped, period
+      // removed) lives here, in the whole-view empty state, not inside a
+      // section container (which isn't rendered when #content is hidden).
+      // T-remove-profile-tabs: no #tabs-bar to hide — #content is the surface.
       document.getElementById('content').style.display = 'none';
       var emptyStateEl = document.getElementById('cycle-empty-state');
       emptyStateEl.textContent = 'No financial filings for '+cycle+' cycle.';
@@ -2032,9 +2026,8 @@ async function loadCycle(cycle) {
     renderChart(reports, cycle);
 
     // ── Step 6: update URL hash ──
-    var activeTabEl = document.querySelector('.tab.active');
-    var tabName = activeTabEl ? activeTabEl.getAttribute('href').replace('#','') : 'summary';
-    history.replaceState(null, '', '#'+cycle+'#'+tabName);
+    // T-remove-profile-tabs: detail hash is the bare #cycle (no #tab segment).
+    history.replaceState(null, '', '#'+cycle);
 
   } catch(err) {
     // data-note intentionally left untouched on catch — chart-error overlay
@@ -2111,7 +2104,7 @@ function cycleRowHTML(year, raised, spent, coh, isArchive) {
       + '<span></span>'
       + '</div>';
   }
-  return '<a href="#' + year + '#summary" class="cycle-row">'
+  return '<a href="#' + year + '" class="cycle-row">'
     + '<span class="cycle-row-label">' + label + '</span>'
     + '<span class="cycle-row-stat">' + raised + '</span>'
     + '<span class="cycle-row-stat cycle-row-spent-col">' + spent + '</span>'
@@ -2443,7 +2436,6 @@ async function init() {
         { id: 'cycle-index',  display: 'block' }
       ],
       detailElements: [
-        { id: 'tabs-bar',         display: 'flex'  },
         { id: 'summary-strip',    display: 'block' },
         { id: 'content',          display: 'block' }
       ],
@@ -2458,9 +2450,6 @@ async function init() {
         // having run yet, or sentinel BCR returning 0 in some edge case. When
         // unset, fall through to scrollY 0 — correct fallback (top of page).
         return (indexScrollY >= compactThreshold && compactThreshold > 0) ? compactThreshold : 0;
-      },
-      restoreTab: function(tabHash) {
-        if (['summary','raised','spent'].indexOf(tabHash) !== -1) showTab(tabHash);
       },
       trackPageViewed: function(viewName) {
         // Read the target cycle from location.hash — activeCycle is stale at
@@ -2492,8 +2481,9 @@ async function init() {
     });
 
     // Persistent hashchange handler — fires on cycle-row anchor clicks and
-    // browser back/forward. Does NOT fire on loadCycle() or showTab() which
-    // use history.replaceState — no loop risk.
+    // browser back/forward. Does NOT fire on loadCycle()'s history.replaceState
+    // — no loop risk. parts[0] is the cycle; any legacy #cycle#tab link's tab
+    // segment (parts[1]) is ignored (T-remove-profile-tabs back-compat).
     window.addEventListener('hashchange', function() {
       var parts = window.location.hash.replace(/^#/,'').split('#');
       var cy    = parseInt(parts[0]);

@@ -181,6 +181,9 @@ test.describe('search overlay — events + history safety', () => {
     await expect(page.locator('#search-overlay')).not.toHaveClass(/open/);
     const hashchanges = await page.evaluate(() => window.__hc);
     expect(hashchanges).toBe(0);
-    await expect(page).toHaveURL(/#2024#summary/);
+    // T-remove-profile-tabs: loadCycle canonicalizes the legacy #2024#summary to
+    // bare #2024 on load; the overlay open/close still fires no hashchange and
+    // leaves the (canonical) URL intact.
+    await expect(page).toHaveURL(/#2024$/);
   });
 });

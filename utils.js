@@ -977,8 +977,9 @@ function initCompactHeader(headerId) {
 //                             fetchIndexData keys with 'P' suffix stripped.
 //   loadCycle              — (cycle) => Promise   page's existing loader
 //   getDetailScrollTarget  — (indexScrollY) => number   compact-aware target
-//   restoreTab             — (tabHash) => void    page picks tab from hash
 //   trackPageViewed        — (viewName) => void   'detail' | 'index'
+//   (restoreTab retired in T-remove-profile-tabs, 2026-06-03 — detail view is a
+//    single flow now; no per-tab panel to restore from the hash.)
 //   onIndexError           — (err) => void        page's error UI for full
 //                             failure (entity or scaffold-time). Used when
 //                             onPartialError isn't provided.
@@ -1004,7 +1005,6 @@ function initViewSwitcher(config) {
   var renderIndex           = config.renderIndex;
   var loadCycle             = config.loadCycle;
   var getDetailScrollTarget = config.getDetailScrollTarget;
-  var restoreTab            = config.restoreTab;
   var trackPageViewed       = config.trackPageViewed;
   var onIndexError          = config.onIndexError;
   var onPartialError        = config.onPartialError;
@@ -1041,22 +1041,11 @@ function initViewSwitcher(config) {
 
       trackPageViewed('detail');
 
-      // Restore tab BEFORE the await window (T-bug fix, 2026-05-14). Leaving
-      // detail view (chevron click → switchTo(false, NaN) → detailElements hide)
-      // hides the parent #content but leaves child tab-panel inline `display`
-      // styles untouched. Re-entering detail at a different cycle without an
-      // explicit panel reset means the previously-visible tab (e.g. #tab-raised)
-      // stays visible on the new cycle's render. Calling restoreTab in the
-      // synchronous portion of switchTo (pre-microtask-queue, pre-await)
-      // eliminates the window during which the panel state can desync from the
-      // URL hash. Default to 'summary' so URLs without a tab segment produce
-      // deterministic behavior (matches the cycle-row hrefs which always
-      // include #summary). loadCycle's internal history.replaceState then reads
-      // the now-correct .tab.active and writes the right URL on first try, so
-      // no corrective post-await restoreTab call is needed.
-      var hParts  = window.location.hash.replace(/^#/, '').split('#');
-      var tabHash = hParts[1];
-      restoreTab(tabHash || 'summary');
+      // T-remove-profile-tabs (2026-06-03): the per-tab restoreTab() call was
+      // retired with the outer Summary/Raised/Spent tabs. Detail view is now a
+      // single flowing column (no tab panels to reset), and the hash carries no
+      // #tab segment to honor. Both — and the only — consumers (candidate +
+      // committee) de-tabbed together, so restoreTab left the helper contract.
 
       await loadCycle(hashCycle);
       // minHeight is intentionally NOT cleared here. The original T6.5 design
