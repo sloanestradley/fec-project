@@ -1724,9 +1724,61 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
-    const err = page.locator('#raised-slow-error');
+    const err = page.locator('#raised-donors-error');
     await expect(err).toBeVisible({ timeout: 8000 });
     await expect(err.locator('.tab-retry-btn')).toBeVisible();
+    // T-raised-loading-states: both sub-tabs derive from the one slow crawl, so the
+    // error must surface inline on each panel — switch to Conduits and confirm.
+    await page.locator('#raised-tab-btn-conduits').click();
+    const conduitErr = page.locator('#raised-conduits-error');
+    await expect(conduitErr).toBeVisible({ timeout: 8000 });
+    await expect(conduitErr.locator('.tab-retry-btn')).toBeVisible();
+  });
+
+  test('Raised: per-panel still-loading is hidden once slow tier resolves (not unconditional)', async ({ page }) => {
+    await setup(page);
+    await page.waitForTimeout(800); // eager fetch resolves through mocks
+    await expect(page.locator('#tab-raised')).toBeVisible();
+    // T-raised-loading-states: each panel owns its still-loading element; it must be
+    // hidden once data resolves (post-de-tab it no longer shows unconditionally).
+    await expect(page.locator('#raised-donors-still-loading')).toBeHidden();
+    await page.locator('#raised-tab-btn-conduits').click();
+    await expect(page.locator('#raised-conduits-still-loading')).toBeHidden();
+    // The old detached indicators were removed in favor of per-panel ones.
+    await expect(page.locator('#raised-still-loading')).toHaveCount(0);
+    await expect(page.locator('#raised-slow-error')).toHaveCount(0);
+  });
+
+  test('Raised: still-loading message overlays the skeleton footprint as a sibling (not a child)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Hold the slow tier in flight so the skeleton stays visible while we inspect.
+    await page.route('**/api/fec/schedules/schedule_a/?**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        await new Promise(r => setTimeout(r, 4000));
+      }
+      route.fallback();
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await expect(page.locator('#raised-donors-skeleton')).toBeVisible();
+    // Force the message visible (the real 10s timer is too slow for a unit test); the
+    // CSS owns the centering, so display:flex is all that's needed.
+    await page.locator('#raised-donors-still-loading').evaluate(el => { el.style.display = 'flex'; });
+    const skelBox = await page.locator('#raised-donors-skeleton').boundingBox();
+    const msgBox  = await page.locator('#raised-donors-still-loading').boundingBox();
+    // The message overlays the skeleton's vertical span — it does NOT sit below it.
+    expect(msgBox.y).toBeGreaterThanOrEqual(skelBox.y - 1);
+    expect(msgBox.y).toBeLessThan(skelBox.y + skelBox.height);
+    // Critical: it must be a SIBLING inside .skeleton-overlay-wrap, never a DOM child
+    // of the .skeleton element (whose group-opacity pulse would dim the text).
+    const insideWrap = await page.locator('#raised-donors-still-loading')
+      .evaluate(el => !!el.closest('.skeleton-overlay-wrap'));
+    expect(insideWrap).toBe(true);
+    const childOfSkeleton = await page.locator('#raised-donors-still-loading')
+      .evaluate(el => !!el.closest('#raised-donors-skeleton'));
+    expect(childOfSkeleton).toBe(false);
   });
 
   test('Raised: skeleton container has substantive height (scroll-clamp guard)', async ({ page }) => {
@@ -1877,9 +1929,9 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     // Click Raised — error UI should render with rate-limit copy
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
-    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
-    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/rate limit reached/i);
-    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeHidden();
+    await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-donors-error .tab-error-msg')).toHaveText(/rate limit reached/i);
+    await expect(page.locator('#raised-donors-error .tab-retry-btn')).toBeHidden();
     // Skeletons should be hidden — not stuck
     await expect(page.locator('#raised-donors-skeleton')).toBeHidden();
     await expect(page.locator('#raised-conduits-skeleton')).toBeHidden();
@@ -1904,11 +1956,11 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
-    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
     // Init-failure copy is distinct from rate-limit copy
-    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/Couldn['’]t load this page/i);
-    await expect(page.locator('#raised-slow-error .tab-error-msg')).not.toHaveText(/rate limit/i);
-    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeHidden();
+    await expect(page.locator('#raised-donors-error .tab-error-msg')).toHaveText(/Couldn['’]t load this page/i);
+    await expect(page.locator('#raised-donors-error .tab-error-msg')).not.toHaveText(/rate limit/i);
+    await expect(page.locator('#raised-donors-error .tab-retry-btn')).toBeHidden();
   });
 
   test('tab-fetch 429 → rate-limit copy with retry button hidden', async ({ page }) => {
@@ -1925,9 +1977,9 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
-    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
-    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/rate limit reached/i);
-    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeHidden();
+    await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-donors-error .tab-error-msg')).toHaveText(/rate limit reached/i);
+    await expect(page.locator('#raised-donors-error .tab-retry-btn')).toBeHidden();
   });
 
   test('tab-fetch non-429 (regression) → existing copy + retry button visible', async ({ page }) => {
@@ -1944,11 +1996,11 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
-    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
     // Existing T12 copy unchanged
-    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/Could not load top contributors/);
-    await expect(page.locator('#raised-slow-error .tab-error-msg')).not.toHaveText(/rate limit/i);
-    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeVisible();
+    await expect(page.locator('#raised-donors-error .tab-error-msg')).toHaveText(/Could not load top contributors/);
+    await expect(page.locator('#raised-donors-error .tab-error-msg')).not.toHaveText(/rate limit/i);
+    await expect(page.locator('#raised-donors-error .tab-retry-btn')).toBeVisible();
   });
 
   test('cycle switch via Cycle card chevron after 429 clears error and renders new cycle (T16)', async ({ page }) => {
@@ -1966,7 +2018,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
-    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
     // Lift the block, switch cycle via the Cycle card chevron → cycle index → row click.
     // T16 retired the in-tabs-bar switcher; this exercises the new cycle-change path.
     block429 = false;
@@ -1978,7 +2030,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     // Error UI clears, donor card eventually visible on the new cycle
     await expect(page.locator('#donors-card')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#raised-slow-error')).toBeHidden();
+    await expect(page.locator('#raised-donors-error')).toBeHidden();
   });
 
   test('Raised donut skeleton: present in DOM, hidden once donut renders', async ({ page }) => {

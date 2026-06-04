@@ -262,7 +262,16 @@
             </div>
             <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-committees" aria-labelledby="raised-tab-btn-committees">
               <div class="donors-card" id="donors-card">
-                <div class="skeleton tab-skeleton skeleton-table" id="raised-donors-skeleton"></div>
+                <div class="skeleton-overlay-wrap">
+                  <div class="skeleton tab-skeleton skeleton-table" id="raised-donors-skeleton"></div>
+                  <div class="inline-status-msg skeleton-overlay-msg" id="raised-donors-still-loading" style="display:none">
+                    Tallying contributions…this could take a moment.
+                  </div>
+                </div>
+                <div class="tab-error" id="raised-donors-error" style="display:none">
+                  <span class="tab-error-msg">⚠ Could not load top contributors.</span>
+                  <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
+                </div>
                 <div id="donors-content" style="display:none">
                   <table class="donors-table">
                     <thead><tr>
@@ -278,7 +287,16 @@
             </div>
             <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-conduits" aria-labelledby="raised-tab-btn-conduits" hidden>
               <div class="donors-card" id="conduits-card">
-                <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+                <div class="skeleton-overlay-wrap">
+                  <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+                  <div class="inline-status-msg skeleton-overlay-msg" id="raised-conduits-still-loading" style="display:none">
+                    Tallying contributions…this could take a moment.
+                  </div>
+                </div>
+                <div class="tab-error" id="raised-conduits-error" style="display:none">
+                  <span class="tab-error-msg">⚠ Could not load top contributors.</span>
+                  <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
+                </div>
                 <div id="conduits-content" style="display:none">
                   <table class="donors-table">
                     <thead><tr>
@@ -293,13 +311,6 @@
               </div>
             </div>
           </section>
-          <div class="inline-status-msg" id="raised-still-loading" style="display:none">
-            This is taking longer than usual — large committees can take 30+ seconds…
-          </div>
-          <div class="tab-error" id="raised-slow-error" style="display:none">
-            <span class="tab-error-msg">⚠ Could not load top contributors.</span>
-            <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
-          </div>
         </div>
       </div>
 
@@ -418,6 +429,7 @@ var raisedSlowError      = null;
 var raisedSlowRendered   = false;
 var raisedDonutRendered  = false;
 var raisedStillLoadingTimer = null;
+var raisedSlowStillLoading  = false;  // 10s timer fired + slow tier not yet resolved/errored — drives the per-panel still-loading indicators
 var spentData            = null;
 var spentError           = null;
 var spentRendered        = false;
@@ -1243,22 +1255,18 @@ function renderRaisedIfReady() {
     raisedFastRendered = true;
   }
 
-  // Slow tier
+  // Slow tier — both Committees and Conduits derive from the one crawl, so they
+  // share the slow-tier state; applyRaisedSlowIndicators reflects it in both
+  // panels (the active one is the one the user sees).
   if (raisedSlowError && !raisedSlowRendered) {
     document.getElementById('raised-donors-skeleton').style.display = 'none';
     document.getElementById('raised-conduits-skeleton').style.display = 'none';
-    document.getElementById('raised-still-loading').style.display = 'none';
-    showTabError(
-      document.getElementById('raised-slow-error'),
-      raisedSlowError,
-      '⚠ Could not load top contributors.'
-    );
+    applyRaisedSlowIndicators();  // per-panel error shown, still-loading hidden
     raisedSlowRendered = true;
   } else if (raisedSlowData && !raisedSlowRendered) {
     document.getElementById('raised-donors-skeleton').style.display = 'none';
     document.getElementById('raised-conduits-skeleton').style.display = 'none';
-    document.getElementById('raised-still-loading').style.display = 'none';
-    document.getElementById('raised-slow-error').style.display = 'none';
+    applyRaisedSlowIndicators();  // state resolved → hides still-loading + errors on both panels
     document.getElementById('donors-content').style.display = 'block';
     document.getElementById('conduits-content').style.display = 'block';
     renderTopDonors(raisedSlowData.topDonors);
@@ -1559,25 +1567,55 @@ function kickoffRaisedFastFetch(token) {
     });
 }
 
+// Per-panel slow-tier indicators (T-raised-loading-states). Both the Committees
+// and Conduits panels derive from the single is_individual=false crawl, so they
+// share the slow-tier state — set BOTH panels' inline still-loading + error to
+// match it. Only the active panel is visible (the inactive panel carries
+// [hidden]), so the user sees the state inline with whichever tab they're on.
+// No active-tab gating: both panels are honestly slow-tier-fed, so the indicator
+// belongs in both. (Contrast committee.html, where KV-fed panels are on a
+// different timeline and the per-source mapping diverges per tab.)
+function applyRaisedSlowIndicators() {
+  ['donors', 'conduits'].forEach(function(which) {
+    var stillEl = document.getElementById('raised-' + which + '-still-loading');
+    var errEl   = document.getElementById('raised-' + which + '-error');
+    if (!stillEl || !errEl) return;
+    if (raisedSlowError) {
+      stillEl.style.display = 'none';
+      showTabError(errEl, raisedSlowError, '⚠ Could not load top contributors.');
+    } else if (raisedSlowStillLoading) {
+      stillEl.style.display = 'flex';  // flex → CSS centers the overlay over the skeleton
+      errEl.style.display = 'none';
+    } else {
+      stillEl.style.display = 'none';
+      errEl.style.display = 'none';
+    }
+  });
+}
+
 function kickoffRaisedSlowFetch(token) {
-  // 10s "still loading" timer fires globally regardless of which tab the user is on;
-  // visibility is gated by parent #tab-raised display.
+  // 10s "still loading" indicator — flip the shared flag + re-apply per-panel.
+  // Post-de-tab this message is no longer gated by #tab-raised display, so it must
+  // reflect actual slow-tier pendency (shown only while the crawl is in flight),
+  // not render unconditionally.
   raisedStillLoadingTimer = setTimeout(function() {
     if (!view.isCurrentToken(token)) return;
     if (raisedSlowRendered) return;
-    var el = document.getElementById('raised-still-loading');
-    if (el) el.style.display = 'block';
+    raisedSlowStillLoading = true;
+    applyRaisedSlowIndicators();
   }, 10000);
   fetchRaisedSlowData(currentPrincipalId, currentSubCycles)
     .then(function(d) {
       clearTimeout(raisedStillLoadingTimer);
       if (!view.isCurrentToken(token)) return;
+      raisedSlowStillLoading = false;
       raisedSlowData = d;
       renderRaisedIfReady();
     })
     .catch(function(err) {
       clearTimeout(raisedStillLoadingTimer);
       if (!view.isCurrentToken(token)) return;
+      raisedSlowStillLoading = false;
       raisedSlowError = err;
       console.warn('fetchRaisedSlowData failed:', err.message);
       renderRaisedIfReady();
@@ -1616,7 +1654,8 @@ function retryRaisedFast() {
 }
 function retryRaisedSlow() {
   raisedSlowData = null; raisedSlowError = null; raisedSlowRendered = false;
-  document.getElementById('raised-slow-error').style.display = 'none';
+  raisedSlowStillLoading = false;
+  applyRaisedSlowIndicators();  // clears both panels' error + still-loading
   document.getElementById('raised-donors-skeleton').style.display = 'block';
   document.getElementById('raised-conduits-skeleton').style.display = 'block';
   kickoffRaisedSlowFetch(view.claimToken());
@@ -1650,6 +1689,7 @@ async function loadCycle(cycle) {
   // Reset Raised tab progressive-render state + DOM for new cycle
   raisedFastData = null; raisedFastError = null; raisedFastRendered = false;
   raisedSlowData = null; raisedSlowError = null; raisedSlowRendered = false;
+  raisedSlowStillLoading = false;
   raisedDonutRendered = false;
   if (raisedStillLoadingTimer) { clearTimeout(raisedStillLoadingTimer); raisedStillLoadingTimer = null; }
   if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
@@ -1662,8 +1702,7 @@ async function loadCycle(cycle) {
   document.getElementById('raised-fast-error').style.display = 'none';
   document.getElementById('raised-donors-skeleton').style.display = 'block';
   document.getElementById('raised-conduits-skeleton').style.display = 'block';
-  document.getElementById('raised-still-loading').style.display = 'none';
-  document.getElementById('raised-slow-error').style.display = 'none';
+  applyRaisedSlowIndicators();  // state reset above → hides both panels' still-loading + error
   document.getElementById('donors-content').style.display = 'none';
   document.getElementById('conduits-content').style.display = 'none';
 
@@ -2429,8 +2468,10 @@ async function init() {
     initTooltips();
 
     // Tab section for top contributors (Raised tab) — wires WAI-ARIA tabs.
-    // Both panels are slow-tier-fed, so indicator visibility doesn't gate on
-    // active tab here (committee.html does — see applyIndicatorVisibility there).
+    // Both panels are slow-tier-fed (one is_individual=false crawl, split by
+    // memo_code), so the per-panel inline indicators (applyRaisedSlowIndicators)
+    // reflect the same slow-tier state in both — no active-tab gating needed here
+    // (committee.html's panels sit on different timelines; see applyIndicatorVisibility).
     raisedTabSection = initTabSection(document.getElementById('raised-tab-section'));
 
     view = initViewSwitcher({
