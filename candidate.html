@@ -192,6 +192,12 @@
 
       <!-- Summary section -->
       <div id="tab-summary">
+        <!-- Overspend note leads the section (above the chart). .callout's
+             margin-bottom spaces it from the chart card below. Hidden by default;
+             loadCycle toggles display by ID. -->
+        <div id="overspend-note" style="display:none" class="callout">
+          ⚠ Disbursements exceed receipts this cycle — this campaign spent beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.
+        </div>
         <div class="chart-card">
           <div class="chart-header">
             <div class="chart-title" id="chart-title">Raised · Spent · Cash on Hand over cycle</div>
@@ -207,9 +213,6 @@
             <div id="chart-error" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center">
               <span class="inline-status-msg" style="padding:0">⚠ Unable to load chart</span>
             </div>
-          </div>
-          <div id="overspend-note" style="display:none" class="callout">
-            ⚠ Disbursements exceed receipts this cycle — this campaign spent beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.
           </div>
         </div>
       </div>

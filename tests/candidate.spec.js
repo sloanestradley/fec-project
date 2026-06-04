@@ -483,6 +483,19 @@ test.describe('candidate.html — flowing detail view', () => {
     expect(ordered).toBe(true);
   });
 
+  test('#overspend-note leads #tab-summary (first child, above the chart card)', async ({ page }) => {
+    await setupWithContent(page);
+    const ok = await page.evaluate(() => {
+      const sum = document.getElementById('tab-summary');
+      const note = document.getElementById('overspend-note');
+      const card = sum && sum.querySelector('.chart-card');
+      if (!sum || !note || !card) return false;
+      return sum.firstElementChild === note &&
+        !!(note.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(ok).toBe(true);
+  });
+
   test('Raised donut + Spent donut both render in flow without interaction', async ({ page }) => {
     await setupWithContent(page);
     await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });

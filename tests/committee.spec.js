@@ -136,6 +136,15 @@ test.describe('committee.html — detail view', () => {
     await expect(page.locator('#tab-spent')).toBeVisible();
   });
 
+  test('#overspend-note leads #tab-summary (first child)', async ({ page }) => {
+    const ok = await page.evaluate(() => {
+      const sum = document.getElementById('tab-summary');
+      const note = document.getElementById('overspend-note');
+      return !!(sum && note && sum.firstElementChild === note);
+    });
+    expect(ok).toBe(true);
+  });
+
   test('sections render in flow order: summary → raised → spent → page-note', async ({ page }) => {
     const ordered = await page.evaluate(() => {
       const ids = ['tab-summary', 'tab-raised', 'tab-spent', 'page-note'];
