@@ -6252,3 +6252,44 @@ Sloane steers by catching what the implementer glosses over — the pre-existing
 3. **Amplitude taxonomy harmonization.** Race distinguishes load vs switch via `trigger`; candidate/committee via `view`. Decide whether to standardize one convention. Also: switch-error Retry click is untracked — track it if API-failure UX is a metric.
 4. **0.0-not-null /elections/ quirk is a landmine** for any future "did they file?" feature (race totals, unserious-candidate hierarchy). Documented, but keep front-of-mind.
 5. **project-brief.md "Race Profiles" is still 'TBD'** despite three iterations of a live page — worth backfilling the requirements doc.
+
+---
+2026-06-04 — T-remove-profile-tabs full arc (candidate/committee → race → dead-CSS cleanup) + glass compact header + spacing follow-ups (7 commits)
+
+## Process log draft
+
+**Title:** The tabs come off — and the page learns to flow
+
+**Summary (Sloane's voice):** I retired the Summary/Raised/Spent tab system across all three profile pages — candidate and committee first, then race — so each page is now one flowing column instead of three hidden panels. Along the way I relocated the overspend note above the chart, gave the compact header a frosted-glass treatment, and finally swept out the dead tab CSS entirely. The whole arc was investigate-first: every page got a written investigation + two decisions before any code.
+
+**Changelog:**
+- **De-tabbed candidate + committee (`c82e0fe`).** Outer tabs retired; detail view is a single flowing column (summary → raised → spent → page-note). The load-bearing change wasn't deleting markup — it was removing the `.tab.active` *render gate* in `renderRaisedIfReady`/`renderSpentIfReady` (Chart.js had needed a visible canvas; now everything's visible from first paint). URL hash → bare `#cycle`; `Tab Switched` event + `restoreTab` retired; legacy `#cycle#tab` links canonicalize cleanly.
+- **Spacing follow-ups (`6444754`, `ea7587a`, `07bea75`).** Killed the ~64px empty band the retired tabs-bar left below the summary strip; moved `#overspend-note` above the chart with `.callout` flipped to `margin-bottom`; dropped vestigial `padding-top` from `.chart-card` (kept it on `.raised-cell` after I realized the broader padding-pattern unification was too big to bite off).
+- **Glass compact header (`c049a2f`).** The slim compact strip now floats over scrolling content — translucent parchment (`color-mix` from `--bg`), `backdrop-filter:blur(4px)` paired with the required `-webkit-` prefix, soft shadow. `.cycle-select` → `background:none` so the blur shows through.
+- **De-tabbed race (`4c80938`).** Candidates/Insights tabs retired — the candidate list IS the page; Insights (a stub) deferred to Phase 4. Closed out T-remove-profile-tabs across all three pages. Fixed the last `#year#summary` emitter (race's candidate links → bare `#year`).
+- **Retired the dead tab CSS (`c00959e`).** With no page consuming `.tabs-bar`/`.tab` anymore, removed the rules, the orphaned `--compact-header-h` token, and the design-system tab demo (renamed the card "Chart Container").
+
+**Field notes:** The phrase I kept coming back to was "gate removal, not markup deletion." The de-tab *looked* like an HTML chore but the real work was one early-return guard — and naming that correctly up front made the whole arc safe. The other recurring theme was the test suite as an honest safety net: it caught a stale `#summary` href assertion I'd missed, and then caught a `--compact-header-h === 56px` invariant test that my own removal plan had overlooked — both times I'd have shipped a quiet break without it. The frustrating counterweight was flake noise: a cluster of timing-sensitive tests (page.goto timeouts, a header-reveal test, tooltip-hover tests) that fail under parallel load and pass on isolated re-run, which makes "is it green?" a judgment call instead of a glance. Worth a stabilization pass. And the deprecate-then-retire lifecycle paid off — deferring the dead-CSS removal out of the race commit kept that pass tight, and doing it as its own focused commit is what surfaced (and contained) the design-system card-split entanglement.
+
+**Stack tags:** None new — `backdrop-filter` with `-webkit-` fallback (first use), `color-mix(in srgb, var(--bg) 85%, transparent)` for the translucent fill, single-flow presentation via removing the render gate.
+
+## How Sloane steered the work
+
+**Investigate-first, every page.** You asked for a written investigation + risk-flagging pass before each de-tab, and you made the two surfaced decisions (Insights deferral, deprecate-vs-retire) explicitly rather than letting me default. The result was three clean passes with no rework — the discipline front-loaded the thinking where it's cheap.
+
+**"Add padding back to .raised-cell, keep off .chart-card."** Mid-implement, you recognized that the broader "several classes share this padding-top" unification was a bigger pass than the goal warranted — and scoped down to exactly what eliminates the top-of-page gap, reverting the rest. Knowing when to NOT do the thorough version.
+
+**The glass header as spec-plus-investigation.** You handed concrete CSS but asked me to check it for browser-compat and better properties — which is what surfaced the `-webkit-backdrop-filter` requirement (silent no-op on Safari/iOS otherwise) and the `color-mix`-over-raw-literal call. A spec given as a starting point, not a final answer.
+
+**"Make sure there's no impact to committee modal tabs."** Before the dead-CSS removal you named the exact thing most at risk of collateral damage — the modal's `.modal-tab-btn` tabs. Pointing the audit at the boundary up front is what made the removal confidently safe.
+
+**Flake rigor on the commit gate.** "commit + push if suite passes" — and when the suite came back with failures, the bar was confirming each was a flake (isolated re-run) vs a real regression before anything shipped. You didn't let "mostly green" stand in for green.
+
+**Through-line:** You steer by front-loading judgment — investigation before code, decisions made explicitly, the riskiest boundary named before the work — and by refusing to let "looks done / mostly green" substitute for verified. The most valuable moves were the scoping calls (what NOT to unify) and the catches (the boundary to check, the flake-vs-regression line).
+
+## What to bring to Claude Chat
+
+- **Suite stability.** A recurring set of timing flakes (page.goto 15s timeouts under load, the `committee-header reveals` T-load-1 test, the `choropleth section title` + `scroll closes` tooltip-hover tests) fail run-to-run and pass isolated. Decide on a stabilization pass — bump the webserver/goto timeout, add targeted retries, or harden the hover-timing tests — so green is a glance again.
+- **Phase 4 Insights.** Race's Insights tab was deferred (the stub removed). When it returns it should come back as a *flowing section*, consistent with the no-tabs direction — worth a quick spec so the next builder doesn't reintroduce a tab.
+- **Live deploy verification.** The de-tab flow + glass compact header need an eyeball on the deploy — especially Safari/iOS for the `-webkit-backdrop-filter` blur, and the compact header still engaging on all three pages after the `--compact-header-h` removal.
+- **The "tab" type style.** It's now realized only by `.cycle-select` (the tabs that named it are gone) — minor, but the canonical type-style name is a bit of a misnomer now; decide whether to leave it or rename.

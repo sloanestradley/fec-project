@@ -199,7 +199,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 ### Phase 3 — Expand the data model
 *Goal: show the full money ecosystem, not just the candidate.*
 
-- ~~**Committee page**~~ ✅ live — Summary/Raised/Spent tabs live; contributor breakdown, choropleth, vendor table, contributions-to-candidates section
+- ~~**Committee page**~~ ✅ live — Summary/Raised/Spent sections (de-tabbed into a single flowing detail view in T-remove-profile-tabs, 2026-06-03); contributor breakdown, choropleth, vendor table, contributions-to-candidates section
 - ~~**Committees browse page**~~ ✅ live — unified browse+search; typeahead, filter chips (type/state), URL sync, treasurer always shown, error state with retry
 - ~~**Race page**~~ ✅ live — single contest view; all declared candidates auto-populated from `/elections/` with financial cards and cycle switcher
 - ~~**Races browse page**~~ ✅ live — filter bar (year/office/state), progressive enrichment via IntersectionObserver, localStorage cache (24h TTL), stale-response guard

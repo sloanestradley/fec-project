@@ -122,7 +122,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 Phase assignments follow `project-brief.md`. Pages listed here by first-built phase.
 
 ### Phase 1 — Candidate page
-- `candidate.html` — profile with career index landing state (CareerStrip + cycle index), cycle switcher, tabs (Summary/Raised/Spent), chart, committees modal
+- `candidate.html` — profile with career index landing state (CareerStrip + cycle index), cycle switcher, single flowing detail view (Summary/Raised/Spent sections — de-tabbed in T-remove-profile-tabs), chart, committees modal
 - `process-log.html` — dev diary
 - `design-system.html` — token/component reference
 
