@@ -220,7 +220,16 @@
             </div>
             <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-committees" aria-labelledby="raised-tab-btn-committees">
               <div class="donors-card" id="committee-donors-card">
-                <div class="skeleton tab-skeleton skeleton-table" id="raised-comm-skeleton"></div>
+                <div class="skeleton-overlay-wrap">
+                  <div class="skeleton tab-skeleton skeleton-table" id="raised-comm-skeleton"></div>
+                  <div class="inline-status-msg skeleton-overlay-msg" id="raised-comm-still-loading" style="display:none">
+                    Tallying contributions…this could take a moment.
+                  </div>
+                </div>
+                <div class="tab-error" id="raised-comm-error" style="display:none">
+                  <span class="tab-error-msg">⚠ Could not load top contributors.</span>
+                  <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
+                </div>
                 <div id="committee-donors-content" style="display:none">
                   <table class="donors-table">
                     <thead><tr>
@@ -236,7 +245,16 @@
             </div>
             <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-conduits" aria-labelledby="raised-tab-btn-conduits" hidden>
               <div class="donors-card" id="conduits-card">
-                <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+                <div class="skeleton-overlay-wrap">
+                  <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+                  <div class="inline-status-msg skeleton-overlay-msg" id="raised-conduits-still-loading" style="display:none">
+                    Tallying contributions…this could take a moment.
+                  </div>
+                </div>
+                <div class="tab-error" id="raised-conduits-error" style="display:none">
+                  <span class="tab-error-msg">⚠ Could not load top contributors.</span>
+                  <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
+                </div>
                 <div id="conduits-content" style="display:none">
                   <table class="donors-table">
                     <thead><tr>
@@ -252,7 +270,16 @@
             </div>
             <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-individuals" aria-labelledby="raised-tab-btn-individuals" hidden>
               <div class="donors-card" id="individual-donors-card">
-                <div class="skeleton tab-skeleton skeleton-table" id="raised-indiv-skeleton"></div>
+                <div class="skeleton-overlay-wrap">
+                  <div class="skeleton tab-skeleton skeleton-table" id="raised-indiv-skeleton"></div>
+                  <div class="inline-status-msg skeleton-overlay-msg" id="raised-indiv-still-loading" style="display:none">
+                    Tallying contributions…this could take a moment.
+                  </div>
+                </div>
+                <div class="tab-error" id="raised-indiv-error" style="display:none">
+                  <span class="tab-error-msg">⚠ Could not load top contributors.</span>
+                  <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
+                </div>
                 <div id="individual-donors-content" style="display:none">
                   <table class="donors-table">
                     <thead><tr>
@@ -267,13 +294,6 @@
               </div>
             </div>
           </section>
-          <div class="inline-status-msg" id="raised-still-loading" style="display:none">
-            This is taking longer than usual — large committees can take 30+ seconds…
-          </div>
-          <div class="tab-error" id="raised-slow-error" style="display:none">
-            <span class="tab-error-msg">⚠ Could not load top contributors.</span>
-            <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
-          </div>
         </div>
       </div>
 
@@ -428,7 +448,7 @@ var cycleFetchToken     = null;  // claimed in renderStats; checked in renderRai
 var view                = null;  // initViewSwitcher instance — created in init() before first switchTo
 var raisedTabSection    = null;  // initTabSection instance for #raised-tab-section — created in init()
 var menu                = null;  // initMenuButton instance — created in init() after renderHeader (T-menu-btn-profile-header)
-var raisedSlowStillLoading = false; // 10s timer fired and slow tier hasn't resolved/errored — used by applyIndicatorVisibility
+var raisedSlowStillLoading = false; // 10s timer fired and slow tier hasn't resolved/errored — drives the per-panel still-loading overlays via applyRaisedSlowIndicators
 
 var FIPS_TO_ABBR = {
   '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
@@ -826,13 +846,10 @@ async function init() {
     initTooltips();
 
     // Tab section for top contributors (Raised tab) — wires WAI-ARIA tabs.
-    // Slow-tier indicators (#raised-still-loading, #raised-slow-error) are
-    // gated on active tab via applyIndicatorVisibility — hidden when the
-    // active tab is Individuals (KV-fed, not slow-tier-fed).
+    // Indicators are per-panel + source-state-driven (applyRaisedSlowIndicators),
+    // so they no longer gate on the active tab — each panel honestly reflects its
+    // own source (KV-fed vs slow-tier-fed). No tab-section:change listener needed.
     raisedTabSection = initTabSection(document.getElementById('raised-tab-section'));
-    if (raisedTabSection) {
-      document.getElementById('raised-tab-section').addEventListener('tab-section:change', applyIndicatorVisibility);
-    }
 
     view = initViewSwitcher({
       indexElements: [
@@ -980,32 +997,48 @@ function kickoffRaisedFastFetch(token) {
   return fastP;
 }
 
-// Indicator visibility for slow-tier surfaces. Tabbed component routes all
-// changes to #raised-still-loading and #raised-slow-error through here so
-// (a) state changes (10s timer fires, fetch resolves, fetch errors) and
-// (b) tab switches both trigger the same single visibility-decision path.
-// Hidden entirely when active tab is Individuals (KV-fed, independent of
-// the slow-tier fetch).
-function applyIndicatorVisibility() {
-  var stillLoadingEl = document.getElementById('raised-still-loading');
-  var errorEl        = document.getElementById('raised-slow-error');
-  if (!stillLoadingEl || !errorEl) return;
-  var active = raisedTabSection ? raisedTabSection.getActive() : null;
-  if (active && active.panelId === 'raised-tab-panel-individuals') {
-    stillLoadingEl.style.display = 'none';
-    errorEl.style.display = 'none';
-    return;
-  }
-  if (raisedSlowError) {
-    stillLoadingEl.style.display = 'none';
-    showTabError(errorEl, raisedSlowError, '⚠ Could not load top contributors.');
-  } else if (raisedSlowStillLoading) {
-    stillLoadingEl.style.display = 'block';
-    errorEl.style.display = 'none';
-  } else {
-    stillLoadingEl.style.display = 'none';
-    errorEl.style.display = 'none';
-  }
+// Per-panel slow-tier indicators (T-raised-loading-states, committee parity).
+// Unlike candidate.html (both panels share the one crawl), committee's three panels
+// sit on two timelines: KV-fed (fast tier) for Committees/Individuals on a KV hit,
+// slow-tier-fed (the is_individual=false crawl + KV-miss fallbacks) otherwise. A panel
+// shows the still-loading overlay / inline error iff it DEPENDS on the pending/failed
+// slow tier — NOT based on which tab is active (the old active-tab gate suppressed the
+// indicators on Individuals on a false "always KV-fed" premise, silent-blanking the
+// KV-miss Individuals failure). panelNeedsSlow encodes the dependency:
+//   - Conduits: ALWAYS slow-tier-fed. Deliberate: when the conduits crawl bails
+//     too-large or the slow tier then errors, the too-large flag is discarded with the
+//     rejected promise, so the only honest signal left is raisedSlowError — and
+//     always-true is what surfaces the per-panel error here. Gating Conduits off on
+//     too-large would silent-blank that error case (the failure mode this work kills).
+//   - Committees / Individuals: slow-tier-fed only on a KV miss. raisedFastData carries
+//     the KV slots (resolved sub-second); absent → treat as miss (the slow fallback path).
+function panelNeedsSlow(which) {
+  if (which === 'conduits') return true;
+  if (which === 'comm')  return !(raisedFastData && raisedFastData.topCommitteesKV);
+  if (which === 'indiv') return !(raisedFastData && raisedFastData.topIndividualsKV);
+  return false;
+}
+function applyRaisedSlowIndicators() {
+  [['comm', 'raised-comm'], ['conduits', 'raised-conduits'], ['indiv', 'raised-indiv']].forEach(function(pair) {
+    var stillEl = document.getElementById(pair[1] + '-still-loading');
+    var errEl   = document.getElementById(pair[1] + '-error');
+    if (!stillEl || !errEl) return;  // panel may be removed (conduit-committee removeTab)
+    if (!panelNeedsSlow(pair[0])) {  // KV-fed panel — resolved at the fast tier, never a slow indicator
+      stillEl.style.display = 'none';
+      errEl.style.display = 'none';
+      return;
+    }
+    if (raisedSlowError) {
+      stillEl.style.display = 'none';
+      showTabError(errEl, raisedSlowError, '⚠ Could not load top contributors.');
+    } else if (raisedSlowStillLoading) {
+      stillEl.style.display = 'flex';  // flex → CSS centers the overlay over the skeleton
+      errEl.style.display = 'none';
+    } else {
+      stillEl.style.display = 'none';
+      errEl.style.display = 'none';
+    }
+  });
 }
 
 function kickoffRaisedSlowFetch(token) {
@@ -1013,7 +1046,7 @@ function kickoffRaisedSlowFetch(token) {
     if (!view.isCurrentToken(token)) return;
     if (raisedSlowRendered) return;
     raisedSlowStillLoading = true;
-    applyIndicatorVisibility();
+    applyRaisedSlowIndicators();
   }, 10000);
   // Slow tier needs fast tier's KV state to decide whether to paginate Schedule A indiv.
   // Pass the in-flight fast promise; slow function awaits it internally.
@@ -1073,7 +1106,7 @@ function retryRaisedFast() {
 function retryRaisedSlow() {
   raisedSlowData = null; raisedSlowError = null; raisedSlowRendered = false;
   raisedSlowStillLoading = false;
-  applyIndicatorVisibility();
+  applyRaisedSlowIndicators();
   document.getElementById('raised-comm-skeleton').style.display = 'block';
   // Conduit committees: conduits panel was removed on prior render, skeleton is gone
   var rcSkel = document.getElementById('raised-conduits-skeleton');
@@ -1182,7 +1215,7 @@ function renderStats(cycleOrAll) {
   if (rcSkelReset) rcSkelReset.style.display = 'block';
   document.getElementById('raised-indiv-skeleton').style.display = 'block';
   raisedSlowStillLoading = false;
-  applyIndicatorVisibility();
+  applyRaisedSlowIndicators();
   document.getElementById('committee-donors-content').style.display = 'none';
   var rcContentReset = document.getElementById('conduits-content');
   if (rcContentReset) rcContentReset.style.display = 'none';
@@ -1745,6 +1778,10 @@ function renderRaisedIfReady() {
       document.getElementById('committee-donors-content').style.display = 'block';
       renderCommitteeDonors(raisedFastData.topCommitteesKV);
     }
+    // KV state is now known — re-apply per-panel indicators so a KV-hit panel that
+    // was briefly showing the 10s overlay (rare: fast resolved after the timer fired)
+    // clears, while KV-miss panels keep whatever slow-tier state applies.
+    applyRaisedSlowIndicators();
     raisedFastRendered = true;
   }
 
@@ -1754,7 +1791,7 @@ function renderRaisedIfReady() {
     var slowConduitsSkel = document.getElementById('raised-conduits-skeleton');
     if (slowConduitsSkel) slowConduitsSkel.style.display = 'none';
     document.getElementById('raised-indiv-skeleton').style.display = 'none';
-    applyIndicatorVisibility();
+    applyRaisedSlowIndicators();  // per-panel error on needs-slow panels (KV-hit panels keep their rendered content)
     raisedSlowRendered = true;
   } else if (raisedSlowData && !raisedSlowRendered) {
     var d = raisedSlowData;
@@ -1762,7 +1799,7 @@ function renderRaisedIfReady() {
     var slowConduitsSkel2 = document.getElementById('raised-conduits-skeleton');
     if (slowConduitsSkel2) slowConduitsSkel2.style.display = 'none';
     document.getElementById('raised-indiv-skeleton').style.display = 'none';
-    applyIndicatorVisibility();
+    applyRaisedSlowIndicators();  // state resolved → hides still-loading + errors on all panels
 
     // Top Individual Contributors — only render here if KV missed (otherwise fast tier handled it)
     if (!raisedFastRendered || !(raisedFastData && raisedFastData.topIndividualsKV)) {

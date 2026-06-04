@@ -1163,7 +1163,7 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised always in-flow
-    const err = page.locator('#raised-slow-error');
+    const err = page.locator('#raised-comm-error');
     await expect(err).toBeVisible({ timeout: 8000 });
     await expect(err.locator('.tab-retry-btn')).toBeVisible();
   });
@@ -1275,9 +1275,9 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised always in-flow
-    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
-    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/rate limit reached/i);
-    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeHidden();
+    await expect(page.locator('#raised-comm-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-comm-error .tab-error-msg')).toHaveText(/rate limit reached/i);
+    await expect(page.locator('#raised-comm-error .tab-retry-btn')).toBeHidden();
   });
 
   test('tab-fetch non-429 (regression) → existing copy + retry button visible', async ({ page }) => {
@@ -1294,10 +1294,10 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised always in-flow
-    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
-    await expect(page.locator('#raised-slow-error .tab-error-msg')).toHaveText(/Could not load top contributors/);
-    await expect(page.locator('#raised-slow-error .tab-error-msg')).not.toHaveText(/rate limit/i);
-    await expect(page.locator('#raised-slow-error .tab-retry-btn')).toBeVisible();
+    await expect(page.locator('#raised-comm-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-comm-error .tab-error-msg')).toHaveText(/Could not load top contributors/);
+    await expect(page.locator('#raised-comm-error .tab-error-msg')).not.toHaveText(/rate limit/i);
+    await expect(page.locator('#raised-comm-error .tab-retry-btn')).toBeVisible();
   });
 
   test('cycle switch via Cycle card chevron after tab-fetch 429 clears error and renders new cycle (T16)', async ({ page }) => {
@@ -1315,7 +1315,7 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised always in-flow
-    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#raised-comm-error')).toBeVisible({ timeout: 8000 });
     block429 = false;
     // T16: switch cycle via the Cycle card chevron → cycle index → row click.
     // The cycle-switcher in the tabs-bar retired.
@@ -1326,7 +1326,7 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised always in-flow
     // Active (Committees default) panel renders on new cycle, slow error clears
     await expect(page.locator('#committee-donors-card')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#raised-slow-error')).toBeHidden();
+    await expect(page.locator('#raised-comm-error')).toBeHidden();
     // Switching to Conduits panel reveals the populated conduits card
     await page.locator('#raised-tab-btn-conduits').click();
     await expect(page.locator('#conduits-card')).toBeVisible();
@@ -1496,10 +1496,10 @@ test.describe('committee.html — tab section (top contributors)', () => {
     );
   });
 
-  test('slow-tier indicators hide when active tab is Individuals (KV-fed, not slow-tier-fed)', async ({ page }) => {
+  test('slow-tier error surfaces per-panel on every KV-miss tab incl. Individuals (no active-tab suppression)', async ({ page }) => {
     await mockAmplitude(page);
-    await mockFecApi(page);
-    // Slow-tier 429 → error UI normally visible on Committees/Conduits tabs
+    await mockFecApi(page);  // KV always misses → all three panels are slow-tier-fed
+    // is_individual=false 429s → fetchRaisedSlowData rejects → raisedSlowError set
     await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
       const url = new URL(route.request().url());
       if (url.searchParams.get('is_individual') === 'false') {
@@ -1511,15 +1511,68 @@ test.describe('committee.html — tab section (top contributors)', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised always in-flow
-    // On default Committees tab — error visible
-    await expect(page.locator('#raised-slow-error')).toBeVisible({ timeout: 8000 });
-    // Switch to Individuals → error hides (Individuals is independent of slow tier)
+    // Committees (default) — per-panel error visible
+    await expect(page.locator('#raised-comm-error')).toBeVisible({ timeout: 8000 });
+    // Individuals — THE HEADLINE FIX (T-raised-loading-states): a KV-miss Individuals panel
+    // IS slow-tier-fed, so the error surfaces here too. The retired active-tab gate
+    // silent-blanked this panel (assumed Individuals was always KV-fed).
     await page.locator('#raised-tab-btn-individuals').click();
-    await expect(page.locator('#raised-slow-error')).toBeHidden();
-    await expect(page.locator('#raised-still-loading')).toBeHidden();
-    // Switch back to Committees → error re-appears
-    await page.locator('#raised-tab-btn-committees').click();
-    await expect(page.locator('#raised-slow-error')).toBeVisible();
+    await expect(page.locator('#raised-indiv-error')).toBeVisible();
+    await expect(page.locator('#raised-indiv-error .tab-error-msg')).toHaveText(/rate limit reached/i);
+    // Conduits — always slow-tier-fed, error too
+    await page.locator('#raised-tab-btn-conduits').click();
+    await expect(page.locator('#raised-conduits-error')).toBeVisible();
+    // The old detached shared indicators are gone.
+    await expect(page.locator('#raised-still-loading')).toHaveCount(0);
+    await expect(page.locator('#raised-slow-error')).toHaveCount(0);
+  });
+
+  test('Raised: still-loading message overlays the skeleton footprint as a sibling (not a child)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Hold the slow tier in flight so the skeleton stays visible while we inspect.
+    await page.route('**/api/fec/schedules/schedule_a/?**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        await new Promise(r => setTimeout(r, 4000));
+      }
+      route.fallback();
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await expect(page.locator('#raised-comm-skeleton')).toBeVisible();
+    // Force the message visible (the real 10s timer is too slow for a unit test); the
+    // CSS owns the centering, so display:flex is all that's needed.
+    await page.locator('#raised-comm-still-loading').evaluate(el => { el.style.display = 'flex'; });
+    const skelBox = await page.locator('#raised-comm-skeleton').boundingBox();
+    const msgBox  = await page.locator('#raised-comm-still-loading').boundingBox();
+    expect(msgBox.y).toBeGreaterThanOrEqual(skelBox.y - 1);
+    expect(msgBox.y).toBeLessThan(skelBox.y + skelBox.height);
+    const insideWrap = await page.locator('#raised-comm-still-loading')
+      .evaluate(el => !!el.closest('.skeleton-overlay-wrap'));
+    expect(insideWrap).toBe(true);
+    const childOfSkeleton = await page.locator('#raised-comm-still-loading')
+      .evaluate(el => !!el.closest('#raised-comm-skeleton'));
+    expect(childOfSkeleton).toBe(false);
+  });
+
+  test('Raised: Individuals panel owns a sibling overlay + still-loading hidden on resolve', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);  // KV miss → Individuals is slow-tier-fed
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await expect(page.locator('#tab-raised')).toBeVisible();
+    await expect(page.locator('#raised-comm-still-loading')).toBeHidden();
+    await page.locator('#raised-tab-btn-individuals').click();
+    await expect(page.locator('#raised-indiv-still-loading')).toBeHidden();
+    // The headline panel's overlay is a sibling inside the wrap, never a child of the
+    // pulsing skeleton (the group-opacity gotcha).
+    const insideWrap = await page.locator('#raised-indiv-still-loading')
+      .evaluate(el => !!el.closest('.skeleton-overlay-wrap'));
+    expect(insideWrap).toBe(true);
+    const childOfSkeleton = await page.locator('#raised-indiv-still-loading')
+      .evaluate(el => !!el.closest('#raised-indiv-skeleton'));
+    expect(childOfSkeleton).toBe(false);
   });
 });
 
