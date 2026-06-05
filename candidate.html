@@ -898,37 +898,89 @@ async function fetchRaisedFastData(committeeId, subCycles) {
   return { byState: byState };
 }
 
-// T12 — Slow tier: Schedule A non-individual paginated to exhaustion across all sub-cycles.
-// House: 1 sub-cycle. Senate: 3. Presidential: 2. apiFetch's MAX_CONCURRENT=4 queue bounds
-// parallelism across sub-cycles, but pagination within a sub-cycle is sequential by
-// construction (cursor depends on the previous page's last_indexes). Long pole: 5–25s on
-// principal CCs, often longer on cold-cache historical cycles. The data feeds two surfaces —
-// Top Committee Contributors (non-memo rows) and Top Conduit Sources (memo_code='X' rows).
+// T-candidate-raised-fetch-architecture (Approach B, all-or-nothing — 2026-06-05):
+// Bound the is_individual=false crawl with a page-1 too-large probe per sub-cycle, so a
+// candidate's principal-committee Top Contributors stops rate-limiting on heavy filers.
+// (The crawl is conduit-memo-driven — ActBlue/WinRed forwarding shows as memo rows on the
+// PCC's Schedule A — so it routinely exceeds the page cap even for a normal House candidate;
+// Marie's PCC is ~198 pages. It never approaches the 500k mega threshold.)
+//
+//   Phase 1 — probe page 1 of every sub-cycle (1 call each), read pagination.pages.
+//   ANY sub-cycle > PAGE_THRESHOLD (all-or-nothing): take Top Committee Contributors from the
+//     precomputed top_committees KV slot per sub-cycle, MERGED (free Cloudflare reads, not FEC
+//     calls); surface Top Conduit Sources as the honest "high volume" bail — the full-span
+//     conduit aggregate can't be assembled without the bailed sub-cycle (memo rows aren't in
+//     KV). Calls collapse to 1 per sub-cycle (Marie 198→1, Gillibrand 265→3, Biden/Harris
+//     10,070→2). KNOWN LIMITATION: merging per-sub-cycle top-25 KV slices can tail-undercount
+//     a giver below top-25 in some sub-cycle (House = 1 slice = exact; only multi-sub-cycle is
+//     affected). Banked fast-follow: precompute-conduits would restore real conduit data here.
+//   NONE bail (all ≤ PAGE_THRESHOLD): continue the crawls to exhaustion and aggregate BOTH
+//     Committees + Conduits from the rows — exact, real conduit list, as before.
+// House: 1 sub-cycle. Senate: 3. Presidential: 2.
 async function fetchRaisedSlowData(committeeId, subCycles) {
-  async function fetchSubCycleCommittees(sc) {
-    var params = {
-      committee_id: committeeId,
-      two_year_transaction_period: sc,
-      is_individual: false,
-      sort: '-contribution_receipt_amount',
-      per_page: 100
+  var PAGE_THRESHOLD = 100;
+  function probeParams(sc) {
+    return {
+      committee_id: committeeId, two_year_transaction_period: sc,
+      is_individual: false, sort: '-contribution_receipt_amount', per_page: 100
     };
-    var rows = [];
-    while (true) {
-      var res = await apiFetch('/schedules/schedule_a/', params);
-      rows = rows.concat(res.results || []);
-      var pagination = res.pagination || {};
-      if (rows.length >= (pagination.count || 0)) break;
-      var idx = pagination.last_indexes || {};
-      if (!idx.last_index) break;
-      params = Object.assign({}, params, {
-        last_index: idx.last_index,
-        last_contribution_receipt_amount: idx.last_contribution_receipt_amount
-      });
-    }
-    return rows;
   }
-  var perCycle = await Promise.all(subCycles.map(fetchSubCycleCommittees));
+
+  // Phase 1 — probe page 1 of each sub-cycle (one call each).
+  var probes = await Promise.all(subCycles.map(function(sc) {
+    return apiFetch('/schedules/schedule_a/', probeParams(sc)).then(function(res) {
+      return { sc: sc, res: res, pages: (res.pagination || {}).pages || 1 };
+    });
+  }));
+  var anyBail = probes.some(function(p) { return p.pages > PAGE_THRESHOLD; });
+
+  if (anyBail) {
+    // All-or-nothing: Committees from per-sub-cycle KV (merged); Conduits → high volume.
+    var kvLists = await Promise.all(subCycles.map(function(sc) {
+      return fetch('/api/aggregations/top-committees?committee_id=' +
+        encodeURIComponent(committeeId) + '&cycle=' + encodeURIComponent(sc))
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .catch(function(){ return null; });
+    }));
+    var merged = {};
+    kvLists.forEach(function(kv) {
+      if (!kv || kv.source !== 'bulk' || !Array.isArray(kv.results)) return;
+      kv.results.forEach(function(d) {
+        var key = d.committee_id || (d.name || '').trim().toUpperCase();
+        if (!key) return;
+        if (!merged[key]) merged[key] = {
+          name: d.name || '—', entity_type: d.entity_type || '',
+          committee_id: d.committee_id || null, total: 0
+        };
+        merged[key].total += d.total || 0;
+      });
+    });
+    return {
+      topDonors: Object.values(merged).sort(function(a,b){ return b.total - a.total; }).slice(0, 10),
+      topConduits: [], topConduitsTooLarge: true, subCycles: subCycles
+    };
+  }
+
+  // No sub-cycle bailed — continue each crawl to exhaustion from its probe page 1.
+  var perCycle = await Promise.all(probes.map(function(p) {
+    return (async function() {
+      var rows = (p.res.results || []).slice();
+      var pagination = p.res.pagination || {};
+      var params = probeParams(p.sc);
+      while (rows.length < (pagination.count || 0)) {
+        var idx = pagination.last_indexes || {};
+        if (!idx.last_index) break;
+        params = Object.assign({}, params, {
+          last_index: idx.last_index,
+          last_contribution_receipt_amount: idx.last_contribution_receipt_amount
+        });
+        var res = await apiFetch('/schedules/schedule_a/', params);
+        rows = rows.concat(res.results || []);
+        pagination = res.pagination || {};
+      }
+      return rows;
+    })();
+  }));
   var allRows = [];
   perCycle.forEach(function(rows) { allRows = allRows.concat(rows); });
   var seen = {};
@@ -963,7 +1015,7 @@ async function fetchRaisedSlowData(committeeId, subCycles) {
   var topConduits = Object.values(seenConduits)
     .sort(function(a,b){ return b.total - a.total; })
     .slice(0, 10);
-  return { topDonors: topDonors, topConduits: topConduits, subCycles: subCycles };
+  return { topDonors: topDonors, topConduits: topConduits, topConduitsTooLarge: false, subCycles: subCycles };
 }
 
 // ── Raised tab: donut chart ──────────────────────────
@@ -1270,7 +1322,14 @@ function renderRaisedIfReady() {
     document.getElementById('donors-content').style.display = 'block';
     document.getElementById('conduits-content').style.display = 'block';
     renderTopDonors(raisedSlowData.topDonors);
-    renderTopConduits(raisedSlowData.topConduits);
+    if (raisedSlowData.topConduitsTooLarge) {
+      // All-or-nothing bail: a sub-cycle exceeded the page cap, so the full-span conduit
+      // aggregate can't be assembled. Parity with committee.html's high-volume copy.
+      document.getElementById('conduits-tbody').innerHTML =
+        '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">Data not available due to high transaction volume.</td></tr>';
+    } else {
+      renderTopConduits(raisedSlowData.topConduits);
+    }
 
     // Cycle label + data note. Recomputed on every render so cycle changes propagate.
     var subCycles = raisedSlowData.subCycles;

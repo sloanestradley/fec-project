@@ -1781,6 +1781,33 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     expect(childOfSkeleton).toBe(false);
   });
 
+  test('Raised: heavy candidate (>100 pages) bails to KV committees + high-volume conduits', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // is_individual=false page-1 reports >100 pages → all-or-nothing bail.
+    await page.route('**/api/fec/schedules/schedule_a/?**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('is_individual') === 'false') {
+        route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify({ results: [], pagination: { count: 19714, pages: 198 } }) });
+      } else { route.fallback(); }
+    });
+    // top_committees KV hit so Committees renders from the precomputed slot.
+    await page.route('**/api/aggregations/top-committees**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ source: 'bulk', results: [
+          { name: 'DIGIDEMS PAC', entity_type: 'ORG', committee_id: 'C00679191', total: 20050 }
+        ] }) });
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await expect(page.locator('#tab-raised')).toBeVisible();
+    // Committees from KV (merged) — instant, no crawl
+    await expect(page.locator('#donors-tbody')).toContainText(/digidems/i, { timeout: 8000 });
+    // Conduits → honest high-volume bail (parity with committee.html copy)
+    await expect(page.locator('#conduits-tbody')).toContainText(/high transaction volume/i);
+  });
+
   test('Raised: skeleton container has substantive height (scroll-clamp guard)', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
