@@ -426,6 +426,55 @@ test.describe('candidate.html — health banner', () => {
   });
 });
 
+// ── Closed-cycle debt tail (debt fixed as a fact; removed from the health signal) ──
+// The default candidate is cycle 2024 = closed (isCycleActive(2024) is false at the
+// real current date), so #2024 lands on the closed banner branch. Debt is sourced
+// from totalsRec.last_debts_owed_by_committee (was the always-undefined
+// loans_received + debts_owed_by_committee, which made every closed cycle read
+// "no outstanding debt").
+
+test.describe('candidate.html — closed-cycle debt tail', () => {
+  test('zero debt → "no outstanding debt reported"', async ({ page }) => {
+    await setupWithContent(page);
+    await expect(page.locator('#banner-label')).toHaveText('Cycle Complete');
+    await expect(page.locator('#banner-desc')).toContainText('no outstanding debt reported');
+  });
+
+  test('positive debt → "$X in outstanding debt" (sourced from last_debts_owed_by_committee)', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Override the detail-view election_full totals call with a record carrying
+    // last_debts_owed_by_committee > 0; fmt(39444) → "$39K".
+    await page.route('**/api/fec/candidate/H2WA03217/totals/**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('election_full') === 'true') {
+        route.fulfill({
+          status: 200, contentType: 'application/json',
+          body: JSON.stringify({
+            results: [{
+              receipts: 11856001, disbursements: 11895854,
+              last_cash_on_hand_end_period: 26460, coverage_end_date: '2024-12-31T00:00:00',
+              cycle: 2024, last_debts_owed_by_committee: 39444,
+            }],
+            pagination: { count: 1 },
+          }),
+        });
+      } else { route.fallback(); }
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+    await expect(page.locator('#banner-label')).toHaveText('Cycle Complete');
+    await expect(page.locator('#banner-desc')).toContainText('in outstanding debt');
+    await expect(page.locator('#banner-desc')).toContainText('$39K');
+  });
+
+  // Regression lock: the debt-driven red copy is gone from the health signal.
+  test('the removed "Debt exceeds cash on hand" copy never renders', async ({ page }) => {
+    await setupWithContent(page);
+    await expect(page.locator('#banner-desc')).not.toContainText('Debt exceeds cash on hand');
+  });
+});
+
 // ── Chart ─────────────────────────────────────────────────────────────────────
 
 test.describe('candidate.html — chart', () => {
@@ -481,19 +530,6 @@ test.describe('candidate.html — flowing detail view', () => {
       return true;
     });
     expect(ordered).toBe(true);
-  });
-
-  test('#overspend-note leads #tab-summary (first child, above the chart card)', async ({ page }) => {
-    await setupWithContent(page);
-    const ok = await page.evaluate(() => {
-      const sum = document.getElementById('tab-summary');
-      const note = document.getElementById('overspend-note');
-      const card = sum && sum.querySelector('.chart-card');
-      if (!sum || !note || !card) return false;
-      return sum.firstElementChild === note &&
-        !!(note.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING);
-    });
-    expect(ok).toBe(true);
   });
 
   test('Raised donut + Spent donut both render in flow without interaction', async ({ page }) => {

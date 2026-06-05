@@ -128,21 +128,12 @@ test.describe('committee.html — detail view', () => {
   });
 
   test('all three sections (summary/raised/spent) are in-flow at once, no tab clicks', async ({ page }) => {
-    // #tab-summary is in flow but can be zero-height on committee (overspend +
-    // assoc-section both hidden in the mock), so assert it's not display:none
-    // rather than "visible". Raised/Spent carry content and are visible.
+    // #tab-summary is in flow but can be zero-height on committee (the assoc-section
+    // is hidden in the mock; the overspend callout was retired 2026-06-05), so
+    // assert it's not display:none rather than "visible". Raised/Spent carry content.
     await expect(page.locator('#tab-summary')).not.toHaveCSS('display', 'none');
     await expect(page.locator('#tab-raised')).toBeVisible();
     await expect(page.locator('#tab-spent')).toBeVisible();
-  });
-
-  test('#overspend-note leads #tab-summary (first child)', async ({ page }) => {
-    const ok = await page.evaluate(() => {
-      const sum = document.getElementById('tab-summary');
-      const note = document.getElementById('overspend-note');
-      return !!(sum && note && sum.firstElementChild === note);
-    });
-    expect(ok).toBe(true);
   });
 
   test('sections render in flow order: summary → raised → spent → page-note', async ({ page }) => {

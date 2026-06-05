@@ -192,12 +192,6 @@
 
       <!-- Summary section -->
       <div id="tab-summary">
-        <!-- Overspend note leads the section (above the chart). .callout's
-             margin-bottom spaces it from the chart card below. Hidden by default;
-             loadCycle toggles display by ID. -->
-        <div id="overspend-note" style="display:none" class="callout">
-          ⚠ Disbursements exceed receipts this cycle — this campaign spent beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.
-        </div>
         <div class="chart-card">
           <div class="chart-header">
             <div class="chart-title" id="chart-title">Raised · Spent · Cash on Hand over cycle</div>
@@ -663,16 +657,17 @@ function getSubCycles(cycle) {
 // stability now that there's no display:none→block tab transition to guard.
 
 // ── Health assessment ───────────────────────────────
-function assessHealth(raised, spent, coh, debt) {
+function assessHealth(raised, spent, coh) {
+  // Debt removed as a health input (2026-06-05): the health signal is judged on
+  // overspend (spent > raised) + the raised-to-spent ratio only. Debt remains a
+  // reported fact on the closed-cycle banner tail (last_debts_owed_by_committee),
+  // not a green/amber/red driver.
   var ratio    = spent > 0 ? raised/spent : null;
-  var dToCoh   = coh > 0 && debt > 0 ? debt/coh : 0;
   if (!raised && !spent) return { s:'grey',  label:'No Data', desc:'No filings this cycle.' };
-  if (spent > raised || dToCoh > 1) return {
+  if (spent > raised) return {
     s:'red', label:'Financially Stressed',
-    desc: spent > raised
-      ? 'Disbursements exceed receipts — spending beyond what was raised this cycle.'
-      : 'Debt exceeds cash on hand — significant outstanding obligations.' };
-  if ((ratio !== null && ratio < 1.25) || dToCoh > 0.5) return {
+    desc:'Disbursements exceed receipts — spending beyond what was raised this cycle.' };
+  if (ratio !== null && ratio < 1.25) return {
     s:'amber', label:'Watch',
     desc:'Raised-to-spent ratio of '+(ratio?ratio.toFixed(2)+'x':'—')+'. Limited financial cushion.' };
   return { s:'green', label:'Financially Healthy',
@@ -732,12 +727,6 @@ function renderChart(reports, cycle) {
       baseSpent  += parseFloat(lastRpt.total_disbursements_ytd) || 0;
     }
   }
-
-  var cumRaised = ptRaised.length ? ptRaised[ptRaised.length-1].y : 0;
-  var cumSpent  = ptSpent.length  ? ptSpent[ptSpent.length-1].y   : 0;
-
-  var overspend = cumSpent > cumRaised && cumRaised > 0;
-  document.getElementById('overspend-note').style.display = overspend ? 'block' : 'none';
 
   // Custom plugin: draws vertical overlays after chart is rendered
   var overlayPlugin = {
@@ -1925,7 +1914,13 @@ async function loadCycle(cycle) {
     var raised  = totalsRec.receipts || 0;
     var spent   = totalsRec.disbursements || 0;
     var coh     = totalsRec.last_cash_on_hand_end_period || 0;
-    var debt    = (totalsRec.loans_received || 0) + (totalsRec.debts_owed_by_committee || 0);
+    // Closed-cycle banner debt tail — end-of-cycle snapshot, used ONLY by Step 4's
+    // closed branch. The bare `debts_owed_by_committee` / `loans_received` names
+    // don't exist on the candidate /totals/ record (election_full or per-cycle) —
+    // the snapshot field is `last_debts_owed_by_committee` (verified live). The old
+    // phantom-field read always coalesced to 0, so every closed cycle wrongly read
+    // "no outstanding debt." No longer feeds the health signal (assessHealth).
+    var debt    = totalsRec.last_debts_owed_by_committee || 0;
     var covDate = totalsRec.coverage_end_date ? totalsRec.coverage_end_date.split('T')[0] : null;
     var totalsBreakdown = {
       individual_itemized_contributions:           totalsRec.individual_itemized_contributions || 0,
@@ -2142,7 +2137,7 @@ async function loadCycle(cycle) {
       var note  = document.getElementById('banner-note');
 
       if (isCycleActive(cycle)) {
-        var h = assessHealth(raised, spent, coh, debt);
+        var h = assessHealth(raised, spent, coh);
         sig.className  = 'health-signal '+h.s;
         lbl.textContent = h.label;
         desc.textContent = h.desc;

@@ -36,6 +36,11 @@ const TOTALS = {
     last_cash_on_hand_end_period: 450000,
     coverage_end_date: '2024-12-31T00:00:00',
     cycle: 2024,
+    // Closed-cycle banner debt tail. The candidate /totals/ record exposes debt
+    // only as last_debts_owed_by_committee (no bare debts_owed_by_committee /
+    // loans_received — verified live 2026-06-05). Default 0 → "no outstanding
+    // debt reported"; tests route-override a positive value for the "$X" tail.
+    last_debts_owed_by_committee: 0,
     // Raised breakdown — drives the Raised-tab donut legend (sums to receipts).
     individual_itemized_contributions: 2000000,
     individual_unitemized_contributions: 500000,

@@ -72,11 +72,11 @@ A visual, non-partisan tool for answering one question fast: *where is money flo
 
 *Summary*
 - **Primary question this view answers: "Is this campaign financially healthy or stressed?"**
-- Financial health indicator (green/amber/red) — behavior varies by lifecycle state (see Data Lifecycle States). Only shown as an active signal during an active cycle; framed differently for closed cycles, especially when debt remains.
+- Financial health indicator (green/amber/red) — behavior varies by lifecycle state (see Data Lifecycle States). Only shown as an active signal during an active cycle, judged on overspend (spent > raised) + the raised-to-spent ratio. On closed cycles it is replaced by a neutral "Cycle Complete" summary that reports outstanding debt as a **fact**, not a health input (debt was removed as a health-signal driver 2026-06-05).
   - Key signal: **raised-to-spent ratio** (John's preferred framing — not "burn rate", which implies a monthly expense concept he doesn't associate with this). Label as "Raised vs. Spent Ratio" or similar. Intriguing as a health signal even to a domain expert who hadn't thought of it that way before.
   - Additional signal of interest: "How much are they spending just to raise?" — fundraising cost efficiency (John)
 - Time-based line chart of Raised, Spent, and COH over the course of the cycle (John's suggestion; to be explored — may be more useful than a single static bar)
-- When overspend occurs, flag clearly and explain likely cause (prior-cycle reserves, debt)
+- When overspend occurs on an active cycle, the health banner flags it (red "Financially Stressed"). The earlier standalone callout that speculated a cause ("likely drawing on prior-cycle reserves or carrying debt") was retired 2026-06-05 — it read an unreliable chart-cumulative source and missed real overspends; the durable signal is the active-cycle banner + the factual closed-cycle outstanding-debt figure.
 - Spend-down rate is particularly interesting as a signal, especially in the final weeks before a primary or general (John)
 
 *Raised*

@@ -361,7 +361,7 @@
             <tr><td class="ds-token-name">--header-h</td><td>—</td><td class="ds-token-hex">56px</td><td>Top nav height. Nav is in-flow and scrolls out with content; no offset needed below.</td></tr>
             <tr><td class="ds-token-name">--banner-h</td><td>—</td><td class="ds-token-hex">32px</td><td>Global banner height. Banner is not fixed — scrolls with page. Token retained for height reference.</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Line-height tokens:</td></tr>
-            <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.625rem">.data-note</code>, <code style="font-size:0.625rem">.callout</code>, log entry body text</td></tr>
+            <tr><td class="ds-token-name">--lh-expanded</td><td>—</td><td class="ds-token-hex">1.75</td><td>Prose and notes — <code style="font-size:0.625rem">.data-note</code>, log entry body text</td></tr>
             <tr><td class="ds-token-name">--lh-normal</td><td>—</td><td class="ds-token-hex">1.5</td><td>Body default — general readable text, <code style="font-size:0.625rem">body</code> element</td></tr>
             <tr><td class="ds-token-name">--lh-tight</td><td>—</td><td class="ds-token-hex">1</td><td>Display and numeric — headings, stat values, tags, buttons</td></tr>
             <tr><td colspan="4" style="color:var(--muted);font-size:0.625rem;padding-top:0.75rem">Letter-spacing tokens:</td></tr>
@@ -632,7 +632,7 @@
         <div class="ds-type-group-label">Line-height system</div>
         <div class="ds-type-row">
           <span class="race-context-line" style="line-height:var(--lh-expanded);max-width:320px">Smith is the incumbent with 2 challengers in the 2024 race for House WA-03. View race →</span>
-          <span class="ds-type-meta"><code>--lh-expanded: 1.75</code><br>prose / notes<br>.data-note · .callout · log entries</span>
+          <span class="ds-type-meta"><code>--lh-expanded: 1.75</code><br>prose / notes<br>.data-note · log entries</span>
         </div>
         <div class="ds-type-row">
           <span style="font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;line-height:var(--lh-normal);max-width:320px;display:inline-block">Most navigation labels, form inputs, and general readable body copy uses this default line-height for comfortable reading.</span>
@@ -897,6 +897,7 @@
             <button class="ds-state-btn ds-health-btn" data-state="stressed">Stressed</button>
             <button class="ds-state-btn ds-health-btn" data-state="nodata">No Data</button>
             <button class="ds-state-btn ds-health-btn" data-state="closed">Closed</button>
+            <button class="ds-state-btn ds-health-btn" data-state="closeddebt">Closed · debt</button>
           </div>
           <div class="banner">
             <div class="banner-heading">
@@ -1909,19 +1910,6 @@
         </div>
       </div>
 
-      <!-- 20. Callout -->
-      <div class="ds-component" id="comp-callout" data-status="stable">
-        <div class="ds-component-header">
-          <span class="ds-component-name">Callout</span>
-          <span class="ds-status stable">stable</span>
-        </div>
-        <div class="ds-component-classes">.callout</div>
-        <div class="ds-component-demo">
-          <div class="callout">⚠ Disbursements exceed receipts this cycle — this committee spent beyond what it raised, likely drawing on prior-cycle reserves or carrying debt.</div>
-        </div>
-        <div class="ds-component-notes">Amber warning block — caption type (IBM Plex Mono 0.625rem, <code>--amber</code> text), amber-tinted background + border. Carries <code>margin-bottom:var(--space-24)</code> (not <code>margin-top</code>, as of 2026-06-04): the callout <strong>leads</strong> a section and the margin spaces it from the content below. Sole live consumer is <code>#overspend-note</code>, the first child of <code>#tab-summary</code> on candidate.html + committee.html (overspend cycles only; <code>display:none</code> otherwise) — it sits above the summary chart / associated-candidate section and the margin-bottom owns the gap to it.</div>
-      </div>
-
       <!-- 21. Data Note -->
       <div class="ds-component" id="comp-data-note" data-status="stable">
         <div class="ds-component-header">
@@ -2041,7 +2029,8 @@
     watch:    { signal:'amber', label:'Watch',               desc:'Raised-to-spent ratio of 1.12x. Limited financial cushion.',                  note:'' },
     stressed: { signal:'red',   label:'Financially Stressed', desc:'Disbursements exceed receipts — spending beyond what was raised this cycle.', note:'' },
     nodata:   { signal:'grey',  label:'No Data',             desc:'No filings this cycle.',                                                      note:'' },
-    closed:   { signal:'grey',  label:'Cycle Complete',      desc:'Cycle concluded with no outstanding debt reported.',                          note:'' }
+    closed:   { signal:'grey',  label:'Cycle Complete',      desc:'Cycle concluded with no outstanding debt reported.',                          note:'' },
+    closeddebt: { signal:'grey', label:'Cycle Complete',     desc:'Cycle concluded with $934K in outstanding debt.',                            note:'' }
   };
   document.querySelectorAll('.ds-health-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
