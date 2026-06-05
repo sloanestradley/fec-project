@@ -2530,7 +2530,7 @@ async function init() {
     // Both panels are slow-tier-fed (one is_individual=false crawl, split by
     // memo_code), so the per-panel inline indicators (applyRaisedSlowIndicators)
     // reflect the same slow-tier state in both — no active-tab gating needed here
-    // (committee.html's panels sit on different timelines; see applyIndicatorVisibility).
+    // (committee.html's panels sit on different timelines; see its applyRaisedSlowIndicators + panelNeedsSlow gate).
     raisedTabSection = initTabSection(document.getElementById('raised-tab-section'));
 
     view = initViewSwitcher({

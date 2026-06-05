@@ -6293,3 +6293,54 @@ Sloane steers by catching what the implementer glosses over — the pre-existing
 - **Phase 4 Insights.** Race's Insights tab was deferred (the stub removed). When it returns it should come back as a *flowing section*, consistent with the no-tabs direction — worth a quick spec so the next builder doesn't reintroduce a tab.
 - **Live deploy verification.** The de-tab flow + glass compact header need an eyeball on the deploy — especially Safari/iOS for the `-webkit-backdrop-filter` blur, and the compact header still engaging on all three pages after the `--compact-header-h` removal.
 - **The "tab" type style.** It's now realized only by `.cycle-select` (the tabs that named it are gone) — minor, but the canonical type-style name is a bit of a misnomer now; decide whether to leave it or rename.
+
+---
+2026-06-05 — loading-states honesty arc: Raised per-panel (candidate + committee) → candidate fetch-architecture (crawl→KV) → progressive-Spent strategy
+
+## Process log draft
+
+### Title
+The week the loading states learned to tell the truth — per-panel, per-source, all the way down
+
+### Summary (Sloane's voice)
+This stretch started as an investigation into why our Raised "Top Contributors" loading states were inconsistent and ended up rebuilding how three different surfaces tell you they're working. I shipped honest per-panel loading on the candidate and committee Raised tabs (including fixing a committee tab that was silently going blank on failure), then bounded a candidate API crawl that was rate-limiting itself on normal House candidates — 198 calls down to 1 — by routing it through data we'd already precomputed. We closed by scoping the same per-source honesty for the Spent tab into a strategy doc for next session.
+
+### Changelog
+- **T-raised-loading-states (candidate, 4bdfbbe):** replaced the detached, below-the-block slow-tier loading/error with per-panel indicators, and centered the "still loading" message IN the skeleton (overlay sibling — the skeleton's opacity pulse would dim a child).
+- **T-raised-loading-states (committee Option B, 19e2240):** per-source, source-state-driven indicators replacing active-tab suppression. Headline fix: the KV-miss Individuals panel — which the old active-tab gate silently blanked on load and on failure — now honestly shows loading + errors.
+- **Per-panel architecture docs (5a84bfb).**
+- **T-candidate-raised-fetch-architecture (3d2d44c + e4aa290):** candidate Top Contributors was an unbounded conduit-memo-driven crawl that rate-limited on normal filers (Marie ~198 pages). Rewrote it as an all-or-nothing page-1 probe: any sub-cycle over the cap → Committees from the precomputed KV slot + Conduits "high volume"; none over → crawl as before. Marie 198→1, Gillibrand 265→3, Biden/Harris 10,070→2. Corrected two stale "candidate doesn't hit the cap" doc claims.
+- **Spent progressive-loading strategy doc:** scoped the same per-source treatment for the Spent tab — donut is instant (in-memory), tables show loading until their own fetch — deferred to a fresh session (`strategy/spent-progressive-loading.md`).
+
+### Field notes
+The throughline was honesty about *what is actually happening* underneath. The committee Individuals bug and the Spent "all at once" were the same shape: the UI was claiming a single coherent state over data that actually had several independent timings. The investigations kept finding that the "design call" dissolved once you looked at the data model — the four Spent skeletons aren't co-equal, the donut is just sitting in memory waiting for no reason. And the candidate crawl fix was the satisfying kind: the data it was hammering the API to assemble was already precomputed; it just wasn't reading it.
+
+### Stack tags
+None new — extended the in-skeleton overlay pattern (sibling-not-child), the per-source indicator model (panelNeedsSlow), all-or-nothing page-1 probe + KV bounding, and DuckDB-KV-fed UI.
+
+## How Sloane steered the work
+
+### "Investigate and propose, don't assume the hypothesis"
+On both fetch tickets you explicitly told me to evaluate the obvious fix critically rather than implement it — which surfaced the sub-cycle cardinality wrinkle and the conduit-data trade that the one-line framing hid.
+
+### The must-confirm gates before each build
+You refused to let me wire committee Option B until I'd traced the topConduitsTooLarge interaction end to end, and the candidate fetch until I'd confirmed the page-1 bail and the error-path behavior. Each gate caught a real subtlety (the discarded-flag-on-reject reasoning; the all-or-nothing call that took Gillibrand 52→3).
+
+### "All-or-nothing committees" — your call that simplified the cost
+You changed the committees-source rule mid-plan to all-or-nothing, which dropped the Senate residual from 52 calls to 3 and made the whole thing cleaner.
+
+### "I was imagining this would only happen in the tables"
+On Spent, your mental model was more honest than my plan — it forced the discovery that the donut is instant and the message belongs to the tables, which reframed the whole feature.
+
+### "Sounds big — strategy doc, close out properly"
+You called the size accurately and chose to bank a detailed plan rather than start a large refactor at 65% context. The discipline of stopping at a clean boundary.
+
+### Through-line
+You steer by refusing the tidy one-liner: gate the build on a real trace, prefer the honest data model over the convenient render, and stop at a clean boundary rather than push a big change into a tired context window.
+
+## What to bring to Claude Chat
+
+- Progressive-Spent build (next session) — `strategy/spent-progressive-loading.md` is ready; two open confirms to settle at the top: per-source errors (recommended) and the two copy strings.
+- precompute-conduits — the named fast-follow. It's the only path to real conduit data on the bail path for BOTH candidate and committee; worth deciding when it earns a pipeline session.
+- The multi-sub-cycle KV merge tail-undercount (candidate Senate/Pres) — accepted + documented; flag if it ever shows up in a real comparison.
+- Live verification still owed: a Claude Chat live pass on Marie for the candidate fetch change (198→1 in the Network tab) and the committee KV-HIT Conduits-only indicator (C00806174) — neither is coverable by Track 1 (the mock always KV-misses).
