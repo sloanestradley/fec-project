@@ -335,15 +335,28 @@
           </div>
           <div class="raised-cell">
             <div class="raised-cell-title" id="spent-purpose-title">Spending by Purpose</div>
+            <!-- Bars (a chart) get NO overlay loading message per spent-progressive-
+                 loading; they pulse skeleton-only on the opex timeline (Vendors,
+                 below, carries the message). The error block below is driven by the
+                 shared opex error state — see renderSpentOpexIfReady. -->
             <div class="skeleton tab-skeleton skeleton-bars" id="spent-bars-skeleton"></div>
             <div id="spent-bars-content" style="display:none">
               <div id="spend-detail-bars"></div>
+            </div>
+            <div class="tab-error" id="spent-bars-error" style="display:none">
+              <span class="tab-error-msg">⚠ Could not load spending detail.</span>
+              <button class="tab-retry-btn" data-retry="spent-opex">Retry</button>
             </div>
           </div>
         </div>
         <div class="donors-card">
           <div class="donors-head">Top Vendors · Most Recent Sub-Cycle</div>
-          <div class="skeleton tab-skeleton skeleton-table" id="spent-vendors-skeleton"></div>
+          <div class="skeleton-overlay-wrap">
+            <div class="skeleton tab-skeleton skeleton-table" id="spent-vendors-skeleton"></div>
+            <div class="inline-status-msg skeleton-overlay-msg" id="spent-vendors-still-loading" style="display:none">
+              Tallying spending…this could take a moment.
+            </div>
+          </div>
           <div id="spent-vendors-content" style="display:none">
             <table class="donors-table">
               <thead><tr>
@@ -355,15 +368,12 @@
               <tbody id="vendors-tbody"></tbody>
             </table>
           </div>
-        </div>
-        <div class="inline-status-msg" id="spent-still-loading" style="display:none">
-          This is taking longer than usual — full transaction history can take 10–20 seconds…
+          <div class="tab-error" id="spent-vendors-error" style="display:none">
+            <span class="tab-error-msg">⚠ Could not load top vendors.</span>
+            <button class="tab-retry-btn" data-retry="spent-opex">Retry</button>
+          </div>
         </div>
         <div class="data-note" id="spent-data-note" style="display:none"></div>
-        <div class="tab-error" id="spent-error" style="display:none">
-          <span class="tab-error-msg">⚠ Could not load spending data.</span>
-          <button class="tab-retry-btn" data-retry="spent">Retry</button>
-        </div>
       </div>
 
       <!-- Page-level data note (C4.a + C4.c + C4.e + C8.f, 2026-05-29
@@ -430,10 +440,15 @@ var raisedSlowRendered   = false;
 var raisedDonutRendered  = false;
 var raisedStillLoadingTimer = null;
 var raisedSlowStillLoading  = false;  // 10s timer fired + slow tier not yet resolved/errored — drives the per-panel still-loading indicators
-var spentData            = null;
-var spentError           = null;
-var spentRendered        = false;
-var spentStillLoadingTimer = null;
+// Spent tab — progressive per-source render (spent-progressive-loading):
+// the donut renders INSTANTLY from the in-memory disbursements breakdown; the
+// opex tier (Purpose bars + Top Vendors) renders when its Schedule B walk resolves.
+var spentDonutRendered   = false;
+var spentOpexData        = null;
+var spentOpexError       = null;
+var spentOpexRendered    = false;
+var spentOpexStillLoading = false;  // 10s timer fired + opex tier not yet resolved/errored — drives the Vendors overlay message
+var spentOpexTimer       = null;
 // Retry context — captured in loadCycle so retry handlers can re-fire fetches with the right args
 var currentPrincipalId       = null;
 var currentSubCycles         = null;
@@ -441,7 +456,6 @@ var currentTotalsBreakdown   = null;
 var currentTotalRaised       = null;
 var currentDisbursementsBreakdown = null;
 var currentTotalSpent        = null;
-var currentCovDate           = null;
 var usTopoCache          = null;
 var committeesLoaded     = false;
 var CAND_NAME            = null;
@@ -642,8 +656,8 @@ function getSubCycles(cycle) {
 }
 // T-remove-profile-tabs (2026-06-03): showTab() retired with the outer tabs.
 // The three sections (#tab-summary/-raised/-spent) are always visible in a single
-// flow; renderRaisedIfReady/renderSpentIfReady now render on data-resolve (no
-// tab-active gate) and the URL hash is the bare #cycle (no #tab segment). The
+// flow; renderRaisedIfReady + the Spent render triggers now render on data-resolve
+// (no tab-active gate) and the URL hash is the bare #cycle (no #tab segment). The
 // old showTab minHeight scroll-clamp guard went with it — the switchTo floor
 // (initViewSwitcher) plus the render-time floor-release below cover scroll
 // stability now that there's no display:none→block tab transition to guard.
@@ -1357,12 +1371,14 @@ function renderRaisedIfReady() {
 }
 
 // ── Spent tab: data fetch ────────────────────────────
-async function fetchSpentData(committeeId, subCycles, disbursementsBreakdown, totalSpent, covDate) {
-  // Fetch all Schedule B transactions for the most recent sub-cycle.
+async function fetchSpentOpex(committeeId, subCycles) {
+  // Opex tier: all Schedule B (operating) transactions for the most recent sub-cycle.
+  // Feeds Spending-by-Purpose bars + Top Vendors. The donut renders separately from
+  // the in-memory disbursements breakdown (no fetch) — see renderSpentDonutNow.
   // Paginate via cursor until all records retrieved, cap at 5 pages (500 transactions).
   var allTransactions = [];
   var capped = false;
-  // T12: errors propagate to renderSpentIfReady's tab-level error UI; previous inner
+  // T12: errors propagate to renderSpentOpexIfReady's tab-level error UI; previous inner
   // try/catch silently suppressed failures and rendered empty tables.
   var MAX_PAGES = 5;
   var params = {
@@ -1403,9 +1419,8 @@ async function fetchSpentData(committeeId, subCycles, disbursementsBreakdown, to
     .sort(function(a,b){ return b.total - a.total; })
     .slice(0, 10);
 
-  return { breakdown: disbursementsBreakdown, totalSpent: totalSpent,
-           topVendors: topVendors, allTransactions: allTransactions,
-           capped: capped, covDate: covDate, subCycles: subCycles };
+  return { topVendors: topVendors, allTransactions: allTransactions,
+           capped: capped, subCycles: subCycles };
 }
 
 // ── Spent tab: donut chart ───────────────────────────
@@ -1538,42 +1553,63 @@ function renderSpendDetail(transactions) {
   }).join('');
 }
 
-// T12 — single-tier render. Skeleton until promise resolves; content swaps in;
-// 10s timer reveals the "still loading" augmentation if fetch is slow; tab-level
-// error UI with retry on fetch failure.
-function renderSpentIfReady() {
-  if (spentRendered) return;
-  // T-remove-profile-tabs: no tab gate — the Spent section is always visible in
-  // the flow. Render on data-resolve. spentRendered (top of fn) is the render-once
-  // guard; renderSpentDonut destroys before recreating.
+// spent-progressive-loading — the Spent tab renders in two independent triggers:
+//   • renderSpentDonutNow() — INSTANT, from the in-memory disbursements breakdown.
+//   • renderSpentOpexIfReady() — Purpose bars + Top Vendors, when fetchSpentOpex resolves.
+// applySpentIndicators() toggles the Vendors overlay "still loading" message.
+// (committee.html adds a third trigger for the CCM Contributions table.)
 
-  if (spentError) {
-    document.getElementById('spent-donut-skeleton').style.display = 'none';
+// Donut renders synchronously from currentDisbursementsBreakdown — no Schedule B
+// wait. Mirrors the Raised donut, which likewise renders from totals-in-memory.
+function renderSpentDonutNow() {
+  if (spentDonutRendered) return;
+  document.getElementById('spent-donut-skeleton').style.display = 'none';
+  // Guard: on an init-stage failure the breakdown was never populated — leave the
+  // donut skeleton hidden + content empty (the opex error + page chart-error already
+  // communicate the failure); don't render a null breakdown.
+  if (currentDisbursementsBreakdown) {
+    document.getElementById('spent-donut-content').style.display = 'block';
+    renderSpentDonut(currentDisbursementsBreakdown, currentTotalSpent);
+  }
+  spentDonutRendered = true;
+}
+
+// Vendors overlay message — shown iff the opex 10s timer fired AND opex is still
+// pending (not resolved, not errored). Mirrors applyRaisedSlowIndicators' overlay
+// half. The bars chart carries no message (chart, not table).
+function applySpentIndicators() {
+  var still = document.getElementById('spent-vendors-still-loading');
+  if (still) still.style.display = (spentOpexStillLoading && !spentOpexData && !spentOpexError) ? 'flex' : 'none';
+}
+
+function renderSpentOpexIfReady() {
+  if (spentOpexRendered) return;
+  // T-remove-profile-tabs: no tab gate — the Spent section is always visible.
+
+  if (spentOpexError) {
     document.getElementById('spent-bars-skeleton').style.display = 'none';
     document.getElementById('spent-vendors-skeleton').style.display = 'none';
-    document.getElementById('spent-still-loading').style.display = 'none';
-    showTabError(
-      document.getElementById('spent-error'),
-      spentError,
-      '⚠ Could not load spending data.'
-    );
-    spentRendered = true;
+    applySpentIndicators();  // error wins → clears the Vendors overlay
+    // Per-source error — opex failure surfaces on BOTH opex-derived sections
+    // (Purpose bars + Top Vendors); the donut, already rendered from memory, is
+    // never blanked. Two DOM blocks, one error state (spentOpexError).
+    showTabError(document.getElementById('spent-bars-error'), spentOpexError, '⚠ Could not load spending detail.');
+    showTabError(document.getElementById('spent-vendors-error'), spentOpexError, '⚠ Could not load top vendors.');
+    spentOpexRendered = true;
     document.querySelector('.main').style.minHeight = '';
     return;
   }
-  if (!spentData) return; // still pending — skeletons already visible
+  if (!spentOpexData) return; // still pending — skeleton(s) visible
 
-  document.getElementById('spent-donut-skeleton').style.display = 'none';
   document.getElementById('spent-bars-skeleton').style.display = 'none';
   document.getElementById('spent-vendors-skeleton').style.display = 'none';
-  document.getElementById('spent-still-loading').style.display = 'none';
-  document.getElementById('spent-error').style.display = 'none';
-  document.getElementById('spent-donut-content').style.display = 'block';
+  applySpentIndicators();  // resolved → clears the Vendors overlay
+  document.getElementById('spent-bars-error').style.display = 'none';
+  document.getElementById('spent-vendors-error').style.display = 'none';
   document.getElementById('spent-bars-content').style.display = 'block';
   document.getElementById('spent-vendors-content').style.display = 'block';
-  renderSpendDetail(spentData.allTransactions || []);
-  renderSpentDonut(spentData.breakdown, spentData.totalSpent);
-  renderTopVendors(spentData.topVendors);
+  renderSpendDetail(spentOpexData.allTransactions || []);
+  renderTopVendors(spentOpexData.topVendors);
 
   // C9 Spending-by-Purpose methodology → tooltip on the section title, with the
   // conditional cap fragment (C10.b). Rebuilt each render so the cap clause
@@ -1583,7 +1619,7 @@ function renderSpentIfReady() {
   (function() {
     var t = document.getElementById('spent-purpose-title');
     var copy = 'Categories estimated from disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle only.'
-      + (spentData.capped ? ' (capped at 500 transactions)' : '');
+      + (spentOpexData.capped ? ' (capped at 500 transactions)' : '');
     t.classList.add('raised-cell-title--has-info');
     t.innerHTML = 'Spending by Purpose<span class="tooltip" aria-label="About spending by purpose">' + copy + '</span>';
     initTooltips(t);
@@ -1606,7 +1642,7 @@ function renderSpentIfReady() {
   document.getElementById('spent-data-note').innerHTML = '';
   document.getElementById('spent-data-note').style.display = 'none';
 
-  spentRendered = true;
+  spentOpexRendered = true;
   document.querySelector('.main').style.minHeight = '';
 }
 
@@ -1682,25 +1718,30 @@ function kickoffRaisedSlowFetch(token) {
 }
 
 function kickoffSpentFetch(token) {
-  spentStillLoadingTimer = setTimeout(function() {
+  // Donut renders immediately from the in-memory breakdown — no fetch wait.
+  renderSpentDonutNow();
+  // Opex tier (Purpose bars + Top Vendors): 10s overlay on Vendors, then fetch.
+  spentOpexTimer = setTimeout(function() {
     if (!view.isCurrentToken(token)) return;
-    if (spentRendered) return;
-    var el = document.getElementById('spent-still-loading');
-    if (el) el.style.display = 'block';
+    if (spentOpexRendered) return;
+    spentOpexStillLoading = true;
+    applySpentIndicators();
   }, 10000);
-  fetchSpentData(currentPrincipalId, currentSubCycles, currentDisbursementsBreakdown, currentTotalSpent, currentCovDate)
+  fetchSpentOpex(currentPrincipalId, currentSubCycles)
     .then(function(d) {
-      clearTimeout(spentStillLoadingTimer);
+      clearTimeout(spentOpexTimer);
       if (!view.isCurrentToken(token)) return;
-      spentData = d;
-      renderSpentIfReady();
+      spentOpexStillLoading = false;
+      spentOpexData = d;
+      renderSpentOpexIfReady();
     })
     .catch(function(err) {
-      clearTimeout(spentStillLoadingTimer);
+      clearTimeout(spentOpexTimer);
       if (!view.isCurrentToken(token)) return;
-      spentError = err;
-      console.warn('fetchSpentData failed:', err.message);
-      renderSpentIfReady();
+      spentOpexStillLoading = false;
+      spentOpexError = err;
+      console.warn('fetchSpentOpex failed:', err.message);
+      renderSpentOpexIfReady();
     });
 }
 
@@ -1719,16 +1760,19 @@ function retryRaisedSlow() {
   document.getElementById('raised-conduits-skeleton').style.display = 'block';
   kickoffRaisedSlowFetch(view.claimToken());
 }
-function retrySpent() {
-  spentData = null; spentError = null; spentRendered = false;
-  document.getElementById('spent-error').style.display = 'none';
-  document.getElementById('spent-donut-skeleton').style.display = 'block';
+// Retry the opex tier only — the donut is already rendered from memory and never
+// errors, so retry refires just the Schedule B opex walk (bars + vendors).
+function retrySpentOpex() {
+  spentOpexData = null; spentOpexError = null; spentOpexRendered = false;
+  spentOpexStillLoading = false;
+  applySpentIndicators();  // hides the Vendors overlay
+  document.getElementById('spent-bars-error').style.display = 'none';
+  document.getElementById('spent-vendors-error').style.display = 'none';
   document.getElementById('spent-bars-skeleton').style.display = 'block';
   document.getElementById('spent-vendors-skeleton').style.display = 'block';
-  document.getElementById('spent-donut-content').style.display = 'none';
   document.getElementById('spent-bars-content').style.display = 'none';
   document.getElementById('spent-vendors-content').style.display = 'none';
-  kickoffSpentFetch(view.claimToken());
+  kickoffSpentFetch(view.claimToken());  // renderSpentDonutNow is a no-op (spentDonutRendered guard)
 }
 // Delegated retry click handler (registered once on first init)
 document.addEventListener('click', function(e) {
@@ -1737,7 +1781,7 @@ document.addEventListener('click', function(e) {
   var what = btn.getAttribute('data-retry');
   if (what === 'raised-fast') retryRaisedFast();
   else if (what === 'raised-slow') retryRaisedSlow();
-  else if (what === 'spent') retrySpent();
+  else if (what === 'spent-opex') retrySpentOpex();
 });
 
 // ── Load one cycle ──────────────────────────────────
@@ -1766,8 +1810,10 @@ async function loadCycle(cycle) {
   document.getElementById('conduits-content').style.display = 'none';
 
   // Reset Spent tab state + DOM for new cycle
-  spentData = null; spentError = null; spentRendered = false;
-  if (spentStillLoadingTimer) { clearTimeout(spentStillLoadingTimer); spentStillLoadingTimer = null; }
+  spentDonutRendered = false;
+  spentOpexData = null; spentOpexError = null; spentOpexRendered = false;
+  spentOpexStillLoading = false;
+  if (spentOpexTimer) { clearTimeout(spentOpexTimer); spentOpexTimer = null; }
   if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
   document.getElementById('spent-donut-skeleton').style.display = 'block';
   document.getElementById('spent-bars-skeleton').style.display = 'block';
@@ -1775,9 +1821,10 @@ async function loadCycle(cycle) {
   document.getElementById('spent-donut-content').style.display = 'none';
   document.getElementById('spent-bars-content').style.display = 'none';
   document.getElementById('spent-vendors-content').style.display = 'none';
-  document.getElementById('spent-still-loading').style.display = 'none';
+  document.getElementById('spent-vendors-still-loading').style.display = 'none';
   document.getElementById('spent-data-note').style.display = 'none';
-  document.getElementById('spent-error').style.display = 'none';
+  document.getElementById('spent-bars-error').style.display = 'none';
+  document.getElementById('spent-vendors-error').style.display = 'none';
 
   // Show label + skeleton in race-context while /elections/ fetch is in-flight.
   // Label is derived from candidate metadata (cycle-independent) and renders
@@ -1930,7 +1977,6 @@ async function loadCycle(cycle) {
       currentTotalRaised             = raised;
       currentDisbursementsBreakdown  = disbursementsBreakdown;
       currentTotalSpent              = spent;
-      currentCovDate                 = covDate;
 
       kickoffRaisedFastFetch(myFetchId);
       kickoffRaisedSlowFetch(myFetchId);
@@ -1941,7 +1987,8 @@ async function loadCycle(cycle) {
       // both sections are visible in the flow. The fast/slow/spent kickoffs above
       // also call these on resolve; the *Rendered guards make the double-call safe.
       renderRaisedIfReady();
-      renderSpentIfReady();
+      renderSpentDonutNow();
+      renderSpentOpexIfReady();
     }
 
     var electionsData = [];
@@ -2152,15 +2199,17 @@ async function loadCycle(cycle) {
     // (or rate-limit copy if the underlying error is a 429).
     err.initStage = true;
     if (raisedStillLoadingTimer) { clearTimeout(raisedStillLoadingTimer); raisedStillLoadingTimer = null; }
-    if (spentStillLoadingTimer)  { clearTimeout(spentStillLoadingTimer);  spentStillLoadingTimer  = null; }
+    if (spentOpexTimer)  { clearTimeout(spentOpexTimer);  spentOpexTimer  = null; }
     raisedFastError = err;
     raisedSlowError = err;
-    spentError      = err;
-    // Donut skeleton is hidden by renderRaisedIfReady's init-stage-error branch
-    // (donut won't render without totals data; skeleton would otherwise pulse
-    // forever next to the tab-error UI).
+    spentOpexError  = err;
+    // Donut skeleton is hidden by renderRaisedIfReady's init-stage-error branch and
+    // renderSpentDonutNow's null-breakdown guard (the breakdown was never populated,
+    // so the donut can't render; its skeleton would otherwise pulse forever next to
+    // the tab-error UI).
     renderRaisedIfReady();
-    renderSpentIfReady();
+    renderSpentDonutNow();      // hides the donut skeleton (null breakdown → no render)
+    renderSpentOpexIfReady();   // surfaces the init-stage error on bars + vendors
   }
 }
 

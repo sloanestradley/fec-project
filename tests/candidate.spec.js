@@ -503,8 +503,8 @@ test.describe('candidate.html — flowing detail view', () => {
   });
 
   // Standing single-instantiation lock (T-remove-profile-tabs): removing the
-  // tab-active render gate means renderRaisedIfReady/renderSpentIfReady fire on
-  // data-resolve and can be re-entered (fast then slow tier). This guards that
+  // tab-active render gate means renderRaisedIfReady + the Spent render triggers
+  // fire on data-resolve and can be re-entered (fast then slow tier). This guards that
   // each chart canvas holds exactly one Chart.js instance after load AND after a
   // cycle round-trip (destroy-before-recreate + *Rendered render-once guards),
   // so the ungated render never double-instantiates / leaks a chart.
@@ -1830,19 +1830,25 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     expect(conduitsHeight).toBeGreaterThanOrEqual(200);
   });
 
-  test('Spent: failure renders error with retry button', async ({ page }) => {
+  // spent-progressive-loading: the opex Schedule B walk feeds Purpose bars + Top
+  // Vendors; its failure surfaces a per-source error on BOTH (#spent-bars-error +
+  // #spent-vendors-error). The donut renders from memory and is never blanked.
+  test('Spent: opex failure renders per-source error with retry button', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.route('**/api/fec/schedules/schedule_b/**', (route) => route.abort('failed'));
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
-    const err = page.locator('#spent-error');
+    const err = page.locator('#spent-vendors-error');
     await expect(err).toBeVisible({ timeout: 8000 });
     await expect(err.locator('.tab-retry-btn')).toBeVisible();
+    await expect(page.locator('#spent-bars-error')).toBeVisible();
+    // Donut renders from the in-memory breakdown — never blanked by the opex failure.
+    await expect(page.locator('#spent-donut-content')).toBeVisible();
   });
 
-  test('Spent: retry click re-fires fetch and renders content', async ({ page }) => {
+  test('Spent: opex retry click re-fires fetch and renders content', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     let abortNext = true;
@@ -1853,16 +1859,53 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
-    await expect(page.locator('#spent-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#spent-vendors-error')).toBeVisible({ timeout: 8000 });
     abortNext = false;
-    await page.locator('#spent-error .tab-retry-btn').click();
+    await page.locator('#spent-vendors-error .tab-retry-btn').click();
     // Wait for spent vendors content to flip to block (post-refactor signal)
     await page.waitForFunction(
       () => document.getElementById('spent-vendors-content').style.display === 'block',
       { timeout: 10000 }
     );
     await expect(page.locator('#spent-vendors-content')).toBeVisible();
-    await expect(page.locator('#spent-error')).toBeHidden();
+    await expect(page.locator('#spent-vendors-error')).toBeHidden();
+    await expect(page.locator('#spent-bars-error')).toBeHidden();
+  });
+
+  // Donut is instant — it must render from the in-memory breakdown even while the
+  // opex Schedule B walk is still pending (slow-network response held open).
+  test('Spent: donut renders instantly while opex tier still loading', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    let releaseB;
+    const heldB = new Promise((res) => { releaseB = res; });
+    await page.route('**/api/fec/schedules/schedule_b/**', async (route) => {
+      await heldB;            // hold the opex/CCM walk open
+      route.fallback();
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await expect(page.locator('#tab-spent')).toBeVisible();
+    // Donut visible while Vendors is still a skeleton (Schedule B held open).
+    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#spent-vendors-skeleton')).toBeVisible();
+    await expect(page.locator('#spent-vendors-content')).toBeHidden();
+    releaseB();
+  });
+
+  // The Vendors overlay "still loading" message is a SIBLING of the skeleton inside
+  // .skeleton-overlay-wrap — never a DOM child (the .skeleton group-opacity pulse
+  // would dim a descendant). Structural guard; force-visible since the bounded
+  // (≤5 page) fetch rarely trips the real 10s timer.
+  test('Spent: Vendors overlay message is a sibling inside .skeleton-overlay-wrap', async ({ page }) => {
+    await setup(page);
+    await page.waitForSelector('#content.visible', { timeout: 8000 });
+    const inWrap = await page.locator('#spent-vendors-still-loading')
+      .evaluate(el => !!el.closest('.skeleton-overlay-wrap'));
+    expect(inWrap).toBe(true);
+    const isChildOfSkeleton = await page.locator('#spent-vendors-still-loading')
+      .evaluate(el => el.parentElement.classList.contains('skeleton'));
+    expect(isChildOfSkeleton).toBe(false);
   });
 });
 
@@ -1962,11 +2005,12 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     // Skeletons should be hidden — not stuck
     await expect(page.locator('#raised-donors-skeleton')).toBeHidden();
     await expect(page.locator('#raised-conduits-skeleton')).toBeHidden();
-    // Spent tab — same rate-limit copy
+    // Spent tab — init-stage error bridges to the opex tier's per-source error
+    // (spent-progressive-loading: spentOpexError surfaces on bars + vendors).
     await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
-    await expect(page.locator('#spent-error')).toBeVisible();
-    await expect(page.locator('#spent-error .tab-error-msg')).toHaveText(/rate limit reached/i);
-    await expect(page.locator('#spent-error .tab-retry-btn')).toBeHidden();
+    await expect(page.locator('#spent-vendors-error')).toBeVisible();
+    await expect(page.locator('#spent-vendors-error .tab-error-msg')).toHaveText(/rate limit reached/i);
+    await expect(page.locator('#spent-vendors-error .tab-retry-btn')).toBeHidden();
   });
 
   test('init-stage non-429 (500) → tab-error init-failure copy on Raised + Spent', async ({ page }) => {

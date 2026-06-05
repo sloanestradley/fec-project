@@ -255,14 +255,17 @@ a { color: var(--accent); }
    and .retry-btn so state messaging reads as a coherent family. */
 .inline-status-msg { font-size:0.75rem; color:var(--muted);
   text-align:center; padding:var(--space-16) 0; }
-/* T-raised-loading-states — center the slow-tier "still loading" message OVER the
-   skeleton's footprint (not below it). The message is a SIBLING of the skeleton
-   inside this position:relative wrapper — never a child: .skeleton animates
-   group-opacity (0.6 ↔ 0.25), which would dim any descendant text. Scoped to the
-   Raised tab panels; the shared .skeleton primitive is left alone. JS toggles the
-   message between display:flex (shown) and none (hidden) via applyRaisedSlowIndicators. */
-.tab-section-panel .skeleton-overlay-wrap { position:relative; }
-.tab-section-panel .skeleton-overlay-msg {
+/* T-raised-loading-states / spent-progressive-loading — center a "still loading"
+   message OVER a skeleton's footprint (not below it). The message is a SIBLING of
+   the skeleton inside this position:relative wrapper — never a child: .skeleton
+   animates group-opacity (0.6 ↔ 0.25), which would dim any descendant text. The
+   shared .skeleton primitive is left alone. JS toggles the message between
+   display:flex (shown) and none (hidden) via the page's indicator helpers.
+   Un-scoped from .tab-section-panel 2026-06-05 so the Spent tab's Vendors +
+   Contributions table skeletons (not inside a .tab-section-panel) can reuse it;
+   the classes are unique to this overlay pattern, so the lift is collision-free. */
+.skeleton-overlay-wrap { position:relative; }
+.skeleton-overlay-msg {
   position:absolute; inset:0; margin:0;
   align-items:center; justify-content:center; padding:var(--space-16); }
 /* Per-tier inline error UI with retry */

@@ -1,8 +1,14 @@
 # Spent tab — progressive per-source loading (candidate + committee)
 
-*Planned 2026-06-05. Not yet executed. Tackle in a fresh session. Closes the loading-states arc
-(T-raised-loading-states candidate `4bdfbbe` + committee `19e2240`) by bringing the Spent tab onto
-the same per-source honesty as the Raised sub-tabs.*
+**EXECUTED 2026-06-05.** Both open confirms resolved (per-source errors; "Tallying spending…" /
+"Tallying contributions…"). One refinement vs. this plan: the opex error uses **two DOM blocks**
+(`#spent-bars-error` + `#spent-vendors-error`) bound to one `spentOpexError` state, because Purpose
+bars and Top Vendors sit in physically separated layout regions — a single block would leave one
+heading silently blank. Tests 846 → 851 (+5; no removals — 4 reworked in place). Kept as historical
+reference.
+
+*Planned 2026-06-05. Closes the loading-states arc (T-raised-loading-states candidate `4bdfbbe` +
+committee `19e2240`) by bringing the Spent tab onto the same per-source honesty as the Raised sub-tabs.*
 
 ---
 

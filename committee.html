@@ -319,9 +319,17 @@
           <!-- Right: Spending by Purpose breakdown bars -->
           <div class="raised-cell">
             <div class="raised-cell-title" id="spent-purpose-title">Spending by Purpose</div>
+            <!-- Bars (a chart) get NO overlay loading message per spent-progressive-
+                 loading; they pulse skeleton-only on the opex timeline (Vendors,
+                 below, carries the message). The error block is driven by the shared
+                 opex error state — see renderSpentOpexIfReady. -->
             <div class="skeleton tab-skeleton skeleton-bars" id="spent-bars-skeleton"></div>
             <div id="spent-bars-content" style="display:none">
               <div id="spend-detail-bars"></div>
+            </div>
+            <div class="tab-error" id="spent-bars-error" style="display:none">
+              <span class="tab-error-msg">⚠ Could not load spending detail.</span>
+              <button class="tab-retry-btn" data-retry="spent-opex">Retry</button>
             </div>
           </div>
         </div>
@@ -329,7 +337,12 @@
         <!-- Top Vendors table -->
         <div class="donors-card">
           <div class="donors-head" id="vendors-head">Top Vendors</div>
-          <div class="skeleton tab-skeleton skeleton-table" id="spent-vendors-skeleton"></div>
+          <div class="skeleton-overlay-wrap">
+            <div class="skeleton tab-skeleton skeleton-table" id="spent-vendors-skeleton"></div>
+            <div class="inline-status-msg skeleton-overlay-msg" id="spent-vendors-still-loading" style="display:none">
+              Tallying spending…this could take a moment.
+            </div>
+          </div>
           <div id="spent-vendors-content" style="display:none">
             <table class="donors-table">
               <thead><tr>
@@ -341,13 +354,24 @@
               <tbody id="vendors-tbody"></tbody>
             </table>
           </div>
+          <div class="tab-error" id="spent-vendors-error" style="display:none">
+            <span class="tab-error-msg">⚠ Could not load top vendors.</span>
+            <button class="tab-retry-btn" data-retry="spent-opex">Retry</button>
+          </div>
         </div>
 
-        <!-- Contributions to Candidates & Committees — visible during loading with
-             skeleton; hidden by renderContributions() if no contributions resolve. -->
+        <!-- Contributions to Candidates & Committees — its own CCM Schedule B fetch
+             (independent of opex), so its own overlay + error. renderContributions()
+             hides the whole section if no contributions resolve; the error block
+             below keeps the section visible on CCM failure. -->
         <div class="donors-card" id="contributions-section">
           <div class="donors-head">Contributions to Candidates &amp; Committees</div>
-          <div class="skeleton tab-skeleton skeleton-table" id="spent-contributions-skeleton"></div>
+          <div class="skeleton-overlay-wrap">
+            <div class="skeleton tab-skeleton skeleton-table" id="spent-contributions-skeleton"></div>
+            <div class="inline-status-msg skeleton-overlay-msg" id="spent-contributions-still-loading" style="display:none">
+              Tallying contributions…this could take a moment.
+            </div>
+          </div>
           <div id="contributions-content" style="display:none">
             <table class="donors-table">
               <thead><tr>
@@ -358,16 +382,13 @@
               <tbody id="contributions-tbody"></tbody>
             </table>
           </div>
+          <div class="tab-error" id="spent-contributions-error" style="display:none">
+            <span class="tab-error-msg">⚠ Could not load contributions.</span>
+            <button class="tab-retry-btn" data-retry="spent-contributions">Retry</button>
+          </div>
         </div>
 
-        <div class="inline-status-msg" id="spent-still-loading" style="display:none">
-          This is taking longer than usual — full transaction history can take 10–20 seconds…
-        </div>
         <div class="data-note" id="spent-data-note" style="display:none"></div>
-        <div class="tab-error" id="spent-error" style="display:none">
-          <span class="tab-error-msg">⚠ Could not load spending data.</span>
-          <button class="tab-retry-btn" data-retry="spent">Retry</button>
-        </div>
       </div>
 
       <!-- Page-level data note (K1.a + K1.c + K1.d + K10, 2026-05-29
@@ -427,10 +448,20 @@ var raisedSlowRendered   = false;
 var raisedDonutRendered  = false;
 var raisedStillLoadingTimer = null;
 var spentDonutInstance   = null;
-var spentData            = null;
-var spentError           = null;
-var spentRendered        = false;
-var spentStillLoadingTimer = null;
+// Spent tab — progressive per-source render (spent-progressive-loading): donut
+// renders INSTANTLY from ALL_TOTALS; opex tier (Purpose bars + Top Vendors) and
+// CCM tier (Contributions) each render when their own Schedule B walk resolves.
+var spentDonutRendered      = false;
+var spentOpexData           = null;
+var spentOpexError          = null;
+var spentOpexRendered       = false;
+var spentOpexStillLoading   = false;  // 10s timer fired + opex tier still pending — drives the Vendors overlay
+var spentOpexTimer          = null;
+var spentContribData        = null;
+var spentContribError       = null;
+var spentContribRendered    = false;
+var spentContribStillLoading = false; // 10s timer fired + CCM tier still pending — drives the Contributions overlay
+var spentContribTimer       = null;
 // Retry context — captured in renderStats so retry handlers can re-fire fetches
 var currentCycleScope         = null;
 var currentTotalsRecord       = null;
@@ -444,7 +475,7 @@ var cachedMetaP   = null;  // /committee/{id}/ — in-flight or resolved
 var cachedTotalsP = null;  // /committee/{id}/totals/?per_page=100 — in-flight or resolved
 var compactThreshold    = 0;     // scrollY at which compact mode engages; set in initCompactHeader()
 var compactHeaderInited = false; // compact scroll listener registered once at init
-var cycleFetchToken     = null;  // claimed in renderStats; checked in renderRaisedIfReady/renderSpentIfReady
+var cycleFetchToken     = null;  // claimed in renderStats; checked in renderRaisedIfReady + the Spent render triggers
 var view                = null;  // initViewSwitcher instance — created in init() before first switchTo
 var raisedTabSection    = null;  // initTabSection instance for #raised-tab-section — created in init()
 var menu                = null;  // initMenuButton instance — created in init() after renderHeader (T-menu-btn-profile-header)
@@ -470,7 +501,7 @@ function designationLabel(d) {
 
 // T-remove-profile-tabs (2026-06-03): showTab() retired with the outer tabs.
 // The three sections (#tab-summary/-raised/-spent) are always visible in a single
-// flow; renderRaisedIfReady/renderSpentIfReady render on data-resolve (no
+// flow; renderRaisedIfReady + the Spent render triggers render on data-resolve (no
 // tab-active gate) and the URL hash is the bare #cycle. The old showTab minHeight
 // scroll-clamp guard went with it — the switchTo floor (initViewSwitcher) covers
 // the skeleton-short window, and the render fns below release it once the in-flow
@@ -1070,25 +1101,55 @@ function kickoffRaisedSlowFetch(token) {
 }
 
 function kickoffSpentFetch(token) {
-  spentStillLoadingTimer = setTimeout(function() {
+  // Donut renders immediately from ALL_TOTALS — no fetch wait.
+  renderSpentDonutNow();
+
+  // Opex tier (Purpose bars + Top Vendors): 10s overlay on Vendors, then fetch.
+  spentOpexTimer = setTimeout(function() {
     if (!view.isCurrentToken(token)) return;
-    if (spentRendered) return;
-    var el = document.getElementById('spent-still-loading');
-    if (el) el.style.display = 'block';
+    if (spentOpexRendered) return;
+    spentOpexStillLoading = true;
+    applySpentIndicators();
   }, 10000);
-  fetchSpentData(currentCycleScope)
+  fetchSpentOpex(currentCycleScope)
     .then(function(d) {
-      clearTimeout(spentStillLoadingTimer);
+      clearTimeout(spentOpexTimer);
       if (!view.isCurrentToken(token)) return;
-      spentData = d;
-      renderSpentIfReady();
+      spentOpexStillLoading = false;
+      spentOpexData = d;
+      renderSpentOpexIfReady();
     })
     .catch(function(err) {
-      clearTimeout(spentStillLoadingTimer);
+      clearTimeout(spentOpexTimer);
       if (!view.isCurrentToken(token)) return;
-      spentError = err;
-      console.warn('fetchSpentData failed:', err.message);
-      renderSpentIfReady();
+      spentOpexStillLoading = false;
+      spentOpexError = err;
+      console.warn('fetchSpentOpex failed:', err.message);
+      renderSpentOpexIfReady();
+    });
+
+  // CCM tier (Contributions): 10s overlay on Contributions, then fetch.
+  spentContribTimer = setTimeout(function() {
+    if (!view.isCurrentToken(token)) return;
+    if (spentContribRendered) return;
+    spentContribStillLoading = true;
+    applySpentIndicators();
+  }, 10000);
+  fetchSpentContributions(currentCycleScope)
+    .then(function(d) {
+      clearTimeout(spentContribTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentContribStillLoading = false;
+      spentContribData = d;
+      renderSpentContributionsIfReady();
+    })
+    .catch(function(err) {
+      clearTimeout(spentContribTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentContribStillLoading = false;
+      spentContribError = err;
+      console.warn('fetchSpentContributions failed:', err.message);
+      renderSpentContributionsIfReady();
     });
 }
 
@@ -1117,21 +1178,77 @@ function retryRaisedSlow() {
   cycleFetchToken = token;
   kickoffRaisedSlowFetch(token);
 }
-function retrySpent() {
-  spentData = null; spentError = null; spentRendered = false;
-  document.getElementById('spent-error').style.display = 'none';
-  document.getElementById('spent-donut-skeleton').style.display = 'block';
+// Retry the opex tier only — donut renders from memory + never errors, CCM is its
+// own retry. Refires just the opex Schedule B walk (bars + vendors).
+function retrySpentOpex() {
+  spentOpexData = null; spentOpexError = null; spentOpexRendered = false;
+  spentOpexStillLoading = false;
+  applySpentIndicators();  // hides the Vendors overlay
+  document.getElementById('spent-bars-error').style.display = 'none';
+  document.getElementById('spent-vendors-error').style.display = 'none';
   document.getElementById('spent-bars-skeleton').style.display = 'block';
   document.getElementById('spent-vendors-skeleton').style.display = 'block';
-  document.getElementById('spent-contributions-skeleton').style.display = 'block';
-  document.getElementById('contributions-section').style.display = 'block';
-  document.getElementById('spent-donut-content').style.display = 'none';
   document.getElementById('spent-bars-content').style.display = 'none';
   document.getElementById('spent-vendors-content').style.display = 'none';
+  var token = view.claimToken();
+  cycleFetchToken = token;
+  // Refire only the opex tier; donut + CCM are untouched.
+  spentOpexTimer = setTimeout(function() {
+    if (!view.isCurrentToken(token)) return;
+    if (spentOpexRendered) return;
+    spentOpexStillLoading = true;
+    applySpentIndicators();
+  }, 10000);
+  fetchSpentOpex(currentCycleScope)
+    .then(function(d) {
+      clearTimeout(spentOpexTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentOpexStillLoading = false;
+      spentOpexData = d;
+      renderSpentOpexIfReady();
+    })
+    .catch(function(err) {
+      clearTimeout(spentOpexTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentOpexStillLoading = false;
+      spentOpexError = err;
+      console.warn('fetchSpentOpex failed:', err.message);
+      renderSpentOpexIfReady();
+    });
+}
+// Retry the CCM tier only — refires just the Contributions Schedule B walk.
+function retrySpentContributions() {
+  spentContribData = null; spentContribError = null; spentContribRendered = false;
+  spentContribStillLoading = false;
+  applySpentIndicators();  // hides the Contributions overlay
+  document.getElementById('spent-contributions-error').style.display = 'none';
+  document.getElementById('contributions-section').style.display = 'block';
+  document.getElementById('spent-contributions-skeleton').style.display = 'block';
   document.getElementById('contributions-content').style.display = 'none';
   var token = view.claimToken();
   cycleFetchToken = token;
-  kickoffSpentFetch(token);
+  spentContribTimer = setTimeout(function() {
+    if (!view.isCurrentToken(token)) return;
+    if (spentContribRendered) return;
+    spentContribStillLoading = true;
+    applySpentIndicators();
+  }, 10000);
+  fetchSpentContributions(currentCycleScope)
+    .then(function(d) {
+      clearTimeout(spentContribTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentContribStillLoading = false;
+      spentContribData = d;
+      renderSpentContributionsIfReady();
+    })
+    .catch(function(err) {
+      clearTimeout(spentContribTimer);
+      if (!view.isCurrentToken(token)) return;
+      spentContribStillLoading = false;
+      spentContribError = err;
+      console.warn('fetchSpentContributions failed:', err.message);
+      renderSpentContributionsIfReady();
+    });
 }
 // Delegated retry click handler (registered once)
 document.addEventListener('click', function(e) {
@@ -1140,7 +1257,8 @@ document.addEventListener('click', function(e) {
   var what = btn.getAttribute('data-retry');
   if (what === 'raised-fast') retryRaisedFast();
   else if (what === 'raised-slow') retryRaisedSlow();
-  else if (what === 'spent') retrySpent();
+  else if (what === 'spent-opex') retrySpentOpex();
+  else if (what === 'spent-contributions') retrySpentContributions();
 });
 
 function renderStats(cycleOrAll) {
@@ -1222,8 +1340,11 @@ function renderStats(cycleOrAll) {
   document.getElementById('individual-donors-content').style.display = 'none';
 
   // Reset Spent tab state + DOM
-  spentData = null; spentError = null; spentRendered = false;
-  if (spentStillLoadingTimer) { clearTimeout(spentStillLoadingTimer); spentStillLoadingTimer = null; }
+  spentDonutRendered = false;
+  spentOpexData = null; spentOpexError = null; spentOpexRendered = false; spentOpexStillLoading = false;
+  spentContribData = null; spentContribError = null; spentContribRendered = false; spentContribStillLoading = false;
+  if (spentOpexTimer) { clearTimeout(spentOpexTimer); spentOpexTimer = null; }
+  if (spentContribTimer) { clearTimeout(spentContribTimer); spentContribTimer = null; }
   if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
   document.getElementById('spent-donut-skeleton').style.display = 'block';
   document.getElementById('spent-bars-skeleton').style.display = 'block';
@@ -1234,9 +1355,12 @@ function renderStats(cycleOrAll) {
   document.getElementById('spent-bars-content').style.display = 'none';
   document.getElementById('spent-vendors-content').style.display = 'none';
   document.getElementById('contributions-content').style.display = 'none';
-  document.getElementById('spent-still-loading').style.display = 'none';
+  document.getElementById('spent-vendors-still-loading').style.display = 'none';
+  document.getElementById('spent-contributions-still-loading').style.display = 'none';
   document.getElementById('spent-data-note').style.display = 'none';
-  document.getElementById('spent-error').style.display = 'none';
+  document.getElementById('spent-bars-error').style.display = 'none';
+  document.getElementById('spent-vendors-error').style.display = 'none';
+  document.getElementById('spent-contributions-error').style.display = 'none';
 
   kickoffRaisedFastFetch(cycleFetchToken);
   kickoffRaisedSlowFetch(cycleFetchToken);
@@ -1247,7 +1371,9 @@ function renderStats(cycleOrAll) {
   // both sections are visible in the flow. The kickoffs above also call these on
   // resolve; the *Rendered guards make the double-call safe.
   renderRaisedIfReady();
-  renderSpentIfReady();
+  renderSpentDonutNow();
+  renderSpentOpexIfReady();
+  renderSpentContributionsIfReady();
 }
 
 // ── Raised tab utilities ─────────────────────────────
@@ -1867,9 +1993,14 @@ function renderRaisedIfReady() {
 }
 
 // ── Spent tab: data fetch ────────────────────────────
-async function fetchSpentData(cycleOrAll) {
-  // Build breakdown from ALL_TOTALS (no extra fetch needed)
-  // Named category keys must match FEC /committee/{id}/totals/ field names
+// spent-progressive-loading — the Spent tab's three data sources are split so each
+// renders on its own timing: the donut (synchronous, from ALL_TOTALS), the opex tier
+// (Purpose bars + Top Vendors), and the CCM tier (Contributions). Separating the two
+// Schedule B walks also keeps opex volume from crowding contributions out of the cap.
+
+// Donut breakdown — synchronous from ALL_TOTALS (no fetch). Named category keys must
+// match FEC /committee/{id}/totals/ field names. Returns {breakdown, totalSpent}.
+function computeSpentBreakdown(cycleOrAll) {
   var CATEGORY_KEYS = [
     'operating_expenditures',
     'shared_nonfed_operating_expenditures',
@@ -1882,8 +2013,6 @@ async function fetchSpentData(cycleOrAll) {
   var breakdown = {};
   CATEGORY_KEYS.forEach(function(k){ breakdown[k] = 0; });
   var totalSpent = 0;
-  var covDate = null;
-
   var rec = null;
   for (var i = 0; i < ALL_TOTALS.length; i++) {
     if (ALL_TOTALS[i].cycle === cycleOrAll) { rec = ALL_TOTALS[i]; break; }
@@ -1891,98 +2020,41 @@ async function fetchSpentData(cycleOrAll) {
   if (rec) {
     CATEGORY_KEYS.forEach(function(k){ breakdown[k] = rec[k] || 0; });
     totalSpent = rec.disbursements || 0;
-    covDate = rec.coverage_end_date ? rec.coverage_end_date.split('T')[0] : null;
   }
   // Compute "other" as remainder so donut always covers 100% of spending
   var knownSum = CATEGORY_KEYS.reduce(function(s, k){ return s + breakdown[k]; }, 0);
   breakdown.other_disbursements = Math.max(0, totalSpent - knownSum);
+  return { breakdown: breakdown, totalSpent: totalSpent };
+}
 
-  // Schedule B: two parallel fetches — main opex fetch (for purpose bars + vendor
-  // table) and a dedicated contributions fetch (entity_type=CCM, paginated fully,
-  // deduped by recipient). Separate fetches prevent opex volume from crowding out
-  // contributions in the 500-transaction cap.
-  var period = cycleOrAll;
+// Opex tier — main Schedule B walk (≤5 pages) for Purpose bars + Top Vendors.
+// Errors propagate to renderSpentOpexIfReady's per-source error UI.
+async function fetchSpentOpex(cycleOrAll) {
   var allTransactions = [];
   var capped = false;
-  var contributions = [];
-
-  // T12: errors propagate to renderSpentIfReady's tab-level error UI; previous inner
-  // try/catch silently suppressed failures and rendered empty tables.
-  await Promise.all([
-    // Main opex fetch — for purpose bars + vendor table
-    (async function() {
-      var MAX_PAGES = 5;
-      var params = {
-        committee_id: COMMITTEE_ID,
-        two_year_transaction_period: period,
-        sort: '-disbursement_amount',
-        per_page: 100
-      };
-      for (var page = 0; page < MAX_PAGES; page++) {
-        var res = await apiFetch('/schedules/schedule_b/', params);
-        var results = res.results || [];
-        allTransactions = allTransactions.concat(results);
-        var pagination = res.pagination || {};
-        if (page + 1 >= (pagination.pages || 1)) break;
-        if (page + 1 >= MAX_PAGES) { capped = true; break; }
-        var idx = pagination.last_indexes || {};
-        if (!idx.last_index) break;
-        params = Object.assign({}, params, {
-          last_index: idx.last_index,
-          last_disbursement_amount: idx.last_disbursement_amount
-        });
-      }
-    })(),
-
-    // Dedicated contributions fetch — entity_type=CCM, paginated independently
-    (async function() {
-      var MAX_PAGES_C = 3;
-      var params = {
-        committee_id: COMMITTEE_ID,
-        two_year_transaction_period: period,
-        entity_type: 'CCM',
-        sort: '-disbursement_amount',
-        per_page: 100
-      };
-      var rawContribs = [];
-      for (var page = 0; page < MAX_PAGES_C; page++) {
-        var res = await apiFetch('/schedules/schedule_b/', params);
-        var results = res.results || [];
-        rawContribs = rawContribs.concat(results);
-        var pagination = res.pagination || {};
-        if (page + 1 >= (pagination.pages || 1)) break;
-        if (page + 1 >= MAX_PAGES_C) break;
-        var idx = pagination.last_indexes || {};
-        if (!idx.last_index) break;
-        params = Object.assign({}, params, {
-          last_index: idx.last_index,
-          last_disbursement_amount: idx.last_disbursement_amount
-        });
-      }
-      // Filter to political contributions only, then deduplicate by recipient
-      rawContribs = rawContribs.filter(function(d) {
-        return d.entity_type === 'CCM' || d.disbursement_purpose_category === 'CONTRIBUTIONS';
-      });
-      var seen = {};
-      rawContribs.forEach(function(d) {
-        var key = d.recipient_committee_id || (d.recipient_name || '').trim().toUpperCase();
-        if (!key) return;
-        if (!seen[key]) seen[key] = {
-          name: d.recipient_name || '—',
-          recipient_committee_id: d.recipient_committee_id || null,
-          candidate_name: d.candidate_name || null,
-          candidate_office: d.candidate_office || null,
-          candidate_office_state: d.candidate_office_state || null,
-          total: 0
-        };
-        seen[key].total += (d.disbursement_amount || 0);
-      });
-      contributions = Object.values(seen).sort(function(a,b){ return b.total - a.total; });
-    })()
-  ]);
-
+  var MAX_PAGES = 5;
+  var params = {
+    committee_id: COMMITTEE_ID,
+    two_year_transaction_period: cycleOrAll,
+    sort: '-disbursement_amount',
+    per_page: 100
+  };
+  for (var page = 0; page < MAX_PAGES; page++) {
+    var res = await apiFetch('/schedules/schedule_b/', params);
+    var results = res.results || [];
+    allTransactions = allTransactions.concat(results);
+    var pagination = res.pagination || {};
+    if (page + 1 >= (pagination.pages || 1)) break;
+    if (page + 1 >= MAX_PAGES) { capped = true; break; }
+    var idx = pagination.last_indexes || {};
+    if (!idx.last_index) break;
+    params = Object.assign({}, params, {
+      last_index: idx.last_index,
+      last_disbursement_amount: idx.last_disbursement_amount
+    });
+  }
   // Top vendors — exclude political contributions (shown in contributions section)
-  // and refunds (money returned to donors, not a vendor payment)
+  // and refunds (money returned to donors, not a vendor payment); dedupe by recipient
   var seen = {};
   allTransactions.forEach(function(d) {
     var cat = d.disbursement_purpose_category;
@@ -1994,10 +2066,56 @@ async function fetchSpentData(cycleOrAll) {
     seen[key].total += (d.disbursement_amount || 0);
   });
   var topVendors = Object.values(seen).sort(function(a,b){ return b.total - a.total; }).slice(0, 10);
+  return { topVendors: topVendors, allTransactions: allTransactions, capped: capped, cycleOrAll: cycleOrAll };
+}
 
-  return { breakdown: breakdown, totalSpent: totalSpent, topVendors: topVendors,
-           contributions: contributions, allTransactions: allTransactions,
-           capped: capped, covDate: covDate, cycleOrAll: cycleOrAll };
+// CCM tier — dedicated entity_type=CCM Schedule B walk (≤3 pages) for the
+// Contributions section, paginated independently. Errors propagate to
+// renderSpentContributionsIfReady's per-source error UI.
+async function fetchSpentContributions(cycleOrAll) {
+  var MAX_PAGES_C = 3;
+  var params = {
+    committee_id: COMMITTEE_ID,
+    two_year_transaction_period: cycleOrAll,
+    entity_type: 'CCM',
+    sort: '-disbursement_amount',
+    per_page: 100
+  };
+  var rawContribs = [];
+  for (var page = 0; page < MAX_PAGES_C; page++) {
+    var res = await apiFetch('/schedules/schedule_b/', params);
+    var results = res.results || [];
+    rawContribs = rawContribs.concat(results);
+    var pagination = res.pagination || {};
+    if (page + 1 >= (pagination.pages || 1)) break;
+    if (page + 1 >= MAX_PAGES_C) break;
+    var idx = pagination.last_indexes || {};
+    if (!idx.last_index) break;
+    params = Object.assign({}, params, {
+      last_index: idx.last_index,
+      last_disbursement_amount: idx.last_disbursement_amount
+    });
+  }
+  // Filter to political contributions only, then deduplicate by recipient
+  rawContribs = rawContribs.filter(function(d) {
+    return d.entity_type === 'CCM' || d.disbursement_purpose_category === 'CONTRIBUTIONS';
+  });
+  var seen = {};
+  rawContribs.forEach(function(d) {
+    var key = d.recipient_committee_id || (d.recipient_name || '').trim().toUpperCase();
+    if (!key) return;
+    if (!seen[key]) seen[key] = {
+      name: d.recipient_name || '—',
+      recipient_committee_id: d.recipient_committee_id || null,
+      candidate_name: d.candidate_name || null,
+      candidate_office: d.candidate_office || null,
+      candidate_office_state: d.candidate_office_state || null,
+      total: 0
+    };
+    seen[key].total += (d.disbursement_amount || 0);
+  });
+  var contributions = Object.values(seen).sort(function(a,b){ return b.total - a.total; });
+  return { contributions: contributions };
 }
 
 // ── Spent tab: donut chart ───────────────────────────
@@ -2176,46 +2294,61 @@ function renderSpendDetail(transactions) {
   }).join('');
 }
 
-// T12 — single-tier render. Skeleton until promise resolves; content swaps in;
-// 10s timer reveals "still loading" if fetch is slow; tab-level error UI with retry.
-function renderSpentIfReady() {
-  if (spentRendered) return;
-  // T-remove-profile-tabs: no tab gate — the Spent section is always visible in
-  // the flow. Render on data-resolve. spentRendered (above) is the render-once
-  // guard; the spent donut destroys before recreating.
+// spent-progressive-loading — three independent render triggers, each fired when
+// its own source settles:
+//   • renderSpentDonutNow() — INSTANT, from computeSpentBreakdown(ALL_TOTALS).
+//   • renderSpentOpexIfReady() — Purpose bars + Top Vendors, on opex resolve/error.
+//   • renderSpentContributionsIfReady() — Contributions, on CCM resolve/error.
+// applySpentIndicators() toggles the Vendors + Contributions overlay messages.
 
-  if (spentError) {
-    document.getElementById('spent-donut-skeleton').style.display = 'none';
+// Donut renders synchronously from ALL_TOTALS — no Schedule B wait.
+function renderSpentDonutNow() {
+  if (spentDonutRendered) return;
+  document.getElementById('spent-donut-skeleton').style.display = 'none';
+  var bd = computeSpentBreakdown(currentCycleScope);
+  document.getElementById('spent-donut-content').style.display = 'block';
+  renderSpentDonut(bd.breakdown, bd.totalSpent);
+  spentDonutRendered = true;
+}
+
+// Overlay messages — each shown iff its source's 10s timer fired AND that source is
+// still pending (not resolved, not errored). The bars chart carries no message.
+function applySpentIndicators() {
+  var v = document.getElementById('spent-vendors-still-loading');
+  if (v) v.style.display = (spentOpexStillLoading && !spentOpexData && !spentOpexError) ? 'flex' : 'none';
+  var c = document.getElementById('spent-contributions-still-loading');
+  if (c) c.style.display = (spentContribStillLoading && !spentContribData && !spentContribError) ? 'flex' : 'none';
+}
+
+function renderSpentOpexIfReady() {
+  if (spentOpexRendered) return;
+  // T-remove-profile-tabs: no tab gate — the Spent section is always visible.
+
+  if (spentOpexError) {
     document.getElementById('spent-bars-skeleton').style.display = 'none';
     document.getElementById('spent-vendors-skeleton').style.display = 'none';
-    document.getElementById('spent-contributions-skeleton').style.display = 'none';
-    document.getElementById('spent-still-loading').style.display = 'none';
-    showTabError(
-      document.getElementById('spent-error'),
-      spentError,
-      '⚠ Could not load spending data.'
-    );
-    spentRendered = true;
+    applySpentIndicators();  // error wins → clears the Vendors overlay
+    // Per-source error — opex failure surfaces on BOTH opex-derived sections
+    // (Purpose bars + Top Vendors); the donut + contributions are never blanked.
+    // Two DOM blocks, one error state (spentOpexError).
+    showTabError(document.getElementById('spent-bars-error'), spentOpexError, '⚠ Could not load spending detail.');
+    showTabError(document.getElementById('spent-vendors-error'), spentOpexError, '⚠ Could not load top vendors.');
+    spentOpexRendered = true;
     document.querySelector('.main').style.minHeight = '';
     return;
   }
-  if (!spentData) return; // still pending — skeletons already visible
+  if (!spentOpexData) return; // still pending — skeleton(s) visible
 
-  var data = spentData;
-  document.getElementById('spent-donut-skeleton').style.display = 'none';
+  var data = spentOpexData;
   document.getElementById('spent-bars-skeleton').style.display = 'none';
   document.getElementById('spent-vendors-skeleton').style.display = 'none';
-  document.getElementById('spent-still-loading').style.display = 'none';
-  document.getElementById('spent-error').style.display = 'none';
-  document.getElementById('spent-donut-content').style.display = 'block';
+  applySpentIndicators();  // resolved → clears the Vendors overlay
+  document.getElementById('spent-bars-error').style.display = 'none';
+  document.getElementById('spent-vendors-error').style.display = 'none';
   document.getElementById('spent-bars-content').style.display = 'block';
   document.getElementById('spent-vendors-content').style.display = 'block';
-  // (spent-contributions-skeleton + contributions-content + section visibility
-  // are managed by renderContributions below — section may hide if empty.)
-  renderSpentDonut(data.breakdown, data.totalSpent);
   renderSpendDetail(data.allTransactions || []);
   renderTopVendors(data.topVendors || []);
-  renderContributions(data.contributions || []);
 
   // K14 Spending-by-Purpose methodology → tooltip on the section title, with the
   // conditional cap fragment (K16.b). Rebuilt each render so the cap clause
@@ -2250,7 +2383,33 @@ function renderSpentIfReady() {
   document.getElementById('spent-data-note').innerHTML = '';
   document.getElementById('spent-data-note').style.display = 'none';
 
-  spentRendered = true;
+  spentOpexRendered = true;
+  document.querySelector('.main').style.minHeight = '';
+}
+
+function renderSpentContributionsIfReady() {
+  if (spentContribRendered) return;
+
+  if (spentContribError) {
+    document.getElementById('spent-contributions-skeleton').style.display = 'none';
+    applySpentIndicators();  // error wins → clears the Contributions overlay
+    // Keep the section visible so the error shows in place — renderContributions
+    // would HIDE the whole section, which would swallow the failure silently.
+    document.getElementById('contributions-section').style.display = 'block';
+    document.getElementById('contributions-content').style.display = 'none';
+    showTabError(document.getElementById('spent-contributions-error'), spentContribError, '⚠ Could not load contributions.');
+    spentContribRendered = true;
+    document.querySelector('.main').style.minHeight = '';
+    return;
+  }
+  if (!spentContribData) return; // still pending — skeleton visible
+
+  applySpentIndicators();  // resolved → clears the Contributions overlay
+  document.getElementById('spent-contributions-error').style.display = 'none';
+  // renderContributions hides the whole section if empty, else renders the table
+  // (and hides the contributions skeleton in either branch).
+  renderContributions(spentContribData.contributions || []);
+  spentContribRendered = true;
   document.querySelector('.main').style.minHeight = '';
 }
 

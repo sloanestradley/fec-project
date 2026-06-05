@@ -809,7 +809,7 @@ test.describe('committee.html — Spending by Purpose cap fragment', () => {
     await mockAmplitude(page);
     await mockFecApi(page);
     // Force the Schedule B walk to cap: every page reports >5 pages + a cursor,
-    // so fetchSpentData hits MAX_PAGES and sets capped=true.
+    // so fetchSpentOpex hits MAX_PAGES and sets capped=true.
     await page.route('**/schedules/schedule_b/**', (route) =>
       route.fulfill({
         status: 200,
@@ -1190,19 +1190,25 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     expect(conduitsHeight).toBeGreaterThanOrEqual(200);
   });
 
-  test('Spent: failure renders error with retry button', async ({ page }) => {
+  // spent-progressive-loading: aborting all Schedule B fails BOTH the opex tier
+  // (bars + vendors) and the CCM tier (contributions); each surfaces its own
+  // per-source error. The donut renders from ALL_TOTALS and is never blanked.
+  test('Spent: per-source failures render their own errors; donut survives', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.route('**/api/fec/schedules/schedule_b/**', (route) => route.abort('failed'));
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent always in-flow
-    const err = page.locator('#spent-error');
-    await expect(err).toBeVisible({ timeout: 8000 });
-    await expect(err.locator('.tab-retry-btn')).toBeVisible();
+    await expect(page.locator('#spent-vendors-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#spent-vendors-error .tab-retry-btn')).toBeVisible();
+    await expect(page.locator('#spent-bars-error')).toBeVisible();
+    await expect(page.locator('#spent-contributions-error')).toBeVisible();
+    // Donut renders from ALL_TOTALS — never blanked by Schedule B failure.
+    await expect(page.locator('#spent-donut-content')).toBeVisible();
   });
 
-  test('Spent: retry click re-fires fetch and renders content', async ({ page }) => {
+  test('Spent: opex retry click re-fires fetch and renders content', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     let abortNext = true;
@@ -1213,16 +1219,76 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent always in-flow
-    await expect(page.locator('#spent-error')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#spent-vendors-error')).toBeVisible({ timeout: 8000 });
     abortNext = false;
-    await page.locator('#spent-error .tab-retry-btn').click();
+    await page.locator('#spent-vendors-error .tab-retry-btn').click();
     // Wait for spent vendors content to flip to block (post-refactor signal)
     await page.waitForFunction(
       () => document.getElementById('spent-vendors-content').style.display === 'block',
       { timeout: 10000 }
     );
     await expect(page.locator('#spent-vendors-content')).toBeVisible();
-    await expect(page.locator('#spent-error')).toBeHidden();
+    await expect(page.locator('#spent-vendors-error')).toBeHidden();
+    await expect(page.locator('#spent-bars-error')).toBeHidden();
+  });
+
+  // Error isolation — a CCM-only failure must NOT blank opex (bars + vendors) or the
+  // donut; only the Contributions section errors. (entity_type=CCM is the CCM walk's
+  // distinguishing param; the opex walk omits it.)
+  test('Spent: CCM-only failure isolates to Contributions; opex + donut render', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/schedules/schedule_b/**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('entity_type') === 'CCM') route.abort('failed');
+      else route.fallback();
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await expect(page.locator('#tab-spent')).toBeVisible();
+    await expect(page.locator('#spent-contributions-error')).toBeVisible({ timeout: 8000 });
+    // Opex sections + donut unaffected.
+    await expect(page.locator('#spent-vendors-content')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#spent-donut-content')).toBeVisible();
+    await expect(page.locator('#spent-vendors-error')).toBeHidden();
+    await expect(page.locator('#spent-bars-error')).toBeHidden();
+  });
+
+  // Donut is instant — renders from ALL_TOTALS even while both Schedule B walks
+  // are still pending (held open).
+  test('Spent: donut renders instantly while opex + CCM tiers still loading', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    let releaseB;
+    const heldB = new Promise((res) => { releaseB = res; });
+    await page.route('**/api/fec/schedules/schedule_b/**', async (route) => {
+      await heldB;
+      route.fallback();
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    await expect(page.locator('#tab-spent')).toBeVisible();
+    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#spent-vendors-skeleton')).toBeVisible();
+    await expect(page.locator('#spent-contributions-skeleton')).toBeVisible();
+    releaseB();
+  });
+
+  // Overlay "still loading" messages are SIBLINGS of their skeletons inside
+  // .skeleton-overlay-wrap — never DOM children (the .skeleton group-opacity pulse
+  // would dim a descendant). Structural guard for both table sections.
+  test('Spent: Vendors + Contributions overlays are siblings inside .skeleton-overlay-wrap', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
+    for (const id of ['spent-vendors-still-loading', 'spent-contributions-still-loading']) {
+      const inWrap = await page.locator('#' + id).evaluate(el => !!el.closest('.skeleton-overlay-wrap'));
+      expect(inWrap).toBe(true);
+      const isChildOfSkeleton = await page.locator('#' + id)
+        .evaluate(el => el.parentElement.classList.contains('skeleton'));
+      expect(isChildOfSkeleton).toBe(false);
+    }
   });
 });
 
