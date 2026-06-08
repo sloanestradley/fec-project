@@ -6344,3 +6344,40 @@ You steer by refusing the tidy one-liner: gate the build on a real trace, prefer
 - precompute-conduits — the named fast-follow. It's the only path to real conduit data on the bail path for BOTH candidate and committee; worth deciding when it earns a pipeline session.
 - The multi-sub-cycle KV merge tail-undercount (candidate Senate/Pres) — accepted + documented; flag if it ever shows up in a real comparison.
 - Live verification still owed: a Claude Chat live pass on Marie for the candidate fetch change (198→1 in the Network tab) and the committee KV-HIT Conduits-only indicator (C00806174) — neither is coverable by Track 1 (the mock always KV-misses).
+
+---
+2026-06-08
+
+## Process log draft
+
+### Telling the truth about debt — and deleting a callout that wasn't
+
+This session closed the loading-states arc (the Spent tab finally loads like the Raised tab — honestly, per source), then turned to a quieter problem: the candidate banner kept saying "no outstanding debt reported" on cycles that plainly had debt. Pulling that thread led somewhere bigger than a typo — the whole idea of "debt as a health verdict" came out, and a speculative callout that had been silently misfiring for months got retired entirely.
+
+**What changed**
+- **Spent tab, progressive loading.** The donut now paints instantly (its data's already in memory); the Top Vendors and Contributions tables load and fail on their own timing, each with its own "Tallying…" message and its own error. No more one-failure-blanks-everything.
+- **Debt banner, fixed.** It was reading two field names that don't exist on the FEC record, so it always defaulted to "$0." Now it reads the real end-of-cycle snapshot. Marie's 2024 reads "$39K"; Harris' 2024 reads "$934K."
+- **Debt removed from the health signal.** Green/amber/red no longer factors debt at all — it's overspend + raised-to-spent ratio only. Debt is now a *reported fact* on closed cycles, never a judgment.
+- **The overspend callout is gone.** It read an unreliable number (a stitched-together chart cumulative) that missed real overspends, and its "likely drawing on reserves or carrying debt" line was a guess. Retired on both pages, no replacement.
+
+**Field notes**
+The recurring lesson this session: verify against the live API, never the mock or the docs. The debt bug had been shipping for months precisely because the mock didn't carry a debt field, so no test ever exercised the real shape. Three read-only audits (debt field, multi-sub-cycle, overspend reliability) each paid for themselves — the overspend one in particular flipped the whole framing from "is this redundant?" to "is this even reliable?" The answer was no, and that made the delete easy. Deleting a feature because it quietly lies is more satisfying than keeping it because it might someday be useful.
+
+## How Sloane steered the work
+
+**"Trace intent vs. actual — don't fix anything yet."** You opened the debt problem as a read-only audit, not a bug ticket. That forced the discovery that the bug wasn't one field name but two phantom fields, and that the same broken `debt` value was also silently feeding the health signal. A fix-first reflex would have patched the banner and missed the bigger surface.
+
+**"Check the first sub-cycle of an active Senate cycle."** You didn't accept "the field works across offices" on the strength of House examples — you named the exact edge (Gillibrand, 2030, first of three sub-cycles) most likely to break a multi-sub-cycle snapshot. It held, but the question is what made the "no special-casing" claim trustworthy instead of hopeful.
+
+**"Retire it — and here's why, so you don't try to preserve it."** On the overspend callout you pre-empted my instinct to consolidate or salvage. You'd already weighed it: unreliable source, speculative copy, and a durable home for the signal elsewhere. You also explicitly accepted the consequence (committee shows no curated feedback now) as an intended simplification, not an oversight.
+
+**"Confirm the banner *survived*, not just that the callout's gone."** The sharpest steer: my verify set proved the negative (debt can't fire red anymore) but not the positive (red still fires on a *real* overspend). You named Pelosi's active 2026 cycle as the clean case and made me add it — the one check most likely to catch collateral damage.
+
+**The through-line:** you treat investigation as the load-bearing work and implementation as the easy part. Every steer was about widening the lens before narrowing it — audit before fix, name the edge case before trusting the claim, prove the thing you kept still works, not just that the thing you removed is gone.
+
+## What to bring to Claude Chat
+
+- **Health-signal thresholds, now that debt is gone.** Amber is solely `ratio < 1.25` and red is solely `spent > raised`. Are those the right bands? The debt thresholds were never validated and are now removed — the remaining ratio band still wants John's eye (the open project-brief questions on "what ratio triggers concern at different cycle stages" are now the whole ballgame).
+- **Red banner vs. the grid — residual redundancy.** With the callout gone, the active red "Financially Stressed" is the sole overspend signal, but it restates what the Raised/Spent stat cards already show, minus a cause. Worth deciding if red should eventually say *why* (the Sankey was floated as the durable home).
+- **Committee now has no curated summary feedback.** Intended this session — but worth a deliberate product check that committee profiles reading as "just data, no interpretation" is the desired end state, not a gap to fill later.
+- **The Spent tab's owed live pass** (donut-before-tables, per-table overlays, error isolation) is still on Chat's plate from the progressive-loading ship.
