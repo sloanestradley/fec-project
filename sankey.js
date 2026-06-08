@@ -52,6 +52,16 @@ function sankeyGateReason(rec, opts) {
   return null;
 }
 
+// Transparent "not yet modeled" copy for a gated entity (shared by candidate +
+// committee mount points). Locked copy — see strategy/sankey-data-model.md §4a.
+function sankeyGateCopy(reason) {
+  if (reason === 'presidential')
+    return "Presidential committees include public-financing and other categories the money-flow view doesn't model yet, so it's omitted here.";
+  if (reason === 'non-federal')
+    return "This committee operates a non-federal (state/local) account alongside its federal account. The money-flow view models federal activity only for now — showing it here would understate the totals, so it's omitted. The figures above remain complete.";
+  return "A money-flow view isn't available for this committee yet.";
+}
+
 // ── Pure adapter: FEC /totals/ record → Sankey model (or gated sentinel) ─────
 // opts: { entity: 'candidate' | 'committee', isPresidential?: bool, hubName?: string }
 // Returns either { gated:true, reason } or a full model:

@@ -3010,3 +3010,49 @@ test.describe('candidate.html — Phase 2 PAGE-NOTE', () => {
     await expect(pn).not.toContainText('Data updated nightly by FEC');
   });
 });
+
+// ── Money flow (Sankey) mount — Step 2 (coexists with the donuts) ───────────────
+test.describe('candidate.html — Money flow (Sankey) mount', () => {
+  test('renders an ECharts SVG on a data-present cycle; skeleton clears', async ({ page }) => {
+    await setupWithContent(page);
+    await expect(page.locator('#money-flow-card')).toBeVisible();
+    // ECharts SVG renderer → an <svg> inside the chart container once the model renders.
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-skeleton')).toBeHidden();
+    await expect(page.locator('#sankey-gate')).toBeHidden();
+  });
+
+  test('Money flow title mounts the cohStart-derivation info-tooltip', async ({ page }) => {
+    await setupWithContent(page);
+    // initTooltips replaces the static .tooltip span with a .tooltip-trigger button.
+    await expect(page.locator('#money-flow-title .tooltip-trigger')).toHaveCount(1);
+  });
+});
+
+test.describe('candidate.html — Money flow gate (presidential)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Override ONLY the candidate metadata to office 'P' (Form 3P → Gate 2). Everything
+    // else falls through to the base mock; the data-present totals still resolve, so
+    // renderMoneyFlow runs and must render the gate state instead of a chart.
+    await page.route('**/api/fec/candidate/H2WA03217/**', (route) => {
+      const url = route.request().url();
+      if (/\/candidate\/H2WA03217\/(?:\?|$)/.test(url)) {
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          results: [{ candidate_id: 'H2WA03217', name: 'TEST, PRESIDENTIAL', party: 'DEM',
+            party_full: 'DEMOCRATIC PARTY', office: 'P', office_full: 'President', state: 'US',
+            election_years: [2024], incumbent_challenge: 'C', first_file_date: '2023-01-01' }],
+          pagination: { count: 1, pages: 1, per_page: 20, page: 1 } }) });
+      } else { route.fallback(); }
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+  });
+
+  test('presidential renders the "not yet modeled" gate, not the chart', async ({ page }) => {
+    await expect(page.locator('#sankey-gate')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-gate')).toContainText('Presidential committees');
+    await expect(page.locator('#sankey-chart')).toBeHidden();
+  });
+});
