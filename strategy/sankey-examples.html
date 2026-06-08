@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FECLedger — Sankey exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#F8F5EC; --surface:#FFFFFF; --surface-2:#EEE9E1;
+    --border:#D7D1C7; --border-strong:#A8A099;
+    --text:#1A1510; --muted:#625B52; --subtle:#46403A; --navy-deep:#05234F;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:"IBM Plex Sans",sans-serif; font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1060px; margin:0 auto; padding:48px 24px 96px;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:0.625rem; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin:0 0 8px;}
+  h1{font-family:"Oswald",sans-serif; font-weight:600; text-transform:uppercase; letter-spacing:-0.04em; font-size:2.5rem; line-height:1; margin:0 0 16px; color:var(--navy-deep);}
+  .lede{font-family:"IBM Plex Serif",Georgia,serif; max-width:64ch; color:var(--subtle); margin:0 0 8px;}
+  .lede.sans{font-family:"IBM Plex Sans",sans-serif;}
+  section{margin-top:56px;}
+  h2{font-family:"Oswald",sans-serif; font-weight:400; text-transform:uppercase; font-size:1.25rem; margin:0 0 4px; color:var(--text);}
+  .sub{font-family:"IBM Plex Mono",monospace; font-size:0.625rem; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin:0 0 16px;}
+  .chart{width:100%; background:transparent;}
+  .caption{font-family:"IBM Plex Mono",monospace; font-size:0.6875rem; line-height:1.7; color:var(--muted); border-top:1px solid var(--border); margin-top:8px; padding-top:12px; max-width:96ch;}
+  .caption b{color:var(--subtle); font-weight:700;}
+  .notes{margin-top:64px; border-top:2px solid var(--navy-deep); padding-top:20px;}
+  .notes h3{font-family:"Oswald",sans-serif; font-weight:400; text-transform:uppercase; font-size:1rem; margin:0 0 12px;}
+  .notes p{max-width:74ch; color:var(--subtle); margin:0 0 10px;}
+  .swatches{display:flex; flex-wrap:wrap; gap:8px 16px; margin:14px 0 4px; align-items:center;}
+  .sw{display:flex; align-items:center; gap:6px; font-family:"IBM Plex Mono",monospace; font-size:0.625rem; color:var(--muted);}
+  .sw i{width:14px; height:14px; border-radius:2px; display:inline-block; border:1px solid rgba(0,0,0,0.06);}
+  .ramp{display:inline-flex; gap:2px;} .ramp i{width:16px; height:14px; border-radius:2px; display:inline-block;}
+  .declabel{font-family:"IBM Plex Mono",monospace; font-size:0.625rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin:16px 0 6px;}
+  .decisions ul{max-width:80ch; color:var(--subtle); padding-left:18px; margin:4px 0 10px;}
+  .decisions li{margin-bottom:6px;}
+  .decisions b{color:var(--text); font-weight:600;}
+  .map h4{font-family:"IBM Plex Mono",monospace; font-size:0.625rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin:18px 0 6px;}
+  table.fieldmap{border-collapse:collapse; width:100%; font-size:0.6875rem; margin:0 0 6px;}
+  table.fieldmap th{font-family:"IBM Plex Mono",monospace; font-weight:700; text-transform:uppercase; font-size:0.5625rem; letter-spacing:0.04em; color:var(--muted); text-align:left; border-bottom:1px solid var(--border-strong); padding:6px 12px 6px 0; vertical-align:bottom;}
+  table.fieldmap td{border-bottom:1px solid var(--border); padding:5px 12px 5px 0; color:var(--subtle); vertical-align:top;}
+  table.fieldmap code{font-family:"IBM Plex Mono",monospace; font-size:0.9em; color:var(--text); background:var(--surface-2); padding:0.5px 4px; border-radius:2px;}
+  table.fieldmap td.ent{font-family:"IBM Plex Mono",monospace; font-size:0.625rem; color:var(--muted);}
+  .map .fn{max-width:84ch; color:var(--subtle); font-size:0.6875rem; margin:8px 0 2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">FECLedger · research artifact — unexecuted</p>
+  <h1>Raised → Spent Sankey</h1>
+  <p class="lede">One full view at any width. Color follows <b>size order</b> within each column — except contributions, which sit together in one color, and the Other catch-all, which is neutral. Everything <b>conserves</b>: cash-start + raised = spent + cash-end.</p>
+  <p class="lede sans" style="font-size:0.8125rem; color:var(--muted);">Cash-on-hand (grey) sits at the bottom of each column; the committee is the slate hub.</p>
+
+  <section>
+    <h2>Candidate — Marie Gluesenkamp Perez</h2>
+    <p class="sub">H2WA03217 · 2023–2024 · the thin right side</p>
+    <div id="mgp" class="chart" style="height:500px;"></div>
+    <p class="caption"><b>Balances:</b> $66K start + $11.86M raised = $11.90M spent + $26K end ($11.92M each side).<br><b>Debt at close: $39K</b></p>
+  </section>
+
+  <section>
+    <h2>Candidate — Nancy Pelosi</h2>
+    <p class="sub">H8CA05035 · 2025–2026, through Mar 31 · spending exceeds receipts</p>
+    <div id="pelosi" class="chart" style="height:480px;"></div>
+    <p class="caption"><b>Balances:</b> $2.08M start + $2.43M raised = $3.61M spent + $0.90M end ($4.51M each side).<br>Spending exceeded receipts by <b>$1.18M</b>, drawn from reserves. No debt.</p>
+  </section>
+
+  <section>
+    <h2>Candidate — Michael Sapraicone</h2>
+    <p class="sub">S4NY00404 · 2023–2024 · self-funded challenger</p>
+    <div id="sap" class="chart" style="height:500px;"></div>
+    <p class="caption"><b>Balances:</b> $0 start + $1.42M raised = $1.36M spent + $54K end ($1.42M each side).<br><b>Debt at close: $635K</b> — largely the unrepaid $600K self-loan.</p>
+  </section>
+
+  <section>
+    <h2>Committee — DCCC</h2>
+    <p class="sub">C00000935 · 2023–2024 · the dense right side</p>
+    <div id="dccc" class="chart" style="height:720px;"></div>
+    <p class="caption"><b>Balances:</b> $16.2M start + $339.9M raised = $331.9M spent + $24.2M end ($356.2M each side).<br><b>Debt at close: $20.0M</b></p>
+  </section>
+
+  <div class="notes">
+    <h3>Legend</h3>
+    <div class="swatches">
+      <span class="sw">size rank:&nbsp;<span class="ramp"><i style="background:#05234F"></i><i style="background:#1D5A6D"></i><i style="background:#437772"></i><i style="background:#75917B"></i><i style="background:#A7AA91"></i><i style="background:#D4C4B5"></i><i style="background:#F5E2E0"></i></span>&nbsp;largest → smallest</span>
+      <span class="sw"><i style="background:#D7D1C7"></i>other</span>
+      <span class="sw"><i style="background:#B0A89B"></i>cash on hand</span>
+      <span class="sw"><i style="background:#2B3A47"></i>committee</span>
+    </div>
+  </div>
+
+  <div class="notes map">
+    <h3>Field mapping</h3>
+    <h4>Raised (receipts)</h4>
+    <table class="fieldmap">
+      <thead><tr><th>FEC L1</th><th>FEC L2</th><th>Our label</th><th>Entity</th></tr></thead>
+      <tbody>
+        <tr><td><code>contributions</code></td><td><code>individual_contributions</code></td><td>Individuals</td><td class="ent">both</td></tr>
+        <tr><td><code>contributions</code></td><td><code>other_political_committee_contributions</code></td><td>PACs &amp; other committees</td><td class="ent">both</td></tr>
+        <tr><td><code>contributions</code></td><td><code>political_party_committee_contributions</code></td><td>Party committees</td><td class="ent">both</td></tr>
+        <tr><td><code>transfers_from_other_authorized_committee</code>, <code>transfers_from_affiliated_party</code></td><td></td><td>Transfers in</td><td class="ent">*</td></tr>
+        <tr><td><code>candidate_contribution</code>, <code>loans_made_by_candidate</code></td><td></td><td>Candidate self-funding ‡</td><td class="ent">candidate</td></tr>
+        <tr><td><code>all_other_loans</code>, <code>all_loans_received</code></td><td></td><td>Loans ‡</td><td class="ent">*</td></tr>
+        <tr><td><code>other_receipts</code>, <code>other_fed_receipts</code></td><td></td><td>Other receipts</td><td class="ent">*</td></tr>
+        <tr><td><code>offsets_to_operating_expenditures</code></td><td></td><td>Offsets</td><td class="ent">both</td></tr>
+        <tr><td><code>fed_candidate_contribution_refunds</code></td><td></td><td>Candidate-contribution refunds</td><td class="ent">committee</td></tr>
+        <tr><td><i>derived</i> = end + disbursements − receipts</td><td></td><td>Cash on hand (start)</td><td class="ent">both</td></tr>
+      </tbody>
+    </table>
+    <h4>Spent (disbursements)</h4>
+    <table class="fieldmap">
+      <thead><tr><th>FEC L1</th><th>FEC L2</th><th>Our label</th><th>Entity</th></tr></thead>
+      <tbody>
+        <tr><td><code>operating_expenditures</code></td><td></td><td>Operating expenditures</td><td class="ent">both</td></tr>
+        <tr><td><code>independent_expenditures</code></td><td></td><td>Independent expenditures</td><td class="ent">committee</td></tr>
+        <tr><td><code>coordinated_expenditures_by_party_committee</code></td><td></td><td>Coordinated party expenditures</td><td class="ent">committee</td></tr>
+        <tr><td><code>transfers_to_other_authorized_committee</code>, <code>transfers_to_affiliated_committee</code></td><td></td><td>Transfers out</td><td class="ent">*</td></tr>
+        <tr><td><code>fed_candidate_committee_contributions</code></td><td></td><td>Contributions to candidates</td><td class="ent">committee</td></tr>
+        <tr><td><code>loan_repayments</code>, <code>loan_repayments_made</code></td><td></td><td>Loan repayments</td><td class="ent">*</td></tr>
+        <tr><td><code>other_disbursements</code></td><td></td><td>Other disbursements</td><td class="ent">both</td></tr>
+        <tr><td><code>contribution_refunds</code></td><td><code>refunded_individual_contributions</code>, <code>refunded_other_political_committee_contributions</code>, <code>refunded_political_party_committee_contributions</code></td><td>Contribution refunds</td><td class="ent">both</td></tr>
+        <tr><td><code>last_cash_on_hand_end_period</code></td><td></td><td>Cash on hand (end)</td><td class="ent">both</td></tr>
+      </tbody>
+    </table>
+    <h4>Not a node</h4>
+    <table class="fieldmap">
+      <thead><tr><th>FEC field</th><th>Our label</th></tr></thead>
+      <tbody>
+        <tr><td><code>last_debts_owed_by_committee</code></td><td>Debt at close — balance-sheet stock, rendered as an annotation</td></tr>
+      </tbody>
+    </table>
+    <p class="fn">* field varies by form type — candidate field (Form 3) listed first, committee (Form 3X) second.</p>
+    <p class="fn">Cash on hand (start): <b>derived for both entities</b> as end + disbursements − receipts, never read from the filed field. Candidates carry no <code>cash_on_hand_beginning_period</code> at all; committees report one, but reading it can break the penny-tie on very high-volume filers (ActBlue's filed opening is ~$889 off the cash identity on $3.8B), so we derive in both cases and keep the filed Raised / Spent / ending-cash figures exact. Disclosed via an info tooltip beside the “Money flow” title: <i>“Total raised, total spent, and ending cash are shown exactly as filed. Opening cash is derived from those figures. For nearly all committees this matches the filed opening balance; for very high-volume filers, whose monthly reports carry small rounding differences, it can vary by a fraction of a percent.”</i></p>
+    <p class="fn">‡ Candidate self-funding (candidate committees only) groups the candidate's own gift (<code>candidate_contribution</code>) with their own loan (<code>loans_made_by_candidate</code>) by source, so a self-funder isn't hidden inside Loans — which is then external only (candidate <code>all_other_loans</code>, committee <code>all_loans_received</code>). Because <code>candidate_contribution</code> is part of the <code>contributions</code> aggregate, the Contributions group node sums only the individual / PAC / party leaves, never the <code>contributions</code> total (which would double-count it).</p>
+  </div>
+
+  <div class="notes decisions">
+    <h3>Decisions log</h3>
+    <p class="declabel">Settled</p>
+    <ul>
+      <li><b>Conserving model</b> — cash-on-hand (start) + receipts = disbursements + cash-on-hand (end). Both sides tie to the reported Raised / Spent to the penny.</li>
+      <li><b>Debt</b> — an annotation, never a flow node. It's a balance-sheet stock; loan activity already appears as Loans-in and Loan-repayments.</li>
+      <li><b>Cash-on-hand</b> — neutral grey, placed at the bottom of each column; drawn only when non-zero (a $0 start or end isn't rendered).</li>
+      <li><b>Cash-on-hand (start) — derived</b> — computed for both entities as end + disbursements − receipts, never read from the filed field. Candidates have no opening field; committees do, but the filed value can miss the cash identity on very high-volume filers (ActBlue: ~$889 on $3.8B), so deriving keeps the chart conserving while Raised / Spent / ending cash stay exactly as filed. An info tooltip beside the “Money flow” title discloses it. Distinct from the dual-account gate below — this is a cash-identity fix, that is a leaf-coverage gate.</li>
+      <li><b>Contra-flows</b> (offsets in, refunds out) — rendered as ordinary nodes, ranked by size like any category; no visual distinction. Not netted out — conservation holds because they're already gross leaves in the FEC partition (the <code>net_*</code> fields are excluded).</li>
+      <li><b>Color</b> — assigned by size rank within each column (largest = darkest, descending), using the design system's <code>--cat-1…--cat-7</code> sequence. Applied ordinally by rank, <i>not</i> by category identity; node order locked to size.</li>
+      <li><b>Other categories</b> — Other receipts / Other disbursements use <code>--cat-other</code> (the system's neutral) and are pinned to the bottom of the category stack, directly above cash-on-hand, regardless of size; excluded from the rank ramp.</li>
+      <li><b>Node labels</b> — name + dollar value on desktop; name only on mobile (below 640px).</li>
+      <li><b>Node stroke</b> — transparent. The earlier 1px parchment-colored border left each colored block slightly inset from its flow ribbon (a visible seam); transparent makes node and path meet flush.</li>
+      <li><b>Minimum node height</b> — ECharts has no native minimum, so a genuinely tiny node (e.g. $12 of $2.4M) rendered at sub-pixel height and vanished while its label/flow stayed. Each node's layout height is floored to 0.5% of its column so it stays visible and hoverable; the true value drives the label and tooltip. Negligible categories are thus slightly over-represented in height — the underlying data still conserves exactly.</li>
+      <li><b>Contributions</b> — the subgroups (individuals, PACs, party) always share one color and sit together as a contiguous block; the block is ranked among the other categories by its combined total.</li>
+      <li><b>Candidate self-funding</b> — on candidate committees, the candidate's own gift (<code>candidate_contribution</code>) and own loan (<code>loans_made_by_candidate</code>) form one source, so a self-funder isn't hidden inside Loans (which becomes external-only). Candidate committees only. The Contributions group sums the individual / PAC / party leaves, not the <code>contributions</code> aggregate, so the gift isn't double-counted.</li>
+      <li><b>Committee</b> — a single slate hub (commingled funds).</li>
+      <li><b>Responsive</b> — one full view at all widths; no mobile flatten.</li>
+      <li><b>Hover</b> — adjacency focus; non-focused elements recede gently rather than the library's near-disappear default. Blur opacities: flows 0.40 (from a 0.48 base), nodes 0.50, labels 0.85.</li>
+      <li><b>Tooltip</b> — node-hover and flow-hover share one format: the category label, then amount • percent (share of the side's receipts or disbursements). Cash-on-hand and the committee hub show amount only — no clean percent denominator.</li>
+      <li><b>Spacing</b> — node gap 16px.</li>
+      <li><b>Library</b> — Apache ECharts sankey series (self-hostable single file).</li>
+    </ul>
+    <p class="declabel">v1 scope gates — not modeled in v1</p>
+    <ul>
+      <li><b>Dual-account committees</b> — committees that run a non-federal (state/local soft-money) account fold non-federal money into the <code>receipts</code> / <code>disbursements</code> totals the chart conserves against (Dem Party of Wisconsin Fed, C00019331: +$12.1M in / +$15.3M out vs the federal figures — ~19% / ~25%). The v1 federal leaf set would under-sum, so these render a neutral “not yet modeled” state in the Money-flow slot — never an under-summing chart, never a donut fallback. Detector fires when <code>|receipts − fed_receipts|</code> or <code>|disbursements − fed_disbursements|</code> exceeds $1 (committee entities only — candidate totals have no <code>fed_*</code> fields). Not committee type: DCCC (national party) is fed-only and renders normally. Modeling the non-federal dimension is a fast-follow.</li>
+      <li><b>Presidential committees (Form 3P)</b> — carry extra leaves the v1 model doesn't render (<code>federal_funds</code>, <code>fundraising_disbursements</code>, <code>exempt_legal_accounting_disbursement</code>), so they're gated to the same “not yet modeled” state. Fast-follow.</li>
+    </ul>
+    <p class="declabel">Still open</p>
+    <ul>
+      <li>Color application model — size rank (current) vs. the design system's category-identity mapping (a category always = its fixed --cat, matching the donut). Identity would align Sankey↔donut color but breaks size-rank ordering and the contributions-as-one-color grouping.</li>
+      <li>Light-end legibility — <code>--cat-6</code>/<code>--cat-7</code> are pale, so the smallest-rank flows read faint at 0.48 opacity (the node rectangle still carries the solid color).</li>
+      <li>Label legibility where dark text sits over a dark flow band.</li>
+      <li>Accessibility — a visually-hidden data table mirroring the flows.</li>
+      <li>Spending-purpose layer (Schedule B) — deferred to Phase 4.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+function fmt(v){
+  if(v==null||isNaN(v)) return '—';
+  if(v>=1e9) return '$'+(v/1e9).toFixed(1)+'B';
+  if(v>=1e6) return '$'+(v/1e6).toFixed(1)+'M';
+  if(v>=1e3) return '$'+Math.round(v/1e3)+'K';
+  return '$'+Math.round(v);
+}
+var GREY='#B0A89B', HUB='#2B3A47';
+var RAMP=['#05234F','#1D5A6D','#437772','#75917B','#A7AA91','#D4C4B5','#F5E2E0']; // design system --cat-1..7 (rank ramp)
+var CAT_OTHER='#D7D1C7'; // --cat-other, reserved for the "Other" catch-all categories
+var configs={};
+
+function nodeStyle(color){
+  return {color:color, borderColor:'transparent', borderWidth:1};
+}
+function descByValue(a,b){ return b.value-a.value; }
+
+function render(cfg){
+  var nodes=[], links=[], hub=cfg.hubName;
+  var isMobile=window.innerWidth<640;
+  // Minimum visible node height: ECharts has no native min, so floor each node's LAYOUT
+  // value to MIN_FRAC of its column. True value drives label + tooltip (see _val).
+  var MIN_FRAC=0.005;
+  var floorL=(cfg.receiptTotal+cfg.cohStart)*MIN_FRAC, floorR=(cfg.disbTotal+cfg.cohEnd)*MIN_FRAC;
+
+  // ---- LEFT: contributions = one grouped unit; every other source ranks individually by size ----
+  var contribSub=cfg.sources.filter(function(s){return s.group==='contributions';}).slice().sort(descByValue);
+  var otherSrc=cfg.sources.filter(function(s){return !s.group;});
+
+  var units=[];
+  if(contribSub.length){
+    units.push({total:contribSub.reduce(function(a,s){return a+s.value;},0), members:contribSub});
+  }
+  otherSrc.forEach(function(c){ units.push({total:c.value, members:[c]}); });
+  units.sort(function(a,b){
+    var ao=(a.members.length===1 && a.members[0].other)?1:0;
+    var bo=(b.members.length===1 && b.members[0].other)?1:0;
+    if(ao!==bo) return ao-bo;     // Other categories pinned to the bottom
+    return b.total-a.total;       // otherwise by size
+  });
+
+  var ri=0;
+  units.forEach(function(u){
+    var isOther=u.members.length===1 && u.members[0].other;
+    var color=isOther ? CAT_OTHER : RAMP[(ri++)%RAMP.length];
+    u.members.forEach(function(m){
+      nodes.push({name:m.name, itemStyle:nodeStyle(color), label:{position:'right'}, _val:m.value, _pct:m.value/cfg.receiptTotal});
+      links.push({source:m.name, target:hub, value:Math.max(m.value,floorL), _val:m.value, _pct:m.value/cfg.receiptTotal});
+    });
+  });
+  if(cfg.cohStart>0){
+    nodes.push({name:'Cash on hand (start)', itemStyle:nodeStyle(GREY), label:{position:'right'}, _val:cfg.cohStart, _pct:null});
+    links.push({source:'Cash on hand (start)', target:hub, value:cfg.cohStart, _val:cfg.cohStart});
+  }
+
+  // ---- HUB ----
+  nodes.push({name:hub, itemStyle:nodeStyle(HUB), label:{show:false}, _val:null, _pct:null});
+
+  // ---- RIGHT: every use ranks individually by size ----
+  var catUse=cfg.uses.slice().sort(function(a,b){
+    var ao=a.other?1:0, bo=b.other?1:0;
+    if(ao!==bo) return ao-bo;     // Other pinned to the bottom
+    return b.value-a.value;       // otherwise by size
+  });
+  var rj=0;
+  catUse.forEach(function(u){
+    var color=u.other ? CAT_OTHER : RAMP[(rj++)%RAMP.length];
+    nodes.push({name:u.name, itemStyle:nodeStyle(color), label:{position:'left'}, _val:u.value, _pct:u.value/cfg.disbTotal});
+    links.push({source:hub, target:u.name, value:Math.max(u.value,floorR), _val:u.value, _pct:u.value/cfg.disbTotal});
+  });
+  if(cfg.cohEnd>0){
+    nodes.push({name:'Cash on hand (end)', itemStyle:nodeStyle(GREY), label:{position:'left'}, _val:cfg.cohEnd, _pct:null});
+    links.push({source:hub, target:'Cash on hand (end)', value:cfg.cohEnd, _val:cfg.cohEnd});
+  }
+
+  var chart = cfg._chart || (cfg._chart = echarts.init(document.getElementById(cfg.elId), null, {renderer:'svg'}));
+  chart.setOption({
+    backgroundColor:'transparent',
+    tooltip:{ trigger:'item', backgroundColor:'#FFFFFF', borderColor:'#D7D1C7', borderWidth:1, padding:[8,10],
+      textStyle:{color:'#1A1510', fontFamily:'"IBM Plex Sans",sans-serif', fontSize:12},
+      formatter:function(p){
+        var label, val, pct;
+        if(p.dataType==='edge'){
+          label=(p.data.source===hub)?p.data.target:p.data.source;
+          val=(p.data._val!=null)?p.data._val:p.data.value; pct=p.data._pct;
+        } else {
+          label=p.name; val=(p.data._val!=null)?p.data._val:p.value; pct=p.data._pct;
+        }
+        var pctStr=(pct!=null)?' • '+(pct*100).toFixed(1)+'%':'';
+        return '<b>'+label+'</b><br>'+fmt(val)+pctStr;
+      }
+    },
+    series:[{ type:'sankey', left:'1%', right:'1%', top:'2%', bottom:'2%',
+      nodeWidth:13, nodeGap:16, nodeAlign:'justify', draggable:false, layoutIterations:0,
+      emphasis:{focus:'adjacency'},
+      blur:{ lineStyle:{opacity:0.40}, itemStyle:{opacity:0.50}, label:{opacity:0.85} },
+      label:{color:'#1A1510', fontFamily:'"IBM Plex Sans",sans-serif', fontSize:12,
+        formatter: isMobile ? function(p){ return p.name; }
+                            : function(p){ return p.data._val!=null ? p.name+'  '+fmt(p.data._val) : p.name; } },
+      lineStyle:{color:'gradient', opacity:0.48, curveness:0.5},
+      data:nodes, links:links }]
+  }, true);
+}
+
+configs.mgp={ elId:'mgp', hubName:'Marie for Congress', receiptTotal:11856001.72, disbTotal:11895854.48, cohStart:66313.13, cohEnd:26460.37,
+  sources:[
+    {name:'Individuals', group:'contributions', value:9323061.58},
+    {name:'PACs & other committees', group:'contributions', value:1336649.98},
+    {name:'Party committees', group:'contributions', value:12200.00},
+    {name:'Transfers in', value:1095832.26},
+    {name:'Other receipts', other:true, value:44932.61},
+    {name:'Offsets', value:43325.29}
+  ],
+  uses:[
+    {name:'Operating expenditures', value:11735555.99},
+    {name:'Contribution refunds', value:151718.99},
+    {name:'Other disbursements', other:true, value:8579.50}
+  ]};
+
+configs.pelosi={ elId:'pelosi', hubName:'Nancy Pelosi for Congress', receiptTotal:2433666.44, disbTotal:3612598.69, cohStart:2078066.46, cohEnd:899134.21,
+  sources:[
+    {name:'Individuals', group:'contributions', value:2220123.40},
+    {name:'PACs & other committees', group:'contributions', value:33000.00},
+    {name:'Transfers in', value:141138.40},
+    {name:'Other receipts', other:true, value:12.64},
+    {name:'Offsets', value:39392.00}
+  ],
+  uses:[
+    {name:'Operating expenditures', value:2290782.78},
+    {name:'Other disbursements', other:true, value:1210019.01},
+    {name:'Contribution refunds', value:111796.90}
+  ]};
+
+configs.sap={ elId:'sap', hubName:'Michael Sapraicone', receiptTotal:1417733.96, disbTotal:1363358.22, cohStart:0, cohEnd:54375.74,
+  sources:[
+    {name:'Individuals', group:'contributions', value:362788.15},
+    {name:'PACs & other committees', group:'contributions', value:7750.00},
+    {name:'Party committees', group:'contributions', value:2500.00},
+    {name:'Candidate self-funding', value:683451.34},
+    {name:'Transfers in', value:311133.95},
+    {name:'Loans', value:50050.00},
+    {name:'Other receipts', other:true, value:0.52},
+    {name:'Offsets', value:60.00}
+  ],
+  uses:[
+    {name:'Operating expenditures', value:1249258.40},
+    {name:'Loan repayments', value:50050.00},
+    {name:'Contribution refunds', value:12549.82},
+    {name:'Other disbursements', other:true, value:51500.00}
+  ]};
+
+configs.dccc={ elId:'dccc', hubName:'DCCC', receiptTotal:339935852.88, disbTotal:331933274.36, cohStart:16230013.57, cohEnd:24232592.09,
+  sources:[
+    {name:'Individuals', group:'contributions', value:174592917.63},
+    {name:'PACs & other committees', group:'contributions', value:60327399.69},
+    {name:'Transfers in', value:28229645.27},
+    {name:'Loans', value:20000000.00},
+    {name:'Other receipts', other:true, value:55345852.26},
+    {name:'Offsets', value:1438483.38},
+    {name:'Candidate-contribution refunds', value:1554.65}
+  ],
+  uses:[
+    {name:'Operating expenditures', value:192363224.57},
+    {name:'Independent expenditures', value:74258192.57},
+    {name:'Transfers out', value:23919995.61},
+    {name:'Loan repayments', value:18000000.00},
+    {name:'Other disbursements', other:true, value:16373373.40},
+    {name:'Coordinated party expenditures', value:5357092.52},
+    {name:'Contribution refunds', value:1056971.02},
+    {name:'Contributions to candidates', value:604424.67}
+  ]};
+
+['mgp','pelosi','sap','dccc'].forEach(function(k){ render(configs[k]); });
+window.addEventListener('resize', function(){ ['mgp','pelosi','sap','dccc'].forEach(function(k){ if(configs[k]._chart){ render(configs[k]); configs[k]._chart.resize(); } }); });
+</script>
+</body>
+</html>
