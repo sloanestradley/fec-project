@@ -18,14 +18,16 @@ Phasing decision (Sloane, 2026-06-04): **ship a totals-based Sankey first, WITHO
 
 Both sides of the FEC `/totals/` endpoint form a **mutually-exclusive AND collectively-exhaustive partition** — the leaf categories sum *exactly* to the cycle `receipts` / `disbursements` total. This is what makes a conserving Sankey possible at all.
 
-**Verified to the penny against live API (DEMO_KEY, cycle 2024):**
+**Verified to the penny against live API (cycle 2024). All four reconcile exactly on both sides** — re-run with the corrected leaf set on 2026-06-08 (see note below the table):
 
 | Committee | `receipts` | leaf-sum check | `disbursements` | leaf-sum check |
 |---|---|---|---|---|
 | Candidate PCC — Marie for Congress (C00806174) | $11,856,001.72 | exact ✓ | $11,895,854.48 | exact ✓ |
 | Super PAC — Senate Majority PAC (C00484642) | $389,968,278.37 | exact ✓ | $391,182,162.25 | exact ✓ |
-| Party — DCCC (C00000935) | $339,935,852.88 | exact ✓ | $331,933,274.36 | within rounding (~$3) |
-| Conduit — ActBlue (C00401224) | $3,821,173,165.20 | exact ✓ | $3,789,960,310.57 | within rounding |
+| Party — DCCC (C00000935) | $339,935,852.88 | exact ✓ | $331,933,274.36 | exact ✓ |
+| Conduit — ActBlue (C00401224) | $3,821,173,165.20 | exact ✓ | $3,789,960,310.57 | exact ✓ |
+
+> **Supersession note (2026-06-08):** the original 2026-06-04 research pass marked DCCC and ActBlue *disbursements* as "within rounding (~$3)." That was a leaf-set error in the hand-computation — `fed_candidate_contribution_refunds` was being summed on the disbursement side when it belongs on the receipt side. The corrected entity-aware adapter (the §2 leaf set as finalized) re-run on 2026-06-08 reconciles **all four entities to $0.00 residual on both sides**. The "within rounding" figures are superseded; there is no rounding drift in the verified leaf set.
 
 **The catch:** the same endpoint mixes leaf fields with three classes of trap field. Summing naively double-counts (this caused +$50M / +$192M disbursement overages on the first pass before the traps were identified). The leaf set also **differs by form type** (candidate Form 3/3P vs PAC-party Form 3X).
 
@@ -33,7 +35,17 @@ Both sides of the FEC `/totals/` endpoint form a **mutually-exclusive AND collec
 
 1. **Subtotals / rollups:** `contributions` (= individual + PAC + party), `individual_contributions` (= itemized + unitemized). These are sums of their own children.
 2. **Net figures:** `net_contributions` (= contributions − refunds), `net_operating_expenditures` (= operating_exp − offsets). Gross-minus-contra, not categories.
-3. **Duplicate aliases — same money under another name** (verified equal in live data): `fed_receipts` ≡ `receipts`; `fed_disbursements` ≡ `disbursements`; `fed_operating_expenditures` ≡ `other_fed_operating_expenditures` ≡ `operating_expenditures`.
+3. **Duplicate aliases — same money under another name, *but only for fed-only committees*** (correction 2026-06-08 — see warning below): `fed_receipts` ≡ `receipts`; `fed_disbursements` ≡ `disbursements`; `fed_operating_expenditures` ≡ `other_fed_operating_expenditures` ≡ `operating_expenditures`.
+
+> **⚠ The `fed_*` ≡ total aliases are CONDITIONAL, not universal (corrected 2026-06-08).** They hold only for committees that run **no non-federal (soft-money) account**. For a committee that *does* (most state/territory party federal accounts; some non-fed-account PACs), the **total** `receipts`/`disbursements` fold in non-federal money that the `fed_*` figures exclude — and that total is what the Sankey conserves against and what the cash identity (§4) closes on. The divergence is material, not rounding.
+>
+> **Verified counterexample — Democratic Party of Wisconsin Federal (C00019331), 2024:**
+> - `receipts` $63,427,392.68 vs `fed_receipts` $51,325,830.95 → diff **$12,101,561.73** = `transfers_from_nonfed_account` ($12,088,940.37) + `transfers_from_nonfed_levin` ($12,621.36).
+> - `disbursements` $61,697,041.92 vs `fed_disbursements` $46,403,630.95 → diff **$15,293,410.97** = `shared_nonfed_operating_expenditures` ($15,262,501.74) + `shared_fed_activity_nonfed` ($30,909.23).
+> - Cash identity closes on **totals only**: $404,371.94 start + receipts − disbursements = $2,134,722.70 end (exact). Fed-only figures do **not** close.
+> - The **`operating_expenditures` alias trio also breaks** here: `operating_expenditures` ≡ `fed_operating_expenditures` ($29,411,929.43) still held, but `other_fed_operating_expenditures` ($5,562,968.68) **diverged** — so no `fed_*`/`other_fed_*` field is a safe alias for a dual-account committee.
+>
+> **Control — DCCC (C00000935), 2024:** same *Party–Qualified* committee type, yet `receipts` ≡ `fed_receipts`, `disbursements` ≡ `fed_disbursements`, every non-federal field $0 (national party, no soft money post-BCRA). **So the signal is NOT committee type — it's data-driven:** `receipts !== fed_receipts || disbursements !== fed_disbursements` flags a dual-account committee. (ActBlue and Senate Majority PAC are also fed-only controls — note a *hybrid PAC's "non-contribution account" is still federal* and is correctly NOT flagged; "non-federal" = state/local soft money, a different thing.) These committees are **gated out of the v1 Sankey** — see the v1 scope-gates section below.
 
 ---
 
@@ -135,7 +147,23 @@ Receipts and disbursements **do not balance**, and that's correct: the differenc
 cash_on_hand_beginning_period + receipts − disbursements = last_cash_on_hand_end_period
 ```
 
-**Open decision (→ Chat, see §8):** whether to make the Sankey *visibly* conserve by adding `Cash on hand (start)` as a left node and `Cash on hand (end)` + `Debt` as right nodes (left-total = right-total, more honest, but +2–3 nodes and needs a clear visual story for "money that didn't move"), or keep it as sources→committee→spend and accept the two ends don't sum.
+**Open decision (→ Chat, see §8):** whether to make the Sankey *visibly* conserve by adding `Cash on hand (start)` as a left node and `Cash on hand (end)` + `Debt` as right nodes (left-total = right-total, more honest, but +2–3 nodes and needs a clear visual story for "money that didn't move"), or keep it as sources→committee→spend and accept the two ends don't sum. *(Resolved by the `sankey-examples.html` prototype: COH start/end ARE nodes, debt is a caption annotation — the prototype wins where it overlaps.)*
+
+---
+
+## 4a. v1 scope gates — what the Sankey does NOT model in v1
+
+Two classes of entity are **gated out of the v1 Sankey**: the v1 totals-based model can't conserve for them without additional, separately-verified work. A gated entity must render a neutral **"not yet modeled"** state — **never** a Sankey that silently under-sums, and **never** a donut fallback (the donuts carry the A2 field-name bugs *and* the same non-federal gap).
+
+**Gate 1 — committees with a non-federal (soft-money) account.** For these, the **total** `receipts`/`disbursements` fold in non-federal money the v1 leaf set doesn't model, so the fed-side leaves under-sum the total by the non-federal amount (Wisconsin: a $12.1M / $15.3M residual — the exact "silent under-sum" we must avoid). Modeling them correctly means pulling in the full party-committee partition — a "Transfers from non-federal account" receipt leaf, "Non-federal operating (shared)" + "Non-federal election activity (Levin)" disbursement leaves, plus FEA / Levin / coordinated-party-expenditure interactions — which is its own verified workstream. **Fast-follow, not v1.**
+- **Detector (data-driven, NOT committee type):** `entity === 'committee' && (Math.abs(receipts − fed_receipts) > 1 || Math.abs(disbursements − fed_disbursements) > 1)`. The entity gate / null-guard is load-bearing: candidate (Form 3) totals carry **no `fed_receipts` field**, so an un-guarded `receipts !== fed_receipts` would read `X !== undefined` and flag *every candidate*. The `> 1` tolerance (not strict `!==`) guards against sub-dollar FEC rounding; controls return exactly `0.00` today, so the tolerance is defensive.
+- **Rationale / fixtures:** dual-account = **C00019331** (Dem Party of Wisconsin Fed, 2024 — see the §1 reconciliation); fed-only control = **C00000935** (DCCC, same *Party–Qualified* type, fully fed). It is not committee type — DCCC and Wisconsin share a type and differ only in the data.
+- **Prevalence:** mostly state/territory party federal accounts + some non-fed-account PACs — common committee search results, so the gated state will be seen with real frequency (it is not a rare edge).
+- **Orthogonal to cohStart-derivation (A1):** Wisconsin's cash identity closes *exactly* on totals — its issue is leaf coverage, not COH. Conversely ActBlue (fed-only, *not* gated) still fails the cash identity by ~$889, which only deriving cohStart fixes. Two independent mechanisms; don't conflate them.
+
+**Gate 2 — presidential committees (Form 3P).** Out of v1 (the earlier A5 call). Form 3P carries extra leaves the v1 candidate model doesn't render — `federal_funds` (receipt, public financing), `fundraising_disbursements`, `exempt_legal_accounting_disbursement` (spend) — so a 3P committee would not conserve as written. Fast-follow.
+
+**The honest gate (constraint):** a gated entity resolves to a neutral "not yet modeled" state, not an under-summing chart and not a donut fallback. Detection point + placement + copy are proposed as options in the Sankey build plan (not yet built).
 
 ---
 
@@ -250,7 +278,7 @@ curl -s "https://api.open.fec.gov/v1/committee/C00401224/totals/?api_key=DEMO_KE
 curl -s "https://api.open.fec.gov/swagger/?format=openapi"
 ```
 
-Conservation method: sum the leaf fields per §2 (excluding all §1 trap fields), compare to `receipts` / `disbursements`. Candidate + super PAC reconcile to the penny; party/conduit to within rounding.
+Conservation method: sum the leaf fields per §2 (excluding all §1 trap fields), compare to `receipts` / `disbursements`. All four entities reconcile to the penny ($0.00 residual on both sides) with the corrected leaf set, verified 2026-06-08 — see the §1 supersession note (the earlier "party/conduit within rounding" figures were a hand-computation leaf-set error, now corrected).
 
 ### Test fixtures — candidates exercising the self-funding / loans split (verified live 2026-06-08)
 
@@ -260,5 +288,25 @@ For validating the candidate.html donut grouping (§3) and the future Sankey —
 |---|---|---|---|---|---|
 | **Michael Sapraicone** (S-NY 2024) | `/candidate/S4NY00404#2024` | $83,451 | $600,000 | $50,050 | Most *balanced* all-three; best for showing all three fields as distinct. Senate = 6-yr multi-subcycle. (His `H4NY03184` House id has no election_full record — use the `S4…` id.) |
 | **Paul Junge** (H-MI08 2024) | `/candidate/H0MI08141#2024` | $355 | $4,100,000 | $700,000 | Largest ($5.98M receipts), cleanest House 2-yr cycle; both wedges prominent but gift is a token $355. |
+
+### Sankey verify-set (conservation, verified live 2026-06-08)
+
+The entity-aware adapter (per §2 leaf set + §4a gates) must be checked against each of these to the penny before shipping. Adapter run on 2026-06-08: receipt + disbursement node-sums reconcile to **$0.00** residual on all of rows 1–6; the gated row (7) is the canonical case the earlier "all six conserve" pass *missed* because the set had no dual-account committee.
+
+| # | Entity | ID / cycle | Form | Role in the set |
+|---|---|---|---|---|
+| 1 | MGP | H2WA03217 / 2024 | 3 | Normal candidate; thin right side |
+| 2 | Nancy Pelosi | H8CA05035 / 2026 | 3 | Overspender (disb > receipts; reserves drawn down) |
+| 3 | Michael Sapraicone | S4NY00404 / 2024 | 3 | Self-funder (exercises self-funding vs external-loans split); Senate multi-subcycle |
+| 4 | DCCC | C00000935 / 2024 | 3X | Party, dense right side; **fed-only control** (fed ≡ total) |
+| 5 | Senate Majority PAC | C00484642 / 2024 | 3X | Super PAC; fed-only |
+| 6 | ActBlue | C00401224 / 2024 | 3X | Conduit; fed-only, but **cash identity off by ~$889** → the A1 derive-cohStart case |
+| 7 | **Dem Party of Wisconsin Fed** | **C00019331 / 2024** | 3X | **Dual-account (non-federal) — GATED (§4a Gate 1).** Verifies the detector fires and the gate renders "not yet modeled" rather than under-summing by $12.1M/$15.3M. |
+
+`curl` for the new dual-account fixture:
+```bash
+# Dual-account party committee (Form 3X with non-federal account) — GATED
+curl -s "https://api.open.fec.gov/v1/committee/C00019331/totals/?api_key=DEMO_KEY&cycle=2024&per_page=1"
+```
 
 Scarcity: only **15 of 3,857** candidates in the 2024 cycle have all three fields > 0 (45 meet the relaxed "(gift OR self-loan) + bank loan"). To regenerate: download `https://www.fec.gov/files/bulk-downloads/2024/weball24.zip` (follow the 302 with `curl -L`) and filter cols 12/13/14.
