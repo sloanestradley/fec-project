@@ -82,6 +82,13 @@
   --cat-other:   #D7D1C7;
   --cat-other-2: #EEE9E1;
 
+  /* Sankey structural colors (Raised→Spent money-flow viz). Not data categories —
+     these are the cash-on-hand node and the committee hub. --sankey-cash is a neutral
+     grey between --border-strong (#A8A099) and --cat-6 (#D4C4B5); --sankey-hub is the
+     slate the commingled-funds hub uses. Read into CATEGORY_COLORS.sankey at load. */
+  --sankey-cash: #B0A89B;
+  --sankey-hub:  #2B3A47;
+
   /* Spacing — 8px grid */
   --space-2:  2px;     /* micro: fine-tuning only — leave inline comment at every call site */
   --space-4:  0.25rem; /* 4px  — tag padding, chip gap, sub-label margin */

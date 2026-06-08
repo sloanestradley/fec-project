@@ -44,6 +44,11 @@ cp ./*.html "$TARGET/"
 # Shared client-side assets
 cp main.js utils.js styles.css "$TARGET/"
 
+# Sankey module + vendored ECharts (self-hosted — see strategy/sankey-data-model.md
+# §8 for why self-hosted over the Google Charts remote-loader). echarts.min.js is
+# pinned at 5.5.1; loaded only by candidate.html + committee.html.
+cp sankey.js echarts.min.js "$TARGET/"
+
 # Redirect rules (Netlify-format; Cloudflare honors for paths not overridden
 # by Pages Functions in functions/candidate/ and functions/committee/)
 cp _redirects "$TARGET/"
@@ -64,6 +69,8 @@ critical_paths=(
   "styles.css"
   "main.js"
   "utils.js"
+  "sankey.js"
+  "echarts.min.js"
   "_redirects"
   "functions/api/fec/[[path]].js"
   "functions/api/aggregations/[[path]].js"

@@ -557,6 +557,16 @@ var CATEGORY_COLORS = (function() {
       loanRepayments:          v('--cat-6'),
       contributionRefunds:     v('--cat-7'),
       otherDisbursements:      v('--cat-other')
+    },
+    // Raised→Spent Sankey palette (sankey.js renderSankey). `ramp` is the ordinal
+    // size-rank sequence (largest wedge = darkest --cat-1, descending); `other` is the
+    // neutral catch-all pinned below the ramp; `cash`/`hub` are the cash-on-hand node
+    // and the committee hub. Rank-applied, NOT category-identity (see prototype §8).
+    sankey: {
+      ramp:  ['--cat-1','--cat-2','--cat-3','--cat-4','--cat-5','--cat-6','--cat-7'].map(v),
+      other: v('--cat-other'),
+      cash:  v('--sankey-cash'),
+      hub:   v('--sankey-hub')
     }
   };
 })();
