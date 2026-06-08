@@ -538,6 +538,21 @@ test.describe('candidate.html — flowing detail view', () => {
     await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
   });
 
+  // A2 regression lock: the Spent donut must read `loan_repayments` (the Form-3
+  // candidate field), NOT `loan_repayments_made` (the Form-3X name the prior code
+  // used, which is null on candidate totals — so candidate loan repayments rendered
+  // as $0). The TOTALS fixture carries loan_repayments: 150000; this asserts the
+  // wedge surfaces it. Verified live 2026-06-08 against S4NY00404.
+  test('Spent donut "Loan Repayments" wedge reads loan_repayments (Form-3 field name)', async ({ page }) => {
+    await setupWithContent(page);
+    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
+    const row = page.locator('#spent-donut-legend .donut-row', {
+      has: page.locator('.donut-lbl', { hasText: 'Loan Repayments' }),
+    });
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('.donut-val')).toHaveText('$150K');
+  });
+
   // Standing single-instantiation lock (T-remove-profile-tabs): removing the
   // tab-active render gate means renderRaisedIfReady + the Spent render triggers
   // fire on data-resolve and can be re-entered (fast then slow tier). This guards that

@@ -442,6 +442,68 @@ test.describe('committee.html — archive threshold', () => {
   });
 });
 
+// ── A2: Form-3X raised-donut field resolution ───────────────────────────────────
+
+test.describe('committee.html — A2 Form-3X raised donut field resolution', () => {
+  // Regression lock for the A2 committee raised-donut bug. committee.html serves BOTH
+  // Form-3 candidate PCCs (the default COMMITTEE fixture, MARIE FOR CONGRESS) and
+  // Form-3X PACs/parties. The donut previously read ONLY the Form-3 receipt names
+  // (transfers_from_other_authorized_committee / all_other_loans / other_receipts),
+  // which are null on a Form-3X record — silently dropping ~$103M of transfers/loans/
+  // other on real PACs/parties (e.g. DCCC). The fix coalesces both form-name variants.
+  // This serves a Form-3X totals record (only the *_affiliated_party / all_loans_received
+  // / other_fed_receipts names populated); under the old code these three wedges would
+  // be $0 and drop out. (Metadata stays the base PCC fixture — the donut is form-
+  // agnostic and reads only totals field names, which is exactly what this exercises.)
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{
+          cycle: 2024, receipts: 5000000, disbursements: 4000000,
+          last_cash_on_hand_end_period: 1000000,
+          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
+          individual_itemized_contributions: 2000000,
+          individual_unitemized_contributions: 500000,
+          other_political_committee_contributions: 800000,
+          political_party_committee_contributions: 0,
+          transfers_from_affiliated_party: 1200000,   // Form-3X name — fix must read this
+          all_loans_received: 400000,                  // Form-3X name
+          other_fed_receipts: 100000,                  // Form-3X name
+          operating_expenditures: 3500000,
+          transfers_to_affiliated_committee: 200000,
+          loan_repayments_made: 100000,
+          contribution_refunds: 50000,
+          other_disbursements: 150000,
+        }],
+        pagination: { count: 1 },
+      })});
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#raised-donut-content', { state: 'visible', timeout: 12000 });
+  });
+
+  test('Transfers in wedge reads transfers_from_affiliated_party (Form-3X)', async ({ page }) => {
+    const row = page.locator('#donut-legend .donut-row', {
+      has: page.locator('.donut-lbl-text', { hasText: 'Transfers in' }),
+    });
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('.donut-val')).toHaveText('$1.2M');
+  });
+
+  test('Loans + Other receipts wedges read the Form-3X field names', async ({ page }) => {
+    const loans = page.locator('#donut-legend .donut-row', {
+      has: page.locator('.donut-lbl-text', { hasText: /^Loans$/ }),
+    });
+    await expect(loans.locator('.donut-val')).toHaveText('$400K');
+    const other = page.locator('#donut-legend .donut-row', {
+      has: page.locator('.donut-lbl-text', { hasText: 'Other receipts' }),
+    });
+    await expect(other.locator('.donut-val')).toHaveText('$100K');
+  });
+});
+
 // ── Legacy #cycle#tab back-compat (T-remove-profile-tabs) ───────────────────────
 
 test.describe('committee.html — legacy #cycle#tab back-compat', () => {

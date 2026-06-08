@@ -49,6 +49,16 @@ const TOTALS = {
     transfers_from_other_authorized_committee: 100000,
     candidate_contribution: 0,
     other_receipts: 100000,
+    // Spent breakdown — drives the Spent-tab donut (sums to disbursements 3,100,000).
+    // loan_repayments is the Form-3 (candidate) field name — NOT loan_repayments_made
+    // (the Form-3X name). Regression lock for the A2 candidate spent-donut bug
+    // (loan_repayments_made was read where Form 3 returns loan_repayments; verified
+    // live 2026-06-08 against S4NY00404).
+    operating_expenditures: 2400000,
+    transfers_to_other_authorized_committee: 100000,
+    loan_repayments: 150000,
+    contribution_refunds: 150000,
+    other_disbursements: 300000,
   }],
   pagination: { count: 1 },
 };

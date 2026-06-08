@@ -1419,7 +1419,7 @@ function renderSpentDonut(breakdown, totalSpent) {
   var SPEND_CATEGORIES = [
     { key: 'operating_expenditures',                  label: 'Operating Expenditures',  color: CATEGORY_COLORS.spent.operatingExpenditures },
     { key: 'transfers_to_other_authorized_committee', label: 'Transfers Out',            color: CATEGORY_COLORS.spent.transfersOut },
-    { key: 'loan_repayments_made',                    label: 'Loan Repayments',          color: CATEGORY_COLORS.spent.loanRepayments },
+    { key: 'loan_repayments',                         label: 'Loan Repayments',          color: CATEGORY_COLORS.spent.loanRepayments },
     { key: 'contribution_refunds',                    label: 'Contribution Refunds',     color: CATEGORY_COLORS.spent.contributionRefunds },
     { key: 'other_disbursements',                     label: 'Other Disbursements',      color: CATEGORY_COLORS.spent.otherDisbursements }
   ];
@@ -1940,7 +1940,7 @@ async function loadCycle(cycle) {
     var disbursementsBreakdown = {
       operating_expenditures:                  totalsRec.operating_expenditures || 0,
       transfers_to_other_authorized_committee: totalsRec.transfers_to_other_authorized_committee || 0,
-      loan_repayments_made:                    totalsRec.loan_repayments_made || 0,
+      loan_repayments:                         totalsRec.loan_repayments || 0,
       contribution_refunds:                    totalsRec.contribution_refunds || 0,
       other_disbursements:                     totalsRec.other_disbursements || 0,
     };
