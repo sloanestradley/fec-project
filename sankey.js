@@ -145,6 +145,19 @@ function buildSankeyModel(rec, opts) {
   };
 }
 
+// Recommended container height (px) for a model — content-adaptive so a sparse render
+// (a candidate's ~6 sources) sits near the sibling timeline-chart's rhythm and a dense
+// one (committee/party + COH nodes) grows only as needed, instead of a fixed height
+// that leaves excess whitespace on sparse renders. Keyed to the taller column's node
+// count. Gated models get a compact box for the "not yet modeled" message.
+function sankeyHeight(model) {
+  if (!model || model.gated) return 120;
+  var L = model.sources.length + (model.cohStart > 0 ? 1 : 0);
+  var R = model.uses.length + (model.cohEnd > 0 ? 1 : 0);
+  var PER = 46;   // px per node slot — label legibility vs. compactness
+  return Math.max(320, Math.min(560, Math.max(L, R) * PER + 24));
+}
+
 // ── ECharts render (SVG) of a non-gated model ────────────────────────────────
 function renderSankey(elId, model) {
   if (!model || model.gated) return;            // gated models render the page's gate state, not here
@@ -240,7 +253,11 @@ function renderSankey(elId, model) {
       }
     },
     series: [{
-      type: 'sankey', left: '1%', right: '1%', top: '2%', bottom: '2%',
+      // left/right 0 → the outer node rectangles align flush with the card's content
+      // edge (labels point inward, so nothing clips outward); top/bottom 8 reserves
+      // ~half a label line so a thin (min-height-floored) edge node — Other / Cash-on-
+      // hand, pinned to the bottom — doesn't have its centered label clipped.
+      type: 'sankey', left: 0, right: 0, top: 8, bottom: 8,
       nodeWidth: 13, nodeGap: 16, nodeAlign: 'justify', draggable: false, layoutIterations: 0,
       emphasis: { focus: 'adjacency' },
       blur: { lineStyle: { opacity: 0.40 }, itemStyle: { opacity: 0.50 }, label: { opacity: 0.85 } },
@@ -254,5 +271,9 @@ function renderSankey(elId, model) {
       data: nodes, links: links
     }]
   }, true);
+  // Re-read the container box: the caller sets the height per-render (sankeyHeight),
+  // and on a reused instance setOption alone keeps the old canvas size. Safe when
+  // visible (callers only render into a visible container).
+  chart.resize();
   return chart;
 }

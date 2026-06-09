@@ -199,7 +199,7 @@
           <div class="chart-header">
             <div class="chart-title raised-cell-title--has-info" id="money-flow-title" style="display:flex;align-items:center">Money flow<span class="tooltip" aria-label="About the money-flow view">Where this committee's money came from and where it went, for the selected cycle. <strong>Cash on hand (start)</strong> is derived — campaign committees don't report a beginning balance, so it's computed as end-of-cycle cash plus disbursements minus receipts. Every flow ties to the reported Raised and Spent totals.</span></div>
           </div>
-          <div id="sankey-area" style="position:relative;width:100%;min-width:0;height:500px">
+          <div id="sankey-area" style="position:relative;width:100%;min-width:0;height:360px">
             <div id="sankey-chart" style="width:100%;height:100%"></div>
             <div id="sankey-skeleton" class="skeleton" style="position:absolute;inset:0"></div>
             <div id="sankey-gate" class="inline-status-msg" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:var(--space-24)"></div>
@@ -1801,6 +1801,7 @@ document.addEventListener('click', function(e) {
 function renderMoneyFlow(rec, principal) {
   var area   = document.getElementById('sankey-chart');
   if (!area) return;
+  var wrap   = document.getElementById('sankey-area');
   var skel   = document.getElementById('sankey-skeleton');
   var gate   = document.getElementById('sankey-gate');
   var debtEl = document.getElementById('sankey-debt');
@@ -1813,6 +1814,7 @@ function renderMoneyFlow(rec, principal) {
   if (model.gated) {
     currentSankeyModel = null;
     area.style.display = 'none';
+    if (wrap) wrap.style.height = sankeyHeight(model) + 'px';  // compact box for the message
     if (debtEl) debtEl.style.display = 'none';
     if (gate) { gate.style.display = 'flex'; gate.textContent = sankeyGateCopy(model.reason); }
     return;
@@ -1820,6 +1822,8 @@ function renderMoneyFlow(rec, principal) {
   if (gate) gate.style.display = 'none';
   area.style.display = 'block';
   currentSankeyModel = model;
+  // Content-adaptive height (set before render; renderSankey re-reads the box).
+  if (wrap) wrap.style.height = sankeyHeight(model) + 'px';
   renderSankey('sankey-chart', model);
   if (debtEl) {
     if (model.debt > 0) { debtEl.style.display = 'block'; debtEl.textContent = 'Debt at close: ' + fmt(model.debt); }

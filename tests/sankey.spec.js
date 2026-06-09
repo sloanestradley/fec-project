@@ -116,4 +116,20 @@ test.describe('sankey.js — buildSankeyModel adapter', () => {
     const reason = await page.evaluate((rec) => window.sankeyGateReason(rec, { entity: 'candidate' }), SAP);
     expect(reason).toBeNull();
   });
+
+  test('sankeyHeight is content-adaptive (clamped 320–560; gated compact 120)', async ({ page }) => {
+    await loadAdapter(page);
+    // 1 source + 1 use → well under the min → clamps to 320 (sibling-timeline rhythm).
+    const tiny = await page.evaluate(() => window.sankeyHeight(window.buildSankeyModel(
+      { receipts: 100, disbursements: 100, last_cash_on_hand_end_period: 0,
+        individual_itemized_contributions: 100, operating_expenditures: 100 }, { entity: 'candidate' })));
+    expect(tiny).toBe(320);
+    // Dense committee → taller, capped at 560.
+    const dccc = await page.evaluate((rec) => window.sankeyHeight(window.buildSankeyModel(rec, { entity: 'committee' })), DCCC);
+    expect(dccc).toBeGreaterThan(320);
+    expect(dccc).toBeLessThanOrEqual(560);
+    // Gated → compact message box.
+    const gated = await page.evaluate((rec) => window.sankeyHeight(window.buildSankeyModel(rec, { entity: 'committee' })), WISCONSIN);
+    expect(gated).toBe(120);
+  });
 });
