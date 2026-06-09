@@ -6432,3 +6432,24 @@ Apache ECharts 5.5.1 (sankey series, SVG renderer, self-hosted); FEC conservatio
 - **Step 4 decisions (gate before any build):** confirm "Sankey in-scope / donut out-of-scope"; dual-account sub-decision (donut as-is / +caveat / keep gate); grid reflow when donut hidden (choropleth/purpose full-width?); the IA shift (breakdown moves to Sankey at top; Raised/Spent keep geography/purpose/contributors); loading skeleton during scope-unknown window; %-parity (Sankey tooltip-only % vs donut always-visible legend %); mobile (dense Sankey vs donut fallback); optional analytics dimension.
 - **Step 5 sequencing/scope:** presidential ungate (add fundraising_disbursements + exempt_legal_accounting_disbursement leaf nodes, sweep, verify 4-yr candidate path); a11y data table; full .viz-tt tooltip alignment; color rank-vs-identity; dual-account modeling; conduit precompute.
 - **Remaining doc/test debt to schedule:** strategy-doc "UNEXECUTED" header (now stale); design-system Money-flow component card; project-brief Sankey/gating decisions; TESTING.md sankey.spec coverage; #sankey-debt caption test + committee no-activity guard test.
+
+## Remaining work — post-compact punch list (Sankey arc; authoritative)
+Carried from the end-of-session audit. **#1 (strategy header) DONE** (commit 852f8e1). **#14 (live verification) DONE** (Sloane). Everything below is open:
+
+**Docs**
+2. **design-system.html — NO Money-flow component card/demo** (only the two `--sankey-*` tokens). Add a component card + status (`stable`, both pages) + demo. Caveat: the demo embeds ECharts/SVG — needs a render hook or a static stand-in + note; non-trivial, not copy-paste.
+3. **project-brief.md not updated for the Sankey at all** — Raised/Spent-tab donut descriptions are superseded-in-progress; record the Sankey-replaces-donuts decision, the conservation model, and the presidential/dual-account gates (+ a Definitions entry for "Money flow / Sankey").
+4. **TESTING.md** — doesn't mention `sankey.spec.js` or the new mount/gate describe blocks (count 872 is current; coverage description is stale).
+5. **CLAUDE.md `tests/` file-inventory block** — module note references `sankey.spec.js`, but verify/add it as a file entry in the Current-files `tests/` block (likely missing).
+6. **ia.md (minor)** — candidate/committee detail view now leads `#tab-summary` with a Money-flow section; detail-view description could note it.
+
+**Tests**
+7. **`#sankey-debt` "Debt at close" caption — no assertion** (shows only when `debt > 0`; uncovered on both pages). Clearest gap vs. the "every conditional render gets a test" bar.
+8. **committee no-financial-activity guard** (no nodes → blank section) — no assertion.
+9. **Judgment-call gaps (flag, maybe skip):** resize re-render, skeleton-reset-on-cycle-switch, candidate catch-branch Sankey error overlay.
+10. **`c0ceaa0` (tooltip copy) has no dedicated test-cases log row** — copy-only, no test change; minor.
+
+**Closing ritual**
+11. **Closing stale-reference sweep** — triggered (10 commits, copy + structure changes). Grep retired strings (old tooltip copy; old donut field-name assumptions in comments; committee donut "Candidate authorized committees" → "Transfers in" relabel) + confirm "Money flow"/Sankey described consistently across CLAUDE.md, design-system, test-cases, TESTING.
+
+**Then the build:** Step 4 (donut↔Sankey scope toggle — needs Chat decisions: donut-scope rule + layout/IA) → Step 5 fast-follows (presidential ungate path fully documented in sankey-data-model.md §4a Gate 2; a11y table; full .viz-tt tooltip alignment; color rank-vs-identity; dual-account modeling; conduit precompute).
