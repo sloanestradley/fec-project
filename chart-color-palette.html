@@ -170,8 +170,8 @@
       a <strong>source-layer badge</strong>: <span class="cc-src cc-src--token">token</span> reads a
       CSS variable (a semantic / brand token),
       <span class="cc-src cc-src--cc">chart_colors</span> reads those tokens through the JS helper, and
-      <span class="cc-src cc-src--literal">literal</span> was a hardcoded rgba/RGB string baked into a render
-      function — now retired (the donut categories that used it became <code>--cat-*</code> tokens in Phase 3).
+      <span class="cc-src cc-src--literal">literal</span> would mark a hardcoded rgba/RGB string baked into a render
+      function — none remain; every color is token-sourced.
       Each chart section also documents its <strong>hover behavior</strong> with a faithful
       interactive demo (hover the swatches and demos to see the real effect), summarized in the
       <a href="#" onclick="document.querySelector('.cc-audit').scrollIntoView({behavior:'smooth'});return false;"
@@ -184,9 +184,9 @@
         the <strong>choropleth</strong> (sourced from <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>),
         the monochrome purpose bars, and non-chart UI chrome read tokens directly or via the <code>CHART_COLORS</code>
         JS helper. The <strong>donut categories are token-sourced too</strong>: <code>CATEGORY_COLORS</code> in
-        <code>utils.js</code> reads the <code>--cat-*</code> sequence tokens at load (Phase 3 of the color-system
-        cleanup), mirroring <code>CHART_COLORS</code> — so retuning a <code>--cat-*</code> token moves the matching
-        donut wedge on both pages. Raw color literals are no longer used in production. The badges throughout this
+        <code>utils.js</code> reads the <code>--cat-*</code> sequence tokens at load, mirroring <code>CHART_COLORS</code>
+        — so retuning a <code>--cat-*</code> token moves the matching donut wedge on both pages. Raw color literals are
+        not used in production. The badges throughout this
         page mark which layer each swatch belongs to.</p>
       <div class="cc-grid" id="layers"></div>
     </section>
@@ -228,7 +228,7 @@
     <section class="cc-section cc-section--rehover">
       <h2 class="cc-section-title">Raised breakdown donut · both pages (identical)</h2>
       <p class="cc-section-note">Each <code>cats</code> entry references <code>CATEGORY_COLORS.raised.*</code>
-        (<code>utils.js</code>), but the two pages' raised donuts <strong>diverge</strong> (2026-06-09): candidate has
+        (<code>utils.js</code>), but the two pages' raised donuts <strong>diverge</strong>: candidate has
         <strong>10</strong> categories, committee <strong>11</strong> — committee adds a "Transfers from non-federal
         account" wedge for its soft-money account (see swatch below). Three labels differ between the pages: "Candidate
         self-funding" (candidate) vs "Candidate contributions &amp; loans" (committee); "Candidate authorized
@@ -316,8 +316,8 @@
       <p class="cc-section-note">Committee has a richer disbursement schema: it adds Federal Election Activity,
         Candidate Contributions, and Independent Expenditures. All eight reference
         <code>CATEGORY_COLORS.spent.*</code>; the five categories shared with the candidate donut resolve to the same
-        values on both pages. (The former "Shared Non-Federal OpEx" wedge was retired 2026-06-09 — it double-counted,
-        being <em>inside</em> the Operating Expenditures parent.)</p>
+        values on both pages. (Shared non-federal operating costs are folded <em>inside</em> the Operating Expenditures
+        parent, not shown as a separate wedge — listing both would double-count.)</p>
       <div class="cc-grid" id="spentComm"></div>
       <h3 class="cc-subhead">Hover behavior</h3>
       <div class="cc-hover-panel">
@@ -441,9 +441,9 @@
       <ul class="cc-findings">
         <li><strong>Three color layers.</strong> CSS tokens (partisan, status, brand) drive the timeline, purpose
           bars, and UI chrome. <code>CHART_COLORS</code> (utils.js) reads those general tokens into JS for the
-          timeline (the bespoke <code>--chart-*</code> set was retired 2026-06-03), and the choropleth reads
-          <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>. The donut categories are
-          <strong>token-sourced</strong> too (Phase 3, 2026-06-03): <code>CATEGORY_COLORS</code> (utils.js) reads the
+          timeline (it reads general semantic / brand tokens, not a bespoke <code>--chart-*</code> set), and the
+          choropleth reads <code>--amber</code> via <code>CHART_COLORS.choroplethRgb</code>. The donut categories are
+          <strong>token-sourced</strong> too: <code>CATEGORY_COLORS</code> (utils.js) reads the
           <code>--cat-1</code>…<code>--cat-7</code> / <code>--cat-other</code>(<code>-2</code>) sequence tokens at
           load, so a <code>--cat-*</code> retune now propagates to both pages' donut wedges. No raw color literals
           remain in production.</li>
@@ -462,10 +462,10 @@
         <li><strong>Cross-page:</strong> raised donut identical; spent donut diverges (candidate 5 vs committee
           8 categories); choropleth identical on both (a single <code>--amber</code> ramp, party-agnostic);
           timeline is candidate-only; purpose bars identical (monochrome).</li>
-        <li><strong>Single positional ramp (stable, in production since 2026-06-03).</strong> The donut categories
-          use one sequential navy → parchment ramp, applied positionally so raised-slot-N and spent-slot-N share a
-          value — retiring the old per-hue collisions (the three alpha-only greys, the multi-meaning green, the
-          gold-vs-token "amber"). <strong>Cross-donut duplicate values are by design</strong>: e.g. raised "Federal
+        <li><strong>Single positional ramp.</strong> The donut categories use one sequential navy → parchment ramp,
+          applied positionally so raised-slot-N and spent-slot-N share a value (no per-hue collisions — no alpha-only
+          greys, no multi-meaning green, no gold-vs-token "amber"). <strong>Cross-donut duplicate values are by
+          design</strong>: e.g. raised "Federal
           funds" and spent "Contribution Refunds" are both <code>--cat-7</code> <code>#F5E2E0</code> — the same slot
           index on each donut. Within a single donut every wedge is a distinct slot.</li>
       </ul>
@@ -545,7 +545,7 @@
     fill('spentCand', [
       { name: 'Operating Expenditures', color: 'var(--cat-1)', val: '--cat-1 · #05234F', key: 'operating_expenditures', src: 'token' },
       { name: 'Transfers Out', color: 'var(--cat-3)', val: '--cat-3 · #437772', key: 'transfers_to_other_authorized_committee', src: 'token' },
-      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments (Form-3 name · A2 fix 2026-06-08)', src: 'token' },
+      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments (Form-3 candidate field name)', src: 'token' },
       { name: 'Contribution Refunds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'contribution_refunds', src: 'token' },
       { name: 'Other Disbursements', color: 'var(--cat-other)', val: '--cat-other · #D7D1C7', key: 'other_disbursements', src: 'token' }
     ]);
@@ -553,11 +553,11 @@
     // ── spent donut committee (8) ────────────────────────────────────────
     fill('spentComm', [
       { name: 'Operating Expenditures', color: 'var(--cat-1)', val: '--cat-1 · #05234F', key: 'operating_expenditures', src: 'token' },
-      { name: 'Federal Election Activity', color: 'var(--cat-2)', val: '--cat-2 · #1D5A6D', key: 'fed_election_activity (parent — added 2026-06-09, replaces double-counted Shared Non-Federal OpEx)', src: 'token' },
+      { name: 'Federal Election Activity', color: 'var(--cat-2)', val: '--cat-2 · #1D5A6D', key: 'fed_election_activity (top-level parent)', src: 'token' },
       { name: 'Transfers Out', color: 'var(--cat-3)', val: '--cat-3 · #437772', key: 'transfers_to_affiliated_committee', src: 'token' },
       { name: 'Candidate Contributions', color: 'var(--cat-4)', val: '--cat-4 · #75917B', key: 'fed_candidate_committee_contributions', src: 'token' },
       { name: 'Independent Expenditures', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'independent_expenditures', src: 'token' },
-      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments_made + loan_repayments (coalesced 2026-06-09)', src: 'token' },
+      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments_made + loan_repayments (coalesced — Form-3X + Form-3 names)', src: 'token' },
       { name: 'Contribution Refunds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'contribution_refunds', src: 'token' },
       { name: 'Other Disbursements', color: 'var(--cat-other)', val: '--cat-other · #D7D1C7', key: 'other_disbursements (+ remainder)', src: 'token' }
     ]);
