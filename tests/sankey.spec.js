@@ -109,6 +109,21 @@ test.describe('sankey.js — buildSankeyModel adapter', () => {
     expect(m.uses.find(u => u.name === 'Loan repayments').value).toBeCloseTo(50050, 2);          // Form-3 loan_repayments
   });
 
+  test('Transfers in coalesces transfers_from_affiliated_committee (Form-3P JFC transfers)', async ({ page }) => {
+    await loadAdapter(page);
+    // Synthetic NON-gated committee record whose only transfer-in is the Form-3P field
+    // (mutually exclusive with the other two — verified 2026-06-09). The coalesce must
+    // include it or a presidential record under-sums (it's gated in the Sankey, but the
+    // adapter must be correct for the Step 5 un-gating + the donut fallback shares this logic).
+    const rec = { receipts: 1000000, disbursements: 800000, last_cash_on_hand_end_period: 200000,
+      individual_itemized_contributions: 400000, transfers_from_affiliated_committee: 600000,
+      operating_expenditures: 800000 };
+    const m = await page.evaluate((r) => window.buildSankeyModel(r, { entity: 'committee' }), rec);
+    expect(m.gated).toBe(false);
+    expect(m.sources.find(s => s.name === 'Transfers in').value).toBeCloseTo(600000, 2);
+    expect(sumVals(m.sources)).toBeCloseTo(1000000, 2);
+  });
+
   test('Gate 1 — dual-account committee returns {gated, reason:"non-federal"} (no model built)', async ({ page }) => {
     await loadAdapter(page);
     const m = await page.evaluate((rec) => window.buildSankeyModel(rec, { entity: 'committee', hubName: 'Dem Party of WI' }), WISCONSIN);

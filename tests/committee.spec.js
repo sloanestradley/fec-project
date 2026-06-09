@@ -2182,3 +2182,28 @@ test.describe('committee.html — Money flow gate (presidential, Gate 2)', () =>
     await expect(page.locator('#sankey-chart')).toBeHidden();
   });
 });
+
+// transfers_from_affiliated_committee (Form-3P) — donut is the presidential fallback,
+// so its "Transfers in" wedge must include this field (verified mutually exclusive
+// with the other two transfer-in fields, 2026-06-09).
+test.describe('committee.html — donut Transfers in includes Form-3P transfers', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024, receipts: 1000000, disbursements: 800000, last_cash_on_hand_end_period: 200000,
+          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
+          individual_itemized_contributions: 400000, transfers_from_affiliated_committee: 600000,
+          operating_expenditures: 800000 }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#raised-donut-content', { state: 'visible', timeout: 12000 });
+  });
+  test('Raised donut "Transfers in" wedge reads transfers_from_affiliated_committee', async ({ page }) => {
+    const row = page.locator('#donut-legend .donut-row', { has: page.locator('.donut-lbl-text', { hasText: 'Transfers in' }) });
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('.donut-val')).toHaveText('$600K');
+  });
+});

@@ -1693,7 +1693,8 @@ function renderContributorDonut(breakdown, totalRaised) {
   // sum is form-agnostic and safe (no double-count). Reading only the Form-3 names (the
   // prior bug) silently dropped ~$103M of transfers/loans/other on Form-3X committees.
   var transfersIn   = (breakdown.transfers_from_other_authorized_committee || 0)
-                    + (breakdown.transfers_from_affiliated_party || 0);
+                    + (breakdown.transfers_from_affiliated_party || 0)
+                    + (breakdown.transfers_from_affiliated_committee || 0);  // Form 3P (presidential JFC transfers — donut is the fallback for gated presidential)
   var externalLoans = (breakdown.all_other_loans || 0)
                     + (breakdown.all_loans_received || 0);
   var otherReceipts = (breakdown.other_receipts || 0)
@@ -1968,7 +1969,7 @@ function renderRaisedIfReady() {
     var breakdown = {};
     ['individual_itemized_contributions','individual_unitemized_contributions',
      'other_political_committee_contributions','political_party_committee_contributions',
-     'transfers_from_other_authorized_committee','transfers_from_affiliated_party',
+     'transfers_from_other_authorized_committee','transfers_from_affiliated_party','transfers_from_affiliated_committee',
      'candidate_contribution','loans_made_by_candidate','all_other_loans','all_loans_received',
      'other_receipts','other_fed_receipts','federal_funds',
      'offsets_to_operating_expenditures','offsets_to_fundraising_expenditures',

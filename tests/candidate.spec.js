@@ -3056,3 +3056,28 @@ test.describe('candidate.html — Money flow gate (presidential)', () => {
     await expect(page.locator('#sankey-chart')).toBeHidden();
   });
 });
+
+// transfers_from_affiliated_committee (Form-3P) — a presidential candidate's joint-
+// fundraising transfers; the donut (presidential fallback) must include it in the
+// "Candidate authorized committees" wedge (verified mutually exclusive, 2026-06-09).
+test.describe('candidate.html — donut transfers wedge includes Form-3P transfers', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/candidate/H2WA03217/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024, receipts: 1000000, disbursements: 800000, last_cash_on_hand_end_period: 200000,
+          coverage_end_date: '2024-12-31T00:00:00', candidate_election_year: 2024,
+          individual_itemized_contributions: 400000, transfers_from_affiliated_committee: 600000,
+          operating_expenditures: 800000 }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#raised-donut-content', { state: 'visible', timeout: 12000 });
+  });
+  test('Raised donut "Candidate authorized committees" wedge reads transfers_from_affiliated_committee', async ({ page }) => {
+    const row = page.locator('#donut-legend .donut-row', { has: page.locator('.donut-lbl-text', { hasText: 'Candidate authorized committees' }) });
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('.donut-val')).toHaveText('$600K');
+  });
+});

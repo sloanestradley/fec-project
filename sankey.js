@@ -103,8 +103,12 @@ function buildSankeyModel(rec, opts) {
     value: g('other_political_committee_contributions') });
   push(sources, { name: 'Party committees', group: 'contributions',
     value: g('political_party_committee_contributions') });
-  push(sources, { name: 'Transfers in',                                    // Form 3 + Form 3X names
-    value: g('transfers_from_other_authorized_committee') + g('transfers_from_affiliated_party') });
+  push(sources, { name: 'Transfers in',   // coalesce all 3 form-variant transfer-in fields,
+    // mutually exclusive by form (verified live 2026-06-09): Form 3 = *_other_authorized_committee,
+    // Form 3X = *_affiliated_party, Form 3P = *_affiliated_committee (the JFC transfer — e.g. a
+    // presidential principal's $534M). Presidential is gated today, so the third term is defensive
+    // / for the Step 5 un-gating; no in-scope entity populates it.
+    value: g('transfers_from_other_authorized_committee') + g('transfers_from_affiliated_party') + g('transfers_from_affiliated_committee') });
   // Candidate self-funding = own gift + own loan, grouped by source so a self-funder isn't
   // hidden inside Loans (external-only). Form-3 only; 0 for a PAC → dropped by push().
   push(sources, { name: 'Candidate self-funding',
