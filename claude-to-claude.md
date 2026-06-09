@@ -6381,3 +6381,54 @@ The recurring lesson this session: verify against the live API, never the mock o
 - **Red banner vs. the grid — residual redundancy.** With the callout gone, the active red "Financially Stressed" is the sole overspend signal, but it restates what the Raised/Spent stat cards already show, minus a cause. Worth deciding if red should eventually say *why* (the Sankey was floated as the durable home).
 - **Committee now has no curated summary feedback.** Intended this session — but worth a deliberate product check that committee profiles reading as "just data, no interpretation" is the desired end state, not a gap to fill later.
 - **The Spent tab's owed live pass** (donut-before-tables, per-table overlays, error isolation) is still on Chat's plate from the progressive-loading ship.
+
+---
+2026-06-09 — Sankey build arc (research → Steps 0–3 + verified fixes; Step 4 awaiting Chat decisions)
+
+## Process log draft
+
+### Title
+Following the money — and the residuals that almost didn't show
+
+### Summary (Sloane's voice)
+I set out to research whether a Sankey diagram could replace the raised/spent donuts — and it turned into a full build that shipped the money-flow chart on both profile pages, coexisting with the donuts. The throughline wasn't the chart; it was how many times verifying against real FEC data caught things that green tests and a single screenshot would have waved through.
+
+### Changelog
+- Researched the FEC receipt/disbursement data model: receipts and disbursements each form an exact MECE partition that conserves to the penny — IF you avoid the subtotal/net/alias trap fields. Captured in strategy/sankey-data-model.md.
+- Picked Apache ECharts (self-hosted) over Google Charts (ToS forbids self-hosting) and Highcharts (paid). Vendored echarts.min.js; built a shared sankey.js module (pure adapter + ECharts render).
+- Fixed two pre-existing donut field-name bugs first (Step 0): committee raised donut silently dropped ~$103M on Form-3X committees; candidate spent donut read the wrong loan-repayments field.
+- Mounted the Money-flow Sankey on candidate.html then committee.html — coexisting with the donuts, gated for presidential + dual-account committees with an honest "not yet modeled" state instead of an under-summing chart.
+- Polished alignment + content-adaptive height (first render sat inset + over-tall); restored the exact authored tooltip copy.
+- Verification caught: committee.html serves Form-3 PCCs too → made the adapter form-agnostic; a presidential committee's $534M JFC transfer was dropped → coalesced the missing transfers_from_affiliated_committee across adapter + both donuts; publicly-financed presidential campaigns leak ~$8M on the spend side via Form-3P exempt categories → presidential stays gated, with a documented ungate path.
+
+### Field notes
+Every real catch came from refusing the easy signal. The mock is a Form-3 PCC, so the $103M committee-donut bug was invisible to 800+ green tests. Biden/Harris conserved perfectly, so a one-committee check would have cleared ungating presidential — until a sweep across the field found a publicly-financed campaign that didn't. I even gave a confidently wrong explanation of the presidential gate (spend side) that only got corrected by pulling the real record (it was the receipt side). The repeating lesson: the balance identity always holds because it's derived — what breaks is the node breakdown, and only real data across the whole class tells you where.
+
+### Stack tags
+Apache ECharts 5.5.1 (sankey series, SVG renderer, self-hosted); FEC conservation/MECE data model; form-agnostic field coalescing.
+
+## How Sloane steered the work
+
+**Scope the honest v1 — "ship totals-based, research purpose later."** Deferred the spending-purpose layer deliberately; it turned out the totals-based Sankey is MORE accurate than the purpose bars beside it (full-cycle vs latest-subcycle).
+
+**"Keep the donut where the Sankey's out of scope."** Caught that Step 4 shouldn't blanket-remove the donuts — the donut is the fallback for gated entities, so removing it would regress presidential. Reversed a previously-locked decision once Step 0 made the donut correct.
+
+**"What other decisions are there? Layout?"** Pushed for the full Step-4 decision list before building — surfacing that the donuts live in a 2-col grid with the choropleth/purpose bars, so hiding them needs a deliberate reflow the build would otherwise have hit blind.
+
+**The tooltip-copy correction.** Noticed I'd drifted from the authored copy without approval, restored the exact wording, and pointed out the unified version removes the need for separate candidate/committee tooltips.
+
+**"Why 6px, not just remove clipping?"** Didn't accept the buffer at face value — forced the real mechanism (ECharts centers labels on min-height-floored edge nodes, so 0 clips them).
+
+**"Ours or FEC's?"** The sharpest. Asking whether presidential non-conservation was our bug or FEC's drove the verification that found the $534M transfers residual, corrected my wrong spend-side explanation, and hardened the donut fallback.
+
+**"Can we just ungate now?"** Drove the sweep that proved publicly-financed campaigns leak ~$8M through Form-3P exempt categories — the exact thing a Biden/Harris-only check would miss.
+
+**"Full audit before we lose context."** Process discipline — catching the holistic doc drift per-commit updates miss.
+
+**Through-line:** Sloane steers by refusing "looks done," "tests are green," and "one example works" as proof. Every meaningful catch this session was a verify-it / is-this-the-right-thing push.
+
+## What to bring to Claude Chat
+
+- **Step 4 decisions (gate before any build):** confirm "Sankey in-scope / donut out-of-scope"; dual-account sub-decision (donut as-is / +caveat / keep gate); grid reflow when donut hidden (choropleth/purpose full-width?); the IA shift (breakdown moves to Sankey at top; Raised/Spent keep geography/purpose/contributors); loading skeleton during scope-unknown window; %-parity (Sankey tooltip-only % vs donut always-visible legend %); mobile (dense Sankey vs donut fallback); optional analytics dimension.
+- **Step 5 sequencing/scope:** presidential ungate (add fundraising_disbursements + exempt_legal_accounting_disbursement leaf nodes, sweep, verify 4-yr candidate path); a11y data table; full .viz-tt tooltip alignment; color rank-vs-identity; dual-account modeling; conduit precompute.
+- **Remaining doc/test debt to schedule:** strategy-doc "UNEXECUTED" header (now stale); design-system Money-flow component card; project-brief Sankey/gating decisions; TESTING.md sankey.spec coverage; #sankey-debt caption test + committee no-activity guard test.
