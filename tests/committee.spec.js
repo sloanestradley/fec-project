@@ -2222,6 +2222,62 @@ test.describe('committee.html — spent donut loan-repayments coalesce (Form-3 P
   });
 });
 
+// Dual-account donut fix (2026-06-09): a state-party-style Form-3X record with a non-federal
+// account. Spent donut must show a Federal Election Activity wedge and NOT a double-counted
+// "Shared Non-Federal OpEx" wedge (it's inside the operating parent); raised donut must show a
+// "Transfers from non-federal account" wedge and base percentages on TRUE receipts. The default
+// fixture (Form-3 PCC) has none of these fields, so this needs a route override. The record
+// carries a $0.5M raised residual (receipts > modeled wedges) to lock the denominator behavior.
+test.describe('committee.html — dual-account donut fix', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024,
+          receipts: 10500000, fed_receipts: 7000000,
+          disbursements: 8000000, fed_disbursements: 5000000,
+          last_cash_on_hand_end_period: 2000000,
+          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
+          // raised: fed (5M indiv + 2M PAC = 7M) + non-fed (2.5M + 0.5M = 3M) = 10M modeled;
+          // receipts 10.5M → $0.5M unexposed residual (the TX/EMILY case) stays unlabeled.
+          individual_itemized_contributions: 5000000,
+          other_political_committee_contributions: 2000000,
+          transfers_from_nonfed_account: 2500000, transfers_from_nonfed_levin: 500000,
+          // spent: operating PARENT 4M (incl shared_nonfed child 1.5M — must NOT be a 2nd wedge)
+          //        + FEA 3M + refunds 0.1M; Other remainder = 0.9M.
+          operating_expenditures: 4000000, shared_nonfed_operating_expenditures: 1500000,
+          fed_election_activity: 3000000, contribution_refunds: 100000 }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+  });
+
+  test('spent donut shows the FEA wedge and drops the double-counted shared-nonfed wedge', async ({ page }) => {
+    const legend = page.locator('#spent-donut-legend');
+    await expect(legend).toContainText('Federal Election Activity', { timeout: 12000 });
+    await expect(legend).not.toContainText('Shared Non-Federal OpEx');
+    // FEA = $3.0M; the operating wedge shows the FULL $4.0M parent (not reduced by the removed child).
+    await expect(legend.locator('.donut-row', { hasText: 'Federal Election Activity' }).locator('.donut-val')).toHaveText('$3.0M');
+    await expect(legend.locator('.donut-row', { hasText: 'Operating Expenditures' }).locator('.donut-val')).toHaveText('$4.0M');
+  });
+
+  test('raised donut shows a Transfers from non-federal account wedge', async ({ page }) => {
+    const legend = page.locator('#donut-legend');
+    await expect(legend).toContainText('Transfers from non-federal account', { timeout: 12000 });
+    await expect(legend.locator('.donut-row', { hasText: 'Transfers from non-federal account' }).locator('.donut-val')).toHaveText('$3.0M');
+  });
+
+  test('raised donut percentages use TRUE receipts as the denominator, not the fed/wedge subtotal', async ({ page }) => {
+    // Individuals (itemized) $5.0M of $10.5M true receipts = 47.6% — NOT 50.0% (of the $10M
+    // modeled-wedge sum) and NOT 71.4% (of the $7M fed base, the pre-fix bug).
+    const legend = page.locator('#donut-legend');
+    const row = legend.locator('.donut-row', { hasText: 'Individuals (itemized)' });
+    await expect(row.locator('.donut-pct')).toHaveText('47.6%');
+  });
+});
+
 test.describe('committee.html — Money flow gate (dual-account, Gate 1)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);

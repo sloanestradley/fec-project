@@ -1699,6 +1699,14 @@ function renderContributorDonut(breakdown, totalRaised) {
                     + (breakdown.all_loans_received || 0);
   var otherReceipts = (breakdown.other_receipts || 0)
                     + (breakdown.other_fed_receipts || 0);
+  // Dual-account fix (2026-06-09): non-federal-account transfers. On a state/local party
+  // (or non-fed-account PAC) the total `receipts` folds in soft money the federal wedges
+  // exclude — receipts − fed_receipts = transfers_from_nonfed_account + transfers_from_nonfed_levin
+  // EXACTLY (verified live). Without this wedge the donut omitted it entirely (WI: $12.1M
+  // invisible) and the % denominator silently rebased to fed_receipts. 0/absent on fed-only +
+  // candidate committees (|| 0 no-op). soft money stays commingled (representation (a)).
+  var nonfedTransfers = (breakdown.transfers_from_nonfed_account || 0)
+                      + (breakdown.transfers_from_nonfed_levin || 0);
 
   var cats = [
     { label:'Individuals (itemized)',          key:'individual_itemized_contributions',        color:CATEGORY_COLORS.raised.individualsItemized },
@@ -1707,6 +1715,8 @@ function renderContributorDonut(breakdown, totalRaised) {
     { label:'Party committees',                key:'political_party_committee_contributions',   color:CATEGORY_COLORS.raised.party },
     { label:'Transfers in',                    val:transfersIn,                                color:CATEGORY_COLORS.raised.candidateAuthorized,
       tooltip:'Transfers in from affiliated committees — for a candidate committee, the candidate\'s other authorized committees; for a PAC or party, affiliated party/committees.' },
+    { label:'Transfers from non-federal account', val:nonfedTransfers,                         color:CATEGORY_COLORS.raised.nonfedTransfers,
+      tooltip:'Transfers from the committee\'s own non-federal (state/local) account. State and local party committees raise some money outside federal limits for shared and non-federal activity; this is the federal account\'s share of it.' },
     { label:'Candidate contributions & loans', val:candidateContribLoans,                      color:CATEGORY_COLORS.raised.candidateContribLoans,
       tooltip:'Direct contributions and loans from the candidate to this committee. Contributions are gifts; loans create a debt the committee owes back to the candidate.' },
     { label:'Loans',                           val:externalLoans,                              color:CATEGORY_COLORS.raised.loans,
@@ -1720,7 +1730,11 @@ function renderContributorDonut(breakdown, totalRaised) {
   ];
 
   var vals   = cats.map(function(c){ return Math.max(0, c.val !== undefined ? c.val : (breakdown[c.key] || 0)); });
-  var total  = vals.reduce(function(s,v){ return s+v; }, 0) || totalRaised || 1;
+  // % denominator is TRUE receipts (not sum-of-wedges). For a dual-account committee the
+  // wedges sum to receipts once the non-fed wedge is added (verified $0.00 on WI/CA/FL); any
+  // tiny unexposed residual (TX/EMILY ~$17K, 0.1%) stays unlabeled rather than rebasing every
+  // percentage to a smaller base. fed-only committees are unchanged (wedges already == receipts).
+  var total  = totalRaised || vals.reduce(function(s,v){ return s+v; }, 0) || 1;
   var active = cats.filter(function(_,i){ return vals[i] > 0; });
   var aVals  = vals.filter(function(v){ return v > 0; });
 
@@ -1972,6 +1986,7 @@ function renderRaisedIfReady() {
      'transfers_from_other_authorized_committee','transfers_from_affiliated_party','transfers_from_affiliated_committee',
      'candidate_contribution','loans_made_by_candidate','all_other_loans','all_loans_received',
      'other_receipts','other_fed_receipts','federal_funds',
+     'transfers_from_nonfed_account','transfers_from_nonfed_levin',  // dual-account non-fed wedge (2026-06-09)
      'offsets_to_operating_expenditures','offsets_to_fundraising_expenditures',
      'offsets_to_legal_accounting'].forEach(function(k){ breakdown[k] = rec[k] || 0; });
     document.getElementById('raised-donut-skeleton').style.display = 'none';
@@ -2106,9 +2121,17 @@ function renderRaisedIfReady() {
 // Donut breakdown — synchronous from ALL_TOTALS (no fetch). Named category keys must
 // match FEC /committee/{id}/totals/ field names. Returns {breakdown, totalSpent}.
 function computeSpentBreakdown(cycleOrAll) {
+  // Dual-account fix (2026-06-09): use PARENTS, never parent + child. The retired
+  // shared_nonfed_operating_expenditures is INSIDE operating_expenditures (verified to the
+  // penny: op = other_fed_op + shared_fed_op + shared_nonfed_op), so listing both double-
+  // counted the shared-nonfed amount (~$15.3M on a state party). fed_election_activity is a
+  // separate top-level parent (disjoint from operating) and is the largest spend category on
+  // a state party (~44.5% on WI) — previously buried in the "Other" remainder. Both are 0 on
+  // fed-only committees + absent on candidate Form 3/3P (|| 0 no-op). soft money stays
+  // commingled inside the parents (representation (a) — see strategy/sankey-data-model.md §4a).
   var CATEGORY_KEYS = [
     'operating_expenditures',
-    'shared_nonfed_operating_expenditures',
+    'fed_election_activity',
     'transfers_to_affiliated_committee',
     'fed_candidate_committee_contributions',
     'independent_expenditures',
@@ -2236,7 +2259,8 @@ function renderSpentDonut(breakdown, totalSpent) {
 
   var SPEND_CATEGORIES = [
     { key: 'operating_expenditures',                  label: 'Operating Expenditures',       color: CATEGORY_COLORS.spent.operatingExpenditures },
-    { key: 'shared_nonfed_operating_expenditures',    label: 'Shared Non-Federal OpEx',      color: CATEGORY_COLORS.spent.sharedNonfedOpex },
+    { key: 'fed_election_activity',                   label: 'Federal Election Activity',    color: CATEGORY_COLORS.spent.fedElectionActivity,
+      tooltip: 'Voter registration, get-out-the-vote, and related activity in the pre-election window. Party committees fund it partly with non-federal (state/local) money.' },
     { key: 'transfers_to_affiliated_committee',       label: 'Transfers Out',                color: CATEGORY_COLORS.spent.transfersOut },
     { key: 'fed_candidate_committee_contributions',   label: 'Candidate Contributions',      color: CATEGORY_COLORS.spent.candidateContributions },
     { key: 'independent_expenditures',                label: 'Independent Expenditures',     color: CATEGORY_COLORS.spent.independentExpenditures },
@@ -2291,13 +2315,20 @@ function renderSpentDonut(breakdown, totalSpent) {
   var legendEl = document.getElementById('spent-donut-legend');
   legendEl.innerHTML = active.map(function(c, i) {
     var pct = total > 0 ? (aVals[i]/total*100).toFixed(1) : '0';
+    // tooltip support mirrors the Raised donut legend (donut-lbl--has-info + initTooltips)
+    // so disclosure wedges like Federal Election Activity can carry a methodology tooltip.
+    var lbl = c.tooltip
+      ? '<div class="donut-lbl donut-lbl--has-info"><span class="donut-lbl-text">'+c.label+'</span>' +
+        '<span class="tooltip" aria-label="About '+c.label.charAt(0).toLowerCase()+c.label.slice(1)+'">'+c.tooltip+'</span></div>'
+      : '<div class="donut-lbl">'+c.label+'</div>';
     return '<div class="donut-row">' +
       '<div class="donut-sw" style="background:'+c.color+'"></div>' +
-      '<div class="donut-lbl">'+c.label+'</div>' +
+      lbl +
       '<div class="donut-val">'+fmt(aVals[i])+'</div>' +
       '<div class="donut-pct">'+pct+'%</div>' +
     '</div>';
   }).join('');
+  initTooltips(legendEl);
 }
 
 // ── Spent tab: top vendors table ─────────────────────

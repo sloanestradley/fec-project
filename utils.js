@@ -543,6 +543,11 @@ var CATEGORY_COLORS = (function() {
       candidateAuthorized:   v('--cat-4'),
       candidateSelfFunding:  v('--cat-5'),
       candidateContribLoans: v('--cat-5'),
+      // Non-federal-account transfers (state/local party + non-fed-account PAC raised wedge).
+      // Safely shares --cat-5 with candidateContribLoans: the two are MUTUALLY EXCLUSIVE by
+      // committee type — only Form-3 PCCs have candidate self-funding (and PCCs are fed-only,
+      // no non-fed account), only Form-3X party/PACs have non-fed transfers (no candidate).
+      nonfedTransfers:       v('--cat-5'),
       loans:                 v('--cat-6'),
       federalFunds:          v('--cat-7'),
       otherReceipts:         v('--cat-other'),
@@ -550,7 +555,9 @@ var CATEGORY_COLORS = (function() {
     },
     spent: {
       operatingExpenditures:   v('--cat-1'),
-      sharedNonfedOpex:        v('--cat-2'),
+      // FEA takes the --cat-2 slot vacated by the retired sharedNonfedOpex wedge (which
+      // double-counted: shared_nonfed_operating_expenditures is INSIDE operating_expenditures).
+      fedElectionActivity:     v('--cat-2'),
       transfersOut:            v('--cat-3'),
       candidateContributions:  v('--cat-4'),
       independentExpenditures: v('--cat-5'),
