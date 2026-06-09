@@ -113,7 +113,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 **FEC candidate_id format:** `H2WA03217` — office (H/S/P) + cycle digits + state + district + sequence
 **FEC committee_id format:** `C00744946` — always starts with `C`, 8 digits
 **Cycle year:** Even number (FEC 2-year cycle end year). E.g. 2026, 2024, 2022.
-**Section ids (candidate/committee detail):** `#tab-summary` | `#tab-raised` | `#tab-spent` — inert section containers in a single flowing view (no longer URL tabs; the stale `tab-` prefix is retained as section hooks post-T-remove-profile-tabs). **No tabs anywhere as of T-remove-profile-tabs (closed out 2026-06-04):** race.html de-tabbed too — its candidate list is the page, and its Insights tab was deferred to Phase 4 (to return as a flowing section, not a tab).
+**Section ids (candidate/committee detail):** `#tab-summary` | `#tab-raised` | `#tab-spent` — inert section containers in a single flowing view (no longer URL tabs; the stale `tab-` prefix is retained as section hooks post-T-remove-profile-tabs). **No tabs anywhere as of T-remove-profile-tabs (closed out 2026-06-04):** race.html de-tabbed too — its candidate list is the page, and its Insights tab was deferred to Phase 4 (to return as a flowing section, not a tab). **`#tab-summary` leads with the full-width Money-flow Sankey** (`#money-flow-card`, Sankey Steps 2–3, 2026-06-09 — Raised→Spent flow diagram), which currently coexists with the Raised/Spent donuts until the Step 4 scope toggle; presidential + dual-account committees render an honest "not yet modeled" state there and keep the donut as the fallback.
 
 ---
 

@@ -2128,6 +2128,66 @@ test.describe('committee.html — Money flow (Sankey) mount', () => {
     await setupDetail(page);
     await expect(page.locator('#money-flow-title .tooltip-trigger')).toHaveCount(1);
   });
+
+  test('no "Debt at close" caption on a zero-debt cycle (base fixture)', async ({ page }) => {
+    await setupDetail(page);
+    // Base fixture has last_debts_owed_by_committee: 0 → model.debt === 0 → caption hidden.
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-debt')).toBeHidden();
+  });
+});
+
+// #sankey-debt is a conditional render (shows only when model.debt > 0). Positive-debt
+// route override (Form-3 PCC shape — no fed_receipts, so the non-federal gate stays clear).
+test.describe('committee.html — Money flow debt caption', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024, receipts: 1000000, disbursements: 800000,
+          last_cash_on_hand_end_period: 200000, last_debts_owed_by_committee: 250000,
+          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
+          individual_itemized_contributions: 400000, transfers_from_other_authorized_committee: 600000,
+          operating_expenditures: 800000 }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+  });
+
+  test('renders "Debt at close: $X" when end-of-cycle debt > 0', async ({ page }) => {
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-debt')).toBeVisible();
+    await expect(page.locator('#sankey-debt')).toContainText('Debt at close:');
+    await expect(page.locator('#sankey-debt')).toContainText('$250K');  // fmt(250000)
+  });
+});
+
+// No-financial-activity guard: a cycle whose record has zero receipts AND zero
+// disbursements builds a model with no nodes → renderMoneyFlow leaves the section
+// blank (chart hidden, no gate copy) rather than render an empty chart.
+test.describe('committee.html — Money flow no-activity guard', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024, receipts: 0, disbursements: 0,
+          last_cash_on_hand_end_period: 0, last_debts_owed_by_committee: 0,
+          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00' }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+  });
+
+  test('no nodes → chart, gate, and debt caption all hidden', async ({ page }) => {
+    await expect(page.locator('#money-flow-card')).toBeVisible();
+    await expect(page.locator('#sankey-chart')).toBeHidden();
+    await expect(page.locator('#sankey-gate')).toBeHidden();
+    await expect(page.locator('#sankey-debt')).toBeHidden();
+  });
 });
 
 test.describe('committee.html — Money flow gate (dual-account, Gate 1)', () => {

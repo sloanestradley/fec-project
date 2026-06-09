@@ -3027,6 +3027,41 @@ test.describe('candidate.html — Money flow (Sankey) mount', () => {
     // initTooltips replaces the static .tooltip span with a .tooltip-trigger button.
     await expect(page.locator('#money-flow-title .tooltip-trigger')).toHaveCount(1);
   });
+
+  test('no "Debt at close" caption on a zero-debt cycle (base fixture)', async ({ page }) => {
+    await setupWithContent(page);
+    // Base fixture has last_debts_owed_by_committee: 0 → model.debt === 0 → caption hidden.
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-debt')).toBeHidden();
+  });
+});
+
+// #sankey-debt is a conditional render (shows only when model.debt > 0). The base
+// fixture's debt is 0, so this gap needs a positive-debt route override to cover.
+test.describe('candidate.html — Money flow debt caption', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Data-present, non-gated, conserving record with positive end-of-cycle debt.
+    await page.route('**/api/fec/candidate/H2WA03217/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024, candidate_election_year: 2024, election_full: true,
+          receipts: 1000000, disbursements: 800000, last_cash_on_hand_end_period: 200000,
+          last_debts_owed_by_committee: 250000, coverage_end_date: '2024-12-31T00:00:00',
+          individual_itemized_contributions: 400000, transfers_from_other_authorized_committee: 600000,
+          operating_expenditures: 800000 }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+  });
+
+  test('renders "Debt at close: $X" when end-of-cycle debt > 0', async ({ page }) => {
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-debt')).toBeVisible();
+    await expect(page.locator('#sankey-debt')).toContainText('Debt at close:');
+    await expect(page.locator('#sankey-debt')).toContainText('$250K');  // fmt(250000)
+  });
 });
 
 test.describe('candidate.html — Money flow gate (presidential)', () => {
