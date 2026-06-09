@@ -95,6 +95,20 @@ test.describe('sankey.js — buildSankeyModel adapter', () => {
     expect(m.debt).toBeCloseTo(20000000, 1);
   });
 
+  test('a Form-3 PCC rendered via entity:committee still resolves Form-3 fields + self-funding (form-agnostic coalesce)', async ({ page }) => {
+    await loadAdapter(page);
+    // committee.html serves candidate PCCs too (e.g. /committee/C00806174). The adapter
+    // must coalesce the form-name pairs + push self-funding by presence, NOT hard-switch
+    // to Form-3X names on entity:committee — else a PCC under-sums (the bug this guards).
+    const m = await page.evaluate((rec) => window.buildSankeyModel(rec, { entity: 'committee', hubName: 'PCC' }), SAP);
+    expect(m.gated).toBe(false);
+    expect(sumVals(m.sources)).toBeCloseTo(1417733.96, 2);   // conserves under entity:committee
+    expect(sumVals(m.uses)).toBeCloseTo(1363358.22, 2);
+    expect(m.sources.find(s => s.name === 'Transfers in').value).toBeCloseTo(311133.95, 2);      // Form-3 name read
+    expect(m.sources.find(s => s.name === 'Candidate self-funding').value).toBeCloseTo(683451.34, 2); // shown by presence
+    expect(m.uses.find(u => u.name === 'Loan repayments').value).toBeCloseTo(50050, 2);          // Form-3 loan_repayments
+  });
+
   test('Gate 1 — dual-account committee returns {gated, reason:"non-federal"} (no model built)', async ({ page }) => {
     await loadAdapter(page);
     const m = await page.evaluate((rec) => window.buildSankeyModel(rec, { entity: 'committee', hubName: 'Dem Party of WI' }), WISCONSIN);

@@ -73,7 +73,6 @@ function buildSankeyModel(rec, opts) {
   var reason = sankeyGateReason(rec, opts);
   if (reason) return { gated: true, reason: reason };
 
-  var cand = opts.entity === 'candidate';
   var g = function(k) { return _sankeyNum(rec, k); };
   var push = function(arr, node) { if (node.value > 0) arr.push(node); };
 
@@ -82,6 +81,16 @@ function buildSankeyModel(rec, opts) {
   var cohEnd       = g('last_cash_on_hand_end_period');
   // DERIVED for both entities (accounting identity) — guarantees the two sides balance.
   var cohStart     = cohEnd + disbTotal - receiptTotal;
+
+  // FORM-AGNOSTIC field resolution (do NOT branch node fields on opts.entity): committee.html
+  // serves BOTH Form-3 candidate PCCs (e.g. /committee/C00806174) and Form-3X PACs/parties,
+  // so the Form-3 vs Form-3X field-name pairs are COALESCED (summed — only one is populated
+  // per record, since a committee files one form, so no double-count) and the form-specific
+  // nodes (self-funding, IE, coordinated, contributions-to-candidates, candidate-contribution
+  // refunds, federal funds) are pushed by PRESENCE (value > 0). This is the same approach as
+  // the Step 0 donut fix; it makes a candidate PCC viewed on committee.html resolve its Form-3
+  // fields + self-funding correctly, and a PAC its Form-3X nodes, regardless of which page
+  // mounted it. opts.entity is used only by sankeyGateReason, not here.
 
   // ── Receipt sources ──
   var sources = [];
@@ -94,41 +103,35 @@ function buildSankeyModel(rec, opts) {
     value: g('other_political_committee_contributions') });
   push(sources, { name: 'Party committees', group: 'contributions',
     value: g('political_party_committee_contributions') });
-  // Transfers in / Loans / Other receipts — form-dependent field names.
-  push(sources, { name: 'Transfers in',
-    value: cand ? g('transfers_from_other_authorized_committee') : g('transfers_from_affiliated_party') });
-  // Candidate self-funding (candidate committees only) = own gift + own loan, grouped
-  // by source so a self-funder isn't hidden inside Loans (which is external-only).
-  if (cand) push(sources, { name: 'Candidate self-funding',
+  push(sources, { name: 'Transfers in',                                    // Form 3 + Form 3X names
+    value: g('transfers_from_other_authorized_committee') + g('transfers_from_affiliated_party') });
+  // Candidate self-funding = own gift + own loan, grouped by source so a self-funder isn't
+  // hidden inside Loans (external-only). Form-3 only; 0 for a PAC → dropped by push().
+  push(sources, { name: 'Candidate self-funding',
     value: g('candidate_contribution') + g('loans_made_by_candidate') });
-  push(sources, { name: 'Loans',
-    value: cand ? g('all_other_loans') : g('all_loans_received') });
-  // Offsets (contra-receipt) — sum the candidate offset variants; committees carry only
-  // operating offsets in scope. Rendered as an ordinary ranked node (no netting).
+  push(sources, { name: 'Loans',                                            // external; Form 3 + 3X names
+    value: g('all_other_loans') + g('all_loans_received') });
+  // Offsets (contra-receipt) — sum all offset variants; rendered as an ordinary ranked node.
   push(sources, { name: 'Offsets',
-    value: g('offsets_to_operating_expenditures')
-         + (cand ? g('offsets_to_fundraising_expenditures') + g('offsets_to_legal_accounting') : 0) });
-  // Committee-only receipt: refunds of contributions the committee made (Form 3X line 16).
-  if (!cand) push(sources, { name: 'Candidate-contribution refunds',
-    value: g('fed_candidate_contribution_refunds') });
-  // Federal funds — presidential public financing; gated out of v1, so 0 for every
-  // non-gated record. Guarded push keeps conservation robust if a stray value appears.
-  if (cand) push(sources, { name: 'Federal funds', value: g('federal_funds') });
-  push(sources, { name: 'Other receipts', other: true,
-    value: cand ? g('other_receipts') : g('other_fed_receipts') });
+    value: g('offsets_to_operating_expenditures') + g('offsets_to_fundraising_expenditures') + g('offsets_to_legal_accounting') });
+  // Form-3X-only receipt: refunds of contributions the committee made (line 16). 0 → dropped.
+  push(sources, { name: 'Candidate-contribution refunds', value: g('fed_candidate_contribution_refunds') });
+  // Federal funds — presidential public financing. Presidential is gated out of v1, so 0 for
+  // every non-gated record; pushed by presence keeps conservation robust regardless.
+  push(sources, { name: 'Federal funds', value: g('federal_funds') });
+  push(sources, { name: 'Other receipts', other: true,                      // Form 3 + 3X names
+    value: g('other_receipts') + g('other_fed_receipts') });
 
   // ── Disbursement uses ──
   var uses = [];
   push(uses, { name: 'Operating expenditures', value: g('operating_expenditures') });
-  if (!cand) {
-    push(uses, { name: 'Independent expenditures', value: g('independent_expenditures') });
-    push(uses, { name: 'Coordinated party expenditures', value: g('coordinated_expenditures_by_party_committee') });
-    push(uses, { name: 'Contributions to candidates', value: g('fed_candidate_committee_contributions') });
-  }
-  push(uses, { name: 'Transfers out',
-    value: cand ? g('transfers_to_other_authorized_committee') : g('transfers_to_affiliated_committee') });
-  push(uses, { name: 'Loan repayments',
-    value: cand ? g('loan_repayments') : g('loan_repayments_made') });
+  push(uses, { name: 'Independent expenditures', value: g('independent_expenditures') });                           // 3X
+  push(uses, { name: 'Coordinated party expenditures', value: g('coordinated_expenditures_by_party_committee') }); // party
+  push(uses, { name: 'Contributions to candidates', value: g('fed_candidate_committee_contributions') });          // 3X
+  push(uses, { name: 'Transfers out',                                       // Form 3 + 3X names
+    value: g('transfers_to_other_authorized_committee') + g('transfers_to_affiliated_committee') });
+  push(uses, { name: 'Loan repayments',                                     // Form 3 + 3X names
+    value: g('loan_repayments') + g('loan_repayments_made') });
   push(uses, { name: 'Contribution refunds', value: g('contribution_refunds') });
   push(uses, { name: 'Other disbursements', other: true, value: g('other_disbursements') });
 

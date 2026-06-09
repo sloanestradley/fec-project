@@ -2113,3 +2113,72 @@ test.describe('committee.html — Phase 2 PAGE-NOTE', () => {
     await expect(pn).not.toContainText('Data updated nightly by FEC');
   });
 });
+
+// ── Money flow (Sankey) mount — Step 3 (coexists with the donuts) ───────────────
+test.describe('committee.html — Money flow (Sankey) mount', () => {
+  test('renders an ECharts SVG on the default (Form-3 PCC) committee; skeleton clears', async ({ page }) => {
+    await setupDetail(page);
+    await expect(page.locator('#money-flow-card')).toBeVisible();
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-skeleton')).toBeHidden();
+    await expect(page.locator('#sankey-gate')).toBeHidden();
+  });
+
+  test('Money flow title mounts the cohStart-derivation info-tooltip', async ({ page }) => {
+    await setupDetail(page);
+    await expect(page.locator('#money-flow-title .tooltip-trigger')).toHaveCount(1);
+  });
+});
+
+test.describe('committee.html — Money flow gate (dual-account, Gate 1)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Override totals to a dual-account record: receipts !== fed_receipts (the non-federal
+    // detector fires). renderMoneyFlow must render the gate, not an under-summing chart.
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024, receipts: 5000000, fed_receipts: 4000000,
+          disbursements: 4000000, fed_disbursements: 3000000, last_cash_on_hand_end_period: 1000000,
+          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
+          individual_itemized_contributions: 4000000, operating_expenditures: 3000000 }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+  });
+
+  test('dual-account committee renders the "not yet modeled" gate, not the chart', async ({ page }) => {
+    await expect(page.locator('#sankey-gate')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-gate')).toContainText('non-federal');
+    await expect(page.locator('#sankey-chart')).toBeHidden();
+  });
+});
+
+test.describe('committee.html — Money flow gate (presidential, Gate 2)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Override ONLY the committee metadata to committee_type 'P' (Form 3P → Gate 2).
+    // Totals fall through to the base fixture (data-present), so renderMoneyFlow runs
+    // and must render the gate state.
+    await page.route('**/api/fec/committee/C00775668/**', (route) => {
+      const url = route.request().url();
+      if (/\/committee\/C00775668\/(?:\?|$)/.test(url)) {
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          results: [{ committee_id: 'C00775668', name: 'TEST PRESIDENTIAL CMTE', committee_type: 'P',
+            committee_type_full: 'Presidential', designation: 'P', filing_frequency: 'Q', state: 'US',
+            cycles: [2022, 2024, 2026], first_file_date: '2020-04-24', last_file_date: '2026-04-15' }],
+          pagination: { count: 1 } }) });
+      } else { route.fallback(); }
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+  });
+
+  test('presidential committee renders the gate state, not the chart', async ({ page }) => {
+    await expect(page.locator('#sankey-gate')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-gate')).toContainText('Presidential committees');
+    await expect(page.locator('#sankey-chart')).toBeHidden();
+  });
+});

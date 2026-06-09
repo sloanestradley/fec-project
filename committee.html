@@ -165,6 +165,20 @@
     <div class="profile-content" id="committee-content" style="display:none">
 
       <div id="tab-summary">
+        <!-- Money flow (Raised→Spent Sankey). Coexists with the donuts in Step 3;
+             the scope toggle is Step 4. Renders synchronously from the totals record
+             already in memory (no fetch). Shared module + copy with candidate.html. -->
+        <div class="chart-card" id="money-flow-card">
+          <div class="chart-header">
+            <div class="chart-title raised-cell-title--has-info" id="money-flow-title" style="display:flex;align-items:center">Money flow<span class="tooltip" aria-label="About the money-flow view">Total raised, total spent, and ending cash are shown exactly as filed. Cash on hand (start) is derived from those figures. For nearly all committees this matches the filed opening balance; for very high-volume filers, whose monthly reports carry small rounding differences, it can vary by a fraction of a percent.</span></div>
+          </div>
+          <div id="sankey-area" style="position:relative;width:100%;min-width:0;height:360px">
+            <div id="sankey-chart" style="width:100%;height:100%"></div>
+            <div id="sankey-skeleton" class="skeleton" style="position:absolute;inset:0"></div>
+            <div id="sankey-gate" class="inline-status-msg" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:var(--space-24)"></div>
+          </div>
+          <div id="sankey-debt" class="caption" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:0.6875rem;color:var(--muted);border-top:1px solid var(--border);margin-top:var(--space-8);padding-top:var(--space-8)"></div>
+        </div>
         <!-- Associated candidates -->
         <div id="assoc-section" style="display:none; margin: var(--space-8) 0 var(--space-24)">
           <div class="section-title">Associated Candidate</div>
@@ -406,6 +420,10 @@
 
 <script src="/main.js"></script>
 <script src="/utils.js"></script>
+<!-- Money-flow Sankey: vendored ECharts + module. Absolute paths (path-segment URL
+     rule). sankey.js loads after utils.js (renderSankey reads CATEGORY_COLORS). -->
+<script src="/echarts.min.js"></script>
+<script src="/sankey.js"></script>
 <script>
 var urlParams    = new URLSearchParams(window.location.search);
 var _pathParts   = window.location.pathname.split('/').filter(Boolean);
@@ -460,6 +478,7 @@ var spentContribTimer       = null;
 // Retry context — captured in renderStats so retry handlers can re-fire fetches
 var currentCycleScope         = null;
 var currentTotalsRecord       = null;
+var currentSankeyModel        = null;   // last non-gated Sankey model, for resize re-render
 var currentRaisedFastPromise  = null;  // slow tier awaits this for KV state
 
 // T-load-1 — cache the in-flight promises so init()'s skeleton-hydration
@@ -1256,6 +1275,73 @@ document.addEventListener('click', function(e) {
   else if (what === 'spent-contributions') retrySpentContributions();
 });
 
+// ── Money flow (Raised→Spent Sankey) ─────────────────────────────────────────
+// Renders synchronously from currentTotalsRecord (no fetch), like the donut. Coexists
+// with the donuts in Step 3; the scope toggle is Step 4. A gated entity (presidential
+// committee — Gate 2; dual-account committee — Gate 1) renders the neutral "not yet
+// modeled" state instead of an under-summing chart. The adapter is form-agnostic, so a
+// candidate PCC viewed here resolves its Form-3 fields + self-funding correctly.
+function renderMoneyFlow() {
+  var area = document.getElementById('sankey-chart');
+  if (!area) return;
+  var wrap   = document.getElementById('sankey-area');
+  var skel   = document.getElementById('sankey-skeleton');
+  var gate   = document.getElementById('sankey-gate');
+  var debtEl = document.getElementById('sankey-debt');
+  var rec = currentTotalsRecord;
+  if (!rec) {                                  // no record for this cycle — hold the skeleton
+    if (skel) skel.style.display = 'block';
+    area.style.display = 'none';
+    if (gate) gate.style.display = 'none';
+    return;
+  }
+  var model = buildSankeyModel(rec, {
+    entity: 'committee',
+    isPresidential: COMM_TYPE === 'P',
+    hubName: 'Committee'
+  });
+  if (skel) skel.style.display = 'none';
+  if (model.gated) {
+    currentSankeyModel = null;
+    area.style.display = 'none';
+    if (wrap) wrap.style.height = sankeyHeight(model) + 'px';
+    if (debtEl) debtEl.style.display = 'none';
+    if (gate) { gate.style.display = 'flex'; gate.textContent = sankeyGateCopy(model.reason); }
+    return;
+  }
+  // No financial activity this cycle (no nodes) — leave the section blank rather than
+  // render an empty chart (rare; committee detail cycles normally have data).
+  if (!model.sources.length && !model.uses.length) {
+    currentSankeyModel = null;
+    area.style.display = 'none';
+    if (gate) gate.style.display = 'none';
+    return;
+  }
+  if (gate) gate.style.display = 'none';
+  area.style.display = 'block';
+  currentSankeyModel = model;
+  if (wrap) wrap.style.height = sankeyHeight(model) + 'px';   // content-adaptive
+  renderSankey('sankey-chart', model);
+  if (debtEl) {
+    if (model.debt > 0) { debtEl.style.display = 'block'; debtEl.textContent = 'Debt at close: ' + fmt(model.debt); }
+    else debtEl.style.display = 'none';
+  }
+}
+
+// Resize: re-render so labels re-evaluate the <640px $-value drop; ECharts reuses the
+// instance + resizes (renderSankey ends with chart.resize()). Debounced.
+(function() {
+  var t = null;
+  window.addEventListener('resize', function() {
+    if (!currentSankeyModel) return;
+    clearTimeout(t);
+    t = setTimeout(function() {
+      var c = document.getElementById('sankey-chart');
+      if (c && c.style.display !== 'none') renderSankey('sankey-chart', currentSankeyModel);
+    }, 150);
+  });
+})();
+
 function renderStats(cycleOrAll) {
   activeCycle = cycleOrAll;
   // T-committee-init-defer-totals — if totalsP hasn't resolved yet (cycle-
@@ -1353,6 +1439,20 @@ function renderStats(cycleOrAll) {
   document.getElementById('spent-vendors-error').style.display = 'none';
   document.getElementById('spent-contributions-error').style.display = 'none';
 
+  // Money-flow Sankey reset — re-show its skeleton + clear prior gate/debt so the
+  // previous cycle's chart doesn't linger during the new cycle's (synchronous) render.
+  currentSankeyModel = null;
+  (function() {
+    var sSkel = document.getElementById('sankey-skeleton');
+    var sGate = document.getElementById('sankey-gate');
+    var sArea = document.getElementById('sankey-chart');
+    var sDebt = document.getElementById('sankey-debt');
+    if (sSkel) sSkel.style.display = '';
+    if (sGate) sGate.style.display = 'none';
+    if (sArea) sArea.style.display = 'block';
+    if (sDebt) sDebt.style.display = 'none';
+  })();
+
   kickoffRaisedFastFetch(cycleFetchToken);
   kickoffRaisedSlowFetch(cycleFetchToken);
   kickoffSpentFetch(cycleFetchToken);
@@ -1365,6 +1465,7 @@ function renderStats(cycleOrAll) {
   renderSpentDonutNow();
   renderSpentOpexIfReady();
   renderSpentContributionsIfReady();
+  renderMoneyFlow();
 }
 
 // ── Raised tab utilities ─────────────────────────────
