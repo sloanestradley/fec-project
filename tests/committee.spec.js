@@ -2190,6 +2190,38 @@ test.describe('committee.html — Money flow no-activity guard', () => {
   });
 });
 
+// Form-agnostic spent-donut loan-repayments coalesce: a Form-3 PCC viewed on
+// /committee/ files loan_repayments (NOT the Form-3X loan_repayments_made), and must
+// still surface in the "Loan Repayments" wedge — not fall into the remainder "Other
+// Disbursements". Without the coalesce in computeSpentBreakdown the legend has no
+// Loan Repayments row. (Same form-agnostic class as the Step 0 raised-donut fix.)
+test.describe('committee.html — spent donut loan-repayments coalesce (Form-3 PCC)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024, receipts: 1000000, disbursements: 800000,
+          last_cash_on_hand_end_period: 200000,
+          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
+          // Form-3 field name (no loan_repayments_made); operating 550K + loan 250K = 800K
+          // disbursements → remainder Other is 0, so a Loan Repayments wedge here proves
+          // the coalesce (without it, the 250K lands silently in Other).
+          operating_expenditures: 550000, loan_repayments: 250000 }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+  });
+
+  test('loan_repayments (Form-3) surfaces in the Loan Repayments wedge, not Other', async ({ page }) => {
+    const legend = page.locator('#spent-donut-legend');
+    await expect(legend).toContainText('Loan Repayments', { timeout: 12000 });
+    const row = legend.locator('.donut-row', { hasText: 'Loan Repayments' });
+    await expect(row.locator('.donut-val')).toHaveText('$250K');  // fmt(250000), not in Other
+  });
+});
+
 test.describe('committee.html — Money flow gate (dual-account, Gate 1)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);

@@ -2124,6 +2124,13 @@ function computeSpentBreakdown(cycleOrAll) {
   }
   if (rec) {
     CATEGORY_KEYS.forEach(function(k){ breakdown[k] = rec[k] || 0; });
+    // Form-agnostic loan-repayments coalesce: Form 3 (candidate PCC) files
+    // loan_repayments; Form 3X (PAC/party) files loan_repayments_made — mutually
+    // exclusive per record, so sum. committee.html serves BOTH forms; without this a
+    // Form-3 PCC viewed on /committee/ would drop its loan repayments into the
+    // remainder "Other Disbursements" wedge instead of "Loan Repayments" (same
+    // form-agnostic class as the Step 0 raised-donut + Sankey-adapter fixes).
+    breakdown.loan_repayments_made = (rec.loan_repayments_made || 0) + (rec.loan_repayments || 0);
     totalSpent = rec.disbursements || 0;
   }
   // Compute "other" as remainder so donut always covers 100% of spending
