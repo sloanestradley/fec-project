@@ -1,6 +1,6 @@
 # FECLedger — Sankey diagram data model + library research
 
-> **RESEARCH PHASE — UNEXECUTED (2026-06-04).** Initial research only. No code written, no library chosen, no ticket opened. This doc captures the verified FEC data model for a raised→spent Sankey and frames the open decisions to resolve (several flagged for Claude Chat). Pick this up when the Sankey moves from research to build.
+> **BUILD UNDERWAY — Steps 0–3 shipped; Steps 4–5 pending (updated 2026-06-09).** Originally research-only (2026-06-04); the build began the same week. **Shipped:** Step 0 (donut field-name fixes), Step 1 (shared `sankey.js` + vendored Apache ECharts 5.5.1), Step 2 (mount on candidate.html), Step 3 (mount on committee.html + form-agnostic adapter) — the Money-flow Sankey now renders on both profile pages, **coexisting with the donuts**. **Pending:** Step 4 (the donut↔Sankey scope toggle — blocked on product decisions in Claude Chat: donut-scope rule + layout/IA) and Step 5 (fast-follows: presidential ungate per §4a Gate 2, a11y data table, full `.viz-tt` tooltip alignment, color rank-vs-identity, dual-account modeling, conduit precompute). This doc remains the durable reference for the FEC data model (§1–§2), the conservation contract (§4), and the v1 gates + ungate paths (§4a); the rendered prototype is `strategy/sankey-examples.html`.
 
 *Self-contained; no prior context needed. Prepared from a research-mode session on 2026-06-04.*
 
