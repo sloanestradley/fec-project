@@ -203,21 +203,22 @@
       <h3 class="cc-subhead">Hover behavior</h3>
       <div class="cc-hover-panel">
         <div class="cc-hov-demo">
-          <span class="cc-hov-dot" style="background:#4A90D9"></span>
+          <span class="cc-hov-dot" style="background:#05234F"></span>
           <span class="cc-hov-cap">hover — grows 5 → 7</span>
         </div>
         <div class="cc-hov-demo">
-          <div class="cc-split"><span style="background:#4A90D9"></span><span style="background:#097FFD"></span></div>
+          <div class="cc-split"><span style="background:#05234F"></span><span style="background:#01152F"></span></div>
           <div class="cc-split-labels"><span>default</span><span>hover</span></div>
         </div>
         <div class="cc-hov-desc">
           <span class="cc-hov-mech">Chart.js getHoverColor (saturate + darken) · + pointHoverRadius 5 → 7</span>
           <span class="cc-hov-text"><strong>Two things change.</strong> (1) <strong>Color</strong> — Chart.js
             auto-derives a hover fill even though no <code>hoverBackgroundColor</code> is set: its
-            <code>getHoverColor</code> saturates + darkens the base, so Raised's blue <code>#4A90D9</code> jumps to
-            <code>#097FFD</code> (the line border shifts too). (2) <strong>Geometry</strong> — points grow from
+            <code>getHoverColor</code> saturates + darkens the base, so Raised's navy <code>#05234F</code> (the
+            <code>--navy-deep</code> token) shifts to a darker/saturated navy — the split is representative; the exact
+            delta is Chart.js-derived (the line border shifts too). (2) <strong>Geometry</strong> — points grow from
             radius 5 to 7, and mode <code>index</code> grows all three series' points at once. The dot demo grows;
-            the split shows the real color delta.</span>
+            the split illustrates the recolor (representative — the exact delta is Chart.js-derived).</span>
           <span class="cc-hov-badge cc-hov-badge--color">color change (Chart.js) + geometry</span>
         </div>
       </div>
@@ -226,11 +227,13 @@
     <!-- ── Raised donut ── -->
     <section class="cc-section cc-section--rehover">
       <h2 class="cc-section-title">Raised breakdown donut · both pages (identical)</h2>
-      <p class="cc-section-note">10 categories. Each <code>cats</code> entry now references
-        <code>CATEGORY_COLORS.raised.*</code> (<code>utils.js</code>) instead of an inline literal, so both pages draw
-        from one source — identical across both, with only one label word differing ("Candidate self-funding" vs
-        "Candidate contributions &amp; loans"). One category — <strong>Individuals (unitemized)</strong> — is the lone
-        pattern fill on the entire site.</p>
+      <p class="cc-section-note">Each <code>cats</code> entry references <code>CATEGORY_COLORS.raised.*</code>
+        (<code>utils.js</code>), but the two pages' raised donuts <strong>diverge</strong> (2026-06-09): candidate has
+        <strong>10</strong> categories, committee <strong>11</strong> — committee adds a "Transfers from non-federal
+        account" wedge for its soft-money account (see swatch below). Three labels differ between the pages: "Candidate
+        self-funding" (candidate) vs "Candidate contributions &amp; loans" (committee); "Candidate authorized
+        committees" (candidate) vs "Transfers in" (committee); and the non-fed wedge (committee only). One category —
+        <strong>Individuals (unitemized)</strong> — is the lone pattern fill on the entire site.</p>
       <div class="cc-grid" id="raised"></div>
 
       <h3 class="cc-subhead">Wedge pattern vs. legend swap — the asymmetry</h3>
@@ -285,8 +288,8 @@
     <!-- ── Spent donut candidate ── -->
     <section class="cc-section cc-section--rehover">
       <h2 class="cc-section-title">Spent breakdown donut · candidate (5 categories)</h2>
-      <p class="cc-section-note">All flat literals, no patterns (<code>candidate.html:1360</code>).
-        <code>transfers_to_other_authorized_committee</code> is the "Transfers Out" field here.</p>
+      <p class="cc-section-note">Five categories, all <code>CATEGORY_COLORS.spent.*</code> token-sourced, no patterns.
+        <code>transfers_to_other_authorized_committee</code> is the "Transfers Out" field here (the Form-3 candidate name).</p>
       <div class="cc-grid" id="spentCand"></div>
       <h3 class="cc-subhead">Hover behavior</h3>
       <div class="cc-hover-panel">
@@ -310,10 +313,11 @@
     <!-- ── Spent donut committee ── -->
     <section class="cc-section cc-section--rehover">
       <h2 class="cc-section-title">Spent breakdown donut · committee (8 categories) — diverges</h2>
-      <p class="cc-section-note">Committee has a richer disbursement schema (<code>committee.html:2001</code>):
-        it adds Shared Non-Federal OpEx, Candidate Contributions, and Independent Expenditures. All eight reference
+      <p class="cc-section-note">Committee has a richer disbursement schema: it adds Federal Election Activity,
+        Candidate Contributions, and Independent Expenditures. All eight reference
         <code>CATEGORY_COLORS.spent.*</code>; the five categories shared with the candidate donut resolve to the same
-        values on both pages.</p>
+        values on both pages. (The former "Shared Non-Federal OpEx" wedge was retired 2026-06-09 — it double-counted,
+        being <em>inside</em> the Operating Expenditures parent.)</p>
       <div class="cc-grid" id="spentComm"></div>
       <h3 class="cc-subhead">Hover behavior</h3>
       <div class="cc-hover-panel">
@@ -458,11 +462,12 @@
         <li><strong>Cross-page:</strong> raised donut identical; spent donut diverges (candidate 5 vs committee
           8 categories); choropleth identical on both (a single <code>--amber</code> ramp, party-agnostic);
           timeline is candidate-only; purpose bars identical (monochrome).</li>
-        <li><strong>Palette mid-iteration (first pass).</strong> The donut categories were recolored to a single
-          sequential navy → parchment ramp, applied positionally so raised-slot-N and spent-slot-N share a value —
-          retiring the old per-hue collisions (the three alpha-only greys, the multi-meaning green, the
-          gold-vs-token "amber"). The ramp introduces its own exact-duplicate pairs (e.g. Federal funds and
-          Contribution Refunds are both <code>#f5e2e0</code>); not yet finalized.</li>
+        <li><strong>Single positional ramp (stable, in production since 2026-06-03).</strong> The donut categories
+          use one sequential navy → parchment ramp, applied positionally so raised-slot-N and spent-slot-N share a
+          value — retiring the old per-hue collisions (the three alpha-only greys, the multi-meaning green, the
+          gold-vs-token "amber"). <strong>Cross-donut duplicate values are by design</strong>: e.g. raised "Federal
+          funds" and spent "Contribution Refunds" are both <code>--cat-7</code> <code>#F5E2E0</code> — the same slot
+          index on each donut. Within a single donut every wedge is a distinct slot.</li>
       </ul>
     </section>
 
@@ -527,7 +532,8 @@
       { name: 'Individuals (unitemized)', pattern: true, val: 'PATTERN · --cat-1 fill, --bg stripes · legend --bg', key: 'individual_unitemized_contributions · legendColor --bg', src: 'token' },
       { name: 'PACs & other committees', color: 'var(--cat-2)', val: '--cat-2 · #1D5A6D', key: 'other_political_committee_contributions', src: 'token' },
       { name: 'Party committees', color: 'var(--cat-3)', val: '--cat-3 · #437772', key: 'political_party_committee_contributions', src: 'token' },
-      { name: 'Candidate authorized committees', color: 'var(--cat-4)', val: '--cat-4 · #75917B', key: 'transfers_from_other_authorized_committee', src: 'token' },
+      { name: 'Candidate authorized committees *', color: 'var(--cat-4)', val: '--cat-4 · #75917B', key: 'transfers_from_other_authorized_committee + _affiliated_party + _affiliated_committee (coalesced) · * committee labels this "Transfers in"', src: 'token' },
+      { name: 'Transfers from non-federal account', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'transfers_from_nonfed_account + transfers_from_nonfed_levin · COMMITTEE ONLY (dual-account) · shares --cat-5 with self-funding, mutually exclusive by committee type', src: 'token' },
       { name: 'Candidate self-funding *', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'candidate_contribution + loans_made_by_candidate · * committee: "Candidate contributions & loans"', src: 'token' },
       { name: 'Loans', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'all_other_loans', src: 'token' },
       { name: 'Federal funds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'federal_funds', src: 'token' },
@@ -539,7 +545,7 @@
     fill('spentCand', [
       { name: 'Operating Expenditures', color: 'var(--cat-1)', val: '--cat-1 · #05234F', key: 'operating_expenditures', src: 'token' },
       { name: 'Transfers Out', color: 'var(--cat-3)', val: '--cat-3 · #437772', key: 'transfers_to_other_authorized_committee', src: 'token' },
-      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments_made', src: 'token' },
+      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments (Form-3 name · A2 fix 2026-06-08)', src: 'token' },
       { name: 'Contribution Refunds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'contribution_refunds', src: 'token' },
       { name: 'Other Disbursements', color: 'var(--cat-other)', val: '--cat-other · #D7D1C7', key: 'other_disbursements', src: 'token' }
     ]);
@@ -547,11 +553,11 @@
     // ── spent donut committee (8) ────────────────────────────────────────
     fill('spentComm', [
       { name: 'Operating Expenditures', color: 'var(--cat-1)', val: '--cat-1 · #05234F', key: 'operating_expenditures', src: 'token' },
-      { name: 'Shared Non-Federal OpEx', color: 'var(--cat-2)', val: '--cat-2 · #1D5A6D', key: 'shared_nonfed_operating_expenditures', src: 'token' },
+      { name: 'Federal Election Activity', color: 'var(--cat-2)', val: '--cat-2 · #1D5A6D', key: 'fed_election_activity (parent — added 2026-06-09, replaces double-counted Shared Non-Federal OpEx)', src: 'token' },
       { name: 'Transfers Out', color: 'var(--cat-3)', val: '--cat-3 · #437772', key: 'transfers_to_affiliated_committee', src: 'token' },
       { name: 'Candidate Contributions', color: 'var(--cat-4)', val: '--cat-4 · #75917B', key: 'fed_candidate_committee_contributions', src: 'token' },
       { name: 'Independent Expenditures', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'independent_expenditures', src: 'token' },
-      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments_made', src: 'token' },
+      { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments_made + loan_repayments (coalesced 2026-06-09)', src: 'token' },
       { name: 'Contribution Refunds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'contribution_refunds', src: 'token' },
       { name: 'Other Disbursements', color: 'var(--cat-other)', val: '--cat-other · #D7D1C7', key: 'other_disbursements (+ remainder)', src: 'token' }
     ]);
