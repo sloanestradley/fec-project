@@ -71,18 +71,18 @@
 **Also test with:** `localhost:8788/candidate/S0NY00410` (Gillibrand, Senate NY — multi-election cycles), `localhost:8788/candidate/H6WA09025` (D. Adam Smith, House WA-09)
 
 ### Index view (landing state)
-- [ ] ✅ Bare URL renders `#career-strip` and `#cycle-index`; `#tabs-bar` and `#summary-strip` are NOT visible (automated)
+- [ ] ✅ Bare URL renders `#career-strip` and `#cycle-index`; `#summary-strip` + `#content` are NOT visible (automated) — `#tabs-bar` no longer exists (retired T-remove-profile-tabs)
 - [ ] ✅ `#cycles` hash → also renders index view (automated)
 - [ ] ✅ CareerStrip shows three cells (T14): History / Career Raised / Career Spent (automated)
 - [ ] ✅ History cell shows a year or year-range (`YYYY` or `YYYY–YYYY`) (automated)
 - [ ] ✅ `#profile-menu-btn` (menu-btn host) is visible in index view (automated — T-menu-btn-profile-header, 2026-05-26)
 - [ ] ✅ `Page Viewed` fires with `view: 'index'` (automated)
-- [ ] ✅ Cycle rows have `href="#year#summary"` format (automated)
+- [ ] ✅ Cycle rows have bare `href="#year"` format (automated — the `#summary` tab segment was dropped post T-remove-profile-tabs)
 - [ ] ✅ Cycle row labels contain a year range with en-dash (automated)
 - [ ] Career Raised and Career Spent show formatted dollar amounts (not "—")
 - [ ] History cell year-range derives from first_file_date (start) and latest coverage_end_date in totals (end). Bare year for first-cycle candidates with no quarterly filings yet.
 - [ ] Cycle index column headers: Cycle / Raised / Spent / Cash on Hand
-- [ ] ✅ Clicking a cycle row loads detail view in-place — no page reload (`#profile-header` DOM node is the same object before and after; index elements hidden; tabs-bar visible) (automated)
+- [ ] ✅ Clicking a cycle row loads detail view in-place — no page reload (`#profile-header` DOM node is the same object before and after; index elements hidden; `#content` flowing view visible) (automated)
 - [ ] ✅ Browser back from detail view → index view in-place — CareerStrip and cycle index visible; back button does NOT re-fetch `/history/` or `/totals/?per_page=100` (data cached) (automated)
 - [ ] ✅ index→detail when index was compact: detail loads at `compactThreshold` scroll position; compact class stays engaged with no visible transition (automated)
 - [ ] ✅ index→detail when index was NOT compact: detail loads at scrollY 0 (automated)
@@ -139,7 +139,7 @@
 - [ ] At narrow viewports (≤860px), meta-row wraps cleanly without overflow; title row still fits title + menu-btn (icon-only) side-by-side; long titles wrap internally inside the title without forcing menu-btn onto its own line
 - [ ] Meta-row animates in with the header reveal on page load (fades in with the name)
 - [ ] ✅ `#race-context` element present in DOM (now in `#race-context-bar`, not meta-row)
-- [ ] Race context bar renders as the bottom-most child of `#summary-strip` (above the tabs bar, visible on all tabs as part of the header zone)
+- [ ] Race context bar renders as the bottom-most child of `#summary-strip` (part of the header zone above the flowing detail content)
 - [ ] `.race-context-line-label` renders the long-form race label (e.g. "US House: Washington's 3rd District") from first paint — independent of `/elections/`. Profile header's meta-row race tag uses the same `(office, state, district)` source but the short form via `formatRaceName()`.
 - [ ] Skeleton pulse appears beside the label in the race context bar while `/elections/` fetch is in-flight
 - [ ] Race context sentence resolves to `.race-context-line-text` (after the label) in the bar
@@ -184,12 +184,11 @@
 - [ ] URL hash is cleared on chevron click (bare entity URL after)
 - [ ] Keyboard: Tab focuses the chevron; Enter / Space activates it; focus-visible outline visible
 
-### Cycle change path (T16 — switcher retired)
-- [ ] Tabs-bar contains only the three tab links (Summary / Raised / Spent). No cycle `<select>` in the tabs-bar on candidate.html or committee.html.
-- [ ] Tabs-bar bottom border ends at the gutter-inset edge (check at >1600px viewport — line should NOT extend to the viewport edge); tab text aligns with page content below
-- [ ] Cycle changes happen via the Cycle card chevron → cycle index → click a different cycle row → land on the new cycle's Summary tab
-- [ ] URL anchor updates to `#YYYY#summary` on cycle-row click (always Summary post-T16 — tab context across cycles is an accepted regression)
-- [ ] `localhost:8080/candidate.html?id=H2WA03217#2022#raised` direct-load pre-selects 2022 cycle and Raised tab (URL hash routing unchanged)
+### Cycle change path (T16 switcher retired; tabs retired T-remove-profile-tabs)
+- [ ] No `.tabs-bar` / `.tab` elements anywhere (count 0) — the detail view is one flowing column on candidate.html + committee.html
+- [ ] Cycle changes happen via the Cycle card chevron → cycle index → click a different cycle row → land on the new cycle's flowing detail view
+- [ ] URL anchor updates to bare `#YYYY` on cycle-row click (no `#tab` segment post T-remove-profile-tabs)
+- [ ] `localhost:8080/candidate.html?id=H2WA03217#2022` direct-load pre-selects the 2022 cycle (legacy `#2022#raised` lands on the same view + canonicalizes to bare `#2022`)
 - [ ] `Cycle Switched` Amplitude event no longer fires (retired with T16). The replacement signal is `Page Viewed { view: 'detail', cycle }` on cycle-row click.
 
 ### Stats row (T14)
@@ -211,33 +210,31 @@
 - [ ] Navy top border visible above the banner
 
 ### Page-level data note (#page-note, Phase 2 candidate+committee, 2026-05-29)
-- [ ] ✅ `#page-note` sits OUTSIDE the three #tab-* panels (sibling within #content) — automated regression-lock
-- [ ] `#page-note` is visible on data-present cycles regardless of which tab is active (Summary / Raised / Spent)
+- [ ] ✅ `#page-note` is the **last child of `#content`** (flowing view — the #tab-* panels were dissolved in 9b) — automated regression-lock
+- [ ] `#page-note` is visible on data-present cycles (single flowing detail view — no tabs)
 - [ ] Content reads: "Source: FEC. Coverage through {date}. Individual contributions of $200 or less are not itemized." with `FEC` as a link to `https://www.fec.gov/`
 - [ ] FEC link renders in the new site-wide accent color (`var(--accent)` #2C5282), not UA-default blue
-- [ ] On no-data cycles (e.g. /candidate/H6WA03309#2026#summary): `#page-note` is hidden along with `#content` — empty-state takes over communication
-- [ ] `#data-note` slot inside `#tab-summary` is empty (the old C4.a/C4.c/C4.d/C4.e family no longer populates it)
-- [ ] Per-tab footer notes after the 2026-06-01 cuts: `#raised-data-note` carries only the conduit explanation (both pages); `#spent-data-note` is empty + hidden (both pages — vendor dedup note cut). The geography + amendment caveat moved to the choropleth tooltip; K4–K7 source attribution, C8.c (candidate top-committees), and C10.d/K16.d (vendor dedup) were all cut (§5.j)
+- [ ] On no-data cycles (e.g. /candidate/H6WA03309#2026): `#page-note` is hidden along with `#content` — empty-state takes over communication
+- [ ] `#data-note` (vestigial summary-tab slot) was removed 2026-06-01; `#raised-data-note` removed 2026-06-01 (conduit explanation moved to the Conduit column-header tooltip). Only per-section footer slot left is `#spent-data-note` (empty + hidden — vendor dedup note cut). The geography + amendment caveat lives in the choropleth tooltip; K4–K7 / C8.c / C10.d/K16.d were all cut (§5.j)
 
 ### Whole-view empty state (T-cycle-empty-state, 2026-05-28)
 Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle combination with no financial filings — H6WA03309's 2026 cycle is the canonical example).
 - [ ] `#summary-strip` is visible above (stats grid + race context bar) — stats show em-dashes for Raised / Spent / COH / Ratio
 - [ ] `#banner` is hidden (per Health banner section above)
-- [ ] `.tabs-bar` is hidden (the Summary / Raised / Spent tab links do not render)
-- [ ] `#content` (the tabbed content area, including the chart card and `#data-note`) is hidden — no empty chart card or em-dashed data-note text appears
+- [ ] (`.tabs-bar` no longer exists — retired T-remove-profile-tabs; nothing to hide)
+- [ ] `#content` (the flowing detail column, including the chart card) is hidden — no empty chart card appears
 - [ ] `#cycle-empty-state` is visible directly below the race context bar, centered, with the copy "No financial filings for 2026 cycle." (period at end; no other chrome)
 - [ ] Cycle-card chevron in the stats grid is still clickable — clicking it returns to the cycle index
-- [ ] Navigate to a data-present cycle from cycle index (e.g. 2024): tabs-bar + #content + #banner re-show; empty-state hides; no stale empty-state content remains
-- [ ] Direct-load `#2026#raised` URL on a no-data cycle: the empty-state still overrides (URL hash stays as-is; tabs-bar and #content stay hidden)
+- [ ] Navigate to a data-present cycle from cycle index (e.g. 2024): `#content` + `#banner` re-show; empty-state hides; no stale empty-state content remains
+- [ ] Direct-load `#2026` URL on a no-data cycle: the empty-state still overrides (URL hash stays as-is; `#content` stays hidden)
 - [ ] Mobile (≤860px): empty-state padding-top tightens to 32px; copy stays centered; no horizontal overflow
 
 ### Summary strip persistence
-- [ ] Banner and stats grid visible on Summary tab
-- [ ] Click Raised tab — banner and stats grid still visible above the Raised content
-- [ ] Click Spent tab — banner and stats grid still visible above the Spent content
+- [ ] Banner and stats grid visible at the top of the flowing detail view
+- [ ] Banner and stats grid stay visible while scrolling through the Raised / Spent sections (single flowing column — no tab switching)
 - [ ] Navy top/bottom borders on stats grid extend to .main-inner edges (wide viewport); stat card text aligned with page gutter
 
-### Summary tab — chart
+### Timeline chart (Raised · Spent · Cash on Hand — candidate-only, full-width below Geographic | Purpose)
 - [ ] Chart renders with data (lines are visible, not flat at $0)
 - [ ] Raised and Spent lines are stepped (stair-step between filing dates)
 - [ ] Cash on Hand line is smooth/linear
@@ -381,35 +378,31 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 
 ### Index view (bare URL `/committee/{id}`)
 - [ ] ✅ Bare URL renders `#career-strip` (CareerStrip) + `#cycle-index` (cycle table)
-- [ ] ✅ Detail-view elements (`#summary-strip`, `#tabs-bar`, `#committee-content`) are HIDDEN on index view
+- [ ] ✅ Detail-view elements (`#summary-strip`, `#committee-content`) are HIDDEN on index view (`#tabs-bar` no longer exists — retired T-remove-profile-tabs)
 - [ ] ✅ CareerStrip has 3 cells (T14): History → Lifetime Raised → Lifetime Spent
 - [ ] History cell shows year-range from `first_file_date` to `last_file_date` (e.g. "2020–2026"); falls back to bare year when both dates produce the same year
 - [ ] Lifetime Raised = sum of `receipts` across all cycles in `/committee/{id}/totals/`
 - [ ] Lifetime Spent = sum of `disbursements`
 - [ ] Cycle index renders one row per cycle in `c.cycles`, sorted descending (newest first)
 - [ ] Cycle row labels use coverage_start_date for year range (e.g. "2025–2026")
-- [ ] ✅ Clicking a cycle row loads detail view in-place — no page reload (`#committee-header` DOM node is the same object before and after; index elements hidden; tabs-bar visible) (automated, T10)
+- [ ] ✅ Clicking a cycle row loads detail view in-place — no page reload (`#committee-header` DOM node is the same object before and after; index elements hidden; `#committee-content` flowing view visible) (automated, T10)
 - [ ] ✅ Browser back from detail view → index view in-place — CareerStrip and cycle index visible; back button does NOT re-fetch `/committee/{id}/` or `/committee/{id}/totals/?per_page=100` (data cached) (automated, T10)
 - [ ] `#cycles` URL also lands on index view (parseInt('cycles')=NaN → ALL_CYCLES.indexOf(NaN)=-1)
 - [ ] Old `#all#summary` bookmarks fall through to index view (parseInt('all')=NaN, same routing)
 - [ ] Amplitude `Page Viewed` fires with `view: 'index'`
 - [ ] No "All time" option in cycle-row markup (T8 removed All-time mode; T16 retired the cycle-switcher entirely — no select exists to contain options now)
 
-### Detail view tabs bar + cycle switcher (URL `#{year}#{tab}`)
-- [ ] ✅ Tabs bar is present and visible after load
-- [ ] ✅ Three tabs: Summary, Raised, Spent
-- [ ] ✅ Summary tab is active by default (when `#{year}#summary` hash)
-- [ ] ✅ Clicking Raised tab activates it and shows #tab-raised; #tab-summary hidden
-- [ ] ✅ Clicking Spent tab activates it and shows #tab-spent; #tab-summary hidden
-- [ ] ✅ Cycle switcher is present inside .tabs-bar (last child, after all tabs)
-- [ ] ✅ Cycle switcher contains numeric-only options — no `value="all"`, no "All time" text
-- [ ] ✅ Cycle switcher value matches the URL hash cycle on detail view load
-- [ ] Tabs-bar bottom border ends at the 1600px content column edge (check at >1600px viewport — border should NOT extend to the viewport edge); tab text aligns with page content below
+### Detail view — single flowing column (URL `#{year}`; tabs retired T-remove-profile-tabs 2026-06-04, flattened 9b 2026-06-10)
+- [ ] ✅ NO tabs bar (`.tabs-bar` / `.tab` count is 0) — the detail view is one flowing column
+- [ ] ✅ All sections render in flow at once, no clicks: breakdown slot → Geographic | Spending by Purpose → Top Contributors → Top Vendors → Contributions to Candidates → `#page-note`
+- [ ] ✅ Section flow order matches §7 of `strategy/profile-flatten-layout.md` (committee: Associated Candidate first; no Timeline)
+- [ ] **Breakdown slot (9c):** in-scope committee (fed-only) → Money flow Sankey visible, `#breakdown-donut-grid` hidden; gated (dual-account / presidential) → donut pair visible, `#money-flow-card` hidden, NO gate caption
+- [ ] Cycle changes happen via the Cycle-card chevron → cycle index → click a different cycle row (no in-page switcher; T16 retired `.tabs-bar` select)
 - [ ] Selecting a cycle re-renders stats for that cycle
 - [ ] Selecting 2026 (no totals record) shows `—` in all stat fields
-- [ ] Amplitude `Cycle Switched` no longer fires (T16 retired the switcher); `Page Viewed { view: 'detail', cycle }` fires instead on cycle-row click
-- [ ] Amplitude `Tab Switched` fires on user tab click with `{ tab, committee_id }` — does NOT fire on hash-restore load
-- [ ] Amplitude `Page Viewed` fires with `view: 'detail'` on detail-view load
+- [ ] Amplitude `Cycle Switched` no longer fires (T16); `Page Viewed { view: 'detail', cycle }` fires instead on cycle-row click
+- [ ] Amplitude `Tab Switched` no longer fires (retired with the tabs, T-remove-profile-tabs)
+- [ ] Amplitude `Page Viewed` fires with `view: 'detail'` + `breakdown_viz` (`'sankey'`|`'donut'`) on detail-view load
 
 ### Stats grid (detail view, T14)
 - [ ] ✅ Stats grid shows financial figures (not $0 or blank)
@@ -420,7 +413,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Spent shows a formatted dollar amount
 - [ ] Cash on Hand shows a formatted dollar amount with "As of {date}" sub-label (data freshness signal; replaces the retired `#stat-coverage` card)
 - [ ] Cycle and Raised/Spent cards render label + value only (no stat-sub element on these three cards)
-- [ ] Overspend note visible when disbursements > receipts on the selected cycle
+- [ ] (`#overspend-note` retired 2026-06-05 — no overspend callout; committee.html shows no curated summary feedback)
 - [ ] Mobile (≤860px): outer grid stacks (Cycle row 1, Raised+Spent+COH row 2) with horizontal navy divider between; right half stays as 3-col row
 - [ ] "Financial Summary" section title is NOT present above the stats grid (removed in summary-strip refactor)
 
@@ -433,33 +426,31 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Keyboard: Tab focuses the chevron; Enter / Space activates it; focus-visible outline visible
 
 ### Summary strip persistence (committee.html)
-- [ ] Stats grid visible on Summary tab
-- [ ] Click Raised tab — stats grid still visible above the Raised content
-- [ ] Click Spent tab — stats grid still visible above the Spent content
+- [ ] Stats grid visible at the top of the flowing detail view (above the breakdown slot)
+- [ ] Stats grid stays visible while scrolling through the Raised / Spent / Contributions sections (single column — no tab switching)
 - [ ] Navy top/bottom borders on stats grid extend to .main-inner edges (wide viewport); stat card text aligned with page gutter
-- [ ] Overspend note hidden when disbursements ≤ receipts for a selected cycle
-- [ ] Overspend note visible when disbursements > receipts for a selected cycle
+- [ ] (`#overspend-note` retired 2026-06-05 — no overspend callout on committee.html; the active-cycle red banner is candidate-only, committee has no banner)
 
 ### Associated candidate section
 - [ ] No back-link in header (removed on redesign branch)
-- [ ] Associated candidate card appears in Summary tab (if linked via candidate_ids or sponsor_candidate_ids)
+- [ ] Associated candidate card appears as the first section of the flowing detail view (if linked via candidate_ids or sponsor_candidate_ids)
 - [ ] Associated candidate card shows race tag + party tag (not deprecated .candidate-card-office)
 - [ ] Section title is "Sponsored Candidate" for leadership PACs, "Principal Committee For" for authorized committees
 - [ ] ✅ .candidate-card-office class not present anywhere on page (deprecated class fully removed)
 
 ### URL hash
 - [ ] ✅ Bare URL `/committee/{id}` (no hash): lands on index view, hash NOT auto-set
-- [ ] ✅ Switching cycle on detail view: URL hash updates to `#{year}#summary`
-- [ ] ✅ Switching tab on detail view: URL hash updates cycle + tab (e.g. `#2024#raised`)
-- [ ] Refresh with `#2024#raised` in URL: page loads detail view with 2024 cycle selected and Raised tab active
+- [ ] ✅ Switching cycle on detail view: URL hash updates to bare `#{year}` (no `#tab` segment — tabs retired)
+- [ ] ✅ Legacy `#{year}#{tab}` bookmark (e.g. `#2024#raised`): lands cleanly on the `#2024` detail view; the trailing tab segment is ignored + the URL canonicalizes to bare `#2024`
+- [ ] Refresh with `#2024` in URL: page loads detail view with 2024 cycle
 - [ ] Invalid cycle in hash (e.g. `#9999`): falls back to index view (NaN routing)
 - [ ] `#cycles` hash: also lands on index view
-- [ ] `#all#summary` (legacy bookmark): falls through to index view via NaN routing
+- [ ] `#all` (legacy bookmark): falls through to index view via NaN routing
 
-### Raised tab
-- [ ] ✅ Clicking Raised tab shows #tab-raised, hides #tab-summary
-- [ ] ✅ Donut canvas (#chart-donut) renders inside raised tab
-- [ ] ✅ Map container (#map-container) is present in raised tab
+### Raised section (flowing — no tab)
+- [ ] ✅ `#raised-tab-section` (Top Contributors) is visible in the flow, no click
+- [ ] ✅ Raised breakdown donut (#chart-donut) renders ONLY when the breakdown slot is gated (9c — in the donut pair); in-scope committees show the Sankey instead
+- [ ] ✅ Map container (#map-container) is present in the Geographic section
 - [ ] ✅ Committee donors tbody has at least one row
 - [ ] ✅ Individual donors tbody has at least one row
 - [ ] Section titles ("Raised breakdown", "Where Individual Contributions Come From", "Top Committee Contributors", "Top Conduit Sources", "Top Individual Contributors") visible at all times during loading; only chart canvas / table body areas swap between skeleton and content
@@ -480,7 +471,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Data note at bottom includes amendment processing caveat
 - [ ] Switching cycles resets and re-fetches raised data; donut and map re-render for new cycle
 - [ ] Navigating to Raised tab on a page where data is already fetched renders immediately (no re-fetch)
-- [ ] State tooltip value for WA should not exceed total raised shown on Summary tab for the same cycle selection
+- [ ] State tooltip value for WA should not exceed total raised shown in the stats grid for the same cycle selection
 - [ ] Timber PAC (C00833574): map uses neutral/purple color (no party affiliation)
 - [ ] DEM committee (C00806174): map uses blue color
 - [ ] **All cycle-anchored views:** `#committee-donors-card` and `#conduits-card` always visible on detail view (subject to mega-committee gap copy below) — All-time default removed in T8
@@ -504,10 +495,10 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] **Historical cycle bulk coverage (post-backfill, 2026-04-21):** on a multi-decade committee (DSCC C00042366, ILLINOIS TOOL WORKS C00000042), flipping to a historical cycle (1990, 2000, 2010) populates Top Individual Contributors from bulk data across all cycles 1980–2026. (Footer source attribution cut 2026-06-01, §5.j.) Note: connected corporate PACs may legitimately show empty Top Committees for early cycles — that's a data-characteristic observation, not a pipeline bug.
 - [ ] Spent tab: Network tab shows Schedule B pagination advancing past page 1 without 422 errors (cursor key is `last_disbursement_amount` — verified live 2026-04-14)
 
-### Spent tab
-- [ ] ✅ Clicking Spent tab shows #tab-spent, hides #tab-summary
-- [ ] ✅ Spent donut canvas (#chart-spent-donut) renders inside spent tab
-- [ ] ✅ Spending by Purpose bars (#spend-detail-bars) present in spent tab
+### Spent section (flowing — no tab)
+- [ ] ✅ Spent sections (Spending by Purpose, Top Vendors, Contributions) are visible in the flow, no click
+- [ ] ✅ Spent donut canvas (#chart-spent-donut) renders ONLY when the breakdown slot is gated (9c — donut pair); in-scope committees show the Sankey instead
+- [ ] ✅ Spending by Purpose bars (#spend-detail-bars) present in the Spending-by-Purpose section
 - [ ] ✅ Vendors tbody has at least one row
 - [ ] ✅ Contributions section visible when CCM records exist
 - [ ] ✅ Contributions tbody has at least one row
@@ -605,16 +596,16 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Race title uses `.page-title` — same Oswald 600, clamp(2rem,5vw,4.5rem), uppercase
 - [ ] Header fades in on load (opacity transition via `.page-header-reveal`)
 
-### Race header + tabs bar
+### Race header (de-tabbed — T-remove-profile-tabs race final pass, 2026-06-04)
 - [ ] Race title reads "US HOUSE: WASHINGTON'S 3RD DISTRICT" (long-form, uppercase via `.page-title`)
 - [ ] Browser tab title reads "US House: Washington's 3rd District — FECLedger"
-- [ ] Tabs bar visible below header with "Candidates" (active) and "Insights" tabs (tabs only — year dropdown + seat-class no longer live here)
+- [ ] No tabs bar — the candidate list IS the page (single flowing content; Insights stub deferred to Phase 4)
 - [ ] Year dropdown is inside `#race-header` (controls cluster), right-aligned (T-move-race-year-select, 2026-06-03)
 - [ ] Year dropdown + seat-class cluster top-aligns to the title row; seat-class stays vertically centered with the dropdown
 - [ ] Scroll into compact header: year dropdown stays visible + un-stretched (~34px), right-aligned in the slim strip
 - [ ] No candidate count in header or meta (removed)
 - [ ] ✅ Year dropdown shows 2024 as selected value when URL param is `year=2024`
-- [ ] Clicking "Insights" tab shows coming-soon message; clicking "Candidates" shows candidate list
+- [ ] Candidate list renders directly (no tab to click); the Insights stub was removed (Phase 4 will re-add it as a flowing section)
 
 ### In-place cycle switching (T-race-inplace-cycle, 2026-06-03 — no full reload)
 - [ ] Changing the year dropdown updates the candidate list, count, and `?year=` **without a full page reload** (no white flash / scroll-to-top jump)
@@ -1104,3 +1095,4 @@ Append a row after each test run. Never delete old rows.
 | 2026-06-10 | **Profile flatten 9a + 9b (candidate + committee) — `strategy/profile-flatten-layout.md`.** **9a (tests-first, +2 → 883):** retargeted the 73 `#tab-*` visibility-proxy assertions to durable content anchors (`#money-flow-card` / `#raised-tab-section` / `#spent-purpose-title`) that survive the re-org; added a routing-regression lock to both profile specs (bare URL → index; `#cycle` deep-link → detail canonicalized to bare `#2024`; browser-back → index). **9b (DOM re-org, net 0 tests — held tests rewritten):** dissolved the inert `#tab-summary/-raised/-spent` wrappers on both pages; rebuilt the detail view as thematic raised\|spent paired rows — `#breakdown-slot` (money-flow card + [Raised donut \| Spent donut], coexisting until the 9c toggle) → [Geographic \| Spending by Purpose] → (candidate only) Timeline → Top Contributors (full-width) → Top Vendors (full-width) → (committee) Contributions to Candidates → `#page-note` (last child). Committee's **Associated Candidate** placed first (committee context; no header race-context bar). Both donuts moved into the slot verbatim; map now pairs with purpose. Held flow-order + page-note-sibling tests rewritten to the new order/structure; stale `#tab-*` JS comments cleaned. **CSS:** `.chart-header` gained `padding-top:var(--space-24)` (breathing room for mid-page chart cards), with `#money-flow-card .chart-header { padding-top:0 }` keeping the page-leading card flush; `.donut-chart-wrap` width `50%`→`80%` + `max-width:360px`. **Decision correction:** timeline placed directly below the Geographic\|Purpose row (the locked "after the leaderboard row" was a Chat translation slip). Routing untouched (cycle-hash only, never referenced the divs). | candidate.html, committee.html, styles.css, tests/candidate.spec.js, tests/committee.spec.js, strategy/profile-flatten-layout.md | Track 1 881→883 (+2 routing locks in 9a; 9b rewrote held tests, net 0). Full suite green (883). CSS tweaks not test-asserted (visual). **Owed: broader doc sync (CLAUDE.md profile structure, design-system breakdown-slot card, ia.md) rides with 9c when the slot toggle + coexistence-end land.** 9c/9d/9e pending. | 883/883 |
 | 2026-06-10 | **Profile flatten 9c — breakdown-slot toggle (end donut/Sankey coexistence) + `breakdown_viz` analytics.** The `#breakdown-slot` is now **Money flow (Sankey) XOR the Raised/Spent donut pair (`#breakdown-donut-grid`), MUTUALLY EXCLUSIVE on the gate** — `applyBreakdownSlot(gated)` toggles the two containers and a per-page `breakdownGated` flag gates every render path (in-scope → Sankey card mounts, donuts skipped; gated → donut pair mounts, Sankey card skipped). Candidate gate is office-based (`breakdownGateReason()`, synchronous from `CAND_OFFICE`); committee gate is record-based (looked up from `ALL_TOTALS` by cycle so it's correct at `trackPageViewed` time, which fires before `renderStats`). **§4 no-caption:** a gated entity never mounts the money-flow card, so `#sankey-gate` is dead UI — the donut pair IS the gated view (complete + conserving after the dual-account donut fix); the gate *detector* only selects the viz. **Analytics:** `breakdown_viz` (`'sankey'`\|`'donut'`) + `breakdown_gate_reason` (reason when donut, else null) added to `Page Viewed` on both pages (null on index — no slot). **Tests migrated to the new semantics:** donut-render tests moved to gated fixtures (`routeGatedCandidate` / `routeGatedCommittee` — office/committee_type 'P' override; donut-only fixtures gated via fed-mismatch); in-scope ↔ gated slot-toggle locks added; the two ex-gate-caption tests (candidate presidential, committee dual-account + presidential) rewritten to "donut pair shown, money-flow hidden, no caption"; `breakdown_viz` assertions added (sankey on in-scope, donut+reason on gated, null on index). | candidate.html, committee.html, tests/candidate.spec.js, tests/committee.spec.js, CLAUDE.md, design-system.html, strategy/profile-flatten-layout.md, TESTING.md, test-cases.md | Track 1 883→889 (+6). Full suite green (889 passed). **Owed live (Sloane):** in-scope candidate/committee (House PCC) shows ONLY the Sankey (donuts gone); a gated committee (dual-account, e.g. C00019331#2024) + a presidential committee/candidate show ONLY the donut pair, no "not yet modeled" caption. | 889/889 |
 | 2026-06-10 | **Profile flatten 9d — race cold-load (routing comment + slowness diagnosis; NO skeleton swap).** Decision 4 was reversed in planning: a fixed-N candidate-row skeleton would mis-preview a variable-length race list, so the plain `.state-msg` spinner stays. Three items: **(1) routing comment** — added at `race.html`'s `urlWithYear` seam documenting the deliberate `?year=` query-param (filter-URL) vs profile `#cycle` hash (view-switch) divergence (decision 5; do not unify). **(2) cold-load slowness diagnosis** — timed both cold-load calls against the live deployed proxy (real key), small (WA-03) + large (CA Senate, US President), 2 samples each: `/elections/` (candidate list) is the dominant + high-variance call (payload 2.9KB→20KB by candidate count; 0.27s–~3s, spiking on President, no caching); `/elections/search/` is lighter/steadier. Root cause = FEC latency + pass-through proxy. Explicit-`?year=` path already parallelizes (Promise.all) so the common shared-link case is optimal; no-year path is sequential by necessity. No cheap/safe in-ticket win → fix = the server-side KV-cache architectural-debt item (banked). **(3) `Page Viewed` verify** — covered by existing pages.spec assertions (`trigger:'load'`); no change. Comment-only race.html edit; no UI change. | race.html, strategy/profile-flatten-layout.md, CLAUDE.md, test-cases.md | No new tests (loader unchanged; diagnosis is investigation). Race suite green (61 pages.spec race tests); full Track 1 unaffected at 889. **Owed live (Sloane):** none — no UI change; the slowness fix is the banked KV-cache ticket. | 889/889 |
+| 2026-06-10 | **Profile flatten 9e — cross-cutting verification + closing stale-reference sweep (arc close-out).** Verification: full Track 1 green (889 effective; one known opex-retry timing flake, passes isolated); empty-state / committee no-activity / gated round-trip confirmed via existing describes; **live browser QA signed off by Sloane** (in-scope → Sankey only; gated → donut pair no caption; paired rows collapse ≤860px). **Closing sweep (Part D)** — fixed retired-term drift: ia.md detail-view note + project-brief.md (×2) "coexist"/"will make mutually exclusive"/"not yet modeled message" → present-tense mutual-exclusion + no-caption; utils.js purposeBucket comment casing; chart-color-palette.html spent-category names (sentence case + "Contributions to candidates"). **Also cleaned test-cases.md's own tab-era debt** (~25 manual-checklist refs predating T-remove-profile-tabs — `### Detail view tabs bar`, `### Raised/Spent tab`, PAGE-NOTE, summary-strip, empty-state, index-view, race-header sections reframed to the flowing single-column view + breakdown slot; append-only log rows left as history). **Profile flatten arc (9a–9e) complete.** | ia.md, project-brief.md, utils.js, chart-color-palette.html, strategy/profile-flatten-layout.md, test-cases.md | No code-behavior change (docs + comments only); full Track 1 unaffected at 889. **Owed live (Sloane):** none — arc signed off. | 889/889 |

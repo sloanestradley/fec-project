@@ -1,6 +1,6 @@
 # Profile flatten + re-organize — spec & build plan
 
-> **STATUS: 9a + 9b + 9c + 9d EXECUTED (2026-06-10) — candidate.html + committee.html (9a–9c deployed); race.html (9d). 9e (cross-cutting verification) pending.**
+> **STATUS: COMPLETE — 9a–9e all EXECUTED & DEPLOYED (2026-06-10). candidate.html + committee.html flattened + breakdown-slot toggle (9a–9c); race.html cold-load comment + diagnosis (9d); cross-cutting verification + closing doc sweep + live-QA sign-off (9e). Remaining work is the banked §11 fast-follows (separate tickets).**
 > Candidate + committee profile layout re-organization (and light race-page parity). Research/investigation approved 2026-06-09; **all decisions locked** (see §3 + §4 — §4 resolved 2026-06-10, no caption). The donut↔Sankey scope toggle (a.k.a. "Step 4") shipped folded into **9c** — the breakdown slot is now Money flow XOR the donut pair, mutually exclusive on the gate, with the `breakdown_viz` analytics dimension. No open design questions remain. Commits: 9a/9b on 883-green; 9c `4851c84` (889-green). Remaining: §9d, §9e (+ the banked §11 un-gates / committee timeline).
 
 ---
@@ -178,11 +178,14 @@ Each compact row is **raised-side | spent-side**. The CSS primitive already exis
 - [x] **Context (loader sharing — held for the diagnosis, no change made):** `.state-msg`/`.loader` is shared by the cold-load spinner, the **error state** (`state-msg error`), and the **cycle-switch loader** (`#race-switch-loader`); the empty-cycle state is a separate `.inline-status-msg` in `#race-list`. None changed (no swap).
 - [x] **No new tests** — loader unchanged; no cheap fix landed (diagnosis pointed at the KV-cache debt item). Comment-only race.html change; race suite (61 tests in pages.spec) stayed green.
 
-### 9e. Cross-cutting verification
-- [ ] Full Playwright suite green after each page's re-org.
-- [ ] **Whole-view empty state still toggles:** candidate's `#cycle-empty-state` replaces `#content` on no-data cycles — confirm that toggle still works after `#content`'s children are restructured (it hides `#content`, so it should, but verify).
-- [ ] Live browser check (UI-touching): candidate + committee detail at desktop + ≤860px (paired rows collapse cleanly); gated committee (dual-account) shows the **donut pair, no caption** (§4); in-scope shows Sankey, donuts absent (coexistence ended, 9c). (Race has no 9d UI change — plain loader unchanged; verify it still shows on cold load if the slowness diagnosis touched anything loader-adjacent.)
-- [ ] Docs: update CLAUDE.md (profile structure + the retired `#tab-*` wrappers + the end of donut/Sankey coexistence), ia.md (`#tab-summary` section-ids note), **design-system.html — add a Money-flow/breakdown-slot component card (the slot is a new component shape, not "if changed")**, test-cases.md log row.
+### 9e. ✅ Cross-cutting verification — DONE 2026-06-10
+- [x] Full Playwright suite green — 889 effective (one known opex-retry timing flake, passes isolated; unrelated to the arc).
+- [x] **Whole-view empty state still toggles:** candidate's `#cycle-empty-state` replaces `#content` on no-data cycles — confirmed (test-covered: `T-cycle-empty-state` describe green; the breakdown gate runs in the reset but `#content` is hidden so it's invisible). Committee no-activity guard + gated round-trip also confirmed via their describes.
+- [x] **Live browser check (UI-touching): signed off by Sloane 2026-06-10** — candidate + committee detail at desktop + ≤860px (paired rows collapse); gated committee shows the donut pair, no caption; in-scope shows the Sankey, donuts absent. (Race has no 9d UI change — plain loader unchanged.)
+- [x] **Docs synced** — CLAUDE.md (Sankey note: Steps 0–4, coexistence ended, gate caption retired; spent-donut label casing + direction; race cold-load timing in the KV-cache debt note), ia.md (detail-view structure note → mutually-exclusive slot + `breakdown_viz`), design-system.html (Money Flow / breakdown-slot card + spend-bar demo labels), test-cases.md log rows, TESTING.md count.
+- [x] **Closing stale-reference sweep (Part D)** — swept CLAUDE.md / ia.md / project-brief.md / design-system.html / utils.js comment / chart-color-palette.html for retired terms (coexist / "not yet modeled" caption / title-case spend labels / "Candidate Contributions"). Fixed A–E. Also cleaned the **test-cases.md manual checklist's tab-era debt** (~25 references from T-remove-profile-tabs predating this arc — the `### Detail view tabs bar`, `### Raised/Spent tab`, PAGE-NOTE, summary-strip, empty-state, index-view, and race-header sections reframed to the flowing single-column view + breakdown slot; append-only log rows left as history).
+
+**Arc complete: 9a–9e all shipped (2026-06-10). Remaining are the banked §11 fast-follows (Step 5 un-gates, committee timeline, debt-on-gated, race KV-cache) — separate tickets, not part of this flatten arc.**
 
 ---
 

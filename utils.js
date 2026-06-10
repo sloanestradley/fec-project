@@ -633,7 +633,7 @@ var ENTITY_TYPE_LABELS = {
 
 // ── Disbursement purpose bucketing (Spent tab — candidate and committee) ──
 // Patterns ordered so more-specific descriptions match before broad ones.
-// e.g. "DIGITAL CONSULTING" → Digital & Online (DIGITAL matches first)
+// e.g. "DIGITAL CONSULTING" → Digital & online (DIGITAL matches first)
 // Labels are SENTENCE CASE (aligned with the Sankey + Raised-donut casing 2026-06-10);
 // "TV" stays uppercase as an acronym.
 var PURPOSE_MAP = [

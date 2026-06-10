@@ -313,10 +313,11 @@
     <!-- ── Spent donut committee ── -->
     <section class="cc-section cc-section--rehover">
       <h2 class="cc-section-title">Spent breakdown donut · committee (8 categories) — diverges</h2>
-      <p class="cc-section-note">Committee has a richer disbursement schema: it adds Federal Election Activity,
-        Candidate Contributions, and Independent Expenditures. All eight reference
+      <p class="cc-section-note">Committee has a richer disbursement schema: it adds Federal election activity,
+        Contributions to candidates, and Independent expenditures (sentence-case labels — aligned with the Sankey +
+        Raised donut; "Contributions to candidates" names the direction, money the committee gave). All eight reference
         <code>CATEGORY_COLORS.spent.*</code>; the five categories shared with the candidate donut resolve to the same
-        values on both pages. (Shared non-federal operating costs are folded <em>inside</em> the Operating Expenditures
+        values on both pages. (Shared non-federal operating costs are folded <em>inside</em> the Operating expenditures
         parent, not shown as a separate wedge — listing both would double-count.)</p>
       <div class="cc-grid" id="spentComm"></div>
       <h3 class="cc-subhead">Hover behavior</h3>
