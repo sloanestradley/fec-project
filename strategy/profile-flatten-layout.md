@@ -1,7 +1,7 @@
 # Profile flatten + re-organize — spec & build plan
 
-> **STATUS: PLANNED — not executed. Pre-build checklist below gets reviewed before any code lands.**
-> Candidate + committee profile layout re-organization (and light race-page parity). Research/investigation approved 2026-06-09; **all decisions locked** (see §3 + §4 — §4 resolved 2026-06-10, no caption). Timing of the mutually-exclusive slot is CC's discretion (§8). No open design questions remain.
+> **STATUS: 9a + 9b + 9c EXECUTED & DEPLOYED (2026-06-10) — candidate.html + committee.html. 9d (race skeleton) + 9e (cross-cutting verification) pending.**
+> Candidate + committee profile layout re-organization (and light race-page parity). Research/investigation approved 2026-06-09; **all decisions locked** (see §3 + §4 — §4 resolved 2026-06-10, no caption). The donut↔Sankey scope toggle (a.k.a. "Step 4") shipped folded into **9c** — the breakdown slot is now Money flow XOR the donut pair, mutually exclusive on the gate, with the `breakdown_viz` analytics dimension. No open design questions remain. Commits: 9a/9b on 883-green; 9c `4851c84` (889-green). Remaining: §9d, §9e (+ the banked §11 un-gates / committee timeline).
 
 ---
 
@@ -12,10 +12,10 @@ Step 4 is the donut↔Sankey **scope toggle**: Money flow shows where it conserv
 **So the ordering is deliberate:** build the breakdown slot here, and Step 4 collapses into a **content swap inside an existing container** rather than a layout change. The slot is keyed on `gated` per entity (not page type), so it also absorbs Step 5 (the dual-account un-gate) with zero rework — a dual-account committee flips donut→Sankey *inside the same slot*. Doing the layout once, now, means Steps 4 and 5 touch only the swap logic, never the grid.
 
 The dependency chain:
-- **Track A (donut correctness fix)** — shipped 2026-06-09 (dual-account donut fix). The donut fallback is now honest, which is what makes the slot's gated state safe to lean on.
-- **This work (flatten + re-org)** — builds the slot + the paired-row structure.
-- **Step 4 (scope toggle) — effectively folded into this work.** The mutual-exclusion toggle (9c) and the "which viz rendered" analytics dimension (`breakdown_viz`, also 9c) both land here, and the skeleton-then-swap question resolved to "no swap" (§8). So there is no separate Step 4 left to build — this re-org delivers it. (Kept as a named milestone only for traceability.)
-- **Step 5 (dual-account Sankey un-gate)** — flips Gate-1 committees donut→Sankey; the slot already supports it.
+- **Track A (donut correctness fix)** — ✅ shipped 2026-06-09 (dual-account donut fix). The donut fallback is now honest, which is what makes the slot's gated state safe to lean on.
+- **This work (flatten + re-org)** — ✅ 9a/9b/9c shipped 2026-06-10: the slot + the paired-row structure + the mutually-exclusive toggle.
+- **Step 4 (scope toggle) — ✅ shipped folded into 9c.** The mutual-exclusion toggle and the "which viz rendered" analytics dimension (`breakdown_viz`) both landed in 9c, and the skeleton-then-swap question resolved to "no swap" (§8 — the gate is known synchronously, so the slot mounts the right viz directly). There was no separate Step 4 to build — the re-org delivered it. (Kept as a named milestone only for traceability.)
+- **Step 5 (dual-account + presidential Sankey un-gates)** — flips Gate-1/Gate-2 entities donut→Sankey **in place inside the slot**; the slot already supports it with zero layout rework (§8/§11). Pending.
 
 ---
 
@@ -185,12 +185,12 @@ Each compact row is **raised-side | spent-side**. The CSS primitive already exis
 ---
 
 ## 10. Migration sequence (summary)
-1. **Tests first** — retarget the visibility assertions to content IDs; add routing regression; confirm green at current DOM. (The flow-order tests are a *rewrite*, deferred to step 2 — they can't pass until the new order exists.)
-2. **DOM re-org** — candidate, then committee (independent files); dissolve wrappers, build §7 rows; rewrite the flow-order tests to the new order.
-3. **Slot wiring = end coexistence + the toggle** — add the gate-conditional guard so only one viz mounts; unify donuts into the slot; wire all four §8 states (loading resolves directly, no swap). No caption (§4 resolved). Fire the analytics "which viz" `breakdown_viz` dimension here (locked — lands with the toggle so coexistence never ends uncaptured).
-4. **Race** — cold-load skeleton swap (leave error + switch-loader); flag cold-load slowness.
-5. **Routing regression** — verify hash + race query params intact.
-6. **Docs + live QA.**
+1. ✅ **Tests first** — retargeted the visibility assertions to content IDs; added routing regression; confirmed green at current DOM. (Flow-order tests rewritten in step 2.)
+2. ✅ **DOM re-org** — candidate, then committee (independent files); dissolved wrappers, built §7 rows; rewrote the flow-order tests to the new order.
+3. ✅ **Slot wiring = end coexistence + the toggle** — added the gate-conditional guard (`breakdownGated` + `applyBreakdownSlot`) so only one viz mounts; donuts live in the slot's gated state; the four §8 states resolve directly (no swap — gate is synchronous). No caption (§4). Fired the `breakdown_viz` (+ `breakdown_gate_reason`) analytics dimension in the same change. Test suite migrated to the new semantics (gated fixtures for donut-render tests; in-scope↔gated toggle locks; ex-gate-caption tests rewritten). 883→889 green.
+4. ⏳ **Race** — cold-load skeleton swap (leave error + switch-loader); flag cold-load slowness. (9d — pending.)
+5. ✅ **Routing regression** — hash + cycle routing verified intact (the flatten never touched routing; locked by the per-page routing-regression describe added in 9a). Race `?year=` query params unchanged (9d will re-confirm).
+6. ⏳ **Docs + live QA.** — docs synced with 9c (CLAUDE.md, design-system.html, TESTING.md, test-cases.md, this doc); the **live browser pass (in-scope → Sankey only; gated → donut pair, no caption; desktop + ≤860px) is owed to Sloane** (flagged in the 9c test-cases row).
 
 No deep links/anchors reference `#tab-*`, so no back-compat shim is needed (unlike the original de-tab's `#cycle#tab` legacy links, which already canonicalize to `#cycle`).
 
