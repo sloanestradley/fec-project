@@ -6453,3 +6453,43 @@ Carried from the end-of-session audit. **#1 (strategy header) DONE** (commit 852
 11. **Closing stale-reference sweep** — triggered (10 commits, copy + structure changes). Grep retired strings (old tooltip copy; old donut field-name assumptions in comments; committee donut "Candidate authorized committees" → "Transfers in" relabel) + confirm "Money flow"/Sankey described consistently across CLAUDE.md, design-system, test-cases, TESTING.
 
 **Then the build:** Step 4 (donut↔Sankey scope toggle — needs Chat decisions: donut-scope rule + layout/IA) → Step 5 fast-follows (presidential ungate path fully documented in sankey-data-model.md §4a Gate 2; a11y table; full .viz-tt tooltip alignment; color rank-vs-identity; dual-account modeling; conduit precompute).
+
+---
+2026-06-10
+
+## Process log draft
+
+### The layout was a slot all along
+
+I came in to finish the Sankey punch-list and ended up rebuilding how the candidate and committee profiles are laid out — because the donut↔Sankey "scope toggle" I'd been thinking of as a chart feature turned out to be a *layout slot*. Once I saw that, the whole page re-org fell out of it: build the slot now, and the toggle becomes a content swap instead of a layout change later. The session's lesson, again, was that the locked spec is only as good as the translation into it — the timeline ended up in the wrong row because "below Spending by Purpose" became "after the leaderboards" somewhere between me and Chat.
+
+**What changed**
+- Closed the Sankey arc: `#sankey-debt` caption + no-activity-guard tests, the design-system Money-flow card, and the cold-read doc refreshes (chart-palette went to a living, date-free style; project-brief got its stale build instruction + hash examples + tab→section terminology fixed).
+- Fixed the dual-account donut (the gated fallback) — Federal Election Activity wedge, dropped the shared-nonfed double-count, added the non-federal transfers wedge, and based percentages on true receipts. Verified live on a Wisconsin state party, Texas (the residual case), and DCCC (fed-only no-op).
+- Flattened both profile pages: dissolved the inert tab-wrapper divs and rebuilt the detail view as thematic raised|spent paired rows — a breakdown slot (Money flow + donuts, coexisting for now), then geographic|purpose, the timeline, the leaderboards, and contributions. Shipped to production.
+
+**Field notes**
+The recurring shape this session was *the spec is a translation, and translations drift*. The timeline placement was locked wrong (a Chat phrasing slip), the donut palette doc still said "mid-iteration" long after it stabilized, project-brief still told people to run `python3 -m http.server` months after that stopped working. None of these were caught by tests — they're the things only a cold read finds. The other thread: deciding the donut is a *complete, first-class view* for gated committees, not a consolation prize, which is why the gated state carries no apologetic caption. That one decision removed a whole sub-feature (the gate-reason caption map) before it was built.
+
+**Stack tags:** Apache ECharts Sankey (continued); thematic raised|spent paired-row layout (`#breakdown-slot`, `.raised-grid`); FEC dual-account (Form-3X non-federal/Levin + FEA) donut modeling.
+
+## How Sloane steered the work
+
+**"Fix the donut now, un-gate later."** On the dual-account Gate 1 question, you split a tangled problem into a correctness fix (the donut, shippable today) and a feature (the Sankey un-gate, Step 5) — and sequenced the donut fix *before* the slot wiring so the re-org would reparent already-correct donuts instead of two edits colliding. That sequencing is why 9b was clean.
+
+**Caught the timeline in the wrong row.** "Was there a reason it's below Top Vendors?" — you noticed the shipped layout didn't match your intent, and rather than just accept it, traced it to a translation slip between you and Chat. We fixed it at the source (the locked decision + spec), not just the markup, so it won't bite again.
+
+**"No caption — the donut is a first-class view."** You closed the one open design question by reframing it: a complete, conserving donut isn't a fallback that needs apologizing for. That deleted an entire planned mechanism (the gate-reason caption map) before it existed.
+
+**Design-craft on the small stuff.** The `.chart-header` padding, then "remove it from money-flow — what's the best way, extra class or inline?" You wanted the *clean* approach, not just a working one, which led to the scoped ID override over inline duplication.
+
+**Sequencing by context-cost.** "Group A first, then (a)" — you ordered the close-out so the narrative gets captured while it's in working memory, and the file-heavy doc sync is deferred. Same instinct as deferring the CLAUDE.md prose to 9c so it isn't written twice.
+
+**The through-line:** you treat the spec and the docs as living translations that drift from intent, and you keep pulling them back — catching the wrong-row timeline, the stale build instruction, the mid-iteration palette note — while making the calls (fix-first, no-caption, defer-docs) that keep the build from doing work twice.
+
+## What to bring to Claude Chat
+
+- **9c is the next build step** — slot wiring = end donut/Sankey coexistence (mutually exclusive per `gated`) + the `breakdown_viz` analytics dimension. Confirm there's nothing else you want folded into it (it effectively absorbs the old "Step 4").
+- **Watch for translation drift the other way** — the timeline-placement slip went Chat→Code. Worth a quick check that the locked decisions in `profile-flatten-layout.md` (no caption, timeline-below-purpose, leaderboards-full-width, assoc-first) all match what you intended, since this session corrected one of them.
+- **Step 5 (presidential + dual-account Sankey un-gates)** and **Step 6 (debt on gated entities)** remain banked — both flip in-place in the breakdown slot with zero layout rework. Decide when they earn a session.
+- **The deferred doc sync** (CLAUDE.md profile prose + design-system breakdown-slot card) rides with 9c — flag if you'd rather it happen sooner.
