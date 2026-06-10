@@ -2364,6 +2364,41 @@ test.describe('committee.html — dual-account donut fix', () => {
   });
 });
 
+// Coordinated party expenditures (2026-06-10): coordinated_expenditures_by_party_committee
+// (party-committee-only, 52 USC 30116(d)) is itemized as its own spent-donut wedge — it was
+// previously buried in the "Other disbursements" remainder while the Sankey itemized it.
+// Disjoint top-level leaf, so pulling it out conserves (the remainder shrinks by its amount).
+test.describe('committee.html — spent donut itemizes coordinated party expenditures', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Party committee with a non-federal account → gated → spent donut renders (9c).
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024, receipts: 5000000, fed_receipts: 4000000,
+          disbursements: 4000000, fed_disbursements: 3000000, last_cash_on_hand_end_period: 1000000,
+          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
+          individual_itemized_contributions: 4000000,
+          // disbursements 4M: operating 2M + IE 1M + coordinated 0.8M = 3.8M known → Other remainder 0.2M.
+          // Without the itemization, coordinated would fall into Other (→ Other 1.0M, no coordinated wedge).
+          operating_expenditures: 2000000, independent_expenditures: 1000000,
+          coordinated_expenditures_by_party_committee: 800000 }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+  });
+
+  test('coordinated_expenditures renders as its own wedge ($800K), not folded into Other ($200K)', async ({ page }) => {
+    const legend = page.locator('#spent-donut-legend');
+    await expect(legend).toContainText('Coordinated party expenditures', { timeout: 12000 });
+    await expect(legend.locator('.donut-row', { hasText: 'Coordinated party expenditures' }).locator('.donut-val')).toHaveText('$800K');
+    // The remainder excludes it: Other disbursements = 4M − (operating 2M + IE 1M + coordinated 0.8M) = $200K
+    // (would be $1.0M if coordinated were still buried in Other).
+    await expect(legend.locator('.donut-row', { hasText: 'Other disbursements' }).locator('.donut-val')).toHaveText('$200K');
+  });
+});
+
 // 9c: a gated committee no longer shows the Sankey gate caption — the breakdown slot
 // mounts the donut PAIR instead, and the Money flow card is hidden entirely (§4: the
 // donut pair is a complete first-class view, so there is NO "not yet modeled" caption).

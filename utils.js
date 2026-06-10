@@ -563,6 +563,10 @@ var CATEGORY_COLORS = (function() {
       independentExpenditures: v('--cat-5'),
       loanRepayments:          v('--cat-6'),
       contributionRefunds:     v('--cat-7'),
+      // Coordinated party expenditures (party committees only) — the --cat ramp's 7 hues
+      // are all assigned + it isn't mutually exclusive with any of them, so it takes the
+      // spare neutral --cat-other-2 (also used by the raised "Offsets" wedge; separate donuts).
+      coordinatedExpenditures: v('--cat-other-2'),
       otherDisbursements:      v('--cat-other')
     },
     // Raised→Spent Sankey palette (sankey.js renderSankey). `ramp` is the ordinal

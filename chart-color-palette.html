@@ -312,7 +312,7 @@
 
     <!-- ── Spent donut committee ── -->
     <section class="cc-section cc-section--rehover">
-      <h2 class="cc-section-title">Spent breakdown donut · committee (8 categories) — diverges</h2>
+      <h2 class="cc-section-title">Spent breakdown donut · committee (9 categories) — diverges</h2>
       <p class="cc-section-note">Committee has a richer disbursement schema: it adds Federal election activity,
         Contributions to candidates, and Independent expenditures (sentence-case labels — aligned with the Sankey +
         Raised donut; "Contributions to candidates" names the direction, money the committee gave). All eight reference
@@ -333,7 +333,7 @@
         <div class="cc-hov-desc">
           <span class="cc-hov-mech">Chart.js getHoverColor (saturate + darken) · + hoverOffset 4</span>
           <span class="cc-hov-text">Same as every donut — Chart.js recolors the wedge (<code>getHoverColor</code>,
-            saturate + darken) and <code>hoverOffset: 4</code> pops it out, across all 8 categories.
+            saturate + darken) and <code>hoverOffset: 4</code> pops it out, across all 9 categories.
             (No legend hover.)</span>
           <span class="cc-hov-badge cc-hov-badge--color">color change (Chart.js) + geometry</span>
         </div>
@@ -461,7 +461,7 @@
           receipts, Offsets, Other disbursements). The choropleth uses a continuous alpha scale
           (effectively unlimited shades of one hue).</li>
         <li><strong>Cross-page:</strong> raised donut identical; spent donut diverges (candidate 5 vs committee
-          8 categories); choropleth identical on both (a single <code>--amber</code> ramp, party-agnostic);
+          9 categories); choropleth identical on both (a single <code>--amber</code> ramp, party-agnostic);
           timeline is candidate-only; purpose bars identical (monochrome).</li>
         <li><strong>Single positional ramp.</strong> The donut categories use one sequential navy → parchment ramp,
           applied positionally so raised-slot-N and spent-slot-N share a value (no per-hue collisions — no alpha-only
@@ -560,6 +560,7 @@
       { name: 'Independent Expenditures', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'independent_expenditures', src: 'token' },
       { name: 'Loan Repayments', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'loan_repayments_made + loan_repayments (coalesced — Form-3X + Form-3 names)', src: 'token' },
       { name: 'Contribution Refunds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'contribution_refunds', src: 'token' },
+      { name: 'Coordinated Party Expenditures', color: 'var(--cat-other-2)', val: '--cat-other-2 · #EEE9E1', key: 'coordinated_expenditures_by_party_committee · party-only · shares --cat-other-2 with raised "Offsets" (separate donuts); ramp full + not mutually exclusive with a hued peer', src: 'token' },
       { name: 'Other Disbursements', color: 'var(--cat-other)', val: '--cat-other · #D7D1C7', key: 'other_disbursements (+ remainder)', src: 'token' }
     ]);
 

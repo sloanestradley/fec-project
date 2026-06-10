@@ -2201,7 +2201,8 @@ function computeSpentBreakdown(cycleOrAll) {
     'fed_candidate_committee_contributions',
     'independent_expenditures',
     'loan_repayments_made',
-    'contribution_refunds'
+    'contribution_refunds',
+    'coordinated_expenditures_by_party_committee'   // party-only; itemized out of the Other remainder (was buried there)
   ];
   var breakdown = {};
   CATEGORY_KEYS.forEach(function(k){ breakdown[k] = 0; });
@@ -2335,6 +2336,8 @@ function renderSpentDonut(breakdown, totalSpent) {
     { key: 'independent_expenditures',                label: 'Independent expenditures',     color: CATEGORY_COLORS.spent.independentExpenditures },
     { key: 'loan_repayments_made',                    label: 'Loan repayments',              color: CATEGORY_COLORS.spent.loanRepayments },
     { key: 'contribution_refunds',                    label: 'Contribution refunds',         color: CATEGORY_COLORS.spent.contributionRefunds },
+    { key: 'coordinated_expenditures_by_party_committee', label: 'Coordinated party expenditures', color: CATEGORY_COLORS.spent.coordinatedExpenditures,
+      tooltip: 'Party committees only: spending coordinated with the party\'s own candidates (a special FEC allowance under 52 U.S.C. 30116(d)), separate from direct contributions and independent expenditures.' },
     { key: 'other_disbursements',                     label: 'Other disbursements',          color: CATEGORY_COLORS.spent.otherDisbursements }
   ];
 
