@@ -115,11 +115,15 @@ function buildSankeyModel(rec, opts) {
     value: g('candidate_contribution') + g('loans_made_by_candidate') });
   push(sources, { name: 'Loans',                                            // external; Form 3 + 3X names
     value: g('all_other_loans') + g('all_loans_received') });
-  // Offsets (contra-receipt) — sum all offset variants; rendered as an ordinary ranked node.
+  // Offsets (contra-receipt) — sum all offset variants PLUS fed_candidate_contribution_refunds
+  // (Form-3X line 16: refunds of contributions the committee MADE to candidates, credited back).
+  // All four are "amounts credited back to the committee"; folded into one node so "Offsets"
+  // denotes the identical field-set as the donut "Offsets" wedge (aligned 2026-06-10 — previously
+  // the refund was its own "Candidate-contribution refunds" node, which made the shared "Offsets"
+  // label mean different things in the Sankey vs the donut). Conservation unchanged (sum preserved).
   push(sources, { name: 'Offsets',
-    value: g('offsets_to_operating_expenditures') + g('offsets_to_fundraising_expenditures') + g('offsets_to_legal_accounting') });
-  // Form-3X-only receipt: refunds of contributions the committee made (line 16). 0 → dropped.
-  push(sources, { name: 'Candidate-contribution refunds', value: g('fed_candidate_contribution_refunds') });
+    value: g('offsets_to_operating_expenditures') + g('offsets_to_fundraising_expenditures')
+         + g('offsets_to_legal_accounting') + g('fed_candidate_contribution_refunds') });
   // Federal funds — presidential public financing. Presidential is gated out of v1, so 0 for
   // every non-gated record; pushed by presence keeps conservation robust regardless.
   push(sources, { name: 'Federal funds', value: g('federal_funds') });

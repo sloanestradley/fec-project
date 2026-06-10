@@ -90,6 +90,12 @@ test.describe('sankey.js — buildSankeyModel adapter', () => {
     expect(m.uses.find(u => u.name === 'Contributions to candidates').value).toBeCloseTo(604424.67, 1);
     // No "Candidate self-funding" node on a committee.
     expect(m.sources.find(s => s.name === 'Candidate self-funding')).toBeUndefined();
+    // Offsets folds in fed_candidate_contribution_refunds (2026-06-10): the node = the three
+    // offset variants + the refund (1438483.38 + 1554.65), and there is NO separate
+    // "Candidate-contribution refunds" node — so "Offsets" denotes the same field-set as the
+    // donut "Offsets" wedge across all three viz.
+    expect(m.sources.find(s => s.name === 'Offsets').value).toBeCloseTo(1440038.03, 1);
+    expect(m.sources.find(s => s.name === 'Candidate-contribution refunds')).toBeUndefined();
     // cohStart derived equals the (here) reported beginning balance.
     expect(m.cohStart).toBeCloseTo(16230013.57, 1);
     expect(m.debt).toBeCloseTo(20000000, 1);

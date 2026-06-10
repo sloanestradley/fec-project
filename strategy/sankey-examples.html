@@ -105,8 +105,7 @@
         <tr><td><code>candidate_contribution</code>, <code>loans_made_by_candidate</code></td><td></td><td>Candidate self-funding ‡</td><td class="ent">candidate</td></tr>
         <tr><td><code>all_other_loans</code>, <code>all_loans_received</code></td><td></td><td>Loans ‡</td><td class="ent">*</td></tr>
         <tr><td><code>other_receipts</code>, <code>other_fed_receipts</code></td><td></td><td>Other receipts</td><td class="ent">*</td></tr>
-        <tr><td><code>offsets_to_operating_expenditures</code></td><td></td><td>Offsets</td><td class="ent">both</td></tr>
-        <tr><td><code>fed_candidate_contribution_refunds</code></td><td></td><td>Candidate-contribution refunds</td><td class="ent">committee</td></tr>
+        <tr><td><code>offsets_to_operating_expenditures</code> (+ fundraising / legal variants), <code>fed_candidate_contribution_refunds</code></td><td></td><td>Offsets</td><td class="ent">both</td></tr>
         <tr><td><i>derived</i> = end + disbursements − receipts</td><td></td><td>Cash on hand (start)</td><td class="ent">both</td></tr>
       </tbody>
     </table>
@@ -335,8 +334,7 @@ configs.dccc={ elId:'dccc', hubName:'DCCC', receiptTotal:339935852.88, disbTotal
     {name:'Transfers in', value:28229645.27},
     {name:'Loans', value:20000000.00},
     {name:'Other receipts', other:true, value:55345852.26},
-    {name:'Offsets', value:1438483.38},
-    {name:'Candidate-contribution refunds', value:1554.65}
+    {name:'Offsets', value:1440038.03}
   ],
   uses:[
     {name:'Operating expenditures', value:192363224.57},

@@ -1738,9 +1738,14 @@ function renderContributorDonut(breakdown, totalRaised) {
 
   var candidateContribLoans = (breakdown.candidate_contribution || 0)
                             + (breakdown.loans_made_by_candidate || 0);
+  // Offsets — all contra-receipts ("amounts credited back"): the three spending-offset
+  // variants + fed_candidate_contribution_refunds (Form-3X line 16: refunds of contributions
+  // the committee MADE to candidates, credited back). Folded into one wedge so "Offsets"
+  // denotes the identical field-set as the candidate donut + Sankey (aligned 2026-06-10).
   var offsets = (breakdown.offsets_to_operating_expenditures || 0)
               + (breakdown.offsets_to_fundraising_expenditures || 0)
-              + (breakdown.offsets_to_legal_accounting || 0);
+              + (breakdown.offsets_to_legal_accounting || 0)
+              + (breakdown.fed_candidate_contribution_refunds || 0);
   // A2 fix (2026-06-08): committee.html serves BOTH Form-3 candidate PCCs and Form-3X
   // PACs/parties. The receipt fields differ by form — PCCs populate the first name in
   // each pair below, PAC/party the second; only one is ever non-zero per record, so the
@@ -1780,7 +1785,7 @@ function renderContributorDonut(breakdown, totalRaised) {
     { label:'Other receipts',                  val:otherReceipts,                              color:CATEGORY_COLORS.raised.otherReceipts,
       tooltip:"Miscellaneous funds (e.g., interest on bank accounts, dividends, and similar incidental income)" },
     { label:'Offsets',                         val:offsets,                                    color:CATEGORY_COLORS.raised.refundsOffsets,
-      tooltip:"Vendor refunds, returned deposits, and other amounts credited back to the committee. These are recorded as receipts by the FEC but don't represent new money raised." },
+      tooltip:"Amounts credited back to the committee — vendor refunds, returned deposits, and refunds of contributions the committee made to candidates. Recorded as receipts by the FEC but they don't represent new money raised." },
   ];
 
   var vals   = cats.map(function(c){ return Math.max(0, c.val !== undefined ? c.val : (breakdown[c.key] || 0)); });
@@ -2046,7 +2051,8 @@ function renderRaisedIfReady() {
        'other_receipts','other_fed_receipts','federal_funds',
        'transfers_from_nonfed_account','transfers_from_nonfed_levin',  // dual-account non-fed wedge (2026-06-09)
        'offsets_to_operating_expenditures','offsets_to_fundraising_expenditures',
-       'offsets_to_legal_accounting'].forEach(function(k){ breakdown[k] = rec[k] || 0; });
+       'offsets_to_legal_accounting','fed_candidate_contribution_refunds',  // last = refunds of contributions made to candidates (folded into Offsets)
+       ].forEach(function(k){ breakdown[k] = rec[k] || 0; });
       document.getElementById('raised-donut-skeleton').style.display = 'none';
       document.getElementById('raised-donut-content').style.display = 'block';
       renderContributorDonut(breakdown, rec.receipts || 0);

@@ -1055,9 +1055,15 @@ function renderContributorDonut(breakdown, totalRaised) {
     .createPattern(makeStripePattern(CATEGORY_COLORS.raised.individualsHatchA, CATEGORY_COLORS.raised.individualsHatchB), 'repeat');
 
   var candidateSelfFunding = (breakdown.candidate_contribution || 0) + (breakdown.loans_made_by_candidate || 0);
+  // Offsets — all contra-receipts ("amounts credited back"): the three spending-offset
+  // variants + fed_candidate_contribution_refunds (refunds of contributions made to
+  // candidates). Matches the committee donut + Sankey "Offsets" so the three read identically.
+  // fed_candidate_contribution_refunds is Form-3X-only → always 0 on a candidate record;
+  // carried with `|| 0` purely for cross-viz symmetry.
   var offsets = (breakdown.offsets_to_operating_expenditures || 0)
               + (breakdown.offsets_to_fundraising_expenditures || 0)
-              + (breakdown.offsets_to_legal_accounting || 0);
+              + (breakdown.offsets_to_legal_accounting || 0)
+              + (breakdown.fed_candidate_contribution_refunds || 0);
   // Transfers in — coalesce all three transfer-in field names (mutually exclusive per
   // record, verified 2026-06-09), matching the committee donut + Sankey so the three
   // viz read identically. Form 3 → transfers_from_other_authorized_committee; Form 3P →
@@ -2078,6 +2084,7 @@ async function loadCycle(cycle) {
       offsets_to_operating_expenditures:           totalsRec.offsets_to_operating_expenditures || 0,
       offsets_to_fundraising_expenditures:         totalsRec.offsets_to_fundraising_expenditures || 0,
       offsets_to_legal_accounting:                 totalsRec.offsets_to_legal_accounting || 0,
+      fed_candidate_contribution_refunds:          totalsRec.fed_candidate_contribution_refunds || 0,   // Form-3X-only — always 0 on candidate records; folded into the Offsets wedge for cross-viz symmetry
     };
     var disbursementsBreakdown = {
       operating_expenditures:                  totalsRec.operating_expenditures || 0,
