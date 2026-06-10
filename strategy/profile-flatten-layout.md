@@ -1,6 +1,6 @@
 # Profile flatten + re-organize — spec & build plan
 
-> **STATUS: 9a + 9b + 9c EXECUTED & DEPLOYED (2026-06-10) — candidate.html + committee.html. 9d (race skeleton) + 9e (cross-cutting verification) pending.**
+> **STATUS: 9a + 9b + 9c EXECUTED & DEPLOYED (2026-06-10) — candidate.html + committee.html. 9d (race cold-load: routing comment + slowness diagnosis — NO skeleton swap, decision 4 revised) + 9e (cross-cutting verification) pending.**
 > Candidate + committee profile layout re-organization (and light race-page parity). Research/investigation approved 2026-06-09; **all decisions locked** (see §3 + §4 — §4 resolved 2026-06-10, no caption). The donut↔Sankey scope toggle (a.k.a. "Step 4") shipped folded into **9c** — the breakdown slot is now Money flow XOR the donut pair, mutually exclusive on the gate, with the `breakdown_viz` analytics dimension. No open design questions remain. Commits: 9a/9b on 883-green; 9c `4851c84` (889-green). Remaining: §9d, §9e (+ the banked §11 un-gates / committee timeline).
 
 ---
@@ -37,7 +37,7 @@ Verified against source: those divs have **zero** show/hide JS, **zero** CSS lay
 
 3. **Timeline: candidate-only, placed as a full-width row directly below the Geographic | Purpose row (before the leaderboards).** It closes the "where money came from / went" viz block before the dense contributor/vendor tables. (Corrected 2026-06-10 — the original "low placement, after the leaderboard row" was a translation slip from Chat; the intended home is below Spending by Purpose.) A committee timeline is a **separate future feature ticket** (new `/committee/{id}/reports/` fetch + chart + tests) — not this work. The flat structure leaves a **matrix-driven timeline slot per page type**, but only candidate populates it now.
 
-4. **Race loading state: in scope.** Replace the bare "Fetching race data from FEC…" `.state-msg` (`race.html:78`) with the **skeleton pattern** (candidate-row skeletons). The **cold-load slowness** rides along as a **flagged sub-task** — note it, don't block the re-org on it.
+4. **Race loading state: keep the plain `.state-msg` loader — NO skeleton swap (revised 2026-06-10).** The original lock was "replace the spinner with candidate-row skeletons"; that was reversed in planning. A fixed-N row skeleton would **mis-preview a variable-length candidate list** (a race can have 2 or 20 declared candidates), so the honest placeholder is the existing spinner + "Fetching race data from FEC…" copy. The real lever is the **cold-load slowness**, which becomes 9d's **primary sub-task** (diagnose; fix only a cheap/safe win in-ticket, else point at the server-side KV-cache architectural-debt item). So 9d is now a **mostly-investigation ticket** — a routing-rationale comment + the slowness diagnosis + a `Page Viewed` verify — with no race loading-state UI change.
 
 5. **Race routing: keep `?year=` divergent from the profile `#cycle` hash.** Different interaction models — in-page view switch (hash) vs shareable filter URL (query param). Documented here as deliberate; **do not unify.**
 
@@ -169,17 +169,19 @@ Each compact row is **raised-side | spent-side**. The CSS primitive already exis
 - [x] **`exactly-one-Chart-instance-per-canvas` lock:** retargeted to gated fixtures — on a gated entity all expected donut canvases mount ([1,1] committee / [1,1,1] candidate incl. timeline); on in-scope entities the donuts never mount (covered by the slot-toggle tests). No render path draws into an unmounted canvas (the guards short-circuit before `renderContributorDonut`/`renderSpentDonut`).
 - [x] **Analytics "which viz" dimension landed in 9c:** `breakdown_viz` (`'sankey'`|`'donut'`) + `breakdown_gate_reason` (reason when `'donut'`, else null) added to `Page Viewed` on both pages, set from `breakdownGateReason()` at emit time. Null on index. Asserted by new spec tests on both pages.
 
-### 9d. Race loading-state swap (decision 4)
-- [ ] Replace **only the cold-load** `.state-msg` "Fetching race data from FEC…" (`race.html:78`) with candidate-row skeletons.
-- [ ] **Scope guard (review Gap 3):** `.state-msg`/`.loader` is **shared** by three things — the cold-load text, the **error state** (`state-msg error`), and the **cycle-switch loader** (`#race-switch-loader`). The skeleton swap must touch **only the cold-load path** and leave the error state + switch-loader intact. (The empty-cycle `.inline-status-msg` state is also unchanged.)
-- [ ] Keep `?year=` routing as-is (decision 5) — add a one-line code comment citing the rationale.
-- [ ] **Flagged sub-task (don't block):** diagnose the cold-load slowness (single `/elections/` call vs the enrichment path — verify which is slow). Note findings; separate fix if needed.
-- [ ] Confirm `Page Viewed` still fires (`race.html:363`) — already does; no change.
+### 9d. Race cold-load — routing comment + slowness diagnosis (decision 4 revised — NO skeleton swap)
+> **Scope reversal (2026-06-10):** the skeleton swap is OUT (see decision 4). The plain `.state-msg` spinner + "Fetching race data from FEC…" copy at `race.html:78` **stays as-is** — a fixed-N row skeleton would mis-preview a variable-length candidate list. 9d is now a **mostly-investigation ticket**: a routing-rationale comment, the cold-load slowness diagnosis (the real lever), and a `Page Viewed` verify. No race loading-state UI change, so no skeleton DOM/CSS/JS and no skeleton test.
+
+- [ ] **Routing comment (decision 5):** add a one-line code comment at the `?year=` / `urlWithYear` / `popstate` seam in `race.html` citing the deliberate divergence — race uses a shareable `?year=` query-param (filter-URL model), NOT the profile pages' in-page `#cycle` hash (view-switch model); **do not unify.** Comment only, no behavior change.
+- [ ] **Cold-load slowness diagnosis (primary sub-task):** instrument the two cold-load calls — `fetchCycles()` (`/elections/search/`) and `/elections/` (the candidate list) — with `performance.now()` deltas in `npm run dev`; load a small race (WA-03) and a large statewide (a Senate/President contest); identify which call dominates. **Note findings (commit body / test-cases log).** Fix in-ticket ONLY if it's a cheap, safe win (redundant call, oversized `per_page`, a serializable pair that could parallelize); otherwise point at the server-side KV-cache architectural-debt item (proxy-level caching of `/elections/` + `/elections/search/`) and leave the fix to that separate ticket.
+- [ ] **Verify `Page Viewed` still fires** on load (`pageViewedPayload(yearParam, 'load')`, `race.html:363`) — no change; just confirm.
+- [ ] **Context (not a task — why the loader element matters for the diagnosis):** `.state-msg`/`.loader` is shared by three states — the cold-load spinner, the **error state** (`state-msg error`), and the **cycle-switch loader** (`#race-switch-loader`); the empty-cycle state is a separate `.inline-status-msg` in `#race-list`. None of them change in 9d (no swap), but keep the sharing in mind if the diagnosis leads to any loader-adjacent tweak.
+- [ ] **No new tests** for the loader (it's unchanged). If a cheap fix lands, cover that fix specifically; otherwise 9d is investigation + a comment.
 
 ### 9e. Cross-cutting verification
 - [ ] Full Playwright suite green after each page's re-org.
 - [ ] **Whole-view empty state still toggles:** candidate's `#cycle-empty-state` replaces `#content` on no-data cycles — confirm that toggle still works after `#content`'s children are restructured (it hides `#content`, so it should, but verify).
-- [ ] Live browser check (UI-touching): candidate + committee detail at desktop + ≤860px (paired rows collapse cleanly); gated committee (dual-account) shows the **donut pair, no caption** (§4); in-scope shows Sankey, donuts absent (coexistence ended, 9c); race skeleton renders.
+- [ ] Live browser check (UI-touching): candidate + committee detail at desktop + ≤860px (paired rows collapse cleanly); gated committee (dual-account) shows the **donut pair, no caption** (§4); in-scope shows Sankey, donuts absent (coexistence ended, 9c). (Race has no 9d UI change — plain loader unchanged; verify it still shows on cold load if the slowness diagnosis touched anything loader-adjacent.)
 - [ ] Docs: update CLAUDE.md (profile structure + the retired `#tab-*` wrappers + the end of donut/Sankey coexistence), ia.md (`#tab-summary` section-ids note), **design-system.html — add a Money-flow/breakdown-slot component card (the slot is a new component shape, not "if changed")**, test-cases.md log row.
 
 ---
@@ -188,7 +190,7 @@ Each compact row is **raised-side | spent-side**. The CSS primitive already exis
 1. ✅ **Tests first** — retargeted the visibility assertions to content IDs; added routing regression; confirmed green at current DOM. (Flow-order tests rewritten in step 2.)
 2. ✅ **DOM re-org** — candidate, then committee (independent files); dissolved wrappers, built §7 rows; rewrote the flow-order tests to the new order.
 3. ✅ **Slot wiring = end coexistence + the toggle** — added the gate-conditional guard (`breakdownGated` + `applyBreakdownSlot`) so only one viz mounts; donuts live in the slot's gated state; the four §8 states resolve directly (no swap — gate is synchronous). No caption (§4). Fired the `breakdown_viz` (+ `breakdown_gate_reason`) analytics dimension in the same change. Test suite migrated to the new semantics (gated fixtures for donut-render tests; in-scope↔gated toggle locks; ex-gate-caption tests rewritten). 883→889 green.
-4. ⏳ **Race** — cold-load skeleton swap (leave error + switch-loader); flag cold-load slowness. (9d — pending.)
+4. ⏳ **Race** — NO skeleton swap (decision 4 revised — plain loader stays). 9d is now: routing-rationale comment + cold-load slowness diagnosis (the real lever) + `Page Viewed` verify. (9d — pending.)
 5. ✅ **Routing regression** — hash + cycle routing verified intact (the flatten never touched routing; locked by the per-page routing-regression describe added in 9a). Race `?year=` query params unchanged (9d will re-confirm).
 6. ⏳ **Docs + live QA.** — docs synced with 9c (CLAUDE.md, design-system.html, TESTING.md, test-cases.md, this doc); the **live browser pass (in-scope → Sankey only; gated → donut pair, no caption; desktop + ≤860px) is owed to Sloane** (flagged in the 9c test-cases row).
 
