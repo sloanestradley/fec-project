@@ -634,14 +634,16 @@ var ENTITY_TYPE_LABELS = {
 // ── Disbursement purpose bucketing (Spent tab — candidate and committee) ──
 // Patterns ordered so more-specific descriptions match before broad ones.
 // e.g. "DIGITAL CONSULTING" → Digital & Online (DIGITAL matches first)
+// Labels are SENTENCE CASE (aligned with the Sankey + Raised-donut casing 2026-06-10);
+// "TV" stays uppercase as an acronym.
 var PURPOSE_MAP = [
-  { label: 'TV & Radio',         patterns: ['TELEVISION','RADIO','BROADCAST','MEDIA ADVERTISING','MEDIA PRODUCTION'] },
-  { label: 'Digital & Online',   patterns: ['DIGITAL','ONLINE ADVERTISING','EMAIL','TEXT MESSAGING','INTERNET'] },
-  { label: 'Direct Mail',        patterns: ['DIRECT MAIL','POSTAGE','MAILING'] },
+  { label: 'TV & radio',         patterns: ['TELEVISION','RADIO','BROADCAST','MEDIA ADVERTISING','MEDIA PRODUCTION'] },
+  { label: 'Digital & online',   patterns: ['DIGITAL','ONLINE ADVERTISING','EMAIL','TEXT MESSAGING','INTERNET'] },
+  { label: 'Direct mail',        patterns: ['DIRECT MAIL','POSTAGE','MAILING'] },
   { label: 'Printing',           patterns: ['PRINTING'] },
-  { label: 'Staff & Payroll',    patterns: ['SALARY','PAYROLL','WAGES','PERSONNEL'] },
-  { label: 'Legal & Compliance', patterns: ['LEGAL','COMPLIANCE','ACCOUNTING'] },
-  { label: 'Events & Travel',    patterns: ['CATERING','LODGING','AIR TRAVEL','TRAVEL','EVENT SUPPLIES','SITE RENTAL','VENUE','HOTEL'] },
+  { label: 'Staff & payroll',    patterns: ['SALARY','PAYROLL','WAGES','PERSONNEL'] },
+  { label: 'Legal & compliance', patterns: ['LEGAL','COMPLIANCE','ACCOUNTING'] },
+  { label: 'Events & travel',    patterns: ['CATERING','LODGING','AIR TRAVEL','TRAVEL','EVENT SUPPLIES','SITE RENTAL','VENUE','HOTEL'] },
   { label: 'Consulting',         patterns: ['CONSULTING','STRATEGY','ADVISOR','POLLING','RESEARCH'] }
 ];
 

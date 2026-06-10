@@ -1453,12 +1453,13 @@ async function fetchSpentOpex(committeeId, subCycles) {
 function renderSpentDonut(breakdown, totalSpent) {
   if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
 
+  // Labels are SENTENCE CASE (aligned with the Sankey + Raised-donut casing 2026-06-10).
   var SPEND_CATEGORIES = [
-    { key: 'operating_expenditures',                  label: 'Operating Expenditures',  color: CATEGORY_COLORS.spent.operatingExpenditures },
-    { key: 'transfers_to_other_authorized_committee', label: 'Transfers Out',            color: CATEGORY_COLORS.spent.transfersOut },
-    { key: 'loan_repayments',                         label: 'Loan Repayments',          color: CATEGORY_COLORS.spent.loanRepayments },
-    { key: 'contribution_refunds',                    label: 'Contribution Refunds',     color: CATEGORY_COLORS.spent.contributionRefunds },
-    { key: 'other_disbursements',                     label: 'Other Disbursements',      color: CATEGORY_COLORS.spent.otherDisbursements }
+    { key: 'operating_expenditures',                  label: 'Operating expenditures',  color: CATEGORY_COLORS.spent.operatingExpenditures },
+    { key: 'transfers_to_other_authorized_committee', label: 'Transfers out',            color: CATEGORY_COLORS.spent.transfersOut },
+    { key: 'loan_repayments',                         label: 'Loan repayments',          color: CATEGORY_COLORS.spent.loanRepayments },
+    { key: 'contribution_refunds',                    label: 'Contribution refunds',     color: CATEGORY_COLORS.spent.contributionRefunds },
+    { key: 'other_disbursements',                     label: 'Other disbursements',      color: CATEGORY_COLORS.spent.otherDisbursements }
   ];
 
   var vals   = SPEND_CATEGORIES.map(function(c){ return breakdown[c.key] || 0; });

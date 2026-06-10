@@ -2316,16 +2316,20 @@ async function fetchSpentContributions(cycleOrAll) {
 function renderSpentDonut(breakdown, totalSpent) {
   if (spentDonutInstance) { spentDonutInstance.destroy(); spentDonutInstance = null; }
 
+  // Labels are SENTENCE CASE (aligned with the Sankey + Raised-donut casing 2026-06-10).
+  // "Contributions to candidates" (NOT "Candidate contributions") disambiguates the
+  // DIRECTION — this is money the committee GAVE to candidates (fed_candidate_committee_
+  // contributions), not money received from the candidate; matches the Sankey's node name.
   var SPEND_CATEGORIES = [
-    { key: 'operating_expenditures',                  label: 'Operating Expenditures',       color: CATEGORY_COLORS.spent.operatingExpenditures },
-    { key: 'fed_election_activity',                   label: 'Federal Election Activity',    color: CATEGORY_COLORS.spent.fedElectionActivity,
+    { key: 'operating_expenditures',                  label: 'Operating expenditures',       color: CATEGORY_COLORS.spent.operatingExpenditures },
+    { key: 'fed_election_activity',                   label: 'Federal election activity',    color: CATEGORY_COLORS.spent.fedElectionActivity,
       tooltip: 'Voter registration, get-out-the-vote, and related activity in the pre-election window. Party committees fund it partly with non-federal (state/local) money.' },
-    { key: 'transfers_to_affiliated_committee',       label: 'Transfers Out',                color: CATEGORY_COLORS.spent.transfersOut },
-    { key: 'fed_candidate_committee_contributions',   label: 'Candidate Contributions',      color: CATEGORY_COLORS.spent.candidateContributions },
-    { key: 'independent_expenditures',                label: 'Independent Expenditures',     color: CATEGORY_COLORS.spent.independentExpenditures },
-    { key: 'loan_repayments_made',                    label: 'Loan Repayments',              color: CATEGORY_COLORS.spent.loanRepayments },
-    { key: 'contribution_refunds',                    label: 'Contribution Refunds',         color: CATEGORY_COLORS.spent.contributionRefunds },
-    { key: 'other_disbursements',                     label: 'Other Disbursements',          color: CATEGORY_COLORS.spent.otherDisbursements }
+    { key: 'transfers_to_affiliated_committee',       label: 'Transfers out',                color: CATEGORY_COLORS.spent.transfersOut },
+    { key: 'fed_candidate_committee_contributions',   label: 'Contributions to candidates',  color: CATEGORY_COLORS.spent.candidateContributions },
+    { key: 'independent_expenditures',                label: 'Independent expenditures',     color: CATEGORY_COLORS.spent.independentExpenditures },
+    { key: 'loan_repayments_made',                    label: 'Loan repayments',              color: CATEGORY_COLORS.spent.loanRepayments },
+    { key: 'contribution_refunds',                    label: 'Contribution refunds',         color: CATEGORY_COLORS.spent.contributionRefunds },
+    { key: 'other_disbursements',                     label: 'Other disbursements',          color: CATEGORY_COLORS.spent.otherDisbursements }
   ];
 
   var vals   = SPEND_CATEGORIES.map(function(c){ return breakdown[c.key] || 0; });

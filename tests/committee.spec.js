@@ -2300,10 +2300,10 @@ test.describe('committee.html — spent donut loan-repayments coalesce (Form-3 P
     await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
   });
 
-  test('loan_repayments (Form-3) surfaces in the Loan Repayments wedge, not Other', async ({ page }) => {
+  test('loan_repayments (Form-3) surfaces in the Loan repayments wedge, not Other', async ({ page }) => {
     const legend = page.locator('#spent-donut-legend');
-    await expect(legend).toContainText('Loan Repayments', { timeout: 12000 });
-    const row = legend.locator('.donut-row', { hasText: 'Loan Repayments' });
+    await expect(legend).toContainText('Loan repayments', { timeout: 12000 });
+    const row = legend.locator('.donut-row', { hasText: 'Loan repayments' });
     await expect(row.locator('.donut-val')).toHaveText('$250K');  // fmt(250000), not in Other
   });
 });
@@ -2342,11 +2342,11 @@ test.describe('committee.html — dual-account donut fix', () => {
 
   test('spent donut shows the FEA wedge and drops the double-counted shared-nonfed wedge', async ({ page }) => {
     const legend = page.locator('#spent-donut-legend');
-    await expect(legend).toContainText('Federal Election Activity', { timeout: 12000 });
+    await expect(legend).toContainText('Federal election activity', { timeout: 12000 });
     await expect(legend).not.toContainText('Shared Non-Federal OpEx');
     // FEA = $3.0M; the operating wedge shows the FULL $4.0M parent (not reduced by the removed child).
-    await expect(legend.locator('.donut-row', { hasText: 'Federal Election Activity' }).locator('.donut-val')).toHaveText('$3.0M');
-    await expect(legend.locator('.donut-row', { hasText: 'Operating Expenditures' }).locator('.donut-val')).toHaveText('$4.0M');
+    await expect(legend.locator('.donut-row', { hasText: 'Federal election activity' }).locator('.donut-val')).toHaveText('$3.0M');
+    await expect(legend.locator('.donut-row', { hasText: 'Operating expenditures' }).locator('.donut-val')).toHaveText('$4.0M');
   });
 
   test('raised donut shows a Transfers from non-federal account wedge', async ({ page }) => {

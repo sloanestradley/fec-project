@@ -594,11 +594,11 @@ test.describe('candidate.html — flowing detail view', () => {
   // used, which is null on candidate totals — so candidate loan repayments rendered
   // as $0). The TOTALS fixture carries loan_repayments: 150000; this asserts the
   // wedge surfaces it. Verified live 2026-06-08 against S4NY00404.
-  test('Spent donut "Loan Repayments" wedge reads loan_repayments (Form-3 field name)', async ({ page }) => {
+  test('Spent donut "Loan repayments" wedge reads loan_repayments (Form-3 field name)', async ({ page }) => {
     await setupGatedDonuts(page);  // 9c: donut only renders when the slot is gated
     await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
     const row = page.locator('#spent-donut-legend .donut-row', {
-      has: page.locator('.donut-lbl', { hasText: 'Loan Repayments' }),
+      has: page.locator('.donut-lbl', { hasText: 'Loan repayments' }),
     });
     await expect(row).toHaveCount(1);
     await expect(row.locator('.donut-val')).toHaveText('$150K');
