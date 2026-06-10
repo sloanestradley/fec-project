@@ -374,7 +374,11 @@ a { color: var(--accent); }
    #overspend-note callout was retired 2026-06-05.) */
 .chart-card { margin-bottom:var(--section-gap); min-width:0; overflow:hidden; }
 .chart-header { display:flex; justify-content:space-between; align-items:flex-start;
-  margin-bottom:var(--space-24); gap:var(--space-16); flex-wrap:wrap; }
+  padding-top:var(--space-24); margin-bottom:var(--space-24); gap:var(--space-16); flex-wrap:wrap; }
+/* Money-flow card leads the detail flow (top of #content, right under the header zone),
+   so its header sits flush — the .chart-header top padding is for mid-page chart cards
+   (timeline + any future one). */
+#money-flow-card .chart-header { padding-top:0; }
 .chart-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400; text-transform:uppercase; color:var(--text); }
 .chart-legend { display:flex; gap:var(--space-16); flex-wrap:wrap; }
 .legend-item { font-family:'IBM Plex Mono',monospace; display:flex; align-items:center; gap:var(--space-8); font-size:0.625rem; color:var(--muted); }
@@ -446,7 +450,7 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 
 /* ── H: Donut ── */
 .donut-wrap { display:flex; flex-direction:column; align-items:center; gap:var(--space-24); }
-.donut-chart-wrap { position:relative; width:50%; aspect-ratio:1; }
+.donut-chart-wrap { position:relative; width:80%; max-width:360px; aspect-ratio:1; }
 .donut-center { position:absolute; inset:0; display:flex; flex-direction:column;
   align-items:center; justify-content:center; pointer-events:none; text-align:center; }
 .donut-center-val { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;

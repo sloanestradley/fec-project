@@ -35,7 +35,7 @@ Verified against source: those divs have **zero** show/hide JS, **zero** CSS lay
 
 2. **Debt: DEFERRED to a Step 6 ticket — out of scope here.** Do **not** relocate `#sankey-debt`. It stays inside the money-flow card caption, shown **in-scope only**; gated entities continue to not show debt. That is a known, tracked gap Step 6 closes — not solved in this re-org. **Practical implication:** when the breakdown slot hosts the money-flow card (in-scope), keep the card **intact with its debt caption** — just reparent it. The slot's gated (donut) state carries no debt.
 
-3. **Timeline: candidate-only, low placement (after the leaderboard row), unchanged.** A committee timeline is a **separate future feature ticket** (new `/committee/{id}/reports/` fetch + chart + tests) — not this work. The flat structure leaves a **matrix-driven timeline slot per page type**, but only candidate populates it now.
+3. **Timeline: candidate-only, placed as a full-width row directly below the Geographic | Purpose row (before the leaderboards).** It closes the "where money came from / went" viz block before the dense contributor/vendor tables. (Corrected 2026-06-10 — the original "low placement, after the leaderboard row" was a translation slip from Chat; the intended home is below Spending by Purpose.) A committee timeline is a **separate future feature ticket** (new `/committee/{id}/reports/` fetch + chart + tests) — not this work. The flat structure leaves a **matrix-driven timeline slot per page type**, but only candidate populates it now.
 
 4. **Race loading state: in scope.** Replace the bare "Fetching race data from FEC…" `.state-msg` (`race.html:78`) with the **skeleton pattern** (candidate-row skeletons). The **cold-load slowness** rides along as a **flagged sub-task** — note it, don't block the re-org on it.
 
@@ -107,9 +107,9 @@ BREAKDOWN SLOT  (one swappable container, full content width)
    empty    : nothing (collapses; rows below show their own empty states)
 ─────────────────────────────────────────────────────────────────────────────
 ROW: [ Where Individual Contributions Come From | Spending by Purpose ]   (.raised-grid)
+[ Timeline: Raised · Spent · Cash on Hand ]   (candidate-only — decision 3; full-width, directly below the geo|purpose row; matrix slot per page type)
 ROW: [ Top Contributors (full-width) ]                                    (decision 1 — stacked)
      [ Top Vendors (full-width) ]
-[ Timeline: Raised · Spent · Cash on Hand ]   (candidate-only — decision 3; matrix slot per page type)
 [ Contributions to Candidates & Committees ]  (committee-only, full-width)
 [ #page-note ]
 ```
@@ -137,24 +137,26 @@ Each compact row is **raised-side | spent-side**. The CSS primitive already exis
 
 ## 9. PRE-BUILD CHECKLIST (review this before any code)
 
+> **PROGRESS (2026-06-10):** 9a ✅ done (tests-first retargets + routing-regression lock, green at current DOM, 881→883). 9b ✅ candidate done (DOM re-org + held-test rewrites; full suite 883 green) · ✅ committee applied (DOM re-org + held-test rewrites; suite confirmation in flight). 9c / 9d / 9e ⏳ pending. **Two build-time adjustments to note:** (1) timeline placement corrected to *directly below the Geographic | Purpose row* (decision 3 — the "after the leaderboard row" wording was a Chat translation slip); (2) committee's **Associated Candidate** section was placed **first, before the breakdown slot** (committee context; no header race-context bar) — *flagged for review*, not in the locked §7. Not yet committed/pushed — held for visual QA + to land candidate+committee together.
+
 ### 9a. Assertion retargets (tests-first — land before touching DOM)
-- [ ] candidate.spec.js — 36 `#tab-*` refs → content IDs (`#money-flow-card`, `#donors-card`, `.raised-grid`, `#spent-donut-content`, `#page-note`). Almost all are `.toBeVisible()` "is X in flow?" proxies — **verified no test asserts donut/Sankey *containment* inside a `#tab-*` parent**, so cross-boundary moves don't break containment assertions; the retargets are simple visibility swaps to the content each proxy stood in for.
-- [ ] committee.spec.js — 37 `#tab-*` refs → same.
-- [ ] **SEPARATE from the retargets — the flow-order tests are a REWRITE, not a retarget** (review Gap 1): `candidate.spec.js:521` ("sections render in flow order: summary → raised → spent → page-note") and the committee equivalent (`committee.spec.js`, the `['tab-summary','tab-raised','tab-spent','page-note']` `compareDocumentPosition` test) assert the **old order over the now-deleted `#tab-*` ids**. They must be rewritten to assert the **new thematic order** (§7) over the new containers — a logic change, not a selector swap. Land them at the re-org step (9b), not in this retarget batch, since the new order doesn't exist until then.
-- [ ] Add a routing regression test: deep-link `#2024` lands on detail; back/forward preserved; bare URL → index. (Locks that the flatten didn't touch routing.)
-- [ ] Confirm green at the *current* DOM (the retargeted visibility assertions must pass before the re-org, against the still-present content; the flow-order rewrites are the exception — they flip with 9b).
+- [x] candidate.spec.js — 36 `#tab-*` refs → content IDs (`#money-flow-card`, `#donors-card`, `.raised-grid`, `#spent-donut-content`, `#page-note`). Almost all are `.toBeVisible()` "is X in flow?" proxies — **verified no test asserts donut/Sankey *containment* inside a `#tab-*` parent**, so cross-boundary moves don't break containment assertions; the retargets are simple visibility swaps to the content each proxy stood in for.
+- [x] committee.spec.js — 37 `#tab-*` refs → same.
+- [x] **SEPARATE from the retargets — the flow-order tests are a REWRITE, not a retarget** (review Gap 1): `candidate.spec.js:521` ("sections render in flow order: summary → raised → spent → page-note") and the committee equivalent (`committee.spec.js`, the `['tab-summary','tab-raised','tab-spent','page-note']` `compareDocumentPosition` test) assert the **old order over the now-deleted `#tab-*` ids**. They must be rewritten to assert the **new thematic order** (§7) over the new containers — a logic change, not a selector swap. Land them at the re-org step (9b), not in this retarget batch, since the new order doesn't exist until then.
+- [x] Add a routing regression test: deep-link `#2024` lands on detail; back/forward preserved; bare URL → index. (Locks that the flatten didn't touch routing.)
+- [x] Confirm green at the *current* DOM (the retargeted visibility assertions must pass before the re-org, against the still-present content; the flow-order rewrites are the exception — they flip with 9b).
 
 ### 9b. Per-page DOM moves (one page at a time — independent files)
-- [ ] **Scope guard:** the **header zone — `#summary-strip` (stats-grid, banner, race-context-bar) — sits OUTSIDE `#content`'s tab divs and is NOT moved.** All moves here are *inside* `#content`.
-- [ ] **candidate.html:** introduce row containers; move children out of `#tab-summary/-raised/-spent`; delete the 3 wrappers. New order per §7. Reparent money-flow card into the breakdown slot **intact** (keep `#sankey-debt`).
-- [ ] **The donut moves are surgical, not "move a div":** each donut travels as a unit with its skeleton + legend + center-val + error overlay + tooltip + all IDs. Pull the **raised donut** out of `#tab-raised`'s `.raised-grid` and the **spent donut** out of `#tab-spent`'s `.raised-grid` into the **breakdown slot**; then pair the **map** (was with raised donut) with **Spending by Purpose** (was with spent donut) in a new `.raised-grid`.
-- [ ] **Timeline is a distinct move (candidate):** it currently sits in `#tab-summary` at position #2 (its `#chart-area` + `#chart-skeleton` + `#chart-error` + `renderChart` timing). Move the whole unit to the new **low** position (after the leaderboards, §7) — not lumped into "move children."
-- [ ] **Preserve wiring across moves:** `initTabSection` (Top Contributors WAI-ARIA tabs) and committee's `fetchAndRenderAssocSection` render targets must keep their element IDs/structure so the JS still finds them after reparenting.
-- [ ] **committee.html:** same; plus reparent `#assoc-section` (today in `#tab-summary`) and `Contributions to Candidates` to their §7 positions; no timeline row populated.
-- [ ] Reuse `.raised-grid` for the compact paired rows; leaderboards full-width (decision 1).
-- [ ] **Flow-order tests flip here** (from 9a): rewrite them to assert the new §7 order over the new containers.
-- [ ] `#page-note` stays last inside `#content`.
-- [ ] **Headings scope (confirm):** this re-org is a **structural reflow only — no new thematic section headings added** (the locked §7 shows none). If section headings are wanted, that's a separate pass — flagged so it isn't ambiguous at build time.
+- [x] **Scope guard:** the **header zone — `#summary-strip` (stats-grid, banner, race-context-bar) — sits OUTSIDE `#content`'s tab divs and is NOT moved.** All moves here are *inside* `#content`.
+- [x] **candidate.html:** introduce row containers; move children out of `#tab-summary/-raised/-spent`; delete the 3 wrappers. New order per §7. Reparent money-flow card into the breakdown slot **intact** (keep `#sankey-debt`).
+- [x] **The donut moves are surgical, not "move a div":** each donut travels as a unit with its skeleton + legend + center-val + error overlay + tooltip + all IDs. Pull the **raised donut** out of `#tab-raised`'s `.raised-grid` and the **spent donut** out of `#tab-spent`'s `.raised-grid` into the **breakdown slot**; then pair the **map** (was with raised donut) with **Spending by Purpose** (was with spent donut) in a new `.raised-grid`.
+- [x] **Timeline is a distinct move (candidate):** it currently sits in `#tab-summary` at position #2 (its `#chart-area` + `#chart-skeleton` + `#chart-error` + `renderChart` timing). Move the whole unit to the new **low** position (after the leaderboards, §7) — not lumped into "move children."
+- [x] **Preserve wiring across moves:** `initTabSection` (Top Contributors WAI-ARIA tabs) and committee's `fetchAndRenderAssocSection` render targets must keep their element IDs/structure so the JS still finds them after reparenting.
+- [x] **committee.html:** same; plus reparent `#assoc-section` (today in `#tab-summary`) and `Contributions to Candidates` to their §7 positions; no timeline row populated.
+- [x] Reuse `.raised-grid` for the compact paired rows; leaderboards full-width (decision 1).
+- [x] **Flow-order tests flip here** (from 9a): rewrite them to assert the new §7 order over the new containers.
+- [x] `#page-note` stays last inside `#content`.
+- [x] **Headings scope (confirm):** this re-org is a **structural reflow only — no new thematic section headings added** (the locked §7 shows none). If section headings are wanted, that's a separate pass — flagged so it isn't ambiguous at build time.
 
 ### 9c. Breakdown-slot wiring — **= end the coexist phase + implement the toggle** (review Gap 2)
 > Not just reparenting. **Today both viz render** (`renderMoneyFlow` *and* `renderContributorDonut`/`renderSpentDonutNow` all run unconditionally — coexist). 9c makes them **mutually exclusive**, which is the actual donut↔Sankey toggle. **Visible consequence: in-scope entities lose the donuts; gated entities lose the Sankey card.** This is the seam where this work meets Step 4.

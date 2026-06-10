@@ -180,21 +180,21 @@
          the same max-width and gutter constraints as #content. -->
     <div class="cycle-empty-state" id="cycle-empty-state" style="display:none"></div>
 
-    <!-- T-remove-profile-tabs (2026-06-03): the outer Summary/Raised/Spent tabs
-         were retired — detail view is now a single flowing column. #tab-summary /
-         #tab-raised / #tab-spent are kept as INERT, always-visible section
-         containers (no display toggling) in their natural DOM order (summary →
-         raised → spent → #page-note), which is exactly the desired flow order.
-         The stale tab-* ids are deliberate: they're ready-made grouping hooks for
-         a future section-headings pass. Per-section skeleton/error states (T12)
-         render in-flow now instead of behind a tab. -->
+    <!-- T-profile-flatten (9b, 2026-06-10): the inert #tab-summary/-raised/-spent wrapper
+         divs were dissolved; the detail view is now thematic raised|spent paired rows in a
+         single flow. Order: breakdown slot (Money flow XOR Raised/Spent donuts — they
+         coexist until the 9c gate-conditional toggle) → Geographic | Purpose →
+         Top Contributors → Top Vendors → Timeline → #page-note. Compact paired rows use
+         .raised-grid (1fr 1fr, collapses to 1col ≤860px); the leaderboards (Top
+         Contributors / Top Vendors) are full-width (locked decision 1). Per-section
+         skeleton/error states render in-flow. -->
     <div class="profile-content" id="content" style="display:none">
 
-      <!-- Summary section -->
-      <div id="tab-summary">
-        <!-- Money flow (Raised→Spent Sankey). Coexists with the donuts in Step 2;
-             the donuts are removed in Step 4. Renders synchronously from the totals
-             record already in memory (no fetch). -->
+      <!-- Breakdown slot — Money flow (Raised→Spent Sankey) XOR the Raised/Spent donut
+           pair. They COEXIST here until the 9c gate-conditional toggle makes them mutually
+           exclusive (in-scope → Sankey; gated → donuts). Money flow renders synchronously
+           from the totals record already in memory (no fetch). -->
+      <div id="breakdown-slot">
         <div class="chart-card" id="money-flow-card">
           <div class="chart-header">
             <div class="chart-title raised-cell-title--has-info" id="money-flow-title" style="display:flex;align-items:center">Money flow<span class="tooltip" aria-label="About the money-flow view">Total raised, total spent, and ending cash are shown exactly as filed. Cash on hand (start) is derived from those figures. For nearly all committees this matches the filed opening balance; for very high-volume filers, whose monthly reports carry small rounding differences, it can vary by a fraction of a percent.</span></div>
@@ -206,30 +206,6 @@
           </div>
           <div id="sankey-debt" class="caption" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:0.6875rem;color:var(--muted);border-top:1px solid var(--border);margin-top:var(--space-8);padding-top:var(--space-8)"></div>
         </div>
-        <div class="chart-card">
-          <div class="chart-header">
-            <div class="chart-title" id="chart-title">Raised · Spent · Cash on Hand over cycle</div>
-            <div class="chart-legend" style="display:none">
-              <div class="legend-item"><div class="legend-swatch" style="color:var(--navy-deep)"></div>Raised</div>
-              <div class="legend-item"><div class="legend-swatch" style="color:var(--red-deep)"></div>Spent</div>
-              <div class="legend-item"><div class="legend-swatch" style="color:var(--green)"></div>Cash on Hand</div>
-            </div>
-          </div>
-          <div id="chart-area" style="position:relative;width:100%;min-width:0;height:320px">
-            <canvas id="chart-timeline"></canvas>
-            <div id="chart-skeleton" class="skeleton" style="position:absolute;inset:0"></div>
-            <div id="chart-error" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center">
-              <span class="inline-status-msg" style="padding:0">⚠ Unable to load chart</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Raised tab — progressive rendering: donut renders synchronously,
-           fast tier (choropleth) shows skeleton until by_state resolves,
-           slow tier (top committees + top conduits) shows skeletons until
-           Schedule A non-indiv pagination resolves. -->
-      <div id="tab-raised">
         <div class="raised-grid">
           <div class="raised-cell">
             <div class="raised-cell-title">Raised breakdown</div>
@@ -248,84 +224,6 @@
             </div>
           </div>
           <div class="raised-cell">
-            <div class="raised-cell-title raised-cell-title--has-info">Where Individual Contributions Come From<span class="tooltip" aria-label="About the contribution geography map">Reflects itemized individual contributions by state. State totals may differ from summary figures due to FEC amendment processing.</span></div>
-            <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
-            <div class="map-svg-wrap" id="map-container" style="display:none"></div>
-            <div class="tab-error" id="raised-fast-error" style="display:none">
-              <span class="tab-error-msg">⚠ Could not load contribution geography.</span>
-              <button class="tab-retry-btn" data-retry="raised-fast">Retry</button>
-            </div>
-          </div>
-        </div>
-        <div id="raised-slow-tier">
-          <section class="tab-section" id="raised-tab-section">
-            <div class="tab-section-header">
-              <h3 class="tab-section-title" id="raised-tab-section-title">Top Contributors by type</h3>
-              <div class="tab-section-tablist button-group" role="tablist" aria-label="Top contributors by type">
-                <button class="button-group-btn" role="tab" id="raised-tab-btn-committees"
-                        aria-controls="raised-tab-panel-committees" aria-selected="true" tabindex="0">Committees</button>
-                <button class="button-group-btn" role="tab" id="raised-tab-btn-conduits"
-                        aria-controls="raised-tab-panel-conduits" aria-selected="false" tabindex="-1">Conduits</button>
-              </div>
-            </div>
-            <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-committees" aria-labelledby="raised-tab-btn-committees">
-              <div class="donors-card" id="donors-card">
-                <div class="skeleton-overlay-wrap">
-                  <div class="skeleton tab-skeleton skeleton-table" id="raised-donors-skeleton"></div>
-                  <div class="inline-status-msg skeleton-overlay-msg" id="raised-donors-still-loading" style="display:none">
-                    Tallying contributions…this could take a moment.
-                  </div>
-                </div>
-                <div class="tab-error" id="raised-donors-error" style="display:none">
-                  <span class="tab-error-msg">⚠ Could not load top contributors.</span>
-                  <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
-                </div>
-                <div id="donors-content" style="display:none">
-                  <table class="donors-table">
-                    <thead><tr>
-                      <th>#</th>
-                      <th>Committee</th>
-                      <th>Type</th>
-                      <th class="r">Total</th>
-                    </tr></thead>
-                    <tbody id="donors-tbody"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-conduits" aria-labelledby="raised-tab-btn-conduits" hidden>
-              <div class="donors-card" id="conduits-card">
-                <div class="skeleton-overlay-wrap">
-                  <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
-                  <div class="inline-status-msg skeleton-overlay-msg" id="raised-conduits-still-loading" style="display:none">
-                    Tallying contributions…this could take a moment.
-                  </div>
-                </div>
-                <div class="tab-error" id="raised-conduits-error" style="display:none">
-                  <span class="tab-error-msg">⚠ Could not load top contributors.</span>
-                  <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
-                </div>
-                <div id="conduits-content" style="display:none">
-                  <table class="donors-table">
-                    <thead><tr>
-                      <th>#</th>
-                      <th>Conduit <span class="tooltip" aria-label="About conduit sources">Conduits are platforms like ActBlue and WinRed that forward contributions from individual donors. The amounts shown reflect money from those donors, not the platform itself.</span></th>
-                      <th>Type</th>
-                      <th class="r">Total</th>
-                    </tr></thead>
-                    <tbody id="conduits-tbody"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <!-- Spent tab — per-section skeletons; titles always visible -->
-      <div id="tab-spent">
-        <div class="raised-grid">
-          <div class="raised-cell">
             <div class="raised-cell-title">Spending by Category</div>
             <div class="skeleton tab-skeleton skeleton-donut" id="spent-donut-skeleton"></div>
             <div id="spent-donut-content" style="display:none">
@@ -341,54 +239,153 @@
               </div>
             </div>
           </div>
-          <div class="raised-cell">
-            <div class="raised-cell-title" id="spent-purpose-title">Spending by Purpose</div>
-            <!-- Bars (a chart) get NO overlay loading message per spent-progressive-
-                 loading; they pulse skeleton-only on the opex timeline (Vendors,
-                 below, carries the message). The error block below is driven by the
-                 shared opex error state — see renderSpentOpexIfReady. -->
-            <div class="skeleton tab-skeleton skeleton-bars" id="spent-bars-skeleton"></div>
-            <div id="spent-bars-content" style="display:none">
-              <div id="spend-detail-bars"></div>
-            </div>
-            <div class="tab-error" id="spent-bars-error" style="display:none">
-              <span class="tab-error-msg">⚠ Could not load spending detail.</span>
-              <button class="tab-retry-btn" data-retry="spent-opex">Retry</button>
-            </div>
+        </div>
+      </div>
+
+      <!-- Geographic | Purpose (paired compact row) -->
+      <div class="raised-grid">
+        <div class="raised-cell">
+          <div class="raised-cell-title raised-cell-title--has-info">Where Individual Contributions Come From<span class="tooltip" aria-label="About the contribution geography map">Reflects itemized individual contributions by state. State totals may differ from summary figures due to FEC amendment processing.</span></div>
+          <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
+          <div class="map-svg-wrap" id="map-container" style="display:none"></div>
+          <div class="tab-error" id="raised-fast-error" style="display:none">
+            <span class="tab-error-msg">⚠ Could not load contribution geography.</span>
+            <button class="tab-retry-btn" data-retry="raised-fast">Retry</button>
           </div>
         </div>
-        <div class="donors-card">
-          <div class="donors-head">Top Vendors · Most Recent Sub-Cycle</div>
-          <div class="skeleton-overlay-wrap">
-            <div class="skeleton tab-skeleton skeleton-table" id="spent-vendors-skeleton"></div>
-            <div class="inline-status-msg skeleton-overlay-msg" id="spent-vendors-still-loading" style="display:none">
-              Tallying spending…this could take a moment.
-            </div>
+        <div class="raised-cell">
+          <div class="raised-cell-title" id="spent-purpose-title">Spending by Purpose</div>
+          <!-- Bars (a chart) get NO overlay loading message per spent-progressive-
+               loading; they pulse skeleton-only on the opex timeline (Top Vendors
+               carries the message). The error block below is driven by the shared
+               opex error state — see renderSpentOpexIfReady. -->
+          <div class="skeleton tab-skeleton skeleton-bars" id="spent-bars-skeleton"></div>
+          <div id="spent-bars-content" style="display:none">
+            <div id="spend-detail-bars"></div>
           </div>
-          <div id="spent-vendors-content" style="display:none">
-            <table class="donors-table">
-              <thead><tr>
-                <th style="width:2rem">#</th>
-                <th>Recipient</th>
-                <th>Purpose</th>
-                <th class="r">Total</th>
-              </tr></thead>
-              <tbody id="vendors-tbody"></tbody>
-            </table>
-          </div>
-          <div class="tab-error" id="spent-vendors-error" style="display:none">
-            <span class="tab-error-msg">⚠ Could not load top vendors.</span>
+          <div class="tab-error" id="spent-bars-error" style="display:none">
+            <span class="tab-error-msg">⚠ Could not load spending detail.</span>
             <button class="tab-retry-btn" data-retry="spent-opex">Retry</button>
           </div>
         </div>
-        <div class="data-note" id="spent-data-note" style="display:none"></div>
       </div>
 
-      <!-- Page-level data note (C4.a + C4.c + C4.e + C8.f, 2026-05-29
-           Phase 2 candidate+committee) — sits OUTSIDE the three #tab-*
-           panels at the bottom of #content so it stays visible across all
-           tabs. Source-first ordering. Populated by loadCycle's Step 3 data
-           branch; hidden on no-data cycles via #content's display:none. -->
+      <!-- Timeline: Raised · Spent · Cash on Hand over cycle (full-width, directly below the
+           Geographic | Purpose row — closes the "where money came from / went" viz block
+           before the dense contributor/vendor tables). Candidate-only. -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title" id="chart-title">Raised · Spent · Cash on Hand over cycle</div>
+          <div class="chart-legend" style="display:none">
+            <div class="legend-item"><div class="legend-swatch" style="color:var(--navy-deep)"></div>Raised</div>
+            <div class="legend-item"><div class="legend-swatch" style="color:var(--red-deep)"></div>Spent</div>
+            <div class="legend-item"><div class="legend-swatch" style="color:var(--green)"></div>Cash on Hand</div>
+          </div>
+        </div>
+        <div id="chart-area" style="position:relative;width:100%;min-width:0;height:320px">
+          <canvas id="chart-timeline"></canvas>
+          <div id="chart-skeleton" class="skeleton" style="position:absolute;inset:0"></div>
+          <div id="chart-error" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center">
+            <span class="inline-status-msg" style="padding:0">⚠ Unable to load chart</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Contributors by type (full-width leaderboard) -->
+      <div id="raised-slow-tier">
+        <section class="tab-section" id="raised-tab-section">
+          <div class="tab-section-header">
+            <h3 class="tab-section-title" id="raised-tab-section-title">Top Contributors by type</h3>
+            <div class="tab-section-tablist button-group" role="tablist" aria-label="Top contributors by type">
+              <button class="button-group-btn" role="tab" id="raised-tab-btn-committees"
+                      aria-controls="raised-tab-panel-committees" aria-selected="true" tabindex="0">Committees</button>
+              <button class="button-group-btn" role="tab" id="raised-tab-btn-conduits"
+                      aria-controls="raised-tab-panel-conduits" aria-selected="false" tabindex="-1">Conduits</button>
+            </div>
+          </div>
+          <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-committees" aria-labelledby="raised-tab-btn-committees">
+            <div class="donors-card" id="donors-card">
+              <div class="skeleton-overlay-wrap">
+                <div class="skeleton tab-skeleton skeleton-table" id="raised-donors-skeleton"></div>
+                <div class="inline-status-msg skeleton-overlay-msg" id="raised-donors-still-loading" style="display:none">
+                  Tallying contributions…this could take a moment.
+                </div>
+              </div>
+              <div class="tab-error" id="raised-donors-error" style="display:none">
+                <span class="tab-error-msg">⚠ Could not load top contributors.</span>
+                <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
+              </div>
+              <div id="donors-content" style="display:none">
+                <table class="donors-table">
+                  <thead><tr>
+                    <th>#</th>
+                    <th>Committee</th>
+                    <th>Type</th>
+                    <th class="r">Total</th>
+                  </tr></thead>
+                  <tbody id="donors-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="tab-section-panel" role="tabpanel" id="raised-tab-panel-conduits" aria-labelledby="raised-tab-btn-conduits" hidden>
+            <div class="donors-card" id="conduits-card">
+              <div class="skeleton-overlay-wrap">
+                <div class="skeleton tab-skeleton skeleton-table" id="raised-conduits-skeleton"></div>
+                <div class="inline-status-msg skeleton-overlay-msg" id="raised-conduits-still-loading" style="display:none">
+                  Tallying contributions…this could take a moment.
+                </div>
+              </div>
+              <div class="tab-error" id="raised-conduits-error" style="display:none">
+                <span class="tab-error-msg">⚠ Could not load top contributors.</span>
+                <button class="tab-retry-btn" data-retry="raised-slow">Retry</button>
+              </div>
+              <div id="conduits-content" style="display:none">
+                <table class="donors-table">
+                  <thead><tr>
+                    <th>#</th>
+                    <th>Conduit <span class="tooltip" aria-label="About conduit sources">Conduits are platforms like ActBlue and WinRed that forward contributions from individual donors. The amounts shown reflect money from those donors, not the platform itself.</span></th>
+                    <th>Type</th>
+                    <th class="r">Total</th>
+                  </tr></thead>
+                  <tbody id="conduits-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Top Vendors (full-width leaderboard) -->
+      <div class="donors-card">
+        <div class="donors-head">Top Vendors · Most Recent Sub-Cycle</div>
+        <div class="skeleton-overlay-wrap">
+          <div class="skeleton tab-skeleton skeleton-table" id="spent-vendors-skeleton"></div>
+          <div class="inline-status-msg skeleton-overlay-msg" id="spent-vendors-still-loading" style="display:none">
+            Tallying spending…this could take a moment.
+          </div>
+        </div>
+        <div id="spent-vendors-content" style="display:none">
+          <table class="donors-table">
+            <thead><tr>
+              <th style="width:2rem">#</th>
+              <th>Recipient</th>
+              <th>Purpose</th>
+              <th class="r">Total</th>
+            </tr></thead>
+            <tbody id="vendors-tbody"></tbody>
+          </table>
+        </div>
+        <div class="tab-error" id="spent-vendors-error" style="display:none">
+          <span class="tab-error-msg">⚠ Could not load top vendors.</span>
+          <button class="tab-retry-btn" data-retry="spent-opex">Retry</button>
+        </div>
+      </div>
+      <div class="data-note" id="spent-data-note" style="display:none"></div>
+
+      <!-- Page-level data note (C4.a + C4.c + C4.e + C8.f) — last child of #content, so it
+           stays visible across the whole flow. Source-first ordering. Populated by
+           loadCycle's Step 3 data branch; hidden on no-data cycles via #content's display:none. -->
       <div class="data-note" id="page-note"></div>
 
     </div><!-- /content -->
@@ -668,8 +665,8 @@ function getSubCycles(cycle) {
   return subs;
 }
 // T-remove-profile-tabs (2026-06-03): showTab() retired with the outer tabs.
-// The three sections (#tab-summary/-raised/-spent) are always visible in a single
-// flow; renderRaisedIfReady + the Spent render triggers now render on data-resolve
+// All sections are always visible in a single flow (the #tab-* wrappers were
+// dissolved in the profile flatten); renderRaisedIfReady + the Spent render triggers render on data-resolve
 // (no tab-active gate) and the URL hash is the bare #cycle (no #tab segment). The
 // old showTab minHeight scroll-clamp guard went with it — the switchTo floor
 // (initViewSwitcher) plus the render-time floor-release below cover scroll
@@ -1705,7 +1702,7 @@ function applyRaisedSlowIndicators() {
 
 function kickoffRaisedSlowFetch(token) {
   // 10s "still loading" indicator — flip the shared flag + re-apply per-panel.
-  // Post-de-tab this message is no longer gated by #tab-raised display, so it must
+  // Post-de-tab this message is no longer gated by any tab's display, so it must
   // reflect actual slow-tier pendency (shown only while the crawl is in flight),
   // not render unconditionally.
   raisedStillLoadingTimer = setTimeout(function() {
@@ -2676,7 +2673,7 @@ async function init() {
     compactHeaderInited = true;
 
     // Wire static .tooltip markup once (the choropleth section-title tooltip is
-    // in #tab-raised from first paint). The donut legend's dynamic tooltips are
+    // in the geographic-map cell from first paint). The donut legend's dynamic tooltips are
     // wired per-render via initTooltips(legendEl) inside renderDonut.
     initTooltips();
 

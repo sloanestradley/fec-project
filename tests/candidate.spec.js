@@ -518,10 +518,13 @@ test.describe('candidate.html — flowing detail view', () => {
     await expect(page.locator('#spent-purpose-title')).toBeVisible();
   });
 
-  test('sections render in flow order: summary → raised → spent → page-note', async ({ page }) => {
+  test('sections render in thematic flow order (profile flatten): breakdown → geo|purpose → timeline → contributors → vendors → page-note', async ({ page }) => {
     await setupWithContent(page);
     const ordered = await page.evaluate(() => {
-      const ids = ['tab-summary', 'tab-raised', 'tab-spent', 'page-note'];
+      // One stable anchor per thematic row, in expected document order (post-flatten):
+      // breakdown slot → geographic|purpose row (map) → timeline (full-width, below that
+      // row) → Top Contributors → Top Vendors → page-note.
+      const ids = ['breakdown-slot', 'map-container', 'chart-timeline', 'raised-tab-section', 'vendors-tbody', 'page-note'];
       const els = ids.map(id => document.getElementById(id));
       if (els.some(e => !e)) return false;
       for (let i = 0; i < els.length - 1; i++) {
@@ -2986,18 +2989,19 @@ test.describe('candidate.html — Phase 2 PAGE-NOTE', () => {
     await expect(link).toHaveText('FEC');
   });
 
-  test('#page-note is OUTSIDE the three #tab-* panels', async ({ page }) => {
-    // Page-note should be a sibling of #tab-summary / #tab-raised / #tab-spent
-    // inside #content — NOT a child of any tab — so tab switches don't hide
-    // it. Regression-locks the Phase 2 placement.
-    const isOutsideTabs = await page.evaluate(() => {
+  test('#page-note is the last child of #content (visible across the whole flow)', async ({ page }) => {
+    // Post-flatten the #tab-* wrappers are gone; #page-note is a direct child of
+    // #content and the LAST one, so it sits below every section in the single flow.
+    const placement = await page.evaluate(() => {
       const note = document.getElementById('page-note');
-      const summary = document.getElementById('tab-summary');
-      const raised = document.getElementById('tab-raised');
-      const spent = document.getElementById('tab-spent');
-      return note && !summary.contains(note) && !raised.contains(note) && !spent.contains(note);
+      const content = document.getElementById('content');
+      return {
+        directChild: note && note.parentElement === content,
+        isLast: content && content.lastElementChild === note,
+      };
     });
-    expect(isOutsideTabs).toBe(true);
+    expect(placement.directChild).toBe(true);
+    expect(placement.isLast).toBe(true);
   });
 
   test('#page-note retired strings are gone', async ({ page }) => {
