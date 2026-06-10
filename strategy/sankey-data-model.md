@@ -79,6 +79,7 @@ Same individual/PAC/party contribution lines, plus:
 | `transfers_from_affiliated_party` | Transfers in from affiliated / other party committees | 12 |
 | `all_loans_received` | All loans received (this was the $25M line that balanced SMP) | 13 |
 | `other_fed_receipts` | Other federal receipts — dividends, interest (3X equivalent of `other_receipts`) | 17 |
+| `fed_candidate_contribution_refunds` | Refunds of contributions the committee MADE to candidates, credited back as a receipt (contra-receipt) — folded into the **"Offsets"** node, not its own | 16 |
 | `transfers_from_nonfederal_account` | Non-federal / Levin transfers (party cmtes with allocated activity — verify if a party cmte is in scope) | 18 |
 
 ### Disbursements — candidate committees (Form 3)
@@ -121,7 +122,7 @@ receipts
 ├── transfers_from_*                              ← L1 leaf "Transfers"
 ├── loans (candidate) / all_loans_received (3X)   ← L1 leaf "Loans"
 ├── candidate_contribution                        ← L1 leaf "Self-funding"
-├── offsets_to_*                                  ← L1 leaf "Offsets"
+├── offsets_to_* (+ fed_candidate_contribution_refunds, 3X) ← L1 leaf "Offsets"
 └── other_receipts / other_fed_receipts           ← L1 leaf "Other"
 ```
 
