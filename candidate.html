@@ -1058,12 +1058,16 @@ function renderContributorDonut(breakdown, totalRaised) {
   var offsets = (breakdown.offsets_to_operating_expenditures || 0)
               + (breakdown.offsets_to_fundraising_expenditures || 0)
               + (breakdown.offsets_to_legal_accounting || 0);
-  // Transfers in — coalesce the Form-3 + Form-3P transfer-in field names (mutually
-  // exclusive per record, verified 2026-06-09): a presidential candidate's joint-
-  // fundraising transfers land in transfers_from_affiliated_committee ($534M for
-  // Biden/Harris). Without it the wedge dropped ~45% of receipts for a presidential
-  // candidate (this donut is the fallback when the Sankey gates presidential).
+  // Transfers in — coalesce all three transfer-in field names (mutually exclusive per
+  // record, verified 2026-06-09), matching the committee donut + Sankey so the three
+  // viz read identically. Form 3 → transfers_from_other_authorized_committee; Form 3P →
+  // transfers_from_affiliated_committee (a presidential candidate's joint-fundraising
+  // transfers, $534M for Biden/Harris — without it the wedge dropped ~45% of receipts on
+  // the gated-presidential donut fallback). transfers_from_affiliated_party is Form-3X-only
+  // (PAC/party) — candidate.html never serves a 3X filer, so it's always 0 here; included
+  // with `|| 0` purely for cross-viz symmetry (no candidate record populates it).
   var transfersIn = (breakdown.transfers_from_other_authorized_committee || 0)
+                  + (breakdown.transfers_from_affiliated_party || 0)
                   + (breakdown.transfers_from_affiliated_committee || 0);
 
   var cats = [
@@ -2064,6 +2068,7 @@ async function loadCycle(cycle) {
       other_political_committee_contributions:     totalsRec.other_political_committee_contributions || 0,
       political_party_committee_contributions:     totalsRec.political_party_committee_contributions || 0,
       transfers_from_other_authorized_committee:   totalsRec.transfers_from_other_authorized_committee || 0,
+      transfers_from_affiliated_party:              totalsRec.transfers_from_affiliated_party || 0,   // Form-3X-only — always 0 on candidate records; carried for cross-viz symmetry
       transfers_from_affiliated_committee:          totalsRec.transfers_from_affiliated_committee || 0,
       candidate_contribution:                      totalsRec.candidate_contribution || 0,
       other_receipts:                              totalsRec.other_receipts || 0,
