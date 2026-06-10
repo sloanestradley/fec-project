@@ -242,6 +242,11 @@ function buildCandidateCard(c) {
 // ── In-place cycle switching (T-race-inplace-cycle) ──────────────────────────
 // Build a same-path URL string with ?year= set (preserves /race vs /race.html).
 // No hash component — race carries no URL fragment post-T-remove-profile-tabs.
+// ROUTING — deliberate divergence (T-profile-flatten decision 5; DO NOT UNIFY):
+// race encodes the cycle as a shareable ?year= QUERY PARAM (filter-URL model — a
+// race+cycle is a sharable/bookmarkable view), NOT the candidate/committee profile
+// pages' in-page #cycle HASH (view-switch model, where the hash drives an in-place
+// index↔detail transition). Different interaction models on purpose; keep them apart.
 function urlWithYear(year) {
   var url = new URL(window.location.href);
   url.searchParams.set('year', String(year));
