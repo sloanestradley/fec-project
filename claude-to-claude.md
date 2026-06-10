@@ -6493,3 +6493,42 @@ The recurring shape this session was *the spec is a translation, and translation
 - **Watch for translation drift the other way** — the timeline-placement slip went Chat→Code. Worth a quick check that the locked decisions in `profile-flatten-layout.md` (no caption, timeline-below-purpose, leaderboards-full-width, assoc-first) all match what you intended, since this session corrected one of them.
 - **Step 5 (presidential + dual-account Sankey un-gates)** and **Step 6 (debt on gated entities)** remain banked — both flip in-place in the breakdown slot with zero layout rework. Decide when they earn a session.
 - **The deferred doc sync** (CLAUDE.md profile prose + design-system breakdown-slot card) rides with 9c — flag if you'd rather it happen sooner.
+
+---
+2026-06-10 (continued session — 9c→viz-consistency arc)
+
+## Process log draft
+
+**Title:** "Making the two pictures agree"
+
+This session finished the profile-flatten arc (9c–9e) and then went hunting for every place the money-flow Sankey and the Raised/Spent donuts described the same dollars differently. What started as "ship the donut↔Sankey scope toggle" turned into a methodical consistency pass — casing, label wording, which fields each viz shows — until the breakdown slot's two mutually-exclusive views read identically wherever they overlap. Along the way we reversed a locked decision (the race skeleton), and three "investigate only" questions each surfaced a real fix.
+
+Changelog:
+- **9c — breakdown-slot toggle shipped.** The slot is now Money flow (Sankey) XOR the Raised/Spent donut pair, mutually exclusive on the gate: in-scope → Sankey, gated (presidential / dual-account) → donut pair with NO "not yet modeled" caption (the donut is a complete view, not a consolation prize). Added a `breakdown_viz` analytics dimension to Page Viewed. The whole test suite migrated to the new semantics (gated fixtures for donut-render tests). This folded "Step 4" of the Sankey build into the flatten.
+- **9d — race cold-load (no skeleton).** Reversed the plan: kept the plain loader (a fixed-N skeleton would mis-preview a variable-length candidate list), added a routing-rationale comment, and diagnosed the cold-load slowness (the `/elections/` candidate-list call dominates; the fix is the banked server-side KV cache).
+- **9e — closed the arc.** Cross-cutting verification + a closing stale-reference sweep (including a tab-era cleanup of the manual test checklist). Live QA signed off.
+- **Label consistency pass.** Sentence-cased the spend donut + purpose bars; renamed committee "Candidate Contributions" → "Contributions to candidates" (it's money the committee GAVE, not received); aligned three more wedges to the Sankey — "Transfers in," "Candidate self-funding," "Offsets" — with a shared transfers-in tooltip.
+- **Field-coverage fixes (from three "why is X in the Sankey but not the donut?" questions):** coalesced all three transfer-in fields in the candidate donut; folded `fed_candidate_contribution_refunds` into "Offsets" across all three viz; itemized `coordinated_expenditures_by_party_committee` as its own committee-spent wedge (was buried in the "Other disbursements" remainder).
+
+Field notes: The recurring theme was the breakdown slot's two views being mutually exclusive but sharing labels — so any divergence (a label that means different fields, a category one shows and the other buries) is a real inconsistency a user can hit by switching between an in-scope and a gated entity. Each consistency question also exposed a structural fact worth keeping: the raised donut has no remainder (so an un-itemized receipt field truly vanishes), while the spent donut does (so a missing field is merely invisible, not lost). And the `--cat` ramp's seven hues are now fully spoken for — the next first-class category will force a real palette decision.
+
+Stack tags: (none new — ECharts, Chart.js, Playwright, Cloudflare Pages all already in the stack)
+
+## How Sloane steered the work
+
+**"Investigate only" before every label change.** You repeatedly asked *why* a divergence existed before authorizing a fix — and that discipline paid off: each investigation distinguished a real bug (the JFC mislabel, the buried coordinated expenditures) from a harmless asymmetry (the always-zero party field on candidate), so the fixes were precise rather than reflexive.
+
+**Reversing decision 4 on the race skeleton.** You caught that a fixed-N row skeleton would mis-preview a variable-length candidate list and chose the plain loader — turning 9d from a UI change into an honest slowness diagnosis. A good instance of rejecting a locked plan when the reasoning no longer held.
+
+**"Why wouldn't we do the same for sankey?"** When I proposed folding the refund into the donut's "Offsets," you immediately saw that folding it on one side alone would re-create the very divergence we were eliminating — pushing the fix to all three viz. The consistency instinct was sharper than my first proposal.
+
+**"Why not --cat-4?" then choosing the grey.** You probed the color-share logic, understood why coordinated expenditures can't share a hue with a category it coexists with, and made the call (--cat-other-2 + a specific ordering) rather than defaulting to a heavier new-token change.
+
+The through-line: you treated the two viz as a single promise to the user — "the same money, described the same way" — and steered every micro-decision (casing, wording, fields, color) toward keeping that promise, while refusing to over-engineer (plain loader, grey reuse) where a lighter answer held.
+
+## What to bring to Claude Chat
+
+- **Owed live QA (visual):** the post-9c changes you haven't eyeballed — sentence-case spend/purpose labels, the 3 relabels + shared "Transfers in" tooltip, the refund folded into "Offsets," and the new "Coordinated party expenditures" wedge (especially the `--cat-other-2` grey sitting next to the "Other disbursements" grey — confirm it reads as two distinct slices).
+- **Step 5 (the un-gates) scheduling:** dual-account + presidential Sankey un-gates are fully spec'd in `sankey-data-model.md` §4a and banked — decide when to pick them up (each flips its entities donut→Sankey in place, zero layout rework).
+- **Race cold-load → KV cache:** the 9d diagnosis pointed at the server-side caching architectural-debt item. Worth deciding the trigger (before any real-traffic / election-night push).
+- **The `--cat` palette is full (7 hues).** Coordinated expenditures took the spare neutral grey as a compromise. Is grey-reuse the standing pattern for future minor/party categories, or do we eventually add an 8th hue to the broadsheet ramp? A design-system call for when the next first-class category appears.
