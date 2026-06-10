@@ -513,9 +513,9 @@ test.describe('candidate.html — flowing detail view', () => {
 
   test('all three sections (summary/raised/spent) are visible at once, no tab clicks', async ({ page }) => {
     await setupWithContent(page);
-    await expect(page.locator('#tab-summary')).toBeVisible();
-    await expect(page.locator('#tab-raised')).toBeVisible();
-    await expect(page.locator('#tab-spent')).toBeVisible();
+    await expect(page.locator('#money-flow-card')).toBeVisible();
+    await expect(page.locator('#raised-tab-section')).toBeVisible();
+    await expect(page.locator('#spent-purpose-title')).toBeVisible();
   });
 
   test('sections render in flow order: summary → raised → spent → page-note', async ({ page }) => {
@@ -837,7 +837,7 @@ test.describe('candidate.html — title-always-visible during loading', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     // Active (default = Committees) panel's skeleton visible
     await expect(page.locator('#raised-donors-skeleton')).toBeVisible();
     // Section title (single source for the section) visible at the same time —
@@ -1230,7 +1230,7 @@ test.describe('candidate.html — legacy #cycle#tab back-compat', () => {
     await page.waitForSelector('#content.visible', { timeout: 12000 });
     // Detail flow rendered (no tabs), and the Raised section is visible in-flow.
     await expect(page.locator('.tabs-bar')).toHaveCount(0);
-    await expect(page.locator('#tab-raised')).toBeVisible();
+    await expect(page.locator('#raised-tab-section')).toBeVisible();
     const hash = await page.evaluate(() => window.location.hash);
     expect(hash).toBe('#2022');
   });
@@ -1510,9 +1510,9 @@ test.describe('candidate.html — in-place transitions', () => {
     await page.waitForSelector('#content.visible', { timeout: 12000 });
     // Bare #cycle URL; all three sections visible in the flow.
     await expect(page).toHaveURL(/#\d{4}$/);
-    await expect(page.locator('#tab-summary')).toBeVisible();
-    await expect(page.locator('#tab-raised')).toBeVisible();
-    await expect(page.locator('#tab-spent')).toBeVisible();
+    await expect(page.locator('#money-flow-card')).toBeVisible();
+    await expect(page.locator('#raised-tab-section')).toBeVisible();
+    await expect(page.locator('#spent-purpose-title')).toBeVisible();
   });
 
   test('back button returns to index view', async ({ page }) => {
@@ -1719,7 +1719,7 @@ test.describe('candidate.html — path-segment URL ID extraction', () => {
     await page.goto('/candidate.html?id=H2WA03217#2024#bogus');
     await page.waitForSelector('#content.visible', { timeout: 12000 });
     // Detail flow rendered; the trailing segment is dropped — URL canonicalizes to bare #2024.
-    await expect(page.locator('#tab-summary')).toBeVisible();
+    await expect(page.locator('#money-flow-card')).toBeVisible();
     const hash = await page.evaluate(() => window.location.hash);
     expect(hash).toBe('#2024');
   });
@@ -1741,7 +1741,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     // Donut canvas renders synchronously from totals
     await expect(page.locator('#chart-donut')).toBeVisible({ timeout: 2000 });
     // Active panel (Committees default) skeleton visible while in flight
@@ -1754,7 +1754,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
   test('Raised: no skeleton flash when fetch already resolved before tab click', async ({ page }) => {
     await setup(page);
     await page.waitForTimeout(800); // give the eager fetch time to resolve through mocks
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     await page.waitForTimeout(400);
     // Active panel skeleton should be hidden because data was already in memory
     await expect(page.locator('#raised-donors-skeleton')).toBeHidden();
@@ -1774,7 +1774,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     const err = page.locator('#raised-donors-error');
     await expect(err).toBeVisible({ timeout: 8000 });
     await expect(err.locator('.tab-retry-btn')).toBeVisible();
@@ -1789,7 +1789,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
   test('Raised: per-panel still-loading is hidden once slow tier resolves (not unconditional)', async ({ page }) => {
     await setup(page);
     await page.waitForTimeout(800); // eager fetch resolves through mocks
-    await expect(page.locator('#tab-raised')).toBeVisible();
+    await expect(page.locator('#raised-tab-section')).toBeVisible();
     // T-raised-loading-states: each panel owns its still-loading element; it must be
     // hidden once data resolves (post-de-tab it no longer shows unconditionally).
     await expect(page.locator('#raised-donors-still-loading')).toBeHidden();
@@ -1852,7 +1852,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible();
+    await expect(page.locator('#raised-tab-section')).toBeVisible();
     // Committees from KV (merged) — instant, no crawl
     await expect(page.locator('#donors-tbody')).toContainText(/digidems/i, { timeout: 8000 });
     // Conduits → honest high-volume bail (parity with committee.html copy)
@@ -1871,7 +1871,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     // Active panel's skeleton has substantive height. Inactive panel skeletons
     // collapse with their hidden parent — measure each by activating its tab.
     const donorsHeight = await page.locator('#raised-donors-skeleton').evaluate(el => el.getBoundingClientRect().height);
@@ -1890,7 +1890,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await page.route('**/api/fec/schedules/schedule_b/**', (route) => route.abort('failed'));
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
+    await expect(page.locator('#spent-purpose-title')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
     const err = page.locator('#spent-vendors-error');
     await expect(err).toBeVisible({ timeout: 8000 });
     await expect(err.locator('.tab-retry-btn')).toBeVisible();
@@ -1909,7 +1909,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
+    await expect(page.locator('#spent-purpose-title')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
     await expect(page.locator('#spent-vendors-error')).toBeVisible({ timeout: 8000 });
     abortNext = false;
     await page.locator('#spent-vendors-error .tab-retry-btn').click();
@@ -1936,7 +1936,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-spent')).toBeVisible();
+    await expect(page.locator('#spent-purpose-title')).toBeVisible();
     // Donut visible while Vendors is still a skeleton (Schedule B held open).
     await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('#spent-vendors-skeleton')).toBeVisible();
@@ -1964,7 +1964,7 @@ test.describe('candidate.html — Spent tab footer (vendor note cut)', () => {
   test('spent footer is empty/hidden — vendor dedup note cut (C10.d, §5.j)', async ({ page }) => {
     await setup(page);
     await page.waitForSelector('#content.visible', { timeout: 8000 });
-    await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
+    await expect(page.locator('#spent-purpose-title')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
     await page.waitForFunction(
       () => { const el = document.getElementById('spent-vendors-content'); return el && el.style.display === 'block'; },
       { timeout: 12000 }
@@ -1978,7 +1978,7 @@ test.describe('candidate.html — Spent tab footer (vendor note cut)', () => {
 test.describe('candidate.html — Spending by Purpose tooltip (C9 + cap)', () => {
   async function gotoSpent(page) {
     await page.waitForSelector('#content.visible', { timeout: 8000 });
-    await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
+    await expect(page.locator('#spent-purpose-title')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
     await page.waitForFunction(
       () => { const el = document.getElementById('spent-vendors-content'); return el && el.style.display === 'block'; },
       { timeout: 12000 }
@@ -2049,7 +2049,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     // Click Raised — error UI should render with rate-limit copy
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('#raised-donors-error .tab-error-msg')).toHaveText(/rate limit reached/i);
     await expect(page.locator('#raised-donors-error .tab-retry-btn')).toBeHidden();
@@ -2058,7 +2058,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#raised-conduits-skeleton')).toBeHidden();
     // Spent tab — init-stage error bridges to the opex tier's per-source error
     // (spent-progressive-loading: spentOpexError surfaces on bars + vendors).
-    await expect(page.locator('#tab-spent')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
+    await expect(page.locator('#spent-purpose-title')).toBeVisible(); // T-remove-profile-tabs: Spent section always in-flow (no tab click)
     await expect(page.locator('#spent-vendors-error')).toBeVisible();
     await expect(page.locator('#spent-vendors-error .tab-error-msg')).toHaveText(/rate limit reached/i);
     await expect(page.locator('#spent-vendors-error .tab-retry-btn')).toBeHidden();
@@ -2077,7 +2077,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
     // Init-failure copy is distinct from rate-limit copy
     await expect(page.locator('#raised-donors-error .tab-error-msg')).toHaveText(/Couldn['’]t load this page/i);
@@ -2098,7 +2098,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('#raised-donors-error .tab-error-msg')).toHaveText(/rate limit reached/i);
     await expect(page.locator('#raised-donors-error .tab-retry-btn')).toBeHidden();
@@ -2117,7 +2117,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
     // Existing T12 copy unchanged
     await expect(page.locator('#raised-donors-error .tab-error-msg')).toHaveText(/Could not load top contributors/);
@@ -2139,7 +2139,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     });
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     await expect(page.locator('#raised-donors-error')).toBeVisible({ timeout: 8000 });
     // Lift the block, switch cycle via the Cycle card chevron → cycle index → row click.
     // T16 retired the in-tabs-bar switcher; this exercises the new cycle-change path.
@@ -2149,7 +2149,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     // Click a different cycle row than the one we just left (#2024 in setup; pick the other).
     await page.locator('#cycle-index a.cycle-row').first().click();
     await page.waitForSelector('#content.visible', { timeout: 12000 });
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     // Error UI clears, donor card eventually visible on the new cycle
     await expect(page.locator('#donors-card')).toBeVisible({ timeout: 12000 });
     await expect(page.locator('#raised-donors-error')).toBeHidden();
@@ -2162,7 +2162,7 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#raised-donut-skeleton')).toBeAttached();
     // Click Raised → renderRaisedIfReady runs → donut renders synchronously from
     // currentTotalsBreakdown (set during loadCycle, in memory at click time) → skeleton hides
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     await page.waitForFunction(
       () => document.getElementById('raised-donut-content').style.display === 'block',
       { timeout: 8000 }
@@ -2178,7 +2178,7 @@ test.describe('candidate.html — tab section (top contributors)', () => {
   // here clicks Raised before asserting on the tab section markup.
   test.beforeEach(async ({ page }) => {
     await setup(page);
-    await expect(page.locator('#tab-raised')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
+    await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
   });
 
   test('tablist and tabs render with correct ARIA roles', async ({ page }) => {
@@ -3114,5 +3114,29 @@ test.describe('candidate.html — donut transfers wedge includes Form-3P transfe
     const row = page.locator('#donut-legend .donut-row', { has: page.locator('.donut-lbl-text', { hasText: 'Candidate authorized committees' }) });
     await expect(row).toHaveCount(1);
     await expect(row.locator('.donut-val')).toHaveText('$600K');
+  });
+});
+
+// Routing regression lock (profile flatten, 9a): the #cycle hash routing is independent
+// of the inert #tab-* wrapper divs, so dissolving them in 9b must not change it. Bundles
+// the three invariants as one named lock — passes at the current DOM, guards the 9b re-org.
+test.describe('candidate.html — routing intact (flatten regression lock)', () => {
+  test('bare URL → index; #cycle → detail (canonicalized); back → index', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // bare URL → index view (career strip + cycle index; detail content hidden)
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    await expect(page.locator('#cycle-index')).toBeVisible();
+    await expect(page.locator('#content')).toBeHidden();
+    // deep-link #cycle → detail; content visible; URL canonicalized to bare #2024
+    await page.goto('/candidate.html?id=H2WA03217#2024');
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+    await expect(page.locator('#money-flow-card')).toBeVisible();
+    await expect(page).toHaveURL(/#2024$/);
+    // browser back → index restored
+    await page.goBack();
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    await expect(page.locator('#cycle-index')).toBeVisible();
   });
 });
