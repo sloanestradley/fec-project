@@ -37,6 +37,37 @@ async function openCommittees(page) {
   await page.locator('.menu-item[data-item-id="committees"]').click();
 }
 
+// 9c (profile flatten — breakdown slot toggle): the slot is Money flow (Sankey)
+// XOR the Raised/Spent donut pair, MUTUALLY EXCLUSIVE on the gate. The default
+// House fixture is IN-SCOPE → Sankey shown, donut pair hidden. To exercise the
+// donut RENDER path (legend/wedges/center/skeleton), the entity must be GATED.
+// This override flips candidate metadata → office 'P' (Form 3P → gated), so the
+// slot mounts the donut pair; base totals fall through unchanged, so the donut
+// renders the same fixture financials in its gated home. Call AFTER mockFecApi,
+// BEFORE page.goto (later route registration wins; non-metadata candidate URLs
+// fall back to the base mock — same pattern as the presidential gate block).
+async function routeGatedCandidate(page) {
+  await page.route('**/api/fec/candidate/H2WA03217/**', (route) => {
+    const url = route.request().url();
+    if (/\/candidate\/H2WA03217\/(?:\?|$)/.test(url)) {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ candidate_id: 'H2WA03217', name: 'PEREZ, MARIE GLUESENKAMP', party: 'DEM',
+          party_full: 'DEMOCRATIC PARTY', office: 'P', office_full: 'President', state: 'US',
+          election_years: [2024], incumbent_challenge: 'C', first_file_date: '2023-01-01' }],
+        pagination: { count: 1, pages: 1, per_page: 20, page: 1 } }) });
+    } else { route.fallback(); }
+  });
+}
+
+// Gated setup with no extra per-test routes: mock + office-P override + load detail.
+async function setupGatedDonuts(page) {
+  await mockAmplitude(page);
+  await mockFecApi(page);
+  await routeGatedCandidate(page);
+  await page.goto(CANDIDATE_URL);
+  await page.waitForSelector('#content.visible', { timeout: 12000 });
+}
+
 // ── Profile header ────────────────────────────────────────────────────────────
 
 test.describe('candidate.html — profile header', () => {
@@ -535,10 +566,27 @@ test.describe('candidate.html — flowing detail view', () => {
     expect(ordered).toBe(true);
   });
 
-  test('Raised donut + Spent donut both render in flow without interaction', async ({ page }) => {
+  // 9c breakdown-slot toggle — in-scope (default House) → Money flow Sankey owns the
+  // slot; the donut pair is hidden (mutually exclusive, no longer coexisting).
+  test('breakdown slot (in-scope): Money flow shown, donut pair hidden', async ({ page }) => {
     await setupWithContent(page);
+    await expect(page.locator('#money-flow-card')).toBeVisible();
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 12000 });
+    // Donut pair is hidden (its grid is display:none); donuts never mount.
+    await expect(page.locator('#breakdown-donut-grid')).toBeHidden();
+    await expect(page.locator('#raised-donut-content')).toBeHidden();
+    await expect(page.locator('#spent-donut-content')).toBeHidden();
+  });
+
+  // 9c breakdown-slot toggle — gated (presidential here) → the donut PAIR owns the
+  // slot; the Money flow card is hidden and shows NO gate caption (§4: the donut
+  // pair is a complete first-class view, not a consolation prize).
+  test('breakdown slot (gated): donut pair shown, Money flow card hidden, no caption', async ({ page }) => {
+    await setupGatedDonuts(page);
     await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
     await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#money-flow-card')).toBeHidden();
+    await expect(page.locator('#sankey-gate')).toBeHidden();
   });
 
   // A2 regression lock: the Spent donut must read `loan_repayments` (the Form-3
@@ -547,7 +595,7 @@ test.describe('candidate.html — flowing detail view', () => {
   // as $0). The TOTALS fixture carries loan_repayments: 150000; this asserts the
   // wedge surfaces it. Verified live 2026-06-08 against S4NY00404.
   test('Spent donut "Loan Repayments" wedge reads loan_repayments (Form-3 field name)', async ({ page }) => {
-    await setupWithContent(page);
+    await setupGatedDonuts(page);  // 9c: donut only renders when the slot is gated
     await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
     const row = page.locator('#spent-donut-legend .donut-row', {
       has: page.locator('.donut-lbl', { hasText: 'Loan Repayments' }),
@@ -562,8 +610,12 @@ test.describe('candidate.html — flowing detail view', () => {
   // each chart canvas holds exactly one Chart.js instance after load AND after a
   // cycle round-trip (destroy-before-recreate + *Rendered render-once guards),
   // so the ungated render never double-instantiates / leaks a chart.
+  // 9c: uses the GATED fixture so all three Chart.js canvases mount (timeline +
+  // both donuts) — keeping the [1,1,1] / total-3 invariant meaningful. On an
+  // in-scope entity the donuts don't mount at all (Sankey is ECharts, not Chart.js),
+  // which is its own correctness lock covered by the breakdown-slot toggle tests.
   test('exactly one Chart.js instance per canvas, surviving a cycle round-trip', async ({ page }) => {
-    await setupWithContent(page);
+    await setupGatedDonuts(page);
     await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
     await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
     const probe = () => page.evaluate(() => {
@@ -656,26 +708,6 @@ test.describe('candidate.html — Raised tab sections', () => {
     await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
   });
 
-  test('donut legend "Candidate authorized committees" wedge mounts the tooltip component', async ({ page }) => {
-    const row = page.locator('#donut-legend .donut-row', {
-      has: page.locator('.donut-lbl-text', { hasText: 'Candidate authorized committees' }),
-    });
-    await expect(row).toHaveCount(1);
-    // initTooltips wired the .tooltip host into a trigger button with the
-    // host's aria-label transferred; legacy .donut-info/title= is gone.
-    const trigger = row.locator('.tooltip-trigger');
-    await expect(trigger).toHaveCount(1);
-    await expect(trigger).toHaveAttribute('aria-label', 'About candidate authorized committees');
-    await expect(row.locator('.donut-info')).toHaveCount(0);
-    // Popup surfaces the verbatim methodology copy on open.
-    await trigger.click();
-    const popup = page.locator('.tooltip-popup');
-    await expect(popup).toBeVisible();
-    await expect(popup).toContainText(
-      'Money transferred in from committees authorized by the same candidate.'
-    );
-  });
-
   test('choropleth section title mounts the geography tooltip (with candidate-parity amendment caveat)', async ({ page }) => {
     const title = page.locator('.raised-cell-title--has-info', {
       hasText: 'Where Individual Contributions Come From',
@@ -746,6 +778,34 @@ test.describe('candidate.html — donut center labels + viz-tt surface', () => {
     await expect(page.locator('#map-tt')).toHaveClass(/\bviz-tt\b/);
     await expect(page.locator('#map-tt-name')).toHaveClass(/\bviz-tt-label\b/);
     await expect(page.locator('#map-tt-val')).toHaveClass(/\bviz-tt-body\b/);
+  });
+});
+
+// The donut LEGEND only renders when the breakdown slot is gated (9c) — the donut
+// pair owns the slot. Uses the gated (presidential) fixture so renderContributorDonut
+// runs and the legend's tooltip wiring is present to assert.
+test.describe('candidate.html — donut legend tooltip (gated slot)', () => {
+  test.beforeEach(async ({ page }) => { await setupGatedDonuts(page); });
+
+  test('donut legend "Candidate authorized committees" wedge mounts the tooltip component', async ({ page }) => {
+    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
+    const row = page.locator('#donut-legend .donut-row', {
+      has: page.locator('.donut-lbl-text', { hasText: 'Candidate authorized committees' }),
+    });
+    await expect(row).toHaveCount(1);
+    // initTooltips wired the .tooltip host into a trigger button with the
+    // host's aria-label transferred; legacy .donut-info/title= is gone.
+    const trigger = row.locator('.tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About candidate authorized committees');
+    await expect(row.locator('.donut-info')).toHaveCount(0);
+    // Popup surfaces the verbatim methodology copy on open.
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText(
+      'Money transferred in from committees authorized by the same candidate.'
+    );
   });
 });
 
@@ -1285,6 +1345,34 @@ test.describe('candidate.html — Amplitude events', () => {
     expect(event).toBeDefined();
     expect(event.args[1]).toMatchObject({ view: 'detail' });
   });
+
+  // 9c: breakdown_viz captures which viz the slot mounted (lands with the toggle so
+  // coexistence never ends uncaptured). In-scope (default House) → 'sankey', no reason.
+  test('Page Viewed carries breakdown_viz:sankey on an in-scope (House) detail view', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+    const event = await findTrackEvent(page, 'Page Viewed');
+    expect(event.args[1]).toMatchObject({ view: 'detail', breakdown_viz: 'sankey', breakdown_gate_reason: null });
+  });
+
+  // Gated (presidential) → 'donut' + the gate reason.
+  test('Page Viewed carries breakdown_viz:donut + gate reason on a gated (presidential) detail view', async ({ page }) => {
+    await setupGatedDonuts(page);
+    const event = await findTrackEvent(page, 'Page Viewed');
+    expect(event.args[1]).toMatchObject({ view: 'detail', breakdown_viz: 'donut', breakdown_gate_reason: 'presidential' });
+  });
+
+  // Index view (bare URL) has no breakdown slot → breakdown_viz is null.
+  test('Page Viewed carries breakdown_viz:null on the index view', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.goto('/candidate.html?id=H2WA03217');
+    await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
+    const event = await findTrackEvent(page, 'Page Viewed');
+    expect(event.args[1]).toMatchObject({ view: 'index', breakdown_viz: null });
+  });
 });
 
 // ── API correctness ───────────────────────────────────────────────────────────
@@ -1734,6 +1822,10 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
   test('Raised: donut renders synchronously, skeletons visible while slow tier in flight', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
+    // 9c: the donut only mounts when the slot is gated — use the presidential fixture
+    // so #chart-donut renders. The slow-tier (Top Contributors) skeleton behavior under
+    // test is independent of the breakdown slot.
+    await routeGatedCandidate(page);
     // Delay slow-tier (is_individual=false) Schedule A so skeletons stay visible at click time
     await page.route('**/api/fec/schedules/schedule_a/?**', async (route) => {
       const url = new URL(route.request().url());
@@ -1745,7 +1837,7 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
-    // Donut canvas renders synchronously from totals
+    // Donut canvas renders synchronously from totals (gated slot)
     await expect(page.locator('#chart-donut')).toBeVisible({ timeout: 2000 });
     // Active panel (Committees default) skeleton visible while in flight
     await expect(page.locator('#raised-donors-skeleton')).toBeVisible();
@@ -1886,7 +1978,8 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
 
   // spent-progressive-loading: the opex Schedule B walk feeds Purpose bars + Top
   // Vendors; its failure surfaces a per-source error on BOTH (#spent-bars-error +
-  // #spent-vendors-error). The donut renders from memory and is never blanked.
+  // #spent-vendors-error). The breakdown viz renders from memory and is never blanked
+  // (9c: the in-scope default mounts the Money flow card — independent of Schedule B).
   test('Spent: opex failure renders per-source error with retry button', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
@@ -1898,8 +1991,9 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await expect(err).toBeVisible({ timeout: 8000 });
     await expect(err.locator('.tab-retry-btn')).toBeVisible();
     await expect(page.locator('#spent-bars-error')).toBeVisible();
-    // Donut renders from the in-memory breakdown — never blanked by the opex failure.
-    await expect(page.locator('#spent-donut-content')).toBeVisible();
+    // Breakdown viz renders synchronously from totals — never blanked by the opex
+    // failure (in-scope mounts the Money flow card; it doesn't read Schedule B).
+    await expect(page.locator('#money-flow-card')).toBeVisible();
   });
 
   test('Spent: opex retry click re-fires fetch and renders content', async ({ page }) => {
@@ -1926,9 +2020,10 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await expect(page.locator('#spent-bars-error')).toBeHidden();
   });
 
-  // Donut is instant — it must render from the in-memory breakdown even while the
-  // opex Schedule B walk is still pending (slow-network response held open).
-  test('Spent: donut renders instantly while opex tier still loading', async ({ page }) => {
+  // Breakdown viz is instant — it renders synchronously from totals even while the
+  // opex Schedule B walk is still pending (slow-network response held open). 9c: the
+  // in-scope default mounts the Money flow card (Sankey), which doesn't read Schedule B.
+  test('Spent: breakdown viz renders instantly while opex tier still loading', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     let releaseB;
@@ -1940,8 +2035,8 @@ test.describe('candidate.html — Raised/Spent loading states (T12)', () => {
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
     await expect(page.locator('#spent-purpose-title')).toBeVisible();
-    // Donut visible while Vendors is still a skeleton (Schedule B held open).
-    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 8000 });
+    // Money flow Sankey visible while Vendors is still a skeleton (Schedule B held open).
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('#spent-vendors-skeleton')).toBeVisible();
     await expect(page.locator('#spent-vendors-content')).toBeHidden();
     releaseB();
@@ -2159,12 +2254,12 @@ test.describe('candidate.html — 429-aware error UI (T12.5)', () => {
   });
 
   test('Raised donut skeleton: present in DOM, hidden once donut renders', async ({ page }) => {
-    await setup(page);
-    // Skeleton element is in DOM (was display:block in loadCycle reset; hidden visually
-    // only because parent #tab-raised is display:none on Summary)
+    // 9c: the donut only renders when the breakdown slot is gated — use the
+    // presidential fixture so renderContributorDonut runs and resolves the skeleton.
+    await setupGatedDonuts(page);
     await expect(page.locator('#raised-donut-skeleton')).toBeAttached();
-    // Click Raised → renderRaisedIfReady runs → donut renders synchronously from
-    // currentTotalsBreakdown (set during loadCycle, in memory at click time) → skeleton hides
+    // renderRaisedIfReady runs → donut renders synchronously from currentTotalsBreakdown
+    // (set during loadCycle, in memory) → skeleton hides, content shows.
     await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised section always in-flow (no tab click)
     await page.waitForFunction(
       () => document.getElementById('raised-donut-content').style.display === 'block',
@@ -3015,7 +3110,8 @@ test.describe('candidate.html — Phase 2 PAGE-NOTE', () => {
   });
 });
 
-// ── Money flow (Sankey) mount — Step 2 (coexists with the donuts) ───────────────
+// ── Money flow (Sankey) mount — 9c: owns the breakdown slot on IN-SCOPE entities
+// (the default House fixture); the donut pair is mutually exclusive (gated only). ──
 test.describe('candidate.html — Money flow (Sankey) mount', () => {
   test('renders an ECharts SVG on a data-present cycle; skeleton clears', async ({ page }) => {
     await setupWithContent(page);
@@ -3068,31 +3164,25 @@ test.describe('candidate.html — Money flow debt caption', () => {
   });
 });
 
-test.describe('candidate.html — Money flow gate (presidential)', () => {
+// 9c: presidential (Form 3P → gated) no longer shows the Sankey gate caption — the
+// breakdown slot mounts the donut PAIR instead, and the Money flow card is hidden
+// entirely (§4: the donut pair is a complete first-class view, not a consolation
+// prize, so there is NO "not yet modeled" caption). The gate DETECTOR still fires;
+// it just selects the donut viz rather than driving a visible message.
+test.describe('candidate.html — breakdown slot: presidential is gated → donut pair (9c)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
-    // Override ONLY the candidate metadata to office 'P' (Form 3P → Gate 2). Everything
-    // else falls through to the base mock; the data-present totals still resolve, so
-    // renderMoneyFlow runs and must render the gate state instead of a chart.
-    await page.route('**/api/fec/candidate/H2WA03217/**', (route) => {
-      const url = route.request().url();
-      if (/\/candidate\/H2WA03217\/(?:\?|$)/.test(url)) {
-        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-          results: [{ candidate_id: 'H2WA03217', name: 'TEST, PRESIDENTIAL', party: 'DEM',
-            party_full: 'DEMOCRATIC PARTY', office: 'P', office_full: 'President', state: 'US',
-            election_years: [2024], incumbent_challenge: 'C', first_file_date: '2023-01-01' }],
-          pagination: { count: 1, pages: 1, per_page: 20, page: 1 } }) });
-      } else { route.fallback(); }
-    });
+    await routeGatedCandidate(page);  // office 'P' override; base totals fall through
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#content.visible', { timeout: 12000 });
   });
 
-  test('presidential renders the "not yet modeled" gate, not the chart', async ({ page }) => {
-    await expect(page.locator('#sankey-gate')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#sankey-gate')).toContainText('Presidential committees');
-    await expect(page.locator('#sankey-chart')).toBeHidden();
+  test('presidential mounts the donut pair, hides the Money flow card, shows no gate caption', async ({ page }) => {
+    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#money-flow-card')).toBeHidden();
+    await expect(page.locator('#sankey-gate')).toBeHidden();
   });
 });
 
@@ -3111,6 +3201,11 @@ test.describe('candidate.html — donut transfers wedge includes Form-3P transfe
           operating_expenditures: 800000 }],
         pagination: { count: 1 } }) });
     });
+    // 9c: transfers_from_affiliated_committee is the Form-3P JFC transfer, so the
+    // entity must be presidential — which also gates the slot (Form 3P), mounting the
+    // donut pair so the wedge is assertable. Registered last → metadata returns office
+    // 'P'; the totals route above still serves the custom transfers fixture (fallback).
+    await routeGatedCandidate(page);
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#raised-donut-content', { state: 'visible', timeout: 12000 });
   });

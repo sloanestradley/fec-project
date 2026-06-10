@@ -39,6 +39,37 @@ async function setupIndex(page) {
   await page.waitForSelector('#career-strip.visible', { timeout: 12000 });
 }
 
+// 9c (profile flatten — breakdown slot toggle): the slot is Money flow (Sankey)
+// XOR the Raised/Spent donut pair, MUTUALLY EXCLUSIVE on the gate. The default PCC
+// fixture is IN-SCOPE → Sankey shown, donut pair hidden. To exercise the donut
+// RENDER path (legend/wedges/canvas/skeleton), the entity must be GATED. This
+// override flips committee_type → 'P' (Form 3P → presidential gate), so the slot
+// mounts the donut pair; the base totals fall through unchanged, so the donut renders
+// the same fixture financials (incl. the candidate_contribution / loans wedge the
+// tooltip test asserts). Call AFTER mockFecApi, BEFORE goto (non-metadata committee
+// URLs fall back to the base mock — same pattern as the presidential gate block).
+async function routeGatedCommittee(page) {
+  await page.route('**/api/fec/committee/C00775668/**', (route) => {
+    const url = route.request().url();
+    if (/\/committee\/C00775668\/(?:\?|$)/.test(url)) {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ committee_id: 'C00775668', name: 'MARIE FOR CONGRESS', committee_type: 'P',
+          committee_type_full: 'Presidential', designation: 'P', filing_frequency: 'Q', state: 'WA',
+          cycles: [2022, 2024, 2026], first_file_date: '2021-04-24', last_file_date: '2026-04-15' }],
+        pagination: { count: 1 } }) });
+    } else { route.fallback(); }
+  });
+}
+
+// Gated setup with no extra per-test routes: mock + committee_type-P override + load.
+async function setupGatedDonutsCommittee(page) {
+  await mockAmplitude(page);
+  await mockFecApi(page);
+  await routeGatedCommittee(page);
+  await page.goto(COMMITTEE_DETAIL_URL);
+  await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+}
+
 // ── Detail view: profile header + structural ─────────────────────────────────
 
 test.describe('committee.html — detail view', () => {
@@ -48,6 +79,15 @@ test.describe('committee.html — detail view', () => {
     const event = await findTrackEvent(page, 'Page Viewed');
     expect(event).toBeDefined();
     expect(event.args[1]).toMatchObject({ page: 'committee', view: 'detail' });
+  });
+
+  // 9c: the default Form-3 PCC fixture is in-scope → the slot mounts the Sankey, so
+  // breakdown_viz is 'sankey' with no gate reason (lands with the toggle so "which
+  // viz" is never uncaptured). Gated committees → 'donut' + reason (covered in the
+  // breakdown-slot gated describes).
+  test('Page Viewed carries breakdown_viz:sankey on the in-scope (Form-3 PCC) detail view', async ({ page }) => {
+    const event = await findTrackEvent(page, 'Page Viewed');
+    expect(event.args[1]).toMatchObject({ view: 'detail', breakdown_viz: 'sankey', breakdown_gate_reason: null });
   });
 
   test('committee name is displayed', async ({ page }) => {
@@ -158,42 +198,19 @@ test.describe('committee.html — detail view', () => {
     await expect(page.locator('#summary-strip .stats-grid')).toBeVisible();
   });
 
-  test('Raised donut + Spent donut both render in flow without interaction', async ({ page }) => {
-    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
+  // 9c breakdown-slot toggle — in-scope (default PCC) → Money flow Sankey owns the
+  // slot; the donut pair is hidden (mutually exclusive, no longer coexisting).
+  test('breakdown slot (in-scope): Money flow shown, donut pair hidden', async ({ page }) => {
+    await expect(page.locator('#money-flow-card')).toBeVisible();
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#breakdown-donut-grid')).toBeHidden();
+    await expect(page.locator('#raised-donut-content')).toBeHidden();
+    await expect(page.locator('#spent-donut-content')).toBeHidden();
   });
 
-  // Standing single-instantiation lock (mirrors candidate; committee has no
-  // timeline chart, so 2 expected canvases). Guards the ungated render path
-  // against double-instantiation / leaked Chart instances across a cycle round-trip.
-  test('exactly one Chart.js instance per canvas, surviving a cycle round-trip', async ({ page }) => {
-    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
-    const probe = () => page.evaluate(() => {
-      const ids = ['chart-donut', 'chart-spent-donut'];
-      return {
-        perCanvas: ids.map(id => {
-          const c = document.getElementById(id);
-          return c && window.Chart.getChart(c) ? 1 : 0;
-        }),
-        total: window.Chart && window.Chart.instances
-          ? Object.keys(window.Chart.instances).length : -1
-      };
-    });
-    let r = await probe();
-    expect(r.perCanvas).toEqual([1, 1]);
-    expect(r.total).toBe(2);
-    // Round-trip: index → back to detail forces a full re-render of both donuts.
-    await page.locator('#cycle-back-btn').click();
-    await page.waitForSelector('#cycle-index.visible', { timeout: 12000 });
-    await page.locator('#cycle-index a.cycle-row').first().click();
-    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
-    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
-    r = await probe();
-    expect(r.perCanvas).toEqual([1, 1]);
-    expect(r.total).toBe(2);
-  });
+  // (The single-Chart-instance lock moved to the "breakdown donuts (gated slot)"
+  // describe — 9c: donuts only mount when gated, and that describe has a clean
+  // single-navigation gated beforeEach.)
 
   // Out-of-scope regression lock: the nested Raised sub-tabs are NOT part of the
   // outer-tab system and must keep working post-de-tab (3-way on committee).
@@ -466,6 +483,12 @@ test.describe('committee.html — A2 Form-3X raised donut field resolution', () 
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         results: [{
           cycle: 2024, receipts: 5000000, disbursements: 4000000,
+          // 9c: the donut only renders when gated. A real Form-3X committee that shows
+          // the donut is a DUAL-ACCOUNT one (fed-only Form-3X shows the Sankey). The
+          // fed/total mismatch fires the non-federal gate so the donut mounts and the
+          // Form-3X wedge resolution below is assertable. The non-fed wedge fields aren't
+          // set, so no extra wedge appears; the absolute wedge $-values are unaffected.
+          fed_receipts: 4000000, fed_disbursements: 3200000,
           last_cash_on_hand_end_period: 1000000,
           coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
           individual_itemized_contributions: 2000000,
@@ -613,32 +636,8 @@ test.describe('committee.html — Raised tab sections', () => {
     );
   });
 
-  test('donut canvas is present in raised tab', async ({ page }) => {
-    await expect(page.locator('#chart-donut')).toBeVisible();
-  });
-
   test('raised breakdown cell title reads "Raised breakdown"', async ({ page }) => {
     await expect(page.locator('.raised-cell-title').first()).toHaveText('Raised breakdown');
-  });
-
-  test('donut legend "Candidate contributions & loans" wedge mounts the tooltip component', async ({ page }) => {
-    const row = page.locator('#donut-legend .donut-row', {
-      has: page.locator('.donut-lbl-text', { hasText: 'Candidate contributions & loans' }),
-    });
-    await expect(row).toHaveCount(1);
-    // initTooltips wired the .tooltip host into a trigger button with the
-    // host's aria-label transferred; legacy .donut-info/title= is gone.
-    const trigger = row.locator('.tooltip-trigger');
-    await expect(trigger).toHaveCount(1);
-    await expect(trigger).toHaveAttribute('aria-label', 'About candidate contributions & loans');
-    await expect(row.locator('.donut-info')).toHaveCount(0);
-    // Popup surfaces the verbatim methodology copy on open.
-    await trigger.click();
-    const popup = page.locator('.tooltip-popup');
-    await expect(popup).toBeVisible();
-    await expect(popup).toContainText(
-      'Direct contributions and loans from the candidate to this committee.'
-    );
   });
 
   test('choropleth section title mounts the geography tooltip (geography + amendment caveat)', async ({ page }) => {
@@ -723,6 +722,78 @@ test.describe('committee.html — Raised tab sections', () => {
   });
 });
 
+// The raised donut canvas + legend only render when the breakdown slot is gated (9c) —
+// the donut pair owns the slot. Uses the gated (committee_type-P) fixture so
+// renderContributorDonut runs; the base totals fall through, so the legend carries the
+// candidate_contribution / loans wedge the tooltip test asserts.
+test.describe('committee.html — breakdown donuts (gated slot)', () => {
+  test.beforeEach(async ({ page }) => { await setupGatedDonutsCommittee(page); });
+
+  test('raised donut canvas is present', async ({ page }) => {
+    await expect(page.locator('#chart-donut')).toBeVisible({ timeout: 12000 });
+  });
+
+  test('spent donut canvas is present', async ({ page }) => {
+    await expect(page.locator('#chart-spent-donut')).toBeVisible({ timeout: 12000 });
+  });
+
+  // Standing single-instantiation lock (mirrors candidate; committee has no timeline
+  // chart, so 2 expected canvases). Both donut canvases mount in the gated slot —
+  // keeping the [1,1] / total-2 invariant meaningful across a cycle round-trip. On an
+  // in-scope entity the donuts don't mount (Sankey is ECharts), covered by the slot
+  // toggle test.
+  test('exactly one Chart.js instance per canvas, surviving a cycle round-trip', async ({ page }) => {
+    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
+    const probe = () => page.evaluate(() => {
+      const ids = ['chart-donut', 'chart-spent-donut'];
+      return {
+        perCanvas: ids.map(id => {
+          const c = document.getElementById(id);
+          return c && window.Chart.getChart(c) ? 1 : 0;
+        }),
+        total: window.Chart && window.Chart.instances
+          ? Object.keys(window.Chart.instances).length : -1
+      };
+    });
+    let r = await probe();
+    expect(r.perCanvas).toEqual([1, 1]);
+    expect(r.total).toBe(2);
+    // Round-trip: index → back to detail forces a full re-render of both donuts. The
+    // committee_type-P gate persists across the in-place transition, so the slot stays
+    // in its gated (donut-pair) state.
+    await page.locator('#cycle-back-btn').click();
+    await page.waitForSelector('#cycle-index.visible', { timeout: 12000 });
+    await page.locator('#cycle-index a.cycle-row').first().click();
+    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
+    r = await probe();
+    expect(r.perCanvas).toEqual([1, 1]);
+    expect(r.total).toBe(2);
+  });
+
+  test('donut legend "Candidate contributions & loans" wedge mounts the tooltip component', async ({ page }) => {
+    const row = page.locator('#donut-legend .donut-row', {
+      has: page.locator('.donut-lbl-text', { hasText: 'Candidate contributions & loans' }),
+    });
+    await expect(row).toHaveCount(1);
+    // initTooltips wired the .tooltip host into a trigger button with the
+    // host's aria-label transferred; legacy .donut-info/title= is gone.
+    const trigger = row.locator('.tooltip-trigger');
+    await expect(trigger).toHaveCount(1);
+    await expect(trigger).toHaveAttribute('aria-label', 'About candidate contributions & loans');
+    await expect(row.locator('.donut-info')).toHaveCount(0);
+    // Popup surfaces the verbatim methodology copy on open.
+    await trigger.click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText(
+      'Direct contributions and loans from the candidate to this committee.'
+    );
+  });
+});
+
 // ── Raised tab: unavailable-state copy ───────────────────────────────────────
 
 test.describe('committee.html — Raised tab unavailable-state copy', () => {
@@ -796,10 +867,6 @@ test.describe('committee.html — Spent tab sections', () => {
       () => { const el = document.getElementById('spent-vendors-content'); return el && el.style.display !== 'none'; },
       { timeout: 15000 }
     );
-  });
-
-  test('spent donut canvas is present in spent tab', async ({ page }) => {
-    await expect(page.locator('#chart-spent-donut')).toBeVisible();
   });
 
   test('spend-detail-bars is present in spent tab', async ({ page }) => {
@@ -1172,6 +1239,10 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
   test('Raised: donut renders synchronously, slow-tier skeletons visible while in flight', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
+    // 9c: the donut only mounts when the slot is gated — use the committee_type-P
+    // fixture so #chart-donut renders. The slow-tier (Top Contributors) skeleton
+    // behavior under test is independent of the breakdown slot.
+    await routeGatedCommittee(page);
     await page.route('**/api/fec/schedules/schedule_a/?**', async (route) => {
       const url = new URL(route.request().url());
       if (url.searchParams.get('is_individual') === 'false') {
@@ -1182,7 +1253,7 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised always in-flow
-    // Donut canvas renders synchronously from totals
+    // Donut canvas renders synchronously from totals (gated slot)
     await expect(page.locator('#chart-donut')).toBeVisible({ timeout: 2000 });
     // Active panel (Committees default) skeleton visible while in flight
     await expect(page.locator('#raised-comm-skeleton')).toBeVisible();
@@ -1261,8 +1332,10 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await expect(page.locator('#spent-vendors-error .tab-retry-btn')).toBeVisible();
     await expect(page.locator('#spent-bars-error')).toBeVisible();
     await expect(page.locator('#spent-contributions-error')).toBeVisible();
-    // Donut renders from ALL_TOTALS — never blanked by Schedule B failure.
-    await expect(page.locator('#spent-donut-content')).toBeVisible();
+    // Breakdown viz renders synchronously from totals — never blanked by a Schedule B
+    // failure (9c: the in-scope default mounts the Money flow card, which doesn't read
+    // Schedule B).
+    await expect(page.locator('#money-flow-card')).toBeVisible();
   });
 
   test('Spent: opex retry click re-fires fetch and renders content', async ({ page }) => {
@@ -1290,9 +1363,9 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
   });
 
   // Error isolation — a CCM-only failure must NOT blank opex (bars + vendors) or the
-  // donut; only the Contributions section errors. (entity_type=CCM is the CCM walk's
-  // distinguishing param; the opex walk omits it.)
-  test('Spent: CCM-only failure isolates to Contributions; opex + donut render', async ({ page }) => {
+  // breakdown viz; only the Contributions section errors. (entity_type=CCM is the CCM
+  // walk's distinguishing param; the opex walk omits it.)
+  test('Spent: CCM-only failure isolates to Contributions; opex + breakdown viz render', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     await page.route('**/api/fec/schedules/schedule_b/**', (route) => {
@@ -1304,16 +1377,17 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#spent-purpose-title')).toBeVisible();
     await expect(page.locator('#spent-contributions-error')).toBeVisible({ timeout: 8000 });
-    // Opex sections + donut unaffected.
+    // Opex sections + breakdown viz unaffected (9c: in-scope mounts the Money flow card).
     await expect(page.locator('#spent-vendors-content')).toBeVisible({ timeout: 8000 });
-    await expect(page.locator('#spent-donut-content')).toBeVisible();
+    await expect(page.locator('#money-flow-card')).toBeVisible();
     await expect(page.locator('#spent-vendors-error')).toBeHidden();
     await expect(page.locator('#spent-bars-error')).toBeHidden();
   });
 
-  // Donut is instant — renders from ALL_TOTALS even while both Schedule B walks
-  // are still pending (held open).
-  test('Spent: donut renders instantly while opex + CCM tiers still loading', async ({ page }) => {
+  // Breakdown viz is instant — renders from totals even while both Schedule B walks
+  // are still pending (held open). 9c: the in-scope default mounts the Money flow
+  // Sankey, which doesn't read Schedule B.
+  test('Spent: breakdown viz renders instantly while opex + CCM tiers still loading', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
     let releaseB;
@@ -1325,7 +1399,7 @@ test.describe('committee.html — Raised/Spent loading states (T12)', () => {
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('.committee-header.visible', { timeout: 12000 });
     await expect(page.locator('#spent-purpose-title')).toBeVisible();
-    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('#spent-vendors-skeleton')).toBeVisible();
     await expect(page.locator('#spent-contributions-skeleton')).toBeVisible();
     releaseB();
@@ -1455,15 +1529,14 @@ test.describe('committee.html — 429-aware error UI (T12.5)', () => {
     await expect(page.locator('#conduits-card')).toBeVisible();
   });
 
-  test('Raised donut skeleton: visible before Raised tab visit, hidden once donut renders', async ({ page }) => {
-    await setupDetail(page);
-    // User lands on Summary initially; Raised tab content not yet rendered.
-    // Skeleton element is in the DOM with display:block from renderStats's reset
-    // (it's hidden visually only because parent #tab-raised is display:none).
+  test('Raised donut skeleton: present in DOM, hidden once donut renders', async ({ page }) => {
+    // 9c: the donut only renders when the breakdown slot is gated — use the
+    // committee_type-P fixture so renderContributorDonut runs and resolves the skeleton.
+    await setupGatedDonutsCommittee(page);
     const skel = page.locator('#raised-donut-skeleton');
     await expect(skel).toBeAttached();
-    // Click Raised → renderRaisedIfReady runs → donut renders synchronously from
-    // ALL_TOTALS-derived breakdown → skeleton swaps to content
+    // renderRaisedIfReady runs → donut renders synchronously from the ALL_TOTALS-derived
+    // breakdown → skeleton swaps to content.
     await expect(page.locator('#raised-tab-section')).toBeVisible(); // T-remove-profile-tabs: Raised always in-flow
     await page.waitForFunction(
       () => document.getElementById('raised-donut-content').style.display === 'block',
@@ -2122,7 +2195,8 @@ test.describe('committee.html — Phase 2 PAGE-NOTE', () => {
   });
 });
 
-// ── Money flow (Sankey) mount — Step 3 (coexists with the donuts) ───────────────
+// ── Money flow (Sankey) mount — 9c: owns the breakdown slot on IN-SCOPE entities
+// (the default Form-3 PCC fixture); the donut pair is mutually exclusive (gated only). ──
 test.describe('committee.html — Money flow (Sankey) mount', () => {
   test('renders an ECharts SVG on the default (Form-3 PCC) committee; skeleton clears', async ({ page }) => {
     await setupDetail(page);
@@ -2210,6 +2284,10 @@ test.describe('committee.html — spent donut loan-repayments coalesce (Form-3 P
     await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         results: [{ cycle: 2024, receipts: 1000000, disbursements: 800000,
+          // 9c: the spent donut only renders when the slot is gated. The fed/total
+          // mismatch fires the non-federal gate so the donut mounts; it doesn't change
+          // any spend-category value (the coalesce under test is form-name-only).
+          fed_receipts: 800000, fed_disbursements: 650000,
           last_cash_on_hand_end_period: 200000,
           coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
           // Form-3 field name (no loan_repayments_made); operating 550K + loan 250K = 800K
@@ -2286,12 +2364,15 @@ test.describe('committee.html — dual-account donut fix', () => {
   });
 });
 
-test.describe('committee.html — Money flow gate (dual-account, Gate 1)', () => {
+// 9c: a gated committee no longer shows the Sankey gate caption — the breakdown slot
+// mounts the donut PAIR instead, and the Money flow card is hidden entirely (§4: the
+// donut pair is a complete first-class view, so there is NO "not yet modeled" caption).
+// The gate DETECTOR still fires; it selects the donut viz rather than a visible message.
+test.describe('committee.html — breakdown slot: dual-account is gated → donut pair (9c)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
-    // Override totals to a dual-account record: receipts !== fed_receipts (the non-federal
-    // detector fires). renderMoneyFlow must render the gate, not an under-summing chart.
+    // Dual-account record: receipts !== fed_receipts (the non-federal detector fires).
     await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         results: [{ cycle: 2024, receipts: 5000000, fed_receipts: 4000000,
@@ -2304,20 +2385,24 @@ test.describe('committee.html — Money flow gate (dual-account, Gate 1)', () =>
     await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
   });
 
-  test('dual-account committee renders the "not yet modeled" gate, not the chart', async ({ page }) => {
-    await expect(page.locator('#sankey-gate')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#sankey-gate')).toContainText('non-federal');
-    await expect(page.locator('#sankey-chart')).toBeHidden();
+  test('dual-account mounts the donut pair, hides the Money flow card, shows no gate caption', async ({ page }) => {
+    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#money-flow-card')).toBeHidden();
+    await expect(page.locator('#sankey-gate')).toBeHidden();
+  });
+
+  test('Page Viewed carries breakdown_viz:donut + non-federal gate reason', async ({ page }) => {
+    const event = await findTrackEvent(page, 'Page Viewed');
+    expect(event.args[1]).toMatchObject({ view: 'detail', breakdown_viz: 'donut', breakdown_gate_reason: 'non-federal' });
   });
 });
 
-test.describe('committee.html — Money flow gate (presidential, Gate 2)', () => {
+test.describe('committee.html — breakdown slot: presidential is gated → donut pair (9c)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
-    // Override ONLY the committee metadata to committee_type 'P' (Form 3P → Gate 2).
-    // Totals fall through to the base fixture (data-present), so renderMoneyFlow runs
-    // and must render the gate state.
+    // committee_type 'P' (Form 3P → Gate 2). Totals fall through to the base fixture.
     await page.route('**/api/fec/committee/C00775668/**', (route) => {
       const url = route.request().url();
       if (/\/committee\/C00775668\/(?:\?|$)/.test(url)) {
@@ -2332,10 +2417,11 @@ test.describe('committee.html — Money flow gate (presidential, Gate 2)', () =>
     await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
   });
 
-  test('presidential committee renders the gate state, not the chart', async ({ page }) => {
-    await expect(page.locator('#sankey-gate')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#sankey-gate')).toContainText('Presidential committees');
-    await expect(page.locator('#sankey-chart')).toBeHidden();
+  test('presidential committee mounts the donut pair, hides the Money flow card, shows no gate caption', async ({ page }) => {
+    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#money-flow-card')).toBeHidden();
+    await expect(page.locator('#sankey-gate')).toBeHidden();
   });
 });
 
@@ -2354,6 +2440,11 @@ test.describe('committee.html — donut Transfers in includes Form-3P transfers'
           operating_expenditures: 800000 }],
         pagination: { count: 1 } }) });
     });
+    // 9c: transfers_from_affiliated_committee is the Form-3P JFC transfer, so the entity
+    // is presidential — which also gates the slot, mounting the donut pair so the wedge
+    // is assertable. Registered last → metadata returns committee_type 'P'; the totals
+    // route above still serves the custom transfers fixture (fallback).
+    await routeGatedCommittee(page);
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('#raised-donut-content', { state: 'visible', timeout: 12000 });
   });

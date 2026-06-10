@@ -174,8 +174,11 @@
       </div>
 
       <!-- Breakdown slot — Money flow (Raised→Spent Sankey) XOR the Raised/Spent donut
-           pair. They COEXIST here until the 9c gate-conditional toggle makes them mutually
-           exclusive. Money flow renders synchronously from the totals record (no fetch). -->
+           pair, MUTUALLY EXCLUSIVE on the gate (T-profile-flatten 9c): in-scope →
+           Sankey card; gated → donut pair (#breakdown-donut-grid). applyBreakdownSlot
+           toggles the two; only one viz ever mounts (breakdownGated, set in renderStats).
+           Committee gate: presidential OR dual-account (non-federal) — known
+           synchronously from the cycle's record. Both render synchronously (no fetch). -->
       <div id="breakdown-slot">
         <div class="chart-card" id="money-flow-card">
           <div class="chart-header">
@@ -188,7 +191,7 @@
           </div>
           <div id="sankey-debt" class="caption" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:0.6875rem;color:var(--muted);border-top:1px solid var(--border);margin-top:var(--space-8);padding-top:var(--space-8)"></div>
         </div>
-        <div class="raised-grid">
+        <div class="raised-grid" id="breakdown-donut-grid">
           <div class="raised-cell">
             <div class="raised-cell-title">Raised breakdown</div>
             <div class="skeleton tab-skeleton skeleton-donut" id="raised-donut-skeleton"></div>
@@ -478,6 +481,11 @@ var spentContribTimer       = null;
 var currentCycleScope         = null;
 var currentTotalsRecord       = null;
 var currentSankeyModel        = null;   // last non-gated Sankey model, for resize re-render
+// T-profile-flatten 9c — breakdown slot is Money flow (Sankey) XOR the Raised/Spent
+// donut pair, MUTUALLY EXCLUSIVE on the gate (no longer coexisting). breakdownGated
+// is the single source of truth, set in renderStats. Committee gate: presidential
+// (COMM_TYPE) OR dual-account (non-federal, data-driven from the cycle's record).
+var breakdownGated            = false;
 var currentRaisedFastPromise  = null;  // slow tier awaits this for KV state
 
 // T-load-1 — cache the in-flight promises so init()'s skeleton-hydration
@@ -929,10 +937,18 @@ async function init() {
         // Q1 fix: Amplitude's `cycle` field now reports the new cycle on cycle
         // changes rather than the previous one.
         var hashYear = parseInt(location.hash.replace(/^#/, '').split('#')[0], 10);
+        // breakdown_viz (9c) — which viz the slot mounts on detail view. Lands in
+        // the same event that ends donut/Sankey coexistence so "which rendered" is
+        // never uncaptured. Null on index (no slot). reason only when 'donut'.
+        // breakdownGateReason looks up the hash cycle's record — correct even though
+        // this fires before renderStats sets currentTotalsRecord.
+        var bdReason = breakdownGateReason(hashYear);
         amplitude.track('Page Viewed', {
           page: 'committee', committee_id: COMMITTEE_ID,
           cycle: !isNaN(hashYear) ? hashYear : null,
-          source: urlParams.get('from') || null, view: viewName
+          source: urlParams.get('from') || null, view: viewName,
+          breakdown_viz: viewName === 'detail' ? (bdReason ? 'donut' : 'sankey') : null,
+          breakdown_gate_reason: (viewName === 'detail' && bdReason) ? bdReason : null
         });
         menu.updateItem('profile', { disabled: viewName === 'index' });
       },
@@ -1274,12 +1290,43 @@ document.addEventListener('click', function(e) {
   else if (what === 'spent-contributions') retrySpentContributions();
 });
 
+// ── Breakdown slot toggle (T-profile-flatten 9c) ─────────────────────────────
+// The slot is Money flow (Sankey) XOR the Raised/Spent donut pair — mutually
+// exclusive on the gate. breakdownGateReason() is the single source of truth.
+// Committee gate: presidential (COMM_TYPE) OR dual-account (non-federal, data-driven
+// from the cycle's record). It looks up the record from ALL_TOTALS by cycle (the same
+// source renderStats uses) rather than reading currentTotalsRecord, because
+// trackPageViewed fires BEFORE loadCycle/renderStats (initViewSwitcher), so
+// currentTotalsRecord would be the PREVIOUS cycle's (or null) at analytics time.
+// cycle defaults to activeCycle. Returns null (in-scope → Sankey) or a reason
+// ('presidential' | 'non-federal') (gated → donuts).
+function breakdownGateReason(cycle) {
+  var c = (cycle != null && !isNaN(cycle)) ? cycle : activeCycle;
+  var rec = null;
+  if (ALL_TOTALS) {
+    for (var i = 0; i < ALL_TOTALS.length; i++) {
+      if (ALL_TOTALS[i].cycle === c) { rec = ALL_TOTALS[i]; break; }
+    }
+  }
+  return sankeyGateReason(rec || {}, { entity: 'committee', isPresidential: COMM_TYPE === 'P' });
+}
+// Toggle the slot's two viz containers. gated → donut pair visible, Sankey card
+// hidden; !gated → Sankey card visible, donut pair hidden. No caption in either
+// state (strategy/profile-flatten-layout.md §4 — the donut pair is a complete,
+// first-class view for gated entities, incl. dual-account after the donut fix).
+function applyBreakdownSlot(gated) {
+  var card = document.getElementById('money-flow-card');
+  var grid = document.getElementById('breakdown-donut-grid');
+  if (card) card.style.display = gated ? 'none' : '';
+  if (grid) grid.style.display = gated ? '' : 'none';
+}
+
 // ── Money flow (Raised→Spent Sankey) ─────────────────────────────────────────
-// Renders synchronously from currentTotalsRecord (no fetch), like the donut. Coexists
-// with the donuts in Step 3; the scope toggle is Step 4. A gated entity (presidential
-// committee — Gate 2; dual-account committee — Gate 1) renders the neutral "not yet
-// modeled" state instead of an under-summing chart. The adapter is form-agnostic, so a
-// candidate PCC viewed here resolves its Form-3 fields + self-funding correctly.
+// Renders synchronously from currentTotalsRecord (no fetch), like the donut. Mounted
+// ONLY on in-scope (!gated) entities (T-profile-flatten 9c — mutually exclusive with
+// the donut pair). The internal model.gated branch is now dead (the caller gates
+// first) but kept as defense-in-depth. The adapter is form-agnostic, so a candidate
+// PCC viewed here resolves its Form-3 fields + self-funding correctly.
 function renderMoneyFlow() {
   var area = document.getElementById('sankey-chart');
   if (!area) return;
@@ -1438,6 +1485,12 @@ function renderStats(cycleOrAll) {
   document.getElementById('spent-vendors-error').style.display = 'none';
   document.getElementById('spent-contributions-error').style.display = 'none';
 
+  // Breakdown slot (9c) — set the gate + toggle the two viz containers BEFORE the
+  // renders below so only the correct viz (Sankey OR donut pair) mounts. Computed
+  // from this cycle's record (rec is already in scope) — no swap.
+  breakdownGated = !!sankeyGateReason(rec || {}, { entity: 'committee', isPresidential: COMM_TYPE === 'P' });
+  applyBreakdownSlot(breakdownGated);
+
   // Money-flow Sankey reset — re-show its skeleton + clear prior gate/debt so the
   // previous cycle's chart doesn't linger during the new cycle's (synchronous) render.
   currentSankeyModel = null;
@@ -1464,7 +1517,9 @@ function renderStats(cycleOrAll) {
   renderSpentDonutNow();
   renderSpentOpexIfReady();
   renderSpentContributionsIfReady();
-  renderMoneyFlow();
+  // 9c — Sankey only when in-scope; gated entities mount the donut pair instead
+  // (rendered above via renderRaisedIfReady/renderSpentDonutNow under the same gate).
+  if (!breakdownGated) renderMoneyFlow();
 }
 
 // ── Raised tab utilities ─────────────────────────────
@@ -1973,28 +2028,33 @@ function renderRaisedIfReady() {
   // (The old gate existed only because a display:none tab panel gave Chart.js a
   // zero-width canvas.) Idempotency is preserved by the *Rendered flags below.
 
-  // Donut — synchronous from current totals record. Skeleton holds during the
-  // (essentially zero-width) window between renderStats's reset and the assignment
-  // of currentTotalsRecord. On any tier error, hide the skeleton without showing
-  // content so the cell collapses cleanly next to the surfaced error UI.
-  if (!raisedDonutRendered && currentTotalsRecord) {
-    var rec = currentTotalsRecord;
-    var breakdown = {};
-    ['individual_itemized_contributions','individual_unitemized_contributions',
-     'other_political_committee_contributions','political_party_committee_contributions',
-     'transfers_from_other_authorized_committee','transfers_from_affiliated_party','transfers_from_affiliated_committee',
-     'candidate_contribution','loans_made_by_candidate','all_other_loans','all_loans_received',
-     'other_receipts','other_fed_receipts','federal_funds',
-     'transfers_from_nonfed_account','transfers_from_nonfed_levin',  // dual-account non-fed wedge (2026-06-09)
-     'offsets_to_operating_expenditures','offsets_to_fundraising_expenditures',
-     'offsets_to_legal_accounting'].forEach(function(k){ breakdown[k] = rec[k] || 0; });
-    document.getElementById('raised-donut-skeleton').style.display = 'none';
-    document.getElementById('raised-donut-content').style.display = 'block';
-    renderContributorDonut(breakdown, rec.receipts || 0);
-    raisedDonutRendered = true;
-  } else if (!raisedDonutRendered && (raisedFastError || raisedSlowError)) {
-    document.getElementById('raised-donut-skeleton').style.display = 'none';
-    raisedDonutRendered = true;
+  // Raised breakdown donut — synchronous from current totals record. Skeleton holds
+  // during the (essentially zero-width) window between renderStats's reset and the
+  // assignment of currentTotalsRecord. On any tier error, hide the skeleton without
+  // showing content so the cell collapses cleanly next to the surfaced error UI.
+  // 9c: only mounts when the breakdown slot is in its GATED state (donut pair). On
+  // in-scope entities the Sankey card owns the slot and the donut never renders — its
+  // grid (#breakdown-donut-grid) is hidden, so the held skeleton stays invisible.
+  if (breakdownGated) {
+    if (!raisedDonutRendered && currentTotalsRecord) {
+      var rec = currentTotalsRecord;
+      var breakdown = {};
+      ['individual_itemized_contributions','individual_unitemized_contributions',
+       'other_political_committee_contributions','political_party_committee_contributions',
+       'transfers_from_other_authorized_committee','transfers_from_affiliated_party','transfers_from_affiliated_committee',
+       'candidate_contribution','loans_made_by_candidate','all_other_loans','all_loans_received',
+       'other_receipts','other_fed_receipts','federal_funds',
+       'transfers_from_nonfed_account','transfers_from_nonfed_levin',  // dual-account non-fed wedge (2026-06-09)
+       'offsets_to_operating_expenditures','offsets_to_fundraising_expenditures',
+       'offsets_to_legal_accounting'].forEach(function(k){ breakdown[k] = rec[k] || 0; });
+      document.getElementById('raised-donut-skeleton').style.display = 'none';
+      document.getElementById('raised-donut-content').style.display = 'block';
+      renderContributorDonut(breakdown, rec.receipts || 0);
+      raisedDonutRendered = true;
+    } else if (!raisedDonutRendered && (raisedFastError || raisedSlowError)) {
+      document.getElementById('raised-donut-skeleton').style.display = 'none';
+      raisedDonutRendered = true;
+    }
   }
 
   // Fast tier — choropleth + KV-resolved top individuals + KV-resolved top committees
@@ -2445,6 +2505,10 @@ function renderSpendDetail(transactions) {
 
 // Donut renders synchronously from ALL_TOTALS — no Schedule B wait.
 function renderSpentDonutNow() {
+  // 9c: the Spending-by-category donut lives in the breakdown slot's GATED state.
+  // On in-scope entities the Sankey card owns the slot — skip entirely (the donut
+  // grid is hidden, so the held skeleton stays invisible).
+  if (!breakdownGated) return;
   if (spentDonutRendered) return;
   document.getElementById('spent-donut-skeleton').style.display = 'none';
   var bd = computeSpentBreakdown(currentCycleScope);
