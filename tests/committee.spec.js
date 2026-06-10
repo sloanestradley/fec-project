@@ -773,16 +773,16 @@ test.describe('committee.html — breakdown donuts (gated slot)', () => {
     expect(r.total).toBe(2);
   });
 
-  test('donut legend "Candidate contributions & loans" wedge mounts the tooltip component', async ({ page }) => {
+  test('donut legend "Candidate self-funding" wedge mounts the tooltip component', async ({ page }) => {
     const row = page.locator('#donut-legend .donut-row', {
-      has: page.locator('.donut-lbl-text', { hasText: 'Candidate contributions & loans' }),
+      has: page.locator('.donut-lbl-text', { hasText: 'Candidate self-funding' }),
     });
     await expect(row).toHaveCount(1);
     // initTooltips wired the .tooltip host into a trigger button with the
     // host's aria-label transferred; legacy .donut-info/title= is gone.
     const trigger = row.locator('.tooltip-trigger');
     await expect(trigger).toHaveCount(1);
-    await expect(trigger).toHaveAttribute('aria-label', 'About candidate contributions & loans');
+    await expect(trigger).toHaveAttribute('aria-label', 'About candidate self-funding');
     await expect(row.locator('.donut-info')).toHaveCount(0);
     // Popup surfaces the verbatim methodology copy on open.
     await trigger.click();

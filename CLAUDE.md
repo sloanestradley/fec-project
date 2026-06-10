@@ -238,12 +238,12 @@ Data-category sequence — donut wedges (raised + spent, shared by ring position
 --cat-1: #05234F       (Individuals itemized / Operating Expenditures)
 --cat-2: #1D5A6D       (PACs / Federal Election Activity)
 --cat-3: #437772       (Party / Transfers Out)
---cat-4: #75917B       (Candidate authorized / Candidate Contributions)
+--cat-4: #75917B       (Transfers in / Contributions to candidates)
 --cat-5: #A7AA91       (Candidate self-funding / Independent Expenditures)
 --cat-6: #D4C4B5       (Loans / Loan Repayments)
 --cat-7: #F5E2E0       (Federal funds / Contribution Refunds)
 --cat-other: #D7D1C7   (Other receipts / Other Disbursements)
---cat-other-2: #EEE9E1 (Refunds & offsets)
+--cat-other-2: #EEE9E1 (Offsets)
 
 Sankey structural colors (Raised→Spent money-flow viz — NOT data categories). Read into CATEGORY_COLORS.sankey {ramp:[--cat-1..7], other:--cat-other, cash, hub} at load:
 --sankey-cash: #B0A89B (cash-on-hand node — neutral grey between --border-strong and --cat-6)
@@ -503,7 +503,7 @@ Candidate totals endpoint returns:
   - `offsets_to_fundraising_expenditures` — fundraising expense credits
   - `offsets_to_legal_accounting` — legal/accounting expense credits
   - `other_receipts` — named FEC line item for miscellaneous receipts (interest, dividends, etc.)
-  - **Note:** `candidate_contribution` + `loans_made_by_candidate` are merged into "Candidate self-funding" in the donut. Offsets are grouped as "Refunds & offsets". These fields are confirmed present (may be 0) on live responses.
+  - **Note:** `candidate_contribution` + `loans_made_by_candidate` are merged into "Candidate self-funding" in the donut (both pages — label aligned 2026-06-10; committee was "Candidate contributions & loans"). The three `offsets_to_*` fields are grouped as "Offsets" (label aligned 2026-06-10 across donuts + Sankey; was "Refunds & offsets"). The transfers-in fields render as "Transfers in" (was "Candidate authorized committees" on candidate). These fields are confirmed present (may be 0) on live responses.
 
 Committee totals endpoint (`/committee/{id}/totals/`) — amendment safety (verified from live response, C00806174 "Marie for Congress"):
 - Returns one record **per cycle** — 4 records for a multi-cycle committee, not one record by design. `per_page=1` with no cycle filter returns the most recent cycle only.

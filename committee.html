@@ -1768,10 +1768,10 @@ function renderContributorDonut(breakdown, totalRaised) {
     { label:'PACs & other committees',         key:'other_political_committee_contributions',   color:CATEGORY_COLORS.raised.pacs },
     { label:'Party committees',                key:'political_party_committee_contributions',   color:CATEGORY_COLORS.raised.party },
     { label:'Transfers in',                    val:transfersIn,                                color:CATEGORY_COLORS.raised.candidateAuthorized,
-      tooltip:'Transfers in from affiliated committees — for a candidate committee, the candidate\'s other authorized committees; for a PAC or party, affiliated party/committees.' },
+      tooltip:'Transfers in from affiliated committees — for a candidate committee, its other authorized committees (and, for a presidential campaign, its joint fundraising committees); for a PAC or party, affiliated party/committee transfers.' },
     { label:'Transfers from non-federal account', val:nonfedTransfers,                         color:CATEGORY_COLORS.raised.nonfedTransfers,
       tooltip:'Transfers from the committee\'s own non-federal (state/local) account. State and local party committees raise some money outside federal limits for shared and non-federal activity; this is the federal account\'s share of it.' },
-    { label:'Candidate contributions & loans', val:candidateContribLoans,                      color:CATEGORY_COLORS.raised.candidateContribLoans,
+    { label:'Candidate self-funding',          val:candidateContribLoans,                      color:CATEGORY_COLORS.raised.candidateContribLoans,
       tooltip:'Direct contributions and loans from the candidate to this committee. Contributions are gifts; loans create a debt the committee owes back to the candidate.' },
     { label:'Loans',                           val:externalLoans,                              color:CATEGORY_COLORS.raised.loans,
       tooltip:'Loans from banks or other third parties (not including candidate self-funding loans)' },
@@ -1779,7 +1779,7 @@ function renderContributorDonut(breakdown, totalRaised) {
       tooltip:'Public financing from the Presidential Election Campaign Fund' },
     { label:'Other receipts',                  val:otherReceipts,                              color:CATEGORY_COLORS.raised.otherReceipts,
       tooltip:"Miscellaneous funds (e.g., interest on bank accounts, dividends, and similar incidental income)" },
-    { label:'Refunds & offsets',               val:offsets,                                    color:CATEGORY_COLORS.raised.refundsOffsets,
+    { label:'Offsets',                         val:offsets,                                    color:CATEGORY_COLORS.raised.refundsOffsets,
       tooltip:"Vendor refunds, returned deposits, and other amounts credited back to the committee. These are recorded as receipts by the FEC but don't represent new money raised." },
   ];
 

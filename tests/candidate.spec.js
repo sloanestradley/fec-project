@@ -787,24 +787,24 @@ test.describe('candidate.html — donut center labels + viz-tt surface', () => {
 test.describe('candidate.html — donut legend tooltip (gated slot)', () => {
   test.beforeEach(async ({ page }) => { await setupGatedDonuts(page); });
 
-  test('donut legend "Candidate authorized committees" wedge mounts the tooltip component', async ({ page }) => {
+  test('donut legend "Transfers in" wedge mounts the tooltip component', async ({ page }) => {
     await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
     const row = page.locator('#donut-legend .donut-row', {
-      has: page.locator('.donut-lbl-text', { hasText: 'Candidate authorized committees' }),
+      has: page.locator('.donut-lbl-text', { hasText: 'Transfers in' }),
     });
     await expect(row).toHaveCount(1);
     // initTooltips wired the .tooltip host into a trigger button with the
     // host's aria-label transferred; legacy .donut-info/title= is gone.
     const trigger = row.locator('.tooltip-trigger');
     await expect(trigger).toHaveCount(1);
-    await expect(trigger).toHaveAttribute('aria-label', 'About candidate authorized committees');
+    await expect(trigger).toHaveAttribute('aria-label', 'About transfers in');
     await expect(row.locator('.donut-info')).toHaveCount(0);
-    // Popup surfaces the verbatim methodology copy on open.
+    // Popup surfaces the verbatim methodology copy on open (shared "Transfers in" string).
     await trigger.click();
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
     await expect(popup).toContainText(
-      'Money transferred in from committees authorized by the same candidate.'
+      'for a candidate committee, its other authorized committees (and, for a presidential campaign, its joint fundraising committees)'
     );
   });
 });
@@ -3188,7 +3188,7 @@ test.describe('candidate.html — breakdown slot: presidential is gated → donu
 
 // transfers_from_affiliated_committee (Form-3P) — a presidential candidate's joint-
 // fundraising transfers; the donut (presidential fallback) must include it in the
-// "Candidate authorized committees" wedge (verified mutually exclusive, 2026-06-09).
+// "Transfers in" wedge (verified mutually exclusive, 2026-06-09).
 test.describe('candidate.html — donut transfers wedge includes Form-3P transfers', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
@@ -3209,8 +3209,8 @@ test.describe('candidate.html — donut transfers wedge includes Form-3P transfe
     await page.goto(CANDIDATE_URL);
     await page.waitForSelector('#raised-donut-content', { state: 'visible', timeout: 12000 });
   });
-  test('Raised donut "Candidate authorized committees" wedge reads transfers_from_affiliated_committee', async ({ page }) => {
-    const row = page.locator('#donut-legend .donut-row', { has: page.locator('.donut-lbl-text', { hasText: 'Candidate authorized committees' }) });
+  test('Raised donut "Transfers in" wedge reads transfers_from_affiliated_committee', async ({ page }) => {
+    const row = page.locator('#donut-legend .donut-row', { has: page.locator('.donut-lbl-text', { hasText: 'Transfers in' }) });
     await expect(row).toHaveCount(1);
     await expect(row.locator('.donut-val')).toHaveText('$600K');
   });

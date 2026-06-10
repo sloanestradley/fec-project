@@ -228,12 +228,12 @@
     <section class="cc-section cc-section--rehover">
       <h2 class="cc-section-title">Raised breakdown donut · both pages (identical)</h2>
       <p class="cc-section-note">Each <code>cats</code> entry references <code>CATEGORY_COLORS.raised.*</code>
-        (<code>utils.js</code>), but the two pages' raised donuts <strong>diverge</strong>: candidate has
-        <strong>10</strong> categories, committee <strong>11</strong> — committee adds a "Transfers from non-federal
-        account" wedge for its soft-money account (see swatch below). Three labels differ between the pages: "Candidate
-        self-funding" (candidate) vs "Candidate contributions &amp; loans" (committee); "Candidate authorized
-        committees" (candidate) vs "Transfers in" (committee); and the non-fed wedge (committee only). One category —
-        <strong>Individuals (unitemized)</strong> — is the lone pattern fill on the entire site.</p>
+        (<code>utils.js</code>). The two pages' raised donuts share their labels — "Transfers in", "Candidate
+        self-funding", and "Offsets" were aligned across the donuts + Sankey 2026-06-10 (previously the donuts diverged
+        with "Candidate authorized committees" / "Candidate contributions &amp; loans" / "Refunds &amp; offsets"). The
+        only structural difference: committee has <strong>11</strong> categories to candidate's <strong>10</strong> —
+        committee adds a "Transfers from non-federal account" wedge for its soft-money account (see swatch below). One
+        category — <strong>Individuals (unitemized)</strong> — is the lone pattern fill on the entire site.</p>
       <div class="cc-grid" id="raised"></div>
 
       <h3 class="cc-subhead">Wedge pattern vs. legend swap — the asymmetry</h3>
@@ -458,7 +458,7 @@
           <code>legendColor</code> — the wedge/legend asymmetry above.</li>
         <li><strong>No overflow risk.</strong> Categories come from a fixed FEC field schema, not a dynamic
           source, so "more categories than slots" can't happen; long-tail amounts fold into catch-alls (Other
-          receipts, Refunds &amp; offsets, Other Disbursements). The choropleth uses a continuous alpha scale
+          receipts, Offsets, Other disbursements). The choropleth uses a continuous alpha scale
           (effectively unlimited shades of one hue).</li>
         <li><strong>Cross-page:</strong> raised donut identical; spent donut diverges (candidate 5 vs committee
           8 categories); choropleth identical on both (a single <code>--amber</code> ramp, party-agnostic);
@@ -533,13 +533,13 @@
       { name: 'Individuals (unitemized)', pattern: true, val: 'PATTERN · --cat-1 fill, --bg stripes · legend --bg', key: 'individual_unitemized_contributions · legendColor --bg', src: 'token' },
       { name: 'PACs & other committees', color: 'var(--cat-2)', val: '--cat-2 · #1D5A6D', key: 'other_political_committee_contributions', src: 'token' },
       { name: 'Party committees', color: 'var(--cat-3)', val: '--cat-3 · #437772', key: 'political_party_committee_contributions', src: 'token' },
-      { name: 'Candidate authorized committees *', color: 'var(--cat-4)', val: '--cat-4 · #75917B', key: 'transfers_from_other_authorized_committee + _affiliated_party + _affiliated_committee (coalesced) · * committee labels this "Transfers in"', src: 'token' },
+      { name: 'Transfers in', color: 'var(--cat-4)', val: '--cat-4 · #75917B', key: 'transfers_from_other_authorized_committee + _affiliated_party + _affiliated_committee (coalesced) · label aligned across donuts + Sankey 2026-06-10 (was "Candidate authorized committees" on candidate)', src: 'token' },
       { name: 'Transfers from non-federal account', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'transfers_from_nonfed_account + transfers_from_nonfed_levin · COMMITTEE ONLY (dual-account) · shares --cat-5 with self-funding, mutually exclusive by committee type', src: 'token' },
-      { name: 'Candidate self-funding *', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'candidate_contribution + loans_made_by_candidate · * committee: "Candidate contributions & loans"', src: 'token' },
+      { name: 'Candidate self-funding', color: 'var(--cat-5)', val: '--cat-5 · #A7AA91', key: 'candidate_contribution + loans_made_by_candidate · label aligned across donuts + Sankey 2026-06-10 (was "Candidate contributions & loans" on committee)', src: 'token' },
       { name: 'Loans', color: 'var(--cat-6)', val: '--cat-6 · #D4C4B5', key: 'all_other_loans', src: 'token' },
       { name: 'Federal funds', color: 'var(--cat-7)', val: '--cat-7 · #F5E2E0', key: 'federal_funds', src: 'token' },
       { name: 'Other receipts', color: 'var(--cat-other)', val: '--cat-other · #D7D1C7', key: 'other_receipts', src: 'token' },
-      { name: 'Refunds & offsets', color: 'var(--cat-other-2)', val: '--cat-other-2 · #EEE9E1', key: 'offsets_to_* (summed)', src: 'token' }
+      { name: 'Offsets', color: 'var(--cat-other-2)', val: '--cat-other-2 · #EEE9E1', key: 'offsets_to_* (summed) · label aligned with Sankey 2026-06-10 (was "Refunds & offsets")', src: 'token' }
     ]);
 
     // ── spent donut candidate (5) ────────────────────────────────────────
