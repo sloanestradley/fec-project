@@ -14,7 +14,7 @@ Step 4 is the donut↔Sankey **scope toggle**: Money flow shows where it conserv
 The dependency chain:
 - **Track A (donut correctness fix)** — shipped 2026-06-09 (dual-account donut fix). The donut fallback is now honest, which is what makes the slot's gated state safe to lean on.
 - **This work (flatten + re-org)** — builds the slot + the paired-row structure.
-- **Step 4 (scope toggle)** — makes Money-flow / donut mutually exclusive inside the slot; adds the "which viz rendered" analytics dimension.
+- **Step 4 (scope toggle) — effectively folded into this work.** The mutual-exclusion toggle (9c) and the "which viz rendered" analytics dimension (`breakdown_viz`, also 9c) both land here, and the skeleton-then-swap question resolved to "no swap" (§8). So there is no separate Step 4 left to build — this re-org delivers it. (Kept as a named milestone only for traceability.)
 - **Step 5 (dual-account Sankey un-gate)** — flips Gate-1 committees donut→Sankey; the slot already supports it.
 
 ---
@@ -124,7 +124,7 @@ Each compact row is **raised-side | spent-side**. The CSS primitive already exis
 
 | State | Trigger | Renders |
 |---|---|---|
-| **loading** | pre-resolve | skeleton — **default**: the Sankey skeleton, then swaps to the donut pair if the entity resolves gated (the Step-4-decided behavior; the gated path's donut skeletons take over after the gate is known) |
+| **loading** | pre-resolve | a single skeleton that **resolves directly to the correct viz — no swap.** The gate is known *synchronously* (`sankeyGateReason` reads the in-memory totals record at render time), so the slot mounts the right skeleton→viz directly; there is no intermediate Sankey-skeleton→donut hand-off. (Supersedes the earlier "Sankey skeleton then swap" framing — per review Gap 2.) |
 | **in-scope** | `!gated` | money-flow card (full-width, **intact incl. its `#sankey-debt` caption** — decision 2) |
 | **gated** | `gated` (reason ∈ {`non-federal`, `presidential`}) | `.raised-grid` with raised donut \| spent donut — **no caption** (§4); the donut pair is a complete, first-class view |
 | **empty** | no financial activity (committee no-activity guard; candidate empty-cycle) | nothing — slot collapses to **zero height, no pulsing skeleton left behind** |
@@ -138,43 +138,55 @@ Each compact row is **raised-side | spent-side**. The CSS primitive already exis
 ## 9. PRE-BUILD CHECKLIST (review this before any code)
 
 ### 9a. Assertion retargets (tests-first — land before touching DOM)
-- [ ] candidate.spec.js — 36 `#tab-*` refs → content IDs (`#money-flow-card`, `#donors-card`, `.raised-grid`, `#spent-donut-content`, `#page-note`). Each "is X in flow?" proxy retargets to the actual content it was standing in for.
+- [ ] candidate.spec.js — 36 `#tab-*` refs → content IDs (`#money-flow-card`, `#donors-card`, `.raised-grid`, `#spent-donut-content`, `#page-note`). Almost all are `.toBeVisible()` "is X in flow?" proxies — **verified no test asserts donut/Sankey *containment* inside a `#tab-*` parent**, so cross-boundary moves don't break containment assertions; the retargets are simple visibility swaps to the content each proxy stood in for.
 - [ ] committee.spec.js — 37 `#tab-*` refs → same.
+- [ ] **SEPARATE from the retargets — the flow-order tests are a REWRITE, not a retarget** (review Gap 1): `candidate.spec.js:521` ("sections render in flow order: summary → raised → spent → page-note") and the committee equivalent (`committee.spec.js`, the `['tab-summary','tab-raised','tab-spent','page-note']` `compareDocumentPosition` test) assert the **old order over the now-deleted `#tab-*` ids**. They must be rewritten to assert the **new thematic order** (§7) over the new containers — a logic change, not a selector swap. Land them at the re-org step (9b), not in this retarget batch, since the new order doesn't exist until then.
 - [ ] Add a routing regression test: deep-link `#2024` lands on detail; back/forward preserved; bare URL → index. (Locks that the flatten didn't touch routing.)
-- [ ] Confirm green at the *current* DOM (retargeted assertions must pass before the re-org, against the still-present content).
+- [ ] Confirm green at the *current* DOM (the retargeted visibility assertions must pass before the re-org, against the still-present content; the flow-order rewrites are the exception — they flip with 9b).
 
 ### 9b. Per-page DOM moves (one page at a time — independent files)
+- [ ] **Scope guard:** the **header zone — `#summary-strip` (stats-grid, banner, race-context-bar) — sits OUTSIDE `#content`'s tab divs and is NOT moved.** All moves here are *inside* `#content`.
 - [ ] **candidate.html:** introduce row containers; move children out of `#tab-summary/-raised/-spent`; delete the 3 wrappers. New order per §7. Reparent money-flow card into the breakdown slot **intact** (keep `#sankey-debt`).
+- [ ] **The donut moves are surgical, not "move a div":** each donut travels as a unit with its skeleton + legend + center-val + error overlay + tooltip + all IDs. Pull the **raised donut** out of `#tab-raised`'s `.raised-grid` and the **spent donut** out of `#tab-spent`'s `.raised-grid` into the **breakdown slot**; then pair the **map** (was with raised donut) with **Spending by Purpose** (was with spent donut) in a new `.raised-grid`.
+- [ ] **Timeline is a distinct move (candidate):** it currently sits in `#tab-summary` at position #2 (its `#chart-area` + `#chart-skeleton` + `#chart-error` + `renderChart` timing). Move the whole unit to the new **low** position (after the leaderboards, §7) — not lumped into "move children."
+- [ ] **Preserve wiring across moves:** `initTabSection` (Top Contributors WAI-ARIA tabs) and committee's `fetchAndRenderAssocSection` render targets must keep their element IDs/structure so the JS still finds them after reparenting.
 - [ ] **committee.html:** same; plus reparent `#assoc-section` (today in `#tab-summary`) and `Contributions to Candidates` to their §7 positions; no timeline row populated.
 - [ ] Reuse `.raised-grid` for the compact paired rows; leaderboards full-width (decision 1).
+- [ ] **Flow-order tests flip here** (from 9a): rewrite them to assert the new §7 order over the new containers.
 - [ ] `#page-note` stays last inside `#content`.
+- [ ] **Headings scope (confirm):** this re-org is a **structural reflow only — no new thematic section headings added** (the locked §7 shows none). If section headings are wanted, that's a separate pass — flagged so it isn't ambiguous at build time.
 
-### 9c. Breakdown-slot wiring
-- [ ] **Prerequisite (ordering):** the **donut correctness fix lands before slot wiring** — so 9c reparents *already-correct* donuts rather than colliding two concurrent edits on the donut code. (Satisfied: the dual-account donut fix shipped 2026-06-09; if any further donut correctness work is queued, it precedes 9c.)
-- [ ] One slot container; in-scope renders money-flow card, gated renders the donut `.raised-grid`, empty collapses, loading shows the skeleton (all four states, §8).
+### 9c. Breakdown-slot wiring — **= end the coexist phase + implement the toggle** (review Gap 2)
+> Not just reparenting. **Today both viz render** (`renderMoneyFlow` *and* `renderContributorDonut`/`renderSpentDonutNow` all run unconditionally — coexist). 9c makes them **mutually exclusive**, which is the actual donut↔Sankey toggle. **Visible consequence: in-scope entities lose the donuts; gated entities lose the Sankey card.** This is the seam where this work meets Step 4.
+- [ ] **Prerequisite (ordering):** the **donut correctness fix lands before slot wiring** — so 9c reparents *already-correct* donuts rather than colliding two concurrent edits on the donut code. (Satisfied: the dual-account donut fix shipped 2026-06-09; any further donut correctness work precedes 9c.)
+- [ ] **Add a gate-conditional guard to the render orchestration** so only one viz mounts: `!gated` → render the money-flow card, do **not** render the donuts; `gated` → render the donut pair, do **not** mount the Sankey card. (This is the behavior change — the current unconditional render of both must become conditional.)
+- [ ] One slot container; the four §8 states (loading / in-scope / gated / empty). **Loading resolves directly to the correct viz — no Sankey→donut swap** (gate is known synchronously; see §8).
 - [ ] Wire to the existing `gated` signal (`sankeyGateReason`); **not** page type.
 - [ ] **No gated caption** (§4 resolved) — the donut pair stands alone; no `SLOT_GATED_CAPTION` map to build.
-- [ ] Move both donuts into the slot's gated state (today they're in two separate `.raised-grid`s); the map now pairs with purpose.
-- [ ] Verify skeleton behavior matches the decided "gated load shows Sankey skeleton then swaps to donut."
+- [ ] Move both donuts into the slot's gated state (today they're in two separate `.raised-grid`s); the map now pairs with purpose (done in 9b's DOM move).
+- [ ] **`exactly-one-Chart-instance-per-canvas` lock:** ending coexistence means on in-scope entities the donut canvases never mount (and vice-versa). Verify no render path tries to draw into a now-unmounted canvas, and that the existing one-instance-per-canvas test still holds (retarget/extend it for the conditional mount).
+- [ ] **Analytics "which viz" dimension — LANDS IN 9c (locked 2026-06-10):** add a `breakdown_viz` property (`'sankey'` | `'donut'`; include the gate reason when `'donut'`) to the existing `Page Viewed` event, set when the slot mounts its viz. It lands in the **same change that ends coexistence**, so there is never a window where "which viz rendered" goes uncaptured. Both profile pages.
 
 ### 9d. Race loading-state swap (decision 4)
-- [ ] Replace the `.state-msg` "Fetching race data from FEC…" (`race.html:78`) with candidate-row skeletons.
+- [ ] Replace **only the cold-load** `.state-msg` "Fetching race data from FEC…" (`race.html:78`) with candidate-row skeletons.
+- [ ] **Scope guard (review Gap 3):** `.state-msg`/`.loader` is **shared** by three things — the cold-load text, the **error state** (`state-msg error`), and the **cycle-switch loader** (`#race-switch-loader`). The skeleton swap must touch **only the cold-load path** and leave the error state + switch-loader intact. (The empty-cycle `.inline-status-msg` state is also unchanged.)
 - [ ] Keep `?year=` routing as-is (decision 5) — add a one-line code comment citing the rationale.
 - [ ] **Flagged sub-task (don't block):** diagnose the cold-load slowness (single `/elections/` call vs the enrichment path — verify which is slow). Note findings; separate fix if needed.
 - [ ] Confirm `Page Viewed` still fires (`race.html:363`) — already does; no change.
 
 ### 9e. Cross-cutting verification
 - [ ] Full Playwright suite green after each page's re-org.
-- [ ] Live browser check (UI-touching): candidate + committee detail at desktop + ≤860px (paired rows collapse cleanly); gated committee (dual-account) shows donut row + §4 caption; in-scope shows Sankey; race skeleton renders.
-- [ ] Docs: update CLAUDE.md (profile structure + the retired `#tab-*` wrappers), ia.md (`#tab-summary` section-ids note), design-system.html if any component shape changed, test-cases.md log row.
+- [ ] **Whole-view empty state still toggles:** candidate's `#cycle-empty-state` replaces `#content` on no-data cycles — confirm that toggle still works after `#content`'s children are restructured (it hides `#content`, so it should, but verify).
+- [ ] Live browser check (UI-touching): candidate + committee detail at desktop + ≤860px (paired rows collapse cleanly); gated committee (dual-account) shows the **donut pair, no caption** (§4); in-scope shows Sankey, donuts absent (coexistence ended, 9c); race skeleton renders.
+- [ ] Docs: update CLAUDE.md (profile structure + the retired `#tab-*` wrappers + the end of donut/Sankey coexistence), ia.md (`#tab-summary` section-ids note), **design-system.html — add a Money-flow/breakdown-slot component card (the slot is a new component shape, not "if changed")**, test-cases.md log row.
 
 ---
 
 ## 10. Migration sequence (summary)
-1. **Tests first** — retarget the 73 assertions to content IDs; add routing regression; confirm green at current DOM.
-2. **DOM re-org** — candidate, then committee (independent files); dissolve wrappers, build §7 rows.
-3. **Slot wiring** — unify donuts into the slot; wire in-scope/gated/empty; implement §4 caption (after the decision).
-4. **Race** — skeleton swap; flag cold-load slowness.
+1. **Tests first** — retarget the visibility assertions to content IDs; add routing regression; confirm green at current DOM. (The flow-order tests are a *rewrite*, deferred to step 2 — they can't pass until the new order exists.)
+2. **DOM re-org** — candidate, then committee (independent files); dissolve wrappers, build §7 rows; rewrite the flow-order tests to the new order.
+3. **Slot wiring = end coexistence + the toggle** — add the gate-conditional guard so only one viz mounts; unify donuts into the slot; wire all four §8 states (loading resolves directly, no swap). No caption (§4 resolved). Fire the analytics "which viz" `breakdown_viz` dimension here (locked — lands with the toggle so coexistence never ends uncaptured).
+4. **Race** — cold-load skeleton swap (leave error + switch-loader); flag cold-load slowness.
 5. **Routing regression** — verify hash + race query params intact.
 6. **Docs + live QA.**
 
