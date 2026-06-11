@@ -2916,6 +2916,70 @@ test.describe('candidate.html — committees modal a11y', () => {
   });
 });
 
+// ── Future election cycle — loading fix + opex scopes to the most-recent FILED sub-cycle ──
+// An incumbent's NEXT election (e.g. a 2028 Senate cycle viewed in 2026): /totals/
+// ?election_full already aggregates the early fundraising, but /committees/?cycle=2028 is
+// EMPTY (no filing in the 2027–2028 period yet) → principal was undefined → reports + the
+// Raised/Spent kickoffs were all skipped → map/purpose/contributors/vendors hung in
+// skeleton + the timeline rendered empty. Fix: fall back to the unscoped committees list.
+// And opex (Vendors + Purpose) scopes to the most-recent FILED sub-cycle (from
+// coverage_end_date), not the empty nominal last one.
+test.describe('candidate.html — future election cycle (loading fix + opex sub-cycle scope)', () => {
+  async function futureCycleSetup(page) {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    // Senate candidate (subCycles [2024, 2026, 2028]) viewing the future 2028 cycle.
+    await page.route(/\/api\/fec\/candidate\/H2WA03217\/(?!.*\/)/, (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ candidate_id: 'H2WA03217', name: 'GLUESENKAMP PEREZ, MARIE', party: 'DEM',
+          party_full: 'DEMOCRATIC PARTY', office: 'S', office_full: 'Senate', state: 'WA',
+          election_years: [2024, 2026, 2028], incumbent_challenge: 'I', incumbent_challenge_full: 'Incumbent',
+          first_file_date: '2019-01-01' }],
+        pagination: { count: 1, pages: 1, per_page: 20, page: 1 } }) });
+    });
+    // ?cycle=2028 is empty (no 2027–2028 filing yet); unscoped returns the PCC with filed
+    // cycles [2024, 2026] — the loading-bug fallback path.
+    await page.route(/\/api\/fec\/candidate\/H2WA03217\/committees\//, (route) => {
+      var empty = /cycle=2028/.test(route.request().url());
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: empty ? [] : [{ committee_id: 'C00775668', name: 'MARIE FOR SENATE',
+          designation: 'P', committee_type: 'S', cycles: [2024, 2026] }],
+        pagination: { count: empty ? 0 : 1, pages: empty ? 0 : 1, per_page: 50, page: 1 } }) });
+    });
+    // Future-cycle totals: real receipts, coverage_end_date in the 2025–2026 period.
+    await page.route(/\/api\/fec\/candidate\/H2WA03217\/totals\/.*cycle=2028/, (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2028, receipts: 6800000, disbursements: 2000000,
+          last_cash_on_hand_end_period: 4800000, coverage_end_date: '2026-03-31T00:00:00',
+          individual_itemized_contributions: 5000000, individual_unitemized_contributions: 600000,
+          operating_expenditures: 1500000 }],
+        pagination: { count: 1, pages: 1, per_page: 20, page: 1 } }) });
+    });
+    await page.goto('/candidate.html?id=H2WA03217#2028');
+    await page.waitForSelector('#content.visible', { timeout: 12000 });
+  }
+
+  test('page loads (kickoffs fire via the unscoped-committees fallback) — Vendors section resolves, not stuck in skeleton', async ({ page }) => {
+    await futureCycleSetup(page);
+    // #spent-vendors-content reaching display:block proves renderSpentOpexIfReady ran,
+    // which only happens if the Spent kickoff fired → principal was resolved (the fix).
+    await page.waitForFunction(() => {
+      const el = document.getElementById('spent-vendors-content'); return el && el.style.display === 'block';
+    }, { timeout: 12000 });
+    await expect(page.locator('#raised-fast-skeleton')).toBeHidden();  // map kickoff fired too
+  });
+
+  test('opex scopes to the most-recent FILED sub-cycle — "Top Vendors · 2025–2026", not the empty 2027–2028', async ({ page }) => {
+    await futureCycleSetup(page);
+    await page.waitForFunction(() => {
+      const el = document.getElementById('spent-vendors-content'); return el && el.style.display === 'block';
+    }, { timeout: 12000 });
+    await expect(page.locator('#vendors-head')).toHaveText('Top Vendors · 2025–2026');
+    await page.locator('#spent-purpose-title .tooltip-trigger').click();
+    await expect(page.locator('.tooltip-popup')).toContainText('Covers 2025–2026 only.');
+  });
+});
+
 // ── T-cycle-empty-state — whole-view empty state for cycles with no filings ──
 // When a cycle has no financial filings, candidate.html replaces the tabs bar +
 // tabbed content with a single whole-view empty state below the summary strip.

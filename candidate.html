@@ -465,6 +465,7 @@ var spentOpexTimer       = null;
 // Retry context — captured in loadCycle so retry handlers can re-fire fetches with the right args
 var currentPrincipalId       = null;
 var currentSubCycles         = null;
+var currentOpexSubcycle      = null;  // most-recent FILED sub-cycle — opex (Vendors + Purpose) scope
 var currentTotalsBreakdown   = null;
 var currentTotalRaised       = null;
 var currentDisbursementsBreakdown = null;
@@ -1408,11 +1409,15 @@ function renderRaisedIfReady() {
 }
 
 // ── Spent tab: data fetch ────────────────────────────
-async function fetchSpentOpex(committeeId, subCycles) {
-  // Opex tier: all Schedule B (operating) transactions for the most recent sub-cycle.
-  // Feeds Spending-by-Purpose bars + Top Vendors. The donut renders separately from
-  // the in-memory disbursements breakdown (no fetch) — see renderSpentDonutNow.
+async function fetchSpentOpex(committeeId, subCycles, opexSubcycle) {
+  // Opex tier: all Schedule B (operating) transactions for ONE sub-cycle — the most-recent
+  // FILED one (opexSubcycle, from coverage_end_date), falling back to the nominal last
+  // sub-cycle. For a future election the last sub-cycle (e.g. 2027–2028) has no data yet,
+  // so scoping to the filed sub-cycle (e.g. 2025–2026) surfaces the real spend instead of
+  // an empty table. Feeds Spending-by-Purpose bars + Top Vendors. The donut renders
+  // separately from the in-memory disbursements breakdown (no fetch) — see renderSpentDonutNow.
   // Paginate via cursor until all records retrieved, cap at 5 pages (500 transactions).
+  var period = opexSubcycle || subCycles[subCycles.length - 1];
   var allTransactions = [];
   var capped = false;
   // T12: errors propagate to renderSpentOpexIfReady's tab-level error UI; previous inner
@@ -1420,7 +1425,7 @@ async function fetchSpentOpex(committeeId, subCycles) {
   var MAX_PAGES = 5;
   var params = {
     committee_id: committeeId,
-    two_year_transaction_period: subCycles[subCycles.length - 1],
+    two_year_transaction_period: period,
     sort: '-disbursement_amount',
     per_page: 100
   };
@@ -1457,7 +1462,7 @@ async function fetchSpentOpex(committeeId, subCycles) {
     .slice(0, 10);
 
   return { topVendors: topVendors, allTransactions: allTransactions,
-           capped: capped, subCycles: subCycles };
+           capped: capped, subCycles: subCycles, opexPeriod: period };
 }
 
 // ── Spent tab: donut chart ───────────────────────────
@@ -1660,8 +1665,8 @@ function renderSpentOpexIfReady() {
   // the window IS the cycle; for Senate/President it's the last 2 of the 6-/4-year cycle —
   // so the prior vague "Most Recent Sub-Cycle" caveat (misleading on past cycles) is gone.
   var sc = spentOpexData.subCycles || [];
-  var lastSub = sc[sc.length - 1];
-  var periodLabel = (lastSub - 1) + '–' + lastSub;
+  var period = spentOpexData.opexPeriod || sc[sc.length - 1];   // the FILED sub-cycle actually fetched
+  var periodLabel = (period - 1) + '–' + period;
   var vendorsHead = document.getElementById('vendors-head');
   if (vendorsHead) vendorsHead.textContent = 'Top Vendors · ' + periodLabel;
 
@@ -1784,7 +1789,7 @@ function kickoffSpentFetch(token) {
     spentOpexStillLoading = true;
     applySpentIndicators();
   }, 10000);
-  fetchSpentOpex(currentPrincipalId, currentSubCycles)
+  fetchSpentOpex(currentPrincipalId, currentSubCycles, currentOpexSubcycle)
     .then(function(d) {
       clearTimeout(spentOpexTimer);
       if (!view.isCurrentToken(token)) return;
@@ -2083,6 +2088,19 @@ async function loadCycle(cycle) {
     if (!view.isCurrentToken(myFetchId)) return; // discard: a newer cycle was requested
     var committees = fetchResults[0].results || [];
     var totalsRec  = (fetchResults[1].results || [])[0] || {};
+    // Future-election fallback: ?cycle={electionYear} is empty when the committee hasn't
+    // filed in the last 2-year sub-period yet (e.g. an incumbent's NEXT cycle — /totals/
+    // ?election_full already aggregates the early fundraising, but no committee is linked
+    // to that future period). Without a principal, the reports fetch + the Raised/Spent
+    // kickoffs below are all skipped → those sections hang in skeleton (the loading bug).
+    // Re-query unscoped and keep committees whose filing cycles overlap this election's
+    // sub-cycles (scopes out an office-switcher's older-office PCC; falls back to all).
+    if (!committees.length) {
+      var allCmtes = ((await apiFetch('/candidate/'+CANDIDATE_ID+'/committees/')).results) || [];
+      if (!view.isCurrentToken(myFetchId)) return;  // re-check race token after the extra await
+      var overlap = allCmtes.filter(function(c){ return (c.cycles||[]).some(function(y){ return subCycles.indexOf(y) !== -1; }); });
+      committees = overlap.length ? overlap : allCmtes;
+    }
     var principal  = committees.find(function(c){ return c.designation==='P'; }) || committees[0];
 
     // Extract from the single FEC election-aggregated record. The empty-data
@@ -2098,6 +2116,18 @@ async function loadCycle(cycle) {
     // "no outstanding debt." No longer feeds the health signal (assessHealth).
     var debt    = totalsRec.last_debts_owed_by_committee || 0;
     var covDate = totalsRec.coverage_end_date ? totalsRec.coverage_end_date.split('T')[0] : null;
+    // Opex (Vendors + Purpose) scopes to the most-recent FILED sub-cycle, not the nominal
+    // last one. Derive it from the coverage end date — the 2-year period covDate falls in —
+    // clamped to this cycle's sub-cycles. Complete/current cycles: equals the last sub-cycle
+    // (no change). Future election: the last sub-cycle (e.g. 2027–2028) is empty, so this is
+    // the last sub-cycle that actually has filings (e.g. 2025–2026). (Map + Top Contributors
+    // already aggregate across ALL sub-cycles, so they're unaffected — only opex is single.)
+    var opexSubcycle = subCycles[subCycles.length - 1];
+    if (covDate) {
+      var covY = parseInt(covDate.slice(0, 4), 10);
+      var covPeriod = (covY % 2 === 0) ? covY : covY + 1;   // even = the 2-yr period; odd = its even end-year
+      if (subCycles.indexOf(covPeriod) !== -1) opexSubcycle = covPeriod;
+    }
     var totalsBreakdown = {
       individual_itemized_contributions:           totalsRec.individual_itemized_contributions || 0,
       individual_unitemized_contributions:         totalsRec.individual_unitemized_contributions || 0,
@@ -2147,6 +2177,7 @@ async function loadCycle(cycle) {
       // Capture retry context — retry handlers re-fire the same fetch with these args
       currentPrincipalId             = principal.committee_id;
       currentSubCycles               = subCycles;
+      currentOpexSubcycle            = opexSubcycle;
       currentTotalsBreakdown         = totalsBreakdown;
       currentTotalRaised             = raised;
       currentDisbursementsBreakdown  = disbursementsBreakdown;
