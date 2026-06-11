@@ -6541,3 +6541,51 @@ Stack tags: (none new — ECharts 5.5.1, Chart.js 4.4.0, Playwright, Cloudflare 
 - **Step 5 (the un-gates) scheduling:** dual-account + presidential Sankey un-gates are fully spec'd in `sankey-data-model.md` §4a and banked — decide when to pick them up (each flips its entities donut→Sankey in place, zero layout rework).
 - **Race cold-load → KV cache:** the 9d diagnosis pointed at the server-side caching architectural-debt item. Worth deciding the trigger (before any real-traffic / election-night push).
 - **The `--cat` palette is full (7 hues).** Coordinated expenditures took the spare neutral grey as a compromise. Is grey-reuse the standing pattern for future minor/party categories, or do we eventually add an 8th hue to the broadsheet ramp? A design-system call for when the next first-class category appears.
+
+---
+2026-06-11 — session close (Sankey Step-5 Gate-1 un-gate + candidate Spent/loading polish arc)
+
+## Process log draft
+
+### The map said "where," but only half-honestly — and a future you couldn't see
+
+This session started by finally letting dual-account party committees draw their money-flow Sankey (the un-gate), then turned into a long, satisfying honesty pass over the candidate Spent tab: every label now says exactly what slice of time and data it's showing. The richest part wasn't planned — poking at a 2028 Senate incumbent surfaced a whole class of "future cycle" bugs that had been quietly lurking.
+
+**What changed**
+- **Sankey Step-5 Gate-1:** dual-account committees (state parties, EMILY's-class PACs) now render the money-flow Sankey instead of falling back to donuts — Federal Election Activity gets its own node, non-federal transfers commingle into "Transfers in," and remainder catch-alls keep it penny-exact. Presidential is adapter-ready but stays gated for now.
+- **Chart titles got honest + clearer:** "Spending by Category" → "Spent breakdown," "Where Individual Contributions Come From" → "Itemized Individual Contributions Map," and the timeline → "Totals Reported Over Cycle."
+- **The page-note slimmed down:** dropped "Source: FEC." (the banner already says it) and the $200 caveat (moved it next to the map it actually qualifies). Added a caption under the map: "Itemized individual contributions make up XX.XX% of all individual contributions to this candidate this cycle."
+- **Top Vendors now names its window** — "Top Vendors · 2025–2026" — instead of the vague, sometimes-misleading "Most Recent Sub-Cycle."
+- **Future cycles actually load now.** Viewing an incumbent's next election (e.g. Warnock 2028) used to half-load — the map, spending, contributors, and vendors hung forever. Fixed two root causes: the committee lookup came back empty for the un-filed future period, and the contributors query 404'd on a transaction period that doesn't exist yet.
+- A Chart.js quirk where the timeline shrank on narrowing but never grew back on widening.
+
+**Field notes**
+
+The most interesting bug this session wasn't a bug in code I wrote that day — it was a latent assumption finally getting exercised. The whole candidate page quietly assumed "the cycle you're viewing has already been filed." An incumbent raising money two years before their election breaks that: the totals endpoint aggregates the early money, but the committee isn't *linked* to the future 2-year period yet, and the transaction endpoints 404 on a period that doesn't exist. Three different layers, same root misconception. The fix in each case was the same instinct — anchor to "what's actually been filed" (the coverage date) rather than "the nominal cycle." That coverage-date-derived sub-cycle ended up doing triple duty: scoping the vendor data, labeling it, and capping which periods we even query.
+
+The other theme was labels-as-honesty. A title like "Most Recent Sub-Cycle" feels precise but says nothing a user can verify; "2025–2026" says exactly what they're looking at. Same with folding the page-note's source line into the banner — provenance belongs in one place, not repeated. Every one of these was small, but together they move the page from "developer-correct" toward "a reader can trust what each number means."
+
+**Stack tags:** Apache ECharts (Sankey), Chart.js responsive resize, FEC /schedules/schedule_a two_year_transaction_period 404 behavior, coverage-date sub-cycle derivation
+
+## How Sloane steered the work
+
+**Caught a strategy conflict Chat and I both missed.** When Claude Chat proposed breaking non-federal transfers into their own Sankey node (to "surface the signal"), I accepted it. Sloane stopped and asked whether that conflicted with the locked decision to *commingle* hard/soft money in this un-gate — and it did. The separate node was quietly re-introducing the fed/non-fed split that representation (a) deliberately deferred to a future dedicated viz. We reverted to the fold. This was architecture judgment, not preference — holding a prior decision steady against a locally-reasonable-sounding change.
+
+**Found two real bugs by QAing the edge nobody tests.** Rather than spot-checking a normal cycle, Sloane deliberately loaded a 2028 Senate incumbent specifically to see what happens when the "most recent sub-cycle" is in the future and has no data yet. That single instinct surfaced the future-cycle loading hang *and*, on the follow-up look, the Top Contributors 404 — both latent, both shipping-blocking for any incumbent's next cycle.
+
+**Insisted on label precision, repeatedly.** "Itemized receipts" → "Itemized individual contributions" (the denominator is contributions, so the numerator should match); "this campaign" → "this candidate / this committee" (entity-accurate); "Reported Totals Over Cycle" → "Totals Reported Over Cycle" (just reads smoother). Small edits, but each one closes a small gap between what the label says and what's true.
+
+**Named the itemized scope as the point.** The "Itemized Individual Contributions Map" rename came with a reason — "it's important that it be clear these are the itemized contributions" — and drove the whole cleanup (the $200 caveat moving to the map, the new share-percentage caption). The map had always been itemized-only; Sloane made the UI say so.
+
+**Made the fiddly UI calls deliberately.** Map left-aligned on desktop but centered on mobile; then a correction — center the *box*, keep the *text* left-aligned. The tooltip parenthetical restructure (enumerating all four clause combinations up front). These are the calls that don't show up in tests but decide whether something feels considered.
+
+**Worried about clean history, not just working code.** "I didn't mean to get behind in merges to main" — Sloane was tracking the branch stack and wanted to understand conflict risk before it compounded. We confirmed it was a clean linear stack and shipped all four commits in one fast-forward.
+
+**The through-line:** Sloane works as the product owner who QAs the unglamorous edges and guards the decisions — catching both a real future-cycle bug *and* a strategic drift in the same session, while keeping every change shippable in clean, separately-QA'd increments. The judgment is consistently "does this say something true and verifiable to the reader," applied to data, copy, and architecture alike.
+
+## What to bring to Claude Chat
+
+- **Gate-2 presidential un-gate — the real next Sankey step.** Adapter is built + test-locked (exempt-spend nodes, McCain '08 conserves). The remaining blocker is raised-side: Form-3P loans live in `loans_received`/`other_loans_received` (which the Loans node doesn't read), and they alias `all_loans_received` — needs a cross-form de-dup check before flipping the gate. Worth deciding when to prioritize vs. other work.
+- **Future-cycle scoping is now a pattern, not a one-off.** Every incumbent's next election hits it. The "anchor to the filed sub-cycle (coverage date), not the nominal cycle" approach is now in three places — worth a quick gut-check that we like that as the standing convention before more surfaces depend on it.
+- **The donut code is now partly dead.** Gate-1 + the future fixes mean dual-account committees never render the donut pair; only presidential does (until Gate-2 flips). When Gate-2 lifts, the donut-render path + its remaining tests retire entirely — a clean future cleanup ticket to scope.
+- **Server-side KV caching for the API proxy** remains the banked Phase-4 lift that would make cold-load + future-cycle pages snappy under real traffic (also the fix for race.html cold-load). Still unscheduled.

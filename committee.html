@@ -2619,9 +2619,10 @@ function renderSpentOpexIfReady() {
   //     value").
   //   K16.e (Coverage through {date}): cut (already at #stat-coh-sub).
   // K16.d (Top vendors deduplicated by recipient) CUT 2026-06-01 (§5.j) — thin
-  // dedup methodology note, same shape as the cut C8.c / K4–K7 attributions; the
-  // page-level "Source: FEC" line covers provenance. Spent footer now renders
-  // nothing — the slot stays empty + hidden.
+  // dedup methodology note, same shape as the cut C8.c / K4–K7 attributions;
+  // provenance is covered by the global banner ("All data sourced from the FEC public
+  // API" — the page-note "Source: FEC" line was itself retired 2026-06-11). Spent footer
+  // now renders nothing — the slot stays empty + hidden.
   document.getElementById('spent-data-note').innerHTML = '';
   document.getElementById('spent-data-note').style.display = 'none';
 
