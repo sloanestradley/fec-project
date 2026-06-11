@@ -546,10 +546,20 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .raised-cell { padding-top:var(--space-24); min-width:0; }
 .raised-cell-title { font-family:'Oswald',sans-serif; font-size:1.25rem; font-weight:400;
   text-transform:uppercase; color:var(--text); margin-bottom:var(--space-24); }
-/* Section title carrying an info tooltip: flex row so the 32px .tooltip trigger
-   seats beside the heading. No gap — the trigger's own var(--space-4) padding
-   spaces it from the title text (matches .donut-lbl--has-info). */
-.raised-cell-title--has-info { display:flex; align-items:center; }
+/* Section title carrying an info tooltip. Left as normal BLOCK flow (NOT flex) so
+   the inline-flex .tooltip (see :1182) flows inline at the end of the heading text
+   and wraps WITH it when the title breaks to two lines — a flex container would pin
+   the trigger off to the side, vertically centered against the whole wrapped block.
+   Spacing comes from the trigger's own var(--space-4) padding (no gap needed).
+   NB: .donut-lbl--has-info DOES stay flex — its .donut-lbl-text child owns ellipsis
+   truncation, a different need. Marker class kept (JS + static markup add it). */
+.raised-cell-title--has-info { }
+/* Optical centering: vertical-align:middle (the global .tooltip rule) aligns the
+   trigger to the x-height midline, which reads ~2px low against the UPPERCASE Oswald
+   heading — caps center above x-height center. Nudge the inline trigger up 2px to
+   optically center it with the caps. Scoped to the title context (the 32px-locked
+   thead/divider tooltips center via row height, not vertical-align). */
+.raised-cell-title--has-info .tooltip { transform: translateY(-2px); }
 
 /* ── K: Stats grid ──
    T14 structure: outer 1fr 1fr grid wraps two .stats-grid-half nests. Each half
