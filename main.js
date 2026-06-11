@@ -4,22 +4,65 @@ amplitude.init('62280d38083601e001bf153dbcf38a9b', { defaultTracking: false });
 if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
 
 // ── Hamburger nav (drawer drops down from top) ───────
+// Toggles #mobile-nav + a body-level dimming overlay (.mobile-nav-overlay,
+// injected once below). The menu closes on: hamburger re-tap, nav-item click,
+// tap/click outside the drawer (excluding the hamburger, so the opening tap
+// doesn't self-close), Escape, and scroll. aria-expanded stays in sync on every
+// path.
+//
+// Close-on-scroll is load-bearing, not polish: the banner-uncovered design
+// assumes the drawer only lives at scroll-top (.top-nav is in-flow and scrolls
+// away with the hamburger). But the overlay is position:fixed while the nav +
+// drawer are not — so scrolling with the menu open would slide the nav/drawer
+// out of view while the fixed scrim stays, exposing page content in the 32px
+// strip above it where the banner should be. Closing on scroll keeps that
+// invariant valid. Chosen over a scroll-lock (search-overlay's overflow:hidden
+// approach) because the menu is only meaningful at the top — closing is lighter
+// and doesn't trap the user on a frozen page.
 (function() {
   var btn = document.getElementById('hamburger');
   if (!btn) return;
   var nav = document.getElementById('mobile-nav');
-  btn.addEventListener('click', function() {
-    var open = nav.classList.toggle('open');
+
+  // Body-level overlay — a sibling of .top-nav so it sits OUTSIDE the nav's
+  // z-index:200 stacking context (an inline child couldn't render below the nav
+  // while above page content). Stacking is governed by z-index (198), so
+  // appending at end-of-body is equivalent to placing it adjacent to .top-nav.
+  var overlay = document.getElementById('mobile-nav-overlay');
+  if (!overlay) {
+    document.body.insertAdjacentHTML('beforeend', '<div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>');
+    overlay = document.getElementById('mobile-nav-overlay');
+  }
+
+  function isOpen() { return nav.classList.contains('open'); }
+  function setMenu(open) {
+    nav.classList.toggle('open', open);
     btn.classList.toggle('open', open);
+    overlay.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', String(open));
-  });
+  }
+  function closeMenu() { if (isOpen()) setMenu(false); }
+
+  btn.addEventListener('click', function() { setMenu(!isOpen()); });
+
   nav.querySelectorAll('.nav-item').forEach(function(el) {
-    el.addEventListener('click', function() {
-      nav.classList.remove('open');
-      btn.classList.remove('open');
-      btn.setAttribute('aria-expanded', 'false');
-    });
+    el.addEventListener('click', closeMenu);
   });
+
+  // Outside-tap: close when open and the interaction is outside the drawer AND
+  // not the hamburger (its own handler owns the toggle). The scrim is outside
+  // #mobile-nav, so a tap on it is covered here too — no separate handler.
+  document.addEventListener('click', function(e) {
+    if (!isOpen()) return;
+    if (nav.contains(e.target) || btn.contains(e.target)) return;
+    closeMenu();
+  });
+  // Escape closes (mirrors the search overlay's Esc affordance).
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+  // Scroll closes — see the close-on-scroll rationale above.
+  window.addEventListener('scroll', closeMenu, { passive: true });
 })();
 
 // ── Search overlay (T-search-overlay) ─────────────────────────────────────
@@ -158,8 +201,12 @@ if (window.sessionReplay) amplitude.add(window.sessionReplay.plugin({ sampleRate
     if (navBtn && navBtn.getAttribute('aria-current') !== 'page') {
       navBtn.addEventListener('click', openOverlay);
     }
+    // Parity with #nav-search-btn: on /search the toggle carries
+    // aria-current="page" and stays unwired (muted no-op — already on search).
     var mobileToggle = document.getElementById('top-nav-search-toggle');
-    if (mobileToggle) mobileToggle.addEventListener('click', openOverlay);
+    if (mobileToggle && mobileToggle.getAttribute('aria-current') !== 'page') {
+      mobileToggle.addEventListener('click', openOverlay);
+    }
   }
 
   // DOMContentLoaded — by then utils.js has loaded, so initSearchPanel exists.

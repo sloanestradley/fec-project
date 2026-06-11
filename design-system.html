@@ -228,15 +228,15 @@
 <nav class="top-nav" id="top-nav">
   <div class="top-nav-inner">
     <a class="top-nav-logo" href="/"><span class="logo-fec">FEC</span><span class="logo-ledger">Ledger</span></a>
-    <div class="top-nav-links">
-      <a class="nav-link" href="/races">Races</a>
-      <a class="nav-link" href="/feed">Feed</a>
-    </div>
     <div class="top-nav-search">
       <button type="button" class="top-nav-search-btn" id="nav-search-btn" aria-label="Open search">
         <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <span>Search</span>
       </button>
+    </div>
+    <div class="top-nav-links">
+      <a class="nav-link" href="/races">Races</a>
+      <a class="nav-link" href="/feed">Feed</a>
     </div>
     <div class="top-nav-mobile-controls">
       <button class="top-nav-search-toggle" id="top-nav-search-toggle" aria-label="Open search">
@@ -719,7 +719,7 @@
             <a class="nav-link" href="#" style="height:auto;padding:0.25rem 0.75rem">Feed</a>
           </div>
         </div>
-        <div class="ds-component-notes">Desktop: logo + nav links (Races, Feed) + search button (<code>.top-nav-search-btn</code> / <code>#nav-search-btn</code> — opens the full-page search overlay; on /search it carries <code>aria-current="page"</code> + <code>.top-nav-search-btn--current</code> and is a muted no-op). Mobile ≤860px: logo + search-toggle icon + hamburger; the toggle also opens the overlay. <strong>No active-state treatment</strong> — every page treats its nav links identically; the `.active` class and its CSS rules were retired (T-IA-candidate-committees-nav-removal follow-up, 2026-05-20). <strong>DOM structure:</strong> <code>#mobile-nav</code> (.mobile-nav) is a direct child of <code>&lt;nav class="top-nav"&gt;</code> — a sibling of <code>.top-nav-inner</code>, not of the nav itself. It uses <code>position:absolute; top:100%</code> so it hangs directly below the nav's bottom edge regardless of scroll state. Being inside .top-nav's stacking context (z-index:200) automatically elevates it above all page elements — profile headers (195), tabs bar (185), etc. Do not move it outside .top-nav. (The old <code>#top-nav-mobile-search</code> panel was retired in T-search-overlay.) <strong>.mobile-nav</strong> uses <code>padding: var(--space-8) 0 0</code> (no bottom padding — last item sits flush against the bottom border). <strong>.nav-item</strong> uses <code>padding: var(--space-16) var(--space-24)</code> for a 48px minimum tap target height. Note: .top-nav-logo uses Oswald 600 — explicit deviation from the heading type style (400). Weight set directly on the component rule.</div>
+        <div class="ds-component-notes">Desktop: logo (far left) + a right-aligned cluster reading <strong>[Search][Races][Feed]</strong> — <code>.top-nav-search</code> is reordered before <code>.top-nav-links</code> in the DOM, <code>.top-nav-inner</code> uses <code>gap:0</code>, and <code>margin-left:auto</code> on <code>.top-nav-search</code> pins the cluster right so the search + links groups butt together (T-nav-cluster, 2026-06-11). Search button (<code>.top-nav-search-btn</code> / <code>#nav-search-btn</code>) opens the full-page search overlay; on /search it carries <code>aria-current="page"</code> + <code>.top-nav-search-btn--current</code> and is a muted no-op. Mobile ≤860px: logo + search-toggle icon + hamburger; the toggle also opens the overlay (on /search it's a muted, non-actioning current-page marker — parity with the desktop button). Opening the hamburger shows a body-level dimming scrim (<code>.mobile-nav-overlay</code>, z-index:198, starts below the banner via <code>inset:var(--banner-h) 0 0 0</code>); the drawer closes on outside-tap / Esc / scroll, with <code>aria-expanded</code> kept in sync (T-nav-mobile-overlay). <strong>No active-state treatment</strong> — every page treats its nav links identically; the `.active` class and its CSS rules were retired (T-IA-candidate-committees-nav-removal follow-up, 2026-05-20). <strong>DOM structure:</strong> <code>#mobile-nav</code> (.mobile-nav) is a direct child of <code>&lt;nav class="top-nav"&gt;</code> — a sibling of <code>.top-nav-inner</code>, not of the nav itself. It uses <code>position:absolute; top:100%</code> so it hangs directly below the nav's bottom edge regardless of scroll state. Being inside .top-nav's stacking context (z-index:200) automatically elevates it above all page elements — profile headers (195), tabs bar (185), etc. Do not move it outside .top-nav. (The old <code>#top-nav-mobile-search</code> panel was retired in T-search-overlay.) <strong>.mobile-nav</strong> uses <code>padding: var(--space-8) 0 0</code> (no bottom padding — last item sits flush against the bottom border). <strong>.nav-item</strong> uses <code>padding: var(--space-16) var(--space-24)</code> for a 48px minimum tap target height. Note: .top-nav-logo uses Oswald 600 — explicit deviation from the heading type style (400). Weight set directly on the component rule.</div>
       </div>
 
       <!-- 5. Global banner -->

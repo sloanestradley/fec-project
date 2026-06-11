@@ -31,21 +31,19 @@
 The global nav is a top nav (`.top-nav`) — not a sidebar. It was refactored from a sidebar layout in 2026-03-19. The nav is `position:relative` (in-flow); it scrolls out with content on scroll-down and reappears at its document position on scroll-up. Sticky profile-header and tabs-bar pin at viewport top once the nav has scrolled past.
 
 ```
-FECLedger (logo → /)        [top-nav-logo]
+FECLedger (logo → /)        [top-nav-logo, far left]
 
-Nav links (desktop, always visible)
-├── Races       → /races        (browse landing)
-└── Feed        → /feed         (filing feed)
-
-Search button (desktop, inline right of nav links)
-└── #nav-search-btn → opens the full-page search overlay
-    (on /search: aria-current="page", muted, no-op — you're already there)
+Desktop top-right cluster — order [Search][Races][Feed], right-aligned
+├── Search button → #nav-search-btn → opens the full-page search overlay
+│                   (on /search: aria-current="page", muted, no-op)
+├── Races         → /races   (browse landing)
+└── Feed          → /feed    (filing feed)
 
 Mobile controls (hidden at desktop)
-├── Search toggle icon → opens the full-page search overlay
-└── Hamburger → opens .mobile-nav drawer
+├── Search toggle icon → opens the full-page search overlay (no-op on /search)
+└── Hamburger → opens .mobile-nav drawer (+ dimming overlay)
 
-Mobile nav drawer (.mobile-nav)
+Mobile nav drawer (.mobile-nav) — closes on outside-tap / Esc / scroll
 ├── Races
 └── Feed
 ```

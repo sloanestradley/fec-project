@@ -1535,11 +1535,69 @@ test.describe('mobile nav toggle behavior', () => {
     await expect(page.locator('#mobile-nav')).not.toHaveClass(/open/);
   });
 
-  test('mobile search toggle opens the search overlay', async ({ page }) => {
-    // T-search-overlay: the mobile search-toggle now opens the full-page
-    // overlay (the old #top-nav-mobile-search panel was retired).
+  test('mobile search toggle is a current-page no-op on /search', async ({ page }) => {
+    // Parity with the desktop #nav-search-btn: on /search the toggle is a muted,
+    // non-actioning current-page marker (you're already on search).
+    const toggle = page.locator('#top-nav-search-toggle');
+    await expect(toggle).toHaveAttribute('aria-current', 'page');
+    await toggle.click();
+    await expect(page.locator('#search-overlay')).not.toHaveClass(/open/);
+  });
+
+  test('mobile search toggle opens the overlay on a non-search page', async ({ page }) => {
+    // T-search-overlay: off /search the toggle opens the full-page overlay.
+    await page.goto('/process-log.html');
+    await page.waitForLoadState('load');
+    await expect(page.locator('#top-nav-search-toggle')).not.toHaveAttribute('aria-current', 'page');
     await page.click('#top-nav-search-toggle');
     await expect(page.locator('#search-overlay')).toHaveClass(/open/);
+  });
+
+  // ── T-nav-mobile-overlay: dimming scrim + close-on-outside-tap/Esc/scroll ──
+  test('opening the drawer shows the dimming overlay', async ({ page }) => {
+    await page.click('#hamburger');
+    await expect(page.locator('#mobile-nav-overlay')).toHaveClass(/open/);
+    await expect(page.locator('#mobile-nav-overlay')).toBeVisible();
+  });
+
+  test('overlay starts below the banner (banner stays uncovered)', async ({ page }) => {
+    await page.click('#hamburger');
+    const top = await page.locator('#mobile-nav-overlay')
+      .evaluate(el => el.getBoundingClientRect().top);
+    // inset top = --banner-h (32px) — the navy banner strip is never covered.
+    expect(top).toBe(32);
+  });
+
+  test('tapping outside the drawer (on the overlay) closes it', async ({ page }) => {
+    await page.click('#hamburger');
+    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
+    await page.click('#mobile-nav-overlay');
+    await expect(page.locator('#mobile-nav')).not.toHaveClass(/open/);
+    await expect(page.locator('#mobile-nav-overlay')).not.toHaveClass(/open/);
+    await expect(page.locator('#hamburger')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('Escape closes the drawer', async ({ page }) => {
+    await page.click('#hamburger');
+    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#mobile-nav')).not.toHaveClass(/open/);
+    await expect(page.locator('#hamburger')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('scrolling closes the drawer', async ({ page }) => {
+    await page.click('#hamburger');
+    await expect(page.locator('#mobile-nav')).toHaveClass(/open/);
+    await page.evaluate(() => window.dispatchEvent(new Event('scroll')));
+    await expect(page.locator('#mobile-nav')).not.toHaveClass(/open/);
+  });
+
+  test('aria-expanded tracks drawer open/closed state', async ({ page }) => {
+    await expect(page.locator('#hamburger')).toHaveAttribute('aria-expanded', 'false');
+    await page.click('#hamburger');
+    await expect(page.locator('#hamburger')).toHaveAttribute('aria-expanded', 'true');
+    await page.click('#hamburger');
+    await expect(page.locator('#hamburger')).toHaveAttribute('aria-expanded', 'false');
   });
 });
 

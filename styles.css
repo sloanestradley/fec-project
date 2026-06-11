@@ -94,7 +94,7 @@
   --space-4:  0.25rem; /* 4px  — tag padding, chip gap, sub-label margin */
   --space-8:  0.5rem;  /* 8px  — meta gaps, form padding, tight component rows */
   --space-16: 1rem;    /* 16px — standard component padding, card internals */
-  --space-24: 1.5rem;  /* 24px — section subgaps, modal padding, nav inner */
+  --space-24: 1.5rem;  /* 24px — section subgaps, modal padding */
   --space-32: 2rem;    /* 32px — card padding, results area */
   --space-40: 2.5rem;  /* 40px — page-header top, sparse empty states */
   --space-48: 3rem;    /* 48px — page gutter (desktop) */
@@ -145,8 +145,15 @@ a { color: var(--accent); }
    No `top:` value — nav scrolls naturally with document content. */
 .top-nav { position:relative;
   height:var(--header-h); background:var(--bg); z-index:200; }
+/* gap:0 (not --space-24) — the desktop cluster reads [Search][Races][Feed]
+   right-aligned via margin-left:auto on .top-nav-search; the search + links
+   groups butt together with only their own internal padding (no inter-group
+   gap, which a single shared gap couldn't express). Logo↔cluster spacing is the
+   auto-margin right-push. Mobile is unaffected: .top-nav-mobile-controls also
+   uses margin-left:auto, so the parent gap was already swamped there.
+   (T-nav-cluster, 2026-06-11) */
 .top-nav-inner { display:flex; align-items:center;
-  height:var(--header-h); padding:0 var(--page-gutter); gap:var(--space-24); }
+  height:var(--header-h); padding:0 var(--page-gutter); gap:0; }
 .top-nav-logo { font-family:'Oswald',sans-serif; font-size:1.25rem;
   font-weight:600; text-transform:uppercase; text-decoration:none;
   white-space:nowrap; flex-shrink:0; }
@@ -175,6 +182,10 @@ a { color: var(--accent); }
 .top-nav-search-toggle { background:none; border:none; cursor:pointer;
   color:var(--subtle); padding:var(--space-4); line-height:0; transition:color 0.15s; }
 .top-nav-search-toggle:hover { color:var(--text); }
+/* Current-section variant — on /search the mobile toggle is a non-actioning
+   marker, muted + cursor:default (parity with .top-nav-search-btn--current). */
+.top-nav-search-toggle--current,
+.top-nav-search-toggle--current:hover { color:var(--muted); cursor:default; }
 
 /* ── Hamburger ── */
 .hamburger { background:none; border:none; cursor:pointer; padding:var(--space-4);
@@ -195,6 +206,20 @@ a { color: var(--accent); }
   transition:transform 0.2s ease, opacity 0.2s ease, visibility 0.2s; }
 .mobile-nav.open { transform:translateY(0); opacity:1;
   visibility:visible; pointer-events:auto; }
+
+/* ── Mobile nav overlay (backdrop) ──────────────────────────────────────────
+   Dimming scrim shown only while the mobile drawer is open. BODY-LEVEL element
+   (injected by main.js as a sibling of .top-nav) so it escapes .top-nav's
+   z-index:200 stacking context. position:fixed starting BELOW the banner
+   (inset top = --banner-h) so the navy banner stays uncovered. z-index:198
+   sits ABOVE the sticky profile headers (195) — so page content, including a
+   pinned header, dims — but BELOW the drawer (#mobile-nav 199) and nav
+   (.top-nav 200), so the banner, nav bar, and open drawer all stay crisp. The
+   .open→block rule is scoped to ≤860px so a resize-to-desktop while open can't
+   leave a full-page scrim stuck over the desktop layout. (T-nav-mobile-overlay,
+   2026-06-11) */
+.mobile-nav-overlay { display:none; position:fixed; inset:var(--banner-h) 0 0 0;
+  background:var(--overlay-bg); z-index:198; }
 .nav-item { display:flex; align-items:center; padding:var(--space-16) var(--space-24);
   color:var(--text); text-decoration:none;
   font-family:'IBM Plex Sans',sans-serif; font-size:0.75rem;
@@ -1350,6 +1375,10 @@ div.cycle-row {
   .top-nav-links { display:none; }
   .top-nav-search { display:none; }
   .top-nav-mobile-controls { display:flex; }
+  /* Overlay only ever shows at mobile widths (drawer is mobile-only). Scoping
+     the visible state here means a resize-to-desktop while open can't strand
+     the scrim. */
+  .mobile-nav-overlay.open { display:block; }
   .page-header { padding:var(--space-24) var(--page-gutter); }
   .profile-content { padding:var(--space-24) var(--page-gutter); }
   .cycle-empty-state { padding-top:var(--space-32); }
