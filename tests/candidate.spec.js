@@ -2685,6 +2685,20 @@ test.describe('candidate.html — T-load-4b chart-card skeleton', () => {
     await expect(page.locator('#chart-error')).toContainText('Unable to load chart');
     await expect(page.locator('.chart-legend')).toBeHidden();
   });
+
+  test('chart-area is 360px tall at mobile width (≤860px)', async ({ page }) => {
+    // The fixed-height cap has a mobile override (#chart-area { height:360px }).
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/candidate.html?id=H2WA03217#2024#summary');
+    await page.waitForFunction(() => {
+      const sk = document.getElementById('chart-skeleton');
+      return sk && sk.style.display === 'none';
+    }, { timeout: 12000 });
+    const h = await page.locator('#chart-area').evaluate(el => el.offsetHeight);
+    expect(h).toBe(360);
+  });
 });
 
 // ── T-menu-btn-profile-header — profile menu-btn integration ─────────────────
