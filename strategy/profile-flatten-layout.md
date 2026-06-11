@@ -15,7 +15,7 @@ The dependency chain:
 - **Track A (donut correctness fix)** — ✅ shipped 2026-06-09 (dual-account donut fix). The donut fallback is now honest, which is what makes the slot's gated state safe to lean on.
 - **This work (flatten + re-org)** — ✅ 9a/9b/9c shipped 2026-06-10: the slot + the paired-row structure + the mutually-exclusive toggle.
 - **Step 4 (scope toggle) — ✅ shipped folded into 9c.** The mutual-exclusion toggle and the "which viz rendered" analytics dimension (`breakdown_viz`) both landed in 9c, and the skeleton-then-swap question resolved to "no swap" (§8 — the gate is known synchronously, so the slot mounts the right viz directly). There was no separate Step 4 to build — the re-org delivered it. (Kept as a named milestone only for traceability.)
-- **Step 5 (dual-account + presidential Sankey un-gates)** — flips Gate-1/Gate-2 entities donut→Sankey **in place inside the slot**; the slot already supports it with zero layout rework (§8/§11). Pending.
+- **Step 5 (dual-account + presidential Sankey un-gates)** — flips Gate-1/Gate-2 entities donut→Sankey **in place inside the slot**; the slot already supports it with zero layout rework (§8/§11). **Gate 1 (dual-account) ✓ SHIPPED 2026-06-10**; Gate 2 (presidential) adapter-ready but production-gated (raised-side Form-3P loan resolution pending).
 
 ---
 
@@ -205,7 +205,7 @@ No deep links/anchors reference `#tab-*`, so no back-compat shim is needed (unli
 
 - **Presidential (Form 3P) un-gate — interim gate, not permanent.** Form 3P is gated only because **two spend-side exempt leaves** the v1 model doesn't render — `fundraising_disbursements` and `exempt_legal_accounting_disbursement` — are populated on **publicly-financed** campaigns. The **receipt side already conserves** (`federal_funds` is modeled, pushed by presence; zero for 2024 candidates who declined public financing). Fast-follow: **model those two leaves → un-gate Form 3P.** Until then, for the rare publicly-financed campaign that exempt spend lands in the donut's **"Other" remainder — still conserving** — so the gated donut is complete in the meantime (which is exactly why §4 carries no caption). Full detail: `strategy/sankey-data-model.md` §4a Gate 2.
 
-- **Dual-account (Gate 1) un-gate — Step 5.** Recipe documented in `sankey-data-model.md` §4a Gate 1 (FEA node + non-fed source + remainder catch-alls).
+- **Dual-account (Gate 1) un-gate — Step 5 ✓ SHIPPED 2026-06-10.** FEA node + non-fed commingled into "Transfers in" + remainder catch-alls; conserves penny-exact on all 5 dual-account fixtures. The slot flipped these committees donut→Sankey in place, zero layout rework (as designed). Detail + status: `sankey-data-model.md` §4a Gate 1.
 
 - **The slot accommodates both un-gates with zero layout rework.** Because the breakdown slot is keyed on `gated` per entity (§8), both the dual-account un-gate (Step 5) and the presidential fast-follow flip their committees **donut→Sankey in place** — the slot, the paired rows, and everything below are untouched. The flatten is the last layout change either un-gate needs.
 

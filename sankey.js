@@ -19,8 +19,10 @@
 // This is a cash-identity fix, independent of the §4a gates (leaf-coverage limits).
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Shared tolerance ($1) — used by the gate detector AND any residual reconciliation
-// check. Guards against sub-dollar FEC rounding being read as a real divergence.
+// Shared tolerance ($1) — guards against sub-dollar FEC rounding being read as a real
+// divergence in any residual reconciliation check. (Until Step 5 it also drove the Gate-1
+// non-federal detector; that gate was lifted 2026-06-10, but the constant is retained as the
+// canonical $1 tolerance for residual checks.)
 var SANKEY_TOLERANCE = 1;
 
 // Numeric field read — anything non-numeric (null / undefined / string) → 0.
@@ -30,25 +32,23 @@ function _sankeyNum(rec, key) {
 }
 
 // ── Gate detector (Option A: gate lives inside the adapter) ──────────────────
-// Returns a reason string when the entity is out of v1 scope, else null.
-//   'presidential' — Form 3P (extra leaves: federal_funds / fundraising_disbursements
-//                    / exempt_legal_accounting_disbursement) the v1 model doesn't render.
-//   'non-federal'  — a committee whose TOTAL receipts/disbursements fold in non-federal
-//                    (soft-money) activity the v1 leaf set doesn't model. Detected
-//                    data-driven (NOT by committee type): receipts !== fed_receipts ||
-//                    disbursements !== fed_disbursements, with the $1 tolerance.
-// The committee gate is entity-guarded because candidate (Form 3) totals carry NO
-// fed_receipts field — an un-guarded compare would flag every candidate.
+// Returns a reason string when the entity is out of scope, else null.
+//   'presidential' — Form 3P. The adapter now models the proven spend-side blocker
+//                    (fundraising_disbursements / exempt_legal_accounting_disbursement)
+//                    and conserves, BUT the raised side still mislabels Form-3P loans
+//                    (loans_received / other_loans_received) into the Other-receipts
+//                    remainder — the adapter's Loans node reads only the Form-3/3X names.
+//                    So presidential stays gated → donut fallback until that raised-side
+//                    field resolution lands (the Gate-2 production flip). See
+//                    strategy/sankey-data-model.md §4a Gate 2.
+// Gate 1 (non-federal / dual-account) was LIFTED in Step 5 (2026-06-10): the adapter models
+// FEA + non-fed transfers (folded into Transfers in) + remainder catch-alls, so dual-account
+// committees conserve to the penny and render the Sankey. The prior data-driven detector
+// (receipts !== fed_receipts) is removed. `rec` is now unused but kept for signature stability
+// (pages + tests call sankeyGateReason(rec, opts)).
 function sankeyGateReason(rec, opts) {
   opts = opts || {};
   if (opts.isPresidential) return 'presidential';
-  if (opts.entity === 'committee') {
-    var fr = rec.fed_receipts, fd = rec.fed_disbursements;
-    if (typeof fr === 'number' &&
-        Math.abs(_sankeyNum(rec, 'receipts') - fr) > SANKEY_TOLERANCE) return 'non-federal';
-    if (typeof fd === 'number' &&
-        Math.abs(_sankeyNum(rec, 'disbursements') - fd) > SANKEY_TOLERANCE) return 'non-federal';
-  }
   return null;
 }
 
@@ -103,12 +103,20 @@ function buildSankeyModel(rec, opts) {
     value: g('other_political_committee_contributions') });
   push(sources, { name: 'Party committees', group: 'contributions',
     value: g('political_party_committee_contributions') });
-  push(sources, { name: 'Transfers in',   // coalesce all 3 form-variant transfer-in fields,
+  push(sources, { name: 'Transfers in',   // coalesce all transfer-in variants:
     // mutually exclusive by form (verified live 2026-06-09): Form 3 = *_other_authorized_committee,
     // Form 3X = *_affiliated_party, Form 3P = *_affiliated_committee (the JFC transfer — e.g. a
-    // presidential principal's $534M). Presidential is gated today, so the third term is defensive
-    // / for the Step 5 un-gating; no in-scope entity populates it.
-    value: g('transfers_from_other_authorized_committee') + g('transfers_from_affiliated_party') + g('transfers_from_affiliated_committee') });
+    // presidential principal's $534M; presidential still gated, so that term is for the Gate-2 flip).
+    // PLUS the committee's own non-federal-account transfers (Step 5 Gate-1 un-gate, 2026-06-10):
+    // on a dual-account committee these two fields ARE the entire receipts−fed_receipts gap (verified
+    // exact on WI/TX). Folded (NOT a separate node) per the locked representation (a) — soft money stays
+    // COMMINGLED rather than fed/non-fed-split; the dedicated hard/soft viz is the separate scoped work.
+    // This mirrors the spend side, where the FEA parent keeps its own non-fed child commingled inside it
+    // rather than splitting it out. A "Transfers in includes the non-federal account" disclosure tooltip
+    // is the (deferred) render-layer honesty mechanism. All terms disjoint → the sum never double-counts.
+    value: g('transfers_from_other_authorized_committee') + g('transfers_from_affiliated_party')
+         + g('transfers_from_affiliated_committee')
+         + g('transfers_from_nonfed_account') + g('transfers_from_nonfed_levin') });
   // Candidate self-funding = own gift + own loan, grouped by source so a self-funder isn't
   // hidden inside Loans (external-only). Form-3 only; 0 for a PAC → dropped by push().
   push(sources, { name: 'Candidate self-funding',
@@ -124,11 +132,17 @@ function buildSankeyModel(rec, opts) {
   push(sources, { name: 'Offsets',
     value: g('offsets_to_operating_expenditures') + g('offsets_to_fundraising_expenditures')
          + g('offsets_to_legal_accounting') + g('fed_candidate_contribution_refunds') });
-  // Federal funds — presidential public financing. Presidential is gated out of v1, so 0 for
-  // every non-gated record; pushed by presence keeps conservation robust regardless.
+  // Federal funds — presidential public financing (Form 3P). Pushed by presence; non-zero only
+  // on a publicly-financed presidential record (gated today; for the Gate-2 flip + conservation).
   push(sources, { name: 'Federal funds', value: g('federal_funds') });
-  push(sources, { name: 'Other receipts', other: true,                      // Form 3 + 3X names
-    value: g('other_receipts') + g('other_fed_receipts') });
+  // Other receipts — REMAINDER (receiptTotal − Σ named above), NOT the named other_receipts/
+  // other_fed_receipts. Conserves by construction: absorbs any receipt not in a named leaf — the
+  // TX-class unexposed residual (verified $17,063.22 in no exposed field), and any non-fed money
+  // not folded into Transfers in. On a fed-only committee or candidate the remainder equals the
+  // named other_*receipts to the penny (verified DCCC/SAP), so this is a no-op there. other:true
+  // keeps it grey + bottom-pinned. max(0,…) is defensive — MECE guarantees ≥0 on every verified record.
+  var srcNamed = sources.reduce(function(a, s) { return a + s.value; }, 0);
+  push(sources, { name: 'Other receipts', other: true, value: Math.max(0, receiptTotal - srcNamed) });
 
   // ── Disbursement uses ──
   var uses = [];
@@ -136,12 +150,28 @@ function buildSankeyModel(rec, opts) {
   push(uses, { name: 'Independent expenditures', value: g('independent_expenditures') });                           // 3X
   push(uses, { name: 'Coordinated party expenditures', value: g('coordinated_expenditures_by_party_committee') }); // party
   push(uses, { name: 'Contributions to candidates', value: g('fed_candidate_committee_contributions') });          // 3X
+  // Federal election activity (Step 5 Gate-1 un-gate, 2026-06-10) — a disjoint top-level 3X leaf
+  // (voter registration / GOTV in the pre-election window, funded partly with non-federal money).
+  // On a state party it can be the single largest use (WI 44.5%); previously buried in the Other
+  // remainder. 0/absent on fed-only committees + candidates → dropped by push(); disjoint from
+  // operating_expenditures (the spent MECE closes with both as separate leaves) → never double-counts.
+  push(uses, { name: 'Federal election activity', value: g('fed_election_activity') });                            // 3X
+  // Presidential exempt spend (Step 5 Gate-2 adapter, 2026-06-10) — the proven spend-side blocker:
+  // ~$8M on a publicly-financed campaign (McCain '08: $6.82M + $1.16M, conserves exactly), 0 on
+  // modern privately-funded ones. Form-3P only. Itemized (not folded into Other) so a public-financing
+  // campaign's exempt spend reads honestly. Renders only once the presidential gate flips.
+  push(uses, { name: 'Fundraising', value: g('fundraising_disbursements') });                                      // 3P
+  push(uses, { name: 'Exempt legal & accounting', value: g('exempt_legal_accounting_disbursement') });             // 3P
   push(uses, { name: 'Transfers out',                                       // Form 3 + 3X names
     value: g('transfers_to_other_authorized_committee') + g('transfers_to_affiliated_committee') });
   push(uses, { name: 'Loan repayments',                                     // Form 3 + 3X names
     value: g('loan_repayments') + g('loan_repayments_made') });
   push(uses, { name: 'Contribution refunds', value: g('contribution_refunds') });
-  push(uses, { name: 'Other disbursements', other: true, value: g('other_disbursements') });
+  // Other disbursements — REMAINDER (disbTotal − Σ named above), mirroring Other receipts. Absorbs
+  // the TX-class unexposed spend residual; equals named other_disbursements to the penny on fed-only
+  // committees + candidates (verified DCCC/SAP). max(0,…) defensive.
+  var useNamed = uses.reduce(function(a, u) { return a + u.value; }, 0);
+  push(uses, { name: 'Other disbursements', other: true, value: Math.max(0, disbTotal - useNamed) });
 
   return {
     gated: false,

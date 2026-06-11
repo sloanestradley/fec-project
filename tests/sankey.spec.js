@@ -40,11 +40,70 @@ const DCCC = {
   contribution_refunds: 1056971.02, other_disbursements: 16373373.40,
 };
 
-// Row 7 — dual-account committee (Form 3X with non-federal account). GATED.
+// Row 7 — dual-account committee (Dem Party of Wisconsin Fed, C00019331 / 2024, Form 3X).
+// Gate 1 was LIFTED in Step 5 (2026-06-10): this now builds a conserving model. Full live
+// record (verified 2026-06-10) — the non-fed transfers fold into "Transfers in" and FEA is
+// itemized, so receipts/disbursements reconcile to $0.00 via the remainder catch-alls.
 const WISCONSIN = {
   receipts: 63427392.68, fed_receipts: 51325830.95,
   disbursements: 61697041.92, fed_disbursements: 46403630.95,
   last_cash_on_hand_end_period: 2134722.70,
+  individual_itemized_contributions: 18252118.75, individual_unitemized_contributions: 7673600.31,
+  other_political_committee_contributions: 1236875.75, political_party_committee_contributions: 21412.31,
+  transfers_from_affiliated_party: 23541495.63, other_fed_receipts: 115361.71,
+  transfers_from_nonfed_account: 12088940.37, transfers_from_nonfed_levin: 12621.36,
+  offsets_to_operating_expenditures: 484966.49,
+  operating_expenditures: 29411929.43, fed_election_activity: 27437582.17,
+  coordinated_expenditures_by_party_committee: 9760, transfers_to_affiliated_committee: 287956.86,
+  contribution_refunds: 151788.80, other_disbursements: 4398024.66,
+};
+
+// Row 9 — THE residual case (Texas Democratic Party, C00099267 / 2024, Form 3X dual-account).
+// Named spent leaves miss $17,063.22 in NO exposed field → proves the remainder catch-all is
+// mandatory: a named-leaf-only model would under-sum the disbursement side by that amount.
+const TEXAS = {
+  receipts: 14928744.44, fed_receipts: 13513132.90,
+  disbursements: 14944835.38, fed_disbursements: 12842194.58,
+  last_cash_on_hand_end_period: 99322.88, last_debts_owed_by_committee: 109456.91,
+  individual_itemized_contributions: 1021498.20, individual_unitemized_contributions: 918249.86,
+  other_political_committee_contributions: 529275, transfers_from_affiliated_party: 9589098.55,
+  transfers_from_nonfed_account: 1201975.96, transfers_from_nonfed_levin: 213635.58,
+  offsets_to_operating_expenditures: 30949.46, other_fed_receipts: 1406998.61,
+  operating_expenditures: 3178686.33, fed_election_activity: 7965909.06, independent_expenditures: 5600,
+  transfers_to_affiliated_committee: 3496083.14, contribution_refunds: 13319.64, other_disbursements: 268173.99,
+};
+
+// Presidential — modern privately-funded (Harris 2024, P00009423, candidate election_full / Form 3P).
+// Conserves under the current adapter (the transfers_from_affiliated_committee coalesce closed the
+// $534M JFC-transfer; no exempt-spend fields). Tested with isPresidential:false so the adapter is
+// exercised even though the production presidential gate is still on (Step 5 Gate-2 deferred flip).
+const HARRIS = {
+  receipts: 1175903792.49, disbursements: 1176074620.47,
+  last_cash_on_hand_end_period: 1762056.63, last_debts_owed_by_committee: 934179.58,
+  individual_itemized_contributions: 401731729, individual_unitemized_contributions: 211825627,
+  other_political_committee_contributions: 152322.23, political_party_committee_contributions: 2090,
+  transfers_from_affiliated_committee: 534274769.74, offsets_to_operating_expenditures: 26364908.86,
+  other_receipts: 1552344.80, operating_expenditures: 1155198573.69,
+  transfers_to_other_authorized_committee: 67904.42, contribution_refunds: 9343705.57,
+  other_disbursements: 11464436.79,
+};
+
+// Presidential — publicly-financed (McCain 2008, P80002801, Form 3P). The Gate-2 spend-side blocker:
+// fundraising_disbursements + exempt_legal_accounting_disbursement ($6.82M + $1.16M) — without these
+// nodes the spend side under-sums by ~$8M. WITH them it conserves to the penny. NOTE: McCain's $21M
+// loan is in `loans_received` (a Form-3P name the adapter's Loans node does NOT read), so it lands in
+// the Other-receipts remainder — a documented Gate-2 production-flip prerequisite (raised-side Form-3P
+// loan-field resolution, incl. the loans_received / other_loans_received alias de-dup vs all_loans_received).
+const MCCAIN = {
+  receipts: 401537140.35, disbursements: 375159299.94,
+  last_cash_on_hand_end_period: 26377840.41, last_debts_owed_by_committee: 1603973.83,
+  federal_funds: 84103800, fundraising_disbursements: 6816640.80, exempt_legal_accounting_disbursement: 1158123.71,
+  individual_itemized_contributions: 149877443, individual_unitemized_contributions: 51056537,
+  other_political_committee_contributions: 1569616.41, political_party_committee_contributions: 16197.25,
+  transfers_from_affiliated_committee: 47871997.94, offsets_to_operating_expenditures: 21706861.29,
+  other_receipts: 18679221.82, loans_received: 20998577.20,
+  operating_expenditures: 285683215.97, transfers_to_other_authorized_committee: 15912254.28,
+  loan_repayments_made: 20998577.20, contribution_refunds: 7320332.79, other_disbursements: 37270155.19,
 };
 
 async function loadAdapter(page) {
@@ -130,26 +189,81 @@ test.describe('sankey.js — buildSankeyModel adapter', () => {
     expect(sumVals(m.sources)).toBeCloseTo(1000000, 2);
   });
 
-  test('Gate 1 — dual-account committee returns {gated, reason:"non-federal"} (no model built)', async ({ page }) => {
+  // ── Step 5 Gate-1 un-gate (2026-06-10): dual-account committees now build a conserving model. ──
+  test('Gate 1 lifted — dual-account committee (WI) conserves; FEA itemized + non-fed commingled into Transfers in', async ({ page }) => {
     await loadAdapter(page);
     const m = await page.evaluate((rec) => window.buildSankeyModel(rec, { entity: 'committee', hubName: 'Dem Party of WI' }), WISCONSIN);
-    expect(m.gated).toBe(true);
-    expect(m.reason).toBe('non-federal');
-    expect(m.sources).toBeUndefined();
+    expect(m.gated).toBe(false);
+    // Conserves to the penny on BOTH sides (the remainder catch-alls absorb anything unexposed).
+    expect(sumVals(m.sources)).toBeCloseTo(63427392.68, 1);
+    expect(sumVals(m.uses)).toBeCloseTo(61697041.92, 1);
+    // Federal Election Activity itemized (WI's single largest use, 44.5%) — was buried in Other. FEA is a
+    // commingled parent (its own non-fed child stays inside it); itemizing it is NOT a fed/non-fed split.
+    expect(m.uses.find(u => u.name === 'Federal election activity').value).toBeCloseTo(27437582.17, 1);
+    // Non-fed-account transfers ($12.1M) are COMMINGLED into Transfers in per representation (a) — soft
+    // money stays unsplit (the dedicated hard/soft viz is separate, scoped work), mirroring how the FEA
+    // parent keeps its non-fed child inside it. So Transfers in = affiliated $23.5M + non-fed $12.1M.
+    expect(m.sources.find(s => s.name === 'Transfers in').value).toBeCloseTo(35643057.36, 1);
+    expect(m.sources.find(s => s.name === 'Transfers from non-federal account')).toBeUndefined();
+    // Other receipts is the REMAINDER; here it equals named other_fed_receipts (no raised-side residual).
+    expect(m.sources.find(s => s.name === 'Other receipts').value).toBeCloseTo(115361.71, 1);
   });
 
-  test('Gate 2 — presidential returns {gated, reason:"presidential"}', async ({ page }) => {
+  test('Gate 1 lifted — TX residual case: the Other-disbursements remainder absorbs the $17,063.22 unexposed spend', async ({ page }) => {
     await loadAdapter(page);
-    const m = await page.evaluate((rec) => window.buildSankeyModel(rec, { entity: 'candidate', isPresidential: true }), SAP);
-    expect(m.gated).toBe(true);
-    expect(m.reason).toBe('presidential');
+    const m = await page.evaluate((rec) => window.buildSankeyModel(rec, { entity: 'committee', hubName: 'Texas Dem Party' }), TEXAS);
+    expect(m.gated).toBe(false);
+    // Conserves on both sides DESPITE $17,063.22 of spend sitting in no exposed field.
+    expect(sumVals(m.sources)).toBeCloseTo(14928744.44, 1);
+    expect(sumVals(m.uses)).toBeCloseTo(14944835.38, 1);
+    // Other disbursements = named other_disbursements ($268,173.99) + the $17,063.22 residual.
+    // A named-leaf-only model would read $268,173.99 here and under-sum the disbursement total.
+    expect(m.uses.find(u => u.name === 'Other disbursements').value).toBeCloseTo(285237.21, 1);
   });
 
-  test('candidate without a fed_receipts field is NOT gated (detector is committee-only)', async ({ page }) => {
+  // ── Step 5 Gate-2 ADAPTER (presidential): the production gate is still ON (deferred flip), so
+  // these call the adapter with isPresidential:false to verify the model is correct + ready. ──
+  test('Gate 2 adapter — modern presidential (Harris) conserves on both sides; no exempt-spend nodes', async ({ page }) => {
     await loadAdapter(page);
-    // SAP has no fed_receipts — the non-federal detector must not misfire on candidates.
-    const reason = await page.evaluate((rec) => window.sankeyGateReason(rec, { entity: 'candidate' }), SAP);
-    expect(reason).toBeNull();
+    const m = await page.evaluate((rec) => window.buildSankeyModel(rec, { entity: 'candidate', hubName: 'Harris', isPresidential: false }), HARRIS);
+    expect(m.gated).toBe(false);
+    expect(sumVals(m.sources)).toBeCloseTo(1175903792.49, 0);
+    expect(sumVals(m.uses)).toBeCloseTo(1176074620.47, 0);
+    // The $534M JFC transfer resolves via the affiliated-committee coalesce.
+    expect(m.sources.find(s => s.name === 'Transfers in').value).toBeCloseTo(534274769.74, 1);
+    // Modern campaign → exempt-spend leaves are 0 → no nodes.
+    expect(m.uses.find(u => u.name === 'Fundraising')).toBeUndefined();
+    expect(m.uses.find(u => u.name === 'Exempt legal & accounting')).toBeUndefined();
+  });
+
+  test('Gate 2 adapter — publicly-financed presidential (McCain) conserves; exempt-spend nodes present', async ({ page }) => {
+    await loadAdapter(page);
+    const m = await page.evaluate((rec) => window.buildSankeyModel(rec, { entity: 'candidate', hubName: 'McCain', isPresidential: false }), MCCAIN);
+    expect(m.gated).toBe(false);
+    // Spend side conserves to the penny ONLY because the two exempt nodes are modeled (else −$8M).
+    expect(sumVals(m.uses)).toBeCloseTo(375159299.94, 0);
+    expect(m.uses.find(u => u.name === 'Fundraising').value).toBeCloseTo(6816640.80, 1);
+    expect(m.uses.find(u => u.name === 'Exempt legal & accounting').value).toBeCloseTo(1158123.71, 1);
+    // federal_funds (public financing) renders as a receipt source.
+    expect(m.sources.find(s => s.name === 'Federal funds').value).toBeCloseTo(84103800, 1);
+    // Raised side still conserves via the remainder — McCain's $21M loan (loans_received, a Form-3P
+    // name the Loans node doesn't read yet) lands in Other receipts. Documented Gate-2-flip prereq.
+    expect(sumVals(m.sources)).toBeCloseTo(401537140.35, 0);
+    expect(m.sources.find(s => s.name === 'Loans')).toBeUndefined();
+  });
+
+  test('presidential is STILL gated in production (Gate 2 detector unchanged); dual-account is NOT', async ({ page }) => {
+    await loadAdapter(page);
+    // Production gate: isPresidential still returns 'presidential' (donut fallback).
+    const pres = await page.evaluate((rec) => window.buildSankeyModel(rec, { entity: 'candidate', isPresidential: true }), HARRIS);
+    expect(pres.gated).toBe(true);
+    expect(pres.reason).toBe('presidential');
+    // Gate 1 lifted: a committee with receipts !== fed_receipts is no longer gated.
+    const dual = await page.evaluate((rec) => window.sankeyGateReason(rec, { entity: 'committee' }), WISCONSIN);
+    expect(dual).toBeNull();
+    // Candidate (no fed_receipts) never gated.
+    const cand = await page.evaluate((rec) => window.sankeyGateReason(rec, { entity: 'candidate' }), SAP);
+    expect(cand).toBeNull();
   });
 
   test('sankeyHeight is content-adaptive (clamped 320–560; gated compact 120)', async ({ page }) => {
@@ -163,8 +277,8 @@ test.describe('sankey.js — buildSankeyModel adapter', () => {
     const dccc = await page.evaluate((rec) => window.sankeyHeight(window.buildSankeyModel(rec, { entity: 'committee' })), DCCC);
     expect(dccc).toBeGreaterThan(320);
     expect(dccc).toBeLessThanOrEqual(560);
-    // Gated → compact message box.
-    const gated = await page.evaluate((rec) => window.sankeyHeight(window.buildSankeyModel(rec, { entity: 'committee' })), WISCONSIN);
+    // Gated (presidential — the surviving gate) → compact message box.
+    const gated = await page.evaluate((rec) => window.sankeyHeight(window.buildSankeyModel(rec, { entity: 'candidate', isPresidential: true })), SAP);
     expect(gated).toBe(120);
   });
 });

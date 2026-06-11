@@ -483,12 +483,10 @@ test.describe('committee.html — A2 Form-3X raised donut field resolution', () 
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         results: [{
           cycle: 2024, receipts: 5000000, disbursements: 4000000,
-          // 9c: the donut only renders when gated. A real Form-3X committee that shows
-          // the donut is a DUAL-ACCOUNT one (fed-only Form-3X shows the Sankey). The
-          // fed/total mismatch fires the non-federal gate so the donut mounts and the
-          // Form-3X wedge resolution below is assertable. The non-fed wedge fields aren't
-          // set, so no extra wedge appears; the absolute wedge $-values are unaffected.
-          fed_receipts: 4000000, fed_disbursements: 3200000,
+          // 9c: the donut renders only when gated. Step 5 lifted the dual-account (non-federal)
+          // gate, so the surviving gate is presidential — routeGatedCommittee (committee_type 'P')
+          // below mounts the donut pair. The donut is form-agnostic (reads totals field names, not
+          // metadata form), so this Form-3X totals shape still exercises the 3X wedge resolution.
           last_cash_on_hand_end_period: 1000000,
           coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
           individual_itemized_contributions: 2000000,
@@ -507,6 +505,7 @@ test.describe('committee.html — A2 Form-3X raised donut field resolution', () 
         pagination: { count: 1 },
       })});
     });
+    await routeGatedCommittee(page);   // presidential metadata → gated → donut pair mounts
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('#raised-donut-content', { state: 'visible', timeout: 12000 });
   });
@@ -2272,164 +2271,65 @@ test.describe('committee.html — Money flow no-activity guard', () => {
   });
 });
 
-// Form-agnostic spent-donut loan-repayments coalesce: a Form-3 PCC viewed on
-// /committee/ files loan_repayments (NOT the Form-3X loan_repayments_made), and must
-// still surface in the "Loan Repayments" wedge — not fall into the remainder "Other
-// Disbursements". Without the coalesce in computeSpentBreakdown the legend has no
-// Loan Repayments row. (Same form-agnostic class as the Step 0 raised-donut fix.)
-test.describe('committee.html — spent donut loan-repayments coalesce (Form-3 PCC)', () => {
+// RETIRED — Step 5 Gate-1 lift (2026-06-10). The 'spent donut loan-repayments coalesce
+// (Form-3 PCC)' describe lived here. It used a DUAL-ACCOUNT fixture (fed_receipts !== receipts)
+// purely to fire the non-federal gate so the spent donut would render, then asserted a Form-3
+// PCC's loan_repayments surfaces in the Loan repayments wedge (not the Other remainder). Gate 1
+// is now lifted → that fixture renders the Money flow Sankey, never the donut, so the test can no
+// longer trigger. Coverage migrated to the Sankey adapter SAP fixture in tests/sankey.spec.js,
+// which asserts the same Form-3 loan_repayments coalesce: "Loan repayments" node = $50,050 (the
+// adapter's `loan_repayments + loan_repayments_made` reads the Form-3 name). The donut-coalesce
+// CODE remains in committee.html (dormant) until the donut is retired with the Gate-2 flip.
+
+// RETIRED — Step 5 Gate-1 lift (2026-06-10). Two donut describes lived here:
+//   • 'dual-account donut fix' (FEA wedge / no double-counted shared-nonfed wedge / non-fed
+//     transfers wedge / true-receipts % denominator)
+//   • 'spent donut itemizes coordinated party expenditures'
+// Both used a DUAL-ACCOUNT fixture (receipts !== fed_receipts) to fire the non-federal gate so
+// the donut would render. Gate 1 is now lifted → dual-account committees render the Money flow
+// Sankey, never the donut, so these tests can no longer trigger (the donut's FEA / non-fed /
+// coordinated wedges are unreachable: dual-account → Sankey, fed-only → Sankey, and the only
+// surviving donut path — presidential, Form 3P — carries none of those party/soft-money fields).
+// Coverage migrated to the Sankey adapter fixtures in tests/sankey.spec.js:
+//   • FEA itemized + conserves → the WI (C00019331) test (FEA = $27,437,582.17).
+//   • Non-fed transfers accounted for → WI test (commingled into Transfers in per representation
+//     (a); $35.6M = affiliated $23.5M + non-fed $12.1M), with conservation to the penny.
+//   • Coordinated party expenditures itemized → the DCCC test (node = $5,357,092.52) + WI ($9,760).
+// The donut-fix CODE remains in committee.html (dormant, unreachable) until the donut is retired
+// with the Gate-2 production flip; see strategy/profile-flatten-layout.md.
+
+// Step 5 (2026-06-10) — Gate 1 (dual-account / non-federal) was LIFTED: the adapter now models
+// FEA + non-fed transfers + remainder catch-alls, so a dual-account committee conserves and the
+// breakdown slot mounts the Money flow Sankey (not the donut pair). The non-federal detector is
+// gone; breakdownGateReason returns null → breakdown_viz reports 'sankey' with no gate reason.
+test.describe('committee.html — breakdown slot: dual-account is in-scope → Money flow Sankey (Step 5 Gate-1 lift)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);
-    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-        results: [{ cycle: 2024, receipts: 1000000, disbursements: 800000,
-          // 9c: the spent donut only renders when the slot is gated. The fed/total
-          // mismatch fires the non-federal gate so the donut mounts; it doesn't change
-          // any spend-category value (the coalesce under test is form-name-only).
-          fed_receipts: 800000, fed_disbursements: 650000,
-          last_cash_on_hand_end_period: 200000,
-          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
-          // Form-3 field name (no loan_repayments_made); operating 550K + loan 250K = 800K
-          // disbursements → remainder Other is 0, so a Loan Repayments wedge here proves
-          // the coalesce (without it, the 250K lands silently in Other).
-          operating_expenditures: 550000, loan_repayments: 250000 }],
-        pagination: { count: 1 } }) });
-    });
-    await page.goto(COMMITTEE_DETAIL_URL);
-    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
-  });
-
-  test('loan_repayments (Form-3) surfaces in the Loan repayments wedge, not Other', async ({ page }) => {
-    const legend = page.locator('#spent-donut-legend');
-    await expect(legend).toContainText('Loan repayments', { timeout: 12000 });
-    const row = legend.locator('.donut-row', { hasText: 'Loan repayments' });
-    await expect(row.locator('.donut-val')).toHaveText('$250K');  // fmt(250000), not in Other
-  });
-});
-
-// Dual-account donut fix (2026-06-09): a state-party-style Form-3X record with a non-federal
-// account. Spent donut must show a Federal Election Activity wedge and NOT a double-counted
-// "Shared Non-Federal OpEx" wedge (it's inside the operating parent); raised donut must show a
-// "Transfers from non-federal account" wedge and base percentages on TRUE receipts. The default
-// fixture (Form-3 PCC) has none of these fields, so this needs a route override. The record
-// carries a $0.5M raised residual (receipts > modeled wedges) to lock the denominator behavior.
-test.describe('committee.html — dual-account donut fix', () => {
-  test.beforeEach(async ({ page }) => {
-    await mockAmplitude(page);
-    await mockFecApi(page);
-    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-        results: [{ cycle: 2024,
-          receipts: 10500000, fed_receipts: 7000000,
-          disbursements: 8000000, fed_disbursements: 5000000,
-          last_cash_on_hand_end_period: 2000000,
-          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
-          // raised: fed (5M indiv + 2M PAC = 7M) + non-fed (2.5M + 0.5M = 3M) = 10M modeled;
-          // receipts 10.5M → $0.5M unexposed residual (the TX/EMILY case) stays unlabeled.
-          individual_itemized_contributions: 5000000,
-          other_political_committee_contributions: 2000000,
-          transfers_from_nonfed_account: 2500000, transfers_from_nonfed_levin: 500000,
-          // spent: operating PARENT 4M (incl shared_nonfed child 1.5M — must NOT be a 2nd wedge)
-          //        + FEA 3M + refunds 0.1M; Other remainder = 0.9M.
-          operating_expenditures: 4000000, shared_nonfed_operating_expenditures: 1500000,
-          fed_election_activity: 3000000, contribution_refunds: 100000 }],
-        pagination: { count: 1 } }) });
-    });
-    await page.goto(COMMITTEE_DETAIL_URL);
-    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
-  });
-
-  test('spent donut shows the FEA wedge and drops the double-counted shared-nonfed wedge', async ({ page }) => {
-    const legend = page.locator('#spent-donut-legend');
-    await expect(legend).toContainText('Federal election activity', { timeout: 12000 });
-    await expect(legend).not.toContainText('Shared Non-Federal OpEx');
-    // FEA = $3.0M; the operating wedge shows the FULL $4.0M parent (not reduced by the removed child).
-    await expect(legend.locator('.donut-row', { hasText: 'Federal election activity' }).locator('.donut-val')).toHaveText('$3.0M');
-    await expect(legend.locator('.donut-row', { hasText: 'Operating expenditures' }).locator('.donut-val')).toHaveText('$4.0M');
-  });
-
-  test('raised donut shows a Transfers from non-federal account wedge', async ({ page }) => {
-    const legend = page.locator('#donut-legend');
-    await expect(legend).toContainText('Transfers from non-federal account', { timeout: 12000 });
-    await expect(legend.locator('.donut-row', { hasText: 'Transfers from non-federal account' }).locator('.donut-val')).toHaveText('$3.0M');
-  });
-
-  test('raised donut percentages use TRUE receipts as the denominator, not the fed/wedge subtotal', async ({ page }) => {
-    // Individuals (itemized) $5.0M of $10.5M true receipts = 47.6% — NOT 50.0% (of the $10M
-    // modeled-wedge sum) and NOT 71.4% (of the $7M fed base, the pre-fix bug).
-    const legend = page.locator('#donut-legend');
-    const row = legend.locator('.donut-row', { hasText: 'Individuals (itemized)' });
-    await expect(row.locator('.donut-pct')).toHaveText('47.6%');
-  });
-});
-
-// Coordinated party expenditures (2026-06-10): coordinated_expenditures_by_party_committee
-// (party-committee-only, 52 USC 30116(d)) is itemized as its own spent-donut wedge — it was
-// previously buried in the "Other disbursements" remainder while the Sankey itemized it.
-// Disjoint top-level leaf, so pulling it out conserves (the remainder shrinks by its amount).
-test.describe('committee.html — spent donut itemizes coordinated party expenditures', () => {
-  test.beforeEach(async ({ page }) => {
-    await mockAmplitude(page);
-    await mockFecApi(page);
-    // Party committee with a non-federal account → gated → spent donut renders (9c).
+    // Dual-account record: receipts !== fed_receipts (pre-Step-5 this fired the non-federal gate).
     await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         results: [{ cycle: 2024, receipts: 5000000, fed_receipts: 4000000,
           disbursements: 4000000, fed_disbursements: 3000000, last_cash_on_hand_end_period: 1000000,
           coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
-          individual_itemized_contributions: 4000000,
-          // disbursements 4M: operating 2M + IE 1M + coordinated 0.8M = 3.8M known → Other remainder 0.2M.
-          // Without the itemization, coordinated would fall into Other (→ Other 1.0M, no coordinated wedge).
-          operating_expenditures: 2000000, independent_expenditures: 1000000,
-          coordinated_expenditures_by_party_committee: 800000 }],
+          individual_itemized_contributions: 4000000, transfers_from_nonfed_account: 1000000,
+          operating_expenditures: 2500000, fed_election_activity: 500000 }],
         pagination: { count: 1 } }) });
     });
     await page.goto(COMMITTEE_DETAIL_URL);
     await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
   });
 
-  test('coordinated_expenditures renders as its own wedge ($800K), not folded into Other ($200K)', async ({ page }) => {
-    const legend = page.locator('#spent-donut-legend');
-    await expect(legend).toContainText('Coordinated party expenditures', { timeout: 12000 });
-    await expect(legend.locator('.donut-row', { hasText: 'Coordinated party expenditures' }).locator('.donut-val')).toHaveText('$800K');
-    // The remainder excludes it: Other disbursements = 4M − (operating 2M + IE 1M + coordinated 0.8M) = $200K
-    // (would be $1.0M if coordinated were still buried in Other).
-    await expect(legend.locator('.donut-row', { hasText: 'Other disbursements' }).locator('.donut-val')).toHaveText('$200K');
-  });
-});
-
-// 9c: a gated committee no longer shows the Sankey gate caption — the breakdown slot
-// mounts the donut PAIR instead, and the Money flow card is hidden entirely (§4: the
-// donut pair is a complete first-class view, so there is NO "not yet modeled" caption).
-// The gate DETECTOR still fires; it selects the donut viz rather than a visible message.
-test.describe('committee.html — breakdown slot: dual-account is gated → donut pair (9c)', () => {
-  test.beforeEach(async ({ page }) => {
-    await mockAmplitude(page);
-    await mockFecApi(page);
-    // Dual-account record: receipts !== fed_receipts (the non-federal detector fires).
-    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-        results: [{ cycle: 2024, receipts: 5000000, fed_receipts: 4000000,
-          disbursements: 4000000, fed_disbursements: 3000000, last_cash_on_hand_end_period: 1000000,
-          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
-          individual_itemized_contributions: 4000000, operating_expenditures: 3000000 }],
-        pagination: { count: 1 } }) });
-    });
-    await page.goto(COMMITTEE_DETAIL_URL);
-    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
-  });
-
-  test('dual-account mounts the donut pair, hides the Money flow card, shows no gate caption', async ({ page }) => {
-    await expect(page.locator('#raised-donut-content')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#spent-donut-content')).toBeVisible({ timeout: 12000 });
-    await expect(page.locator('#money-flow-card')).toBeHidden();
+  test('dual-account mounts the Money flow Sankey, hides the donut pair, shows no gate caption', async ({ page }) => {
+    await expect(page.locator('#money-flow-card')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#sankey-chart svg')).toBeVisible({ timeout: 12000 });
+    await expect(page.locator('#breakdown-donut-grid')).toBeHidden();
     await expect(page.locator('#sankey-gate')).toBeHidden();
   });
 
-  test('Page Viewed carries breakdown_viz:donut + non-federal gate reason', async ({ page }) => {
+  test('Page Viewed carries breakdown_viz:sankey with no gate reason', async ({ page }) => {
     const event = await findTrackEvent(page, 'Page Viewed');
-    expect(event.args[1]).toMatchObject({ view: 'detail', breakdown_viz: 'donut', breakdown_gate_reason: 'non-federal' });
+    expect(event.args[1]).toMatchObject({ view: 'detail', breakdown_viz: 'sankey', breakdown_gate_reason: null });
   });
 });
 
