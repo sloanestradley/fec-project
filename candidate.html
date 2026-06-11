@@ -362,7 +362,7 @@
 
       <!-- Top Vendors (full-width leaderboard) -->
       <div class="donors-card">
-        <div class="donors-head">Top Vendors · Most Recent Sub-Cycle</div>
+        <div class="donors-head" id="vendors-head">Top Vendors</div>
         <div class="skeleton-overlay-wrap">
           <div class="skeleton tab-skeleton skeleton-table" id="spent-vendors-skeleton"></div>
           <div class="inline-status-msg skeleton-overlay-msg" id="spent-vendors-still-loading" style="display:none">
@@ -1653,14 +1653,29 @@ function renderSpentOpexIfReady() {
   renderSpendDetail(spentOpexData.allTransactions || []);
   renderTopVendors(spentOpexData.topVendors);
 
+  // Opex data (Purpose bars + Top Vendors) is the MOST RECENT sub-cycle only —
+  // fetchSpentOpex queries Schedule B with two_year_transaction_period = subCycles[last]
+  // (the API honors it). Label both surfaces with that sub-cycle's 2-year window
+  // (e.g. "2023–2024"), mirroring committee.html's #vendors-head. For House (1 sub-cycle)
+  // the window IS the cycle; for Senate/President it's the last 2 of the 6-/4-year cycle —
+  // so the prior vague "Most Recent Sub-Cycle" caveat (misleading on past cycles) is gone.
+  var sc = spentOpexData.subCycles || [];
+  var lastSub = sc[sc.length - 1];
+  var periodLabel = (lastSub - 1) + '–' + lastSub;
+  var vendorsHead = document.getElementById('vendors-head');
+  if (vendorsHead) vendorsHead.textContent = 'Top Vendors · ' + periodLabel;
+
   // C9 Spending-by-Purpose methodology → tooltip on the section title, with the
   // conditional cap fragment (C10.b). Rebuilt each render so the cap clause
   // tracks per-cycle fetch state; fresh innerHTML re-wires via initTooltips
   // (donut pattern). Mounts on resolve — the inline note it replaced was
-  // likewise post-resolve (inside #spent-bars-content).
+  // likewise post-resolve (inside #spent-bars-content). The sub-cycle clause is
+  // CONDITIONAL on multi-sub-cycle (Senate/President) — for House the bars already
+  // cover the whole cycle, so the clause is redundant and omitted.
   (function() {
     var t = document.getElementById('spent-purpose-title');
-    var copy = 'Categories estimated from disbursement descriptions using keyword matching. Some transactions may be miscategorized. Covers most recent sub-cycle only.'
+    var copy = 'Categories estimated from disbursement descriptions using keyword matching. Some transactions may be miscategorized.'
+      + (sc.length > 1 ? ' Covers ' + periodLabel + ' only.' : '')
       + (spentOpexData.capped ? ' (capped at 500 transactions)' : '');
     t.classList.add('raised-cell-title--has-info');
     t.innerHTML = 'Spending by Purpose<span class="tooltip" aria-label="About spending by purpose">' + copy + '</span>';

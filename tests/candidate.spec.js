@@ -2085,7 +2085,7 @@ test.describe('candidate.html — Spending by Purpose tooltip (C9 + cap)', () =>
     );
   }
 
-  test('title mounts the methodology tooltip with the candidate sub-cycle sentence', async ({ page }) => {
+  test('title mounts the methodology tooltip; sub-cycle clause omitted for House (single sub-cycle)', async ({ page }) => {
     await setup(page);
     await gotoSpent(page);
     const trigger = page.locator('#spent-purpose-title .tooltip-trigger');
@@ -2095,10 +2095,33 @@ test.describe('candidate.html — Spending by Purpose tooltip (C9 + cap)', () =>
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
     await expect(popup).toContainText('Categories estimated from disbursement descriptions using keyword matching.');
-    await expect(popup).toContainText('Covers most recent sub-cycle only.');
+    // House = 1 sub-cycle (the sub-cycle IS the cycle) → the "Covers … only." clause is
+    // omitted (replaced the misleading static "Covers most recent sub-cycle only." 2026-06-11).
+    await expect(popup).not.toContainText('Covers');
+    await expect(popup).not.toContainText('sub-cycle');
     await expect(popup).not.toContainText('capped at 500 transactions');
     // The old inline note under the bars is gone.
     await expect(page.locator('#spent-bars-content .data-note')).toHaveCount(0);
+  });
+
+  test('Top Vendors title shows the sub-cycle date range (House → "Top Vendors · 2023–2024")', async ({ page }) => {
+    await setup(page);
+    await gotoSpent(page);
+    // Mirrors committee.html's #vendors-head — the last sub-cycle's 2-year window. For
+    // House the window IS the cycle; replaces the prior vague "· Most Recent Sub-Cycle".
+    await expect(page.locator('#vendors-head')).toHaveText('Top Vendors · 2023–2024');
+  });
+
+  test('multi-sub-cycle (presidential): purpose tooltip shows "Covers 2023–2024 only." + vendors title shows the last sub-cycle range', async ({ page }) => {
+    await setupGatedDonuts(page);  // office 'P' → subCycles [2022, 2024] (length 2)
+    await gotoSpent(page);
+    // The opex data (Purpose bars + Top Vendors) is the LAST sub-cycle only (2023–2024),
+    // not the full 4-year cycle — so the clause appears here and the vendors title scopes it.
+    await expect(page.locator('#vendors-head')).toHaveText('Top Vendors · 2023–2024');
+    await page.locator('#spent-purpose-title .tooltip-trigger').click();
+    const popup = page.locator('.tooltip-popup');
+    await expect(popup).toBeVisible();
+    await expect(popup).toContainText('Covers 2023–2024 only.');
   });
 
   test('tooltip appends the cap fragment when Schedule B caps (C10.b)', async ({ page }) => {

@@ -55,7 +55,8 @@
 
 - [ ] ✅ Donut legend wedges (Raised tab): the 6 methodology wedges each show a ⓘ; popup shows the wedge's copy; legend rows are even (no row grows — `.donut-row` is 32px)
 - [ ] ✅ Choropleth title (Raised tab): "Itemized Individual Contributions Map" has a ⓘ; popup = geography + amendment caveat (both pages, identical copy)
-- [ ] ✅ Spending by Purpose title (Spent tab): ⓘ; popup = "Categories estimated from disbursement descriptions…"; candidate adds "Covers most recent sub-cycle only.", committee omits it
+- [ ] ✅ Spending by Purpose title (Spent tab): ⓘ; popup = "Categories estimated from disbursement descriptions…"; candidate adds "Covers {YYYY}–{YYYY} only." ONLY on multi-sub-cycle offices (Senate/President) — House omits it (sub-cycle = cycle); committee omits it
+- [ ] ✅ Candidate Top Vendors title shows the last sub-cycle's date range — "Top Vendors · {YYYY}–{YYYY}" (e.g. 2023–2024), mirroring committee; never the static "Most Recent Sub-Cycle" (retired 2026-06-11). House: range = the cycle; Senate/President: the last 2-year window of the cycle
 - [ ] ✅ Archive divider (index view, pre-threshold cycles only): ⓘ on the "Archived …" band; popup = "No detail view available for … prior to {threshold}"; band stays 32px (doesn't grow)
 - [ ] ✅ Raised:Spent ratio stat label (candidate, detail view): ⓘ in the card's top-right corner; popup = "Total receipts ÷ total disbursements"; **card and stats-grid row do NOT change height** (the `.tooltip` host is `position:absolute`; the trigger button inside is `position:static`)
 - [ ] ✅ Tooltip aria-labels are sentence case (first word capitalized, rest lowercase except proper/product terms): "About candidate authorized committees", "About other receipts", "About spending by purpose", "About the Raised:Spent ratio"
