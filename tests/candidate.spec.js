@@ -710,7 +710,7 @@ test.describe('candidate.html — Raised tab sections', () => {
 
   test('choropleth section title mounts the geography tooltip (with candidate-parity amendment caveat)', async ({ page }) => {
     const title = page.locator('.raised-cell-title--has-info', {
-      hasText: 'Where Individual Contributions Come From',
+      hasText: 'Itemized Individual Contributions Map',
     });
     await expect(title).toHaveCount(1);
     const trigger = title.locator('.tooltip-trigger');

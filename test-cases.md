@@ -54,7 +54,7 @@
 *Component behavior (hover/click/keyboard/Esc/outside-click/scroll-close, popup placement, singleton) is covered by `tests/tooltip.spec.js`. These check the per-surface application — placement, copy, and no-layout-impact.*
 
 - [ ] ✅ Donut legend wedges (Raised tab): the 6 methodology wedges each show a ⓘ; popup shows the wedge's copy; legend rows are even (no row grows — `.donut-row` is 32px)
-- [ ] ✅ Choropleth title (Raised tab): "Where Individual Contributions Come From" has a ⓘ; popup = geography + amendment caveat (both pages, identical copy)
+- [ ] ✅ Choropleth title (Raised tab): "Itemized Individual Contributions Map" has a ⓘ; popup = geography + amendment caveat (both pages, identical copy)
 - [ ] ✅ Spending by Purpose title (Spent tab): ⓘ; popup = "Categories estimated from disbursement descriptions…"; candidate adds "Covers most recent sub-cycle only.", committee omits it
 - [ ] ✅ Archive divider (index view, pre-threshold cycles only): ⓘ on the "Archived …" band; popup = "No detail view available for … prior to {threshold}"; band stays 32px (doesn't grow)
 - [ ] ✅ Raised:Spent ratio stat label (candidate, detail view): ⓘ in the card's top-right corner; popup = "Total receipts ÷ total disbursements"; **card and stats-grid row do NOT change height** (the `.tooltip` host is `position:absolute`; the trigger button inside is `position:static`)
@@ -246,7 +246,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Donut renders synchronously on tab click (no skeleton flash) when totals are already in memory; donut skeleton briefly visible during cycle switch
 - [ ] Choropleth (fast tier) skeleton visible briefly then choropleth renders (~300ms typical for by_state)
 - [ ] Slow-tier skeletons visible on the Top Committee Contributors + Top Conduit Sources cards while Schedule A non-individual fetch paginates; replaced by tables when fetch resolves
-- [ ] Section titles ("Raised breakdown", "Where Individual Contributions Come From", "Top Committee Contributors", "Top Conduit Sources") visible at all times during loading
+- [ ] Section titles ("Raised breakdown", "Itemized Individual Contributions Map", "Top Committee Contributors", "Top Conduit Sources") visible at all times during loading
 - [ ] "Top Committee Contributors" card renders with at least one row
 - [ ] Top Committee Contributors header reads year-range format: `· 2025–2026` (House), `· 2021–2026` (Senate), `· 2023–2026` (Presidential)
 - [ ] "Top Conduit Sources" card renders below Top Committee Contributors with at least one row (Democrats should show ActBlue; Republicans should show WinRed)
@@ -265,7 +265,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Cycle switch after tab-error → error states clear, fresh fetch attempted
 
 ### Spent tab loading + error states
-- [ ] Per-section skeletons visible: Spending by Category (donut), Spending by Purpose (bars), Top Vendors (table) — titles visible during loading
+- [ ] Per-section skeletons visible: Spent breakdown (donut), Spending by Purpose (bars), Top Vendors (table) — titles visible during loading
 - [ ] Mock 429 / 500 on `/schedules/schedule_b/` → spent-error tab UI renders correctly (rate-limit copy on 429, default + retry on 500)
 - [ ] Retry click on Spent error → re-fires fetch + re-shows skeletons + content resolves
 
@@ -453,7 +453,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] ✅ Map container (#map-container) is present in the Geographic section
 - [ ] ✅ Committee donors tbody has at least one row
 - [ ] ✅ Individual donors tbody has at least one row
-- [ ] Section titles ("Raised breakdown", "Where Individual Contributions Come From", "Top Committee Contributors", "Top Conduit Sources", "Top Individual Contributors") visible at all times during loading; only chart canvas / table body areas swap between skeleton and content
+- [ ] Section titles ("Raised breakdown", "Itemized Individual Contributions Map", "Top Committee Contributors", "Top Conduit Sources", "Top Individual Contributors") visible at all times during loading; only chart canvas / table body areas swap between skeleton and content
 - [ ] Donut skeleton briefly visible during cycle switch then donut renders
 - [ ] Choropleth (fast tier) skeleton resolves quickly (~300ms typical for by_state)
 - [ ] KV-backed Top Individual Contributors + Top Committee Contributors (committee.html fast tier on KV hit) resolve sub-400ms typical
@@ -503,7 +503,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] ✅ Contributions section visible when CCM records exist
 - [ ] ✅ Contributions tbody has at least one row
 - [ ] Loading spinner visible while spending data is fetching
-- [ ] Spending by Category donut renders with legend rows and percentage labels
+- [ ] Spent breakdown donut renders with legend rows and percentage labels
 - [ ] Donut center shows total spent amount (formatted dollar)
 - [ ] Purpose breakdown bars show category labels, amounts, and percentages
 - [ ] Vendor table header dynamically reflects the cycle (e.g. "Top Vendors · 2023–2024") — never "All time" (post-T8)
@@ -514,7 +514,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Switching cycles resets and re-fetches spent data; donut and purpose bars re-render for new cycle
 - [ ] Data note at bottom includes Schedule B and FEC totals source attribution
 - [ ] Navigating to Spent tab on a page where data is already fetched renders immediately (no re-fetch)
-- [ ] Section titles ("Spending by Category", "Spending by Purpose", "Top Vendors", "Contributions to Candidates & Committees") visible at all times during loading; per-section skeletons replace only the chart canvas / table body
+- [ ] Section titles ("Spent breakdown", "Spending by Purpose", "Top Vendors", "Contributions to Candidates & Committees") visible at all times during loading; per-section skeletons replace only the chart canvas / table body
 - [ ] Contributions section has section title "Contributions to Candidates & Committees" above the table; no descriptive paragraph below the table (K15 retired 2026-05-28 — section title carries context, no subtitle pattern introduced)
 - [ ] Whole-row click on a Contributions row navigates to /committee/{recipient_id}; middle-click opens in new tab; recipient name renders as plain text (no blue underline)
 - [ ] Mock 429 / 500 on `/schedules/schedule_b/` → spent-error tab UI renders correctly (rate-limit copy on 429, default + retry on 500)

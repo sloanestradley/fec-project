@@ -227,7 +227,7 @@
             </div>
           </div>
           <div class="raised-cell">
-            <div class="raised-cell-title">Spending by Category</div>
+            <div class="raised-cell-title">Spent breakdown</div>
             <div class="skeleton tab-skeleton skeleton-donut" id="spent-donut-skeleton"></div>
             <div id="spent-donut-content" style="display:none">
               <div class="donut-wrap">
@@ -248,7 +248,7 @@
       <!-- Geographic | Purpose (paired compact row) -->
       <div class="raised-grid">
         <div class="raised-cell">
-          <div class="raised-cell-title raised-cell-title--has-info">Where Individual Contributions Come From<span class="tooltip" aria-label="About the contribution geography map">Reflects itemized individual contributions by state. State totals may differ from summary figures due to FEC amendment processing.</span></div>
+          <div class="raised-cell-title raised-cell-title--has-info">Itemized Individual Contributions Map<span class="tooltip" aria-label="About the contribution geography map">Reflects itemized individual contributions by state. State totals may differ from summary figures due to FEC amendment processing.</span></div>
           <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
           <div class="map-svg-wrap" id="map-container" style="display:none"></div>
           <div class="tab-error" id="raised-fast-error" style="display:none">
@@ -273,12 +273,12 @@
         </div>
       </div>
 
-      <!-- Timeline: Raised · Spent · Cash on Hand over cycle (full-width, directly below the
+      <!-- Timeline: Reported Totals Over Cycle — Raised · Spent · Cash on Hand (full-width, directly below the
            Geographic | Purpose row — closes the "where money came from / went" viz block
            before the dense contributor/vendor tables). Candidate-only. -->
       <div class="chart-card">
         <div class="chart-header">
-          <div class="chart-title" id="chart-title">Raised · Spent · Cash on Hand over cycle</div>
+          <div class="chart-title" id="chart-title">Reported Totals Over Cycle</div>
           <div class="chart-legend" style="display:none">
             <div class="legend-item"><div class="legend-swatch" style="color:var(--navy-deep)"></div>Raised</div>
             <div class="legend-item"><div class="legend-swatch" style="color:var(--red-deep)"></div>Spent</div>
@@ -1671,7 +1671,7 @@ function renderSpentOpexIfReady() {
   //     which carried C10.b): cut. C9 inline note on the purpose card already
   //     covers the same methodology; C10.b returns inside C9's tooltip when
   //     tooltip component ships (currently absent in production).
-  //   C10.c (Spending by Category: FEC totals endpoint donut source): cut
+  //   C10.c (Spent breakdown: FEC totals endpoint donut source): cut
   //     ("lacks value").
   //   C10.e (Senate sub-cycle aggregation conditional): cut (implied by
   //     election-level data).
@@ -1890,11 +1890,22 @@ function renderMoneyFlow(rec, principal) {
 (function() {
   var t = null;
   window.addEventListener('resize', function() {
-    if (!currentSankeyModel) return;
     clearTimeout(t);
     t = setTimeout(function() {
-      var c = document.getElementById('sankey-chart');
-      if (c && c.style.display !== 'none') renderSankey('sankey-chart', currentSankeyModel);
+      // Sankey (ECharts) — re-render for the <640px $-value label drop.
+      if (currentSankeyModel) {
+        var c = document.getElementById('sankey-chart');
+        if (c && c.style.display !== 'none') renderSankey('sankey-chart', currentSankeyModel);
+      }
+      // Chart.js instances grow reliably only on an EXPLICIT resize() — the built-in
+      // ResizeObserver under-fires on WIDEN with maintainAspectRatio + an auto-height
+      // container (it shrinks fine but won't re-expand). Re-measure each live instance;
+      // offsetParent===null skips one whose container is display:none (e.g. the
+      // gated-only donut grid, or the timeline before first render). Note: NOT gated on
+      // currentSankeyModel — on a gated entity the Sankey is absent but the donuts ARE shown.
+      [chartInstance, donutInstance, spentDonutInstance].forEach(function(ch) {
+        if (ch && ch.canvas && ch.canvas.offsetParent !== null) ch.resize();
+      });
     }, 150);
   });
 })();
