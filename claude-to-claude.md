@@ -6588,4 +6588,55 @@ The other theme was labels-as-honesty. A title like "Most Recent Sub-Cycle" feel
 - **Gate-2 presidential un-gate — the real next Sankey step.** Adapter is built + test-locked (exempt-spend nodes, McCain '08 conserves). The remaining blocker is raised-side: Form-3P loans live in `loans_received`/`other_loans_received` (which the Loans node doesn't read), and they alias `all_loans_received` — needs a cross-form de-dup check before flipping the gate. Worth deciding when to prioritize vs. other work.
 - **Future-cycle scoping is now a pattern, not a one-off.** Every incumbent's next election hits it. The "anchor to the filed sub-cycle (coverage date), not the nominal cycle" approach is now in three places — worth a quick gut-check that we like that as the standing convention before more surfaces depend on it.
 - **The donut code is now partly dead.** Gate-1 + the future fixes mean dual-account committees never render the donut pair; only presidential does (until Gate-2 flips). When Gate-2 lifts, the donut-render path + its remaining tests retire entirely — a clean future cleanup ticket to scope.
+
+---
+2026-06-11 — session close (nav cluster + mobile overlay + timeline height-cap)
+
+## Process log draft
+
+### Title
+Clustering the nav, capping the chart, and a backdrop that knew when to leave
+
+### Summary (Sloane's voice)
+Two nav changes and a chart trim that all turned out smaller than they looked — but only because we kept catching the edge cases before they shipped. I moved the desktop nav into a clean top-right [Search][Races][Feed] cluster, gave the mobile menu a proper dimming backdrop that closes when you tap away (or scroll, or hit Esc), and finally capped the "Totals Reported Over Cycle" chart that had been towering over every other section.
+
+### Changelog
+- Desktop nav: reordered to a right-aligned [Search][Races][Feed] cluster — done as a DOM reorder (across 10 pages) so keyboard order matches what you see, not a CSS-only trick; lifted the nav-inner gap to 0 so the groups butt together.
+- Mobile nav: added a dimming overlay that starts below the banner and sits below the nav's stacking context — banner, nav bar, and open drawer stay crisp, only page content dims. Closes on outside-tap, Esc, and scroll; aria-expanded synced.
+- Fixed a pre-existing gap: the mobile search icon now goes muted/no-op on /search, matching the desktop button.
+- Capped the timeline chart at 400px desktop / 360px mobile (switched off aspect-ratio sizing) and deleted the now-needless skeleton height-juggling + the old skeleton→chart load jump along the way.
+- +7 tests (903 total); both changes shipped to production and deploy-verified.
+
+### Field notes
+The theme was "the cheap fix and the right fix aren't the same." The nav cluster could've been a one-line CSS `order` swap — but that splits visual order from keyboard order, so the right answer was the slightly-more-work DOM reorder. The chart could've been a one-number aspectRatio bump — but that just trades desktop height for a squished mobile, so the right answer was a fixed-height container, which also happened to delete a chunk of skeleton code and a load jump nobody had flagged. And the mobile backdrop looked done until you remembered you can scroll with it open — at which point the fixed scrim and the in-flow nav drift apart and re-expose the banner. Catching that before shipping was the whole difference.
+
+### Stack tags
+None new (Chart.js maintainAspectRatio:false fixed-height pattern; body-level fixed overlay with stacking-context-aware z-index:198).
+
+## How Sloane steered the work
+
+### "Option B!! (I previously said A)" — reversing toward the harder, righter path
+You'd first picked the CSS-only option, then switched to the DOM reorder once the focus-order trade-off was on the table — choosing the accessible result over the lighter diff. For a portfolio piece that bar is the point.
+
+### Relaying Chat's three additions and asking for reservations
+You didn't just forward them — you asked whether I had concerns, turning it into a real cross-check. One of the three (close-on-scroll) was a genuine shipping bug in my plan; holding it up to scrutiny is what caught it before it shipped.
+
+### Catching the pre-existing parity gap yourself
+You noticed the mobile search icon wasn't disabled on /search like the desktop one — a small inconsistency most people never spot — and folded it into the same work so it didn't become its own forgotten ticket.
+
+### "What options are there... maybe 480? possibly smaller?" — options before action
+On the chart you asked for the trade-space, not a fix, then picked 400/360 — smaller than my 480 recommendation. You were sizing it by eye and intent, not deferring to my default.
+
+### Verify-then-ship discipline
+Every push was gated on your own local look first, and you had me verify the live deploy after each — treating "tests green" as necessary but never sufficient.
+
+### Through-line
+You consistently chose the version that's right over the version that's quick, and you treated every "looks done" as a cue to check the edge — the focus order, the scroll-open state, the /search parity, the actual rendered height.
+
+## What to bring to Claude Chat
+
+- Mobile chart presence: the timeline is now 360px on mobile (was ~163px) — a much bigger footprint. Worth eyeballing across a few candidates/offices in real use to confirm 360 reads well; it's a larger mobile change than the desktop cap.
+- Reusable pattern: "cap a Chart.js chart's height" = maintainAspectRatio:false + a fixed container (donuts still use aspectRatio:true). If the banked Spent-timeline ever ships, apply this from the start instead of aspect-ratio sizing.
+- The positioned-element z-index band (195 sub-header → 400 viz-tt) is now documented in CLAUDE.md — a reference so future overlay/modal/tooltip layers slot in deliberately.
+- Mobile-nav close-on-scroll is now load-bearing for the banner-uncovered invariant — flag it if any future change makes the nav sticky/fixed or adds an in-nav scroll region.
 - **Server-side KV caching for the API proxy** remains the banked Phase-4 lift that would make cold-load + future-cycle pages snappy under real traffic (also the fix for race.html cold-load). Still unscheduled.
