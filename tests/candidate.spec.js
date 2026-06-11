@@ -2642,7 +2642,7 @@ test.describe('candidate.html — T-load-4b chart-card skeleton', () => {
   test('chart-skeleton + chart-error overlays present in initial HTML; chart-legend hidden; canvas in normal flow', async ({ page }) => {
     const response = await page.context().request.get('http://localhost:8080/candidate.html');
     const html = await response.text();
-    expect(html).toMatch(/id="chart-area"[^>]*height:320px/);
+    expect(html).toMatch(/id="chart-area"/);
     expect(html).toMatch(/id="chart-skeleton" class="skeleton"/);
     expect(html).toMatch(/id="chart-error"[^>]*display:none/);
     // chart-legend hidden initially — swatches reference data not yet rendered
@@ -2659,9 +2659,10 @@ test.describe('candidate.html — T-load-4b chart-card skeleton', () => {
     await expect(page.locator('#chart-timeline')).toBeVisible();
     await expect(page.locator('#chart-error')).toBeHidden();
     await expect(page.locator('.chart-legend')).toBeVisible();
-    // chart-area's inline height:320px floor cleared (Chart.js sizes canvas naturally)
-    const areaHeight = await page.locator('#chart-area').evaluate(el => el.style.height);
-    expect(areaHeight).toBe('');
+    // #chart-area carries a fixed CSS height (400px desktop; maintainAspectRatio:false)
+    // — the canvas fills it instead of growing as width/2.2. Viewport is 1280px wide.
+    const areaHeight = await page.locator('#chart-area').evaluate(el => el.offsetHeight);
+    expect(areaHeight).toBe(400);
   });
 
   test('loadCycle catch resolves chart-skeleton to "Unable to load chart"', async ({ page }) => {

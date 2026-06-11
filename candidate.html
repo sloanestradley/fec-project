@@ -44,6 +44,13 @@
     /* Cycle index — index view only */
     #cycle-index { opacity:0; transition:opacity 0.3s ease; }
     #cycle-index.visible { opacity:1; }
+    /* Timeline chart — fixed-height container (paired with maintainAspectRatio:false
+       in the Chart.js config) so the canvas fills this height at every width instead
+       of growing as width/2.2 (~680px on wide desktop). Responsive width is unchanged;
+       the skeleton + error overlays (absolute inset:0) ride this same height, so there's
+       no skeleton→chart height jump. (height-trim, 2026-06-11) */
+    #chart-area { height:400px; }
+    @media (max-width:860px) { #chart-area { height:360px; } }
 
   </style>
 </head>
@@ -286,7 +293,7 @@
             <div class="legend-item"><div class="legend-swatch" style="color:var(--green)"></div>Cash on Hand</div>
           </div>
         </div>
-        <div id="chart-area" style="position:relative;width:100%;min-width:0;height:320px">
+        <div id="chart-area" style="position:relative;width:100%;min-width:0">
           <canvas id="chart-timeline"></canvas>
           <div id="chart-skeleton" class="skeleton" style="position:absolute;inset:0"></div>
           <div id="chart-error" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center">
@@ -708,15 +715,13 @@ function assessHealth(raised, spent, coh) {
 // linear for COH.
 // Overlay: subtle vertical line at today (active cycles only).
 function renderChart(reports, cycle) {
-  // T-load-4b — clear loading state (skeleton overlay + chart-area height
-  // floor + hidden legend), reveal the chart canvas underneath. Container's
-  // inline height clears so Chart.js sizes the canvas to its natural aspect
-  // ratio without the 320px floor constraining it. Legend is shown alongside
-  // the chart (hidden during loading/error since the swatches reference data
-  // that isn't yet on screen).
+  // T-load-4b — clear loading state (skeleton overlay + hidden legend), reveal the
+  // chart canvas underneath. #chart-area carries a fixed CSS height (400px desktop /
+  // 360px mobile) that the skeleton overlay and the canvas both fill, so there's no
+  // height to juggle here. Legend is shown alongside the chart (hidden during
+  // loading/error since the swatches reference data that isn't yet on screen).
   document.getElementById('chart-skeleton').style.display = 'none';
   document.getElementById('chart-error').style.display = 'none';
-  document.getElementById('chart-area').style.height = '';
   document.querySelector('.chart-legend').style.display = '';
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 
@@ -849,8 +854,11 @@ function renderChart(reports, cycle) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 2.2,
+      // Fixed-height container (#chart-area: 400px desktop / 360px mobile, see the
+      // inline <style>) — maintainAspectRatio:false lets the canvas fill that height
+      // at every width instead of growing as width/2.2 (~680px on wide desktop).
+      // Responsive width is unchanged. (height-trim, 2026-06-11)
+      maintainAspectRatio: false,
       // Room inside the canvas for the "today" overlay label (drawn above the
       // plot area) and the radius of points sitting at the right/top edges;
       // paired with clip:false on the datasets so edge points draw into it.
@@ -1926,8 +1934,8 @@ function renderMoneyFlow(rec, principal) {
         if (c && c.style.display !== 'none') renderSankey('sankey-chart', currentSankeyModel);
       }
       // Chart.js instances grow reliably only on an EXPLICIT resize() — the built-in
-      // ResizeObserver under-fires on WIDEN with maintainAspectRatio + an auto-height
-      // container (it shrinks fine but won't re-expand). Re-measure each live instance;
+      // ResizeObserver under-fires on WIDEN for some configs (it shrinks fine but won't
+      // always re-expand the canvas width). Re-measure each live instance;
       // offsetParent===null skips one whose container is display:none (e.g. the
       // gated-only donut grid, or the timeline before first render). Note: NOT gated on
       // currentSankeyModel — on a gated entity the Sankey is absent but the donuts ARE shown.
@@ -2008,14 +2016,13 @@ async function loadCycle(cycle) {
   ratioSubReset.className = 'stat-sub';
   document.getElementById('stat-cycle').textContent = cycle;
 
-  // T-load-4b — chart-card reset. Re-overlay the skeleton on top of the
-  // previous cycle's chart (hidden underneath) and restore the 320px height
-  // floor for the new cycle's await window. Legend also hidden — the previous
-  // cycle's swatches reference a chart that's about to be replaced.
-  // renderChart's top reverses all of this.
+  // T-load-4b — chart-card reset. Re-overlay the skeleton on top of the previous
+  // cycle's chart (hidden underneath) for the new cycle's await window. #chart-area's
+  // fixed CSS height owns the dimensions, so there's no height to restore. Legend also
+  // hidden — the previous cycle's swatches reference a chart that's about to be
+  // replaced. renderChart's top reverses all of this.
   document.getElementById('chart-skeleton').style.display = '';
   document.getElementById('chart-error').style.display = 'none';
-  document.getElementById('chart-area').style.height = '320px';
   document.querySelector('.chart-legend').style.display = 'none';
 
   // Breakdown slot (9c) — set the gate + toggle the two viz containers BEFORE the
