@@ -2095,11 +2095,14 @@ test.describe('candidate.html — Spending by Purpose tooltip (C9 + cap)', () =>
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
     await expect(popup).toContainText('Categories estimated from disbursement descriptions using keyword matching.');
-    // House = 1 sub-cycle (the sub-cycle IS the cycle) → the "Covers … only." clause is
-    // omitted (replaced the misleading static "Covers most recent sub-cycle only." 2026-06-11).
-    await expect(popup).not.toContainText('Covers');
+    // House = 1 sub-cycle (the sub-cycle IS the cycle) + not capped → no parenthetical at all,
+    // ending "…miscategorized." (the "covers … only" clause is multi-sub-cycle-only; replaced
+    // the misleading static "Covers most recent sub-cycle only." 2026-06-11).
+    await expect(popup).toContainText('Some transactions may be miscategorized.');
+    await expect(popup).not.toContainText('covers');
     await expect(popup).not.toContainText('sub-cycle');
     await expect(popup).not.toContainText('capped at 500 transactions');
+    await expect(popup).not.toContainText('(');
     // The old inline note under the bars is gone.
     await expect(page.locator('#spent-bars-content .data-note')).toHaveCount(0);
   });
@@ -2112,7 +2115,7 @@ test.describe('candidate.html — Spending by Purpose tooltip (C9 + cap)', () =>
     await expect(page.locator('#vendors-head')).toHaveText('Top Vendors · 2023–2024');
   });
 
-  test('multi-sub-cycle (presidential): purpose tooltip shows "Covers 2023–2024 only." + vendors title shows the last sub-cycle range', async ({ page }) => {
+  test('multi-sub-cycle (presidential): purpose tooltip shows "(covers 2023–2024 only)" + vendors title shows the last sub-cycle range', async ({ page }) => {
     await setupGatedDonuts(page);  // office 'P' → subCycles [2022, 2024] (length 2)
     await gotoSpent(page);
     // The opex data (Purpose bars + Top Vendors) is the LAST sub-cycle only (2023–2024),
@@ -2121,7 +2124,7 @@ test.describe('candidate.html — Spending by Purpose tooltip (C9 + cap)', () =>
     await page.locator('#spent-purpose-title .tooltip-trigger').click();
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
-    await expect(popup).toContainText('Covers 2023–2024 only.');
+    await expect(popup).toContainText('(covers 2023–2024 only)');
   });
 
   test('tooltip appends the cap fragment when Schedule B caps (C10.b)', async ({ page }) => {
@@ -2147,6 +2150,22 @@ test.describe('candidate.html — Spending by Purpose tooltip (C9 + cap)', () =>
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
     await expect(popup).toContainText('(capped at 500 transactions)');
+  });
+
+  test('both clauses combine in one parenthetical: "(covers 2023–2024 only, capped at 500 transactions)"', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await routeGatedCandidate(page);  // office 'P' → subCycles [2022, 2024] (multi-sub-cycle)
+    // Force the Schedule B walk to cap → both the sub-cycle and cap clauses are present.
+    await page.route('**/schedules/schedule_b/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ disbursement_description: 'DIGITAL', disbursement_amount: 1000, recipient_name: 'V' }],
+        pagination: { pages: 10, last_indexes: { last_index: '1', last_disbursement_amount: '1' } } }) }));
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await gotoSpent(page);
+    await page.locator('#spent-purpose-title .tooltip-trigger').click();
+    await expect(page.locator('.tooltip-popup')).toContainText('(covers 2023–2024 only, capped at 500 transactions)');
   });
 });
 
@@ -2976,7 +2995,7 @@ test.describe('candidate.html — future election cycle (loading fix + opex sub-
     }, { timeout: 12000 });
     await expect(page.locator('#vendors-head')).toHaveText('Top Vendors · 2025–2026');
     await page.locator('#spent-purpose-title .tooltip-trigger').click();
-    await expect(page.locator('.tooltip-popup')).toContainText('Covers 2025–2026 only.');
+    await expect(page.locator('.tooltip-popup')).toContainText('(covers 2025–2026 only)');
   });
 });
 

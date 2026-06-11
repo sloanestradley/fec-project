@@ -1679,9 +1679,15 @@ function renderSpentOpexIfReady() {
   // cover the whole cycle, so the clause is redundant and omitted.
   (function() {
     var t = document.getElementById('spent-purpose-title');
-    var copy = 'Categories estimated from disbursement descriptions using keyword matching. Some transactions may be miscategorized.'
-      + (sc.length > 1 ? ' Covers ' + periodLabel + ' only.' : '')
-      + (spentOpexData.capped ? ' (capped at 500 transactions)' : '');
+    // Fold the conditional sub-cycle + cap clauses into a SINGLE parenthetical appended
+    // to "miscategorized" (before the period) — e.g. "(covers 2025–2026 only, capped at
+    // 500 transactions)". Either, both, or neither, joined by ", ".
+    var parts = [];
+    if (sc.length > 1)        parts.push('covers ' + periodLabel + ' only');
+    if (spentOpexData.capped) parts.push('capped at 500 transactions');
+    var copy = 'Categories estimated from disbursement descriptions using keyword matching. Some transactions may be miscategorized'
+      + (parts.length ? ' (' + parts.join(', ') + ')' : '')
+      + '.';
     t.classList.add('raised-cell-title--has-info');
     t.innerHTML = 'Spending by Purpose<span class="tooltip" aria-label="About spending by purpose">' + copy + '</span>';
     initTooltips(t);

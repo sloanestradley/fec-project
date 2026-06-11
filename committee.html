@@ -2596,8 +2596,11 @@ function renderSpentOpexIfReady() {
   // sub-cycle" sentence.
   (function() {
     var t = document.getElementById('spent-purpose-title');
-    var copy = 'Categories estimated from disbursement descriptions using keyword matching. Some transactions may be miscategorized.'
-      + (data.capped ? ' (capped at 500 transactions)' : '');
+    // Cap clause folded into a parenthetical before the period (matches candidate;
+    // committee has no sub-cycle clause): "…miscategorized (capped at 500 transactions)." / "…miscategorized."
+    var copy = 'Categories estimated from disbursement descriptions using keyword matching. Some transactions may be miscategorized'
+      + (data.capped ? ' (capped at 500 transactions)' : '')
+      + '.';
     t.classList.add('raised-cell-title--has-info');
     t.innerHTML = 'Spending by Purpose<span class="tooltip" aria-label="About spending by purpose">' + copy + '</span>';
     initTooltips(t);
