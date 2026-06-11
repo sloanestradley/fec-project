@@ -651,6 +651,8 @@ test.describe('committee.html — Raised tab sections', () => {
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
     await expect(popup).toContainText('Reflects itemized individual contributions by state.');
+    // ≤$200 caveat moved here from #page-note (2026-06-11).
+    await expect(popup).toContainText('Contributions of $200 or less are not required to be itemized.');
     await expect(popup).toContainText('State totals may differ from summary figures due to FEC amendment processing.');
   });
 
@@ -2158,16 +2160,13 @@ test.describe('committee.html — Phase 2 PAGE-NOTE', () => {
     await expect(pn).toBeVisible();
   });
 
-  test('#page-note carries Source line + Coverage stamp + ≤$200 caveat', async ({ page }) => {
+  test('#page-note carries the coverage stamp only (Source + ≤$200 retired 2026-06-11)', async ({ page }) => {
     const pn = page.locator('#page-note');
-    await expect(pn).toContainText('Source: FEC.');
     await expect(pn).toContainText('Coverage through');
-    await expect(pn).toContainText('Individual contributions of $200 or less are not itemized.');
-  });
-
-  test('#page-note FEC link → fec.gov (consumer site)', async ({ page }) => {
-    const link = page.locator('#page-note a[href="https://www.fec.gov/"]');
-    await expect(link).toHaveText('FEC');
+    // "Source: FEC." retired — the global banner credits "the FEC public API" instead.
+    await expect(pn).not.toContainText('Source: FEC');
+    // ≤$200 caveat moved to the Itemized Individual Contributions Map tooltip.
+    await expect(pn).not.toContainText('$200 or less are not itemized');
   });
 
   test('#page-note is the last child of #committee-content (visible across the whole flow)', async ({ page }) => {
@@ -2191,6 +2190,38 @@ test.describe('committee.html — Phase 2 PAGE-NOTE', () => {
     const pn = page.locator('#page-note');
     await expect(pn).not.toContainText('Source: FEC — Committee ID');
     await expect(pn).not.toContainText('Data updated nightly by FEC');
+  });
+});
+
+// Itemized-share caption under the choropleth title + the map's 600px width cap (2026-06-11).
+test.describe('committee.html — itemized-share sub-note + map width', () => {
+  test('#itemized-share-note reads the itemized share with "this committee" wording', async ({ page }) => {
+    await setupDetail(page);
+    const note = page.locator('#itemized-share-note');
+    await expect(note).toBeVisible();
+    // Mock totals: itemized 2,000,000 / unitemized 500,000 → 80.00%.
+    await expect(note).toContainText('Itemized individual contributions make up 80.00% of all individual contributions to this committee this cycle.');
+  });
+
+  test('choropleth map is capped at max-width 600px', async ({ page }) => {
+    await setupDetail(page);
+    const mw = await page.locator('#map-container').evaluate(el => getComputedStyle(el).maxWidth);
+    expect(mw).toBe('600px');
+  });
+
+  test('#itemized-share-note hides when the committee reports no individual contributions', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/committee/C00775668/totals/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [{ cycle: 2024, receipts: 1000000, disbursements: 800000, last_cash_on_hand_end_period: 200000,
+          coverage_start_date: '2023-01-01T00:00:00', coverage_end_date: '2024-12-31T00:00:00',
+          transfers_from_affiliated_party: 1000000, operating_expenditures: 800000 }],
+        pagination: { count: 1 } }) });
+    });
+    await page.goto(COMMITTEE_DETAIL_URL);
+    await page.waitForSelector('#committee-content.visible', { timeout: 12000 });
+    await expect(page.locator('#itemized-share-note')).toBeHidden();
   });
 });
 

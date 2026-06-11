@@ -212,10 +212,10 @@
 ### Page-level data note (#page-note, Phase 2 candidate+committee, 2026-05-29)
 - [ ] ✅ `#page-note` is the **last child of `#content`** (flowing view — the #tab-* panels were dissolved in 9b) — automated regression-lock
 - [ ] `#page-note` is visible on data-present cycles (single flowing detail view — no tabs)
-- [ ] Content reads: "Source: FEC. Coverage through {date}. Individual contributions of $200 or less are not itemized." with `FEC` as a link to `https://www.fec.gov/`
-- [ ] FEC link renders in the new site-wide accent color (`var(--accent)` #2C5282), not UA-default blue
+- [ ] Content reads "Coverage through {date}." only (coverage stamp) as of 2026-06-11 — `#page-note` is **hidden entirely** on cycles with no coverage date (no stray bordered bar)
+- [ ] No "Source: FEC." line and no inline FEC link — provenance now lives in the global banner ("All data sourced from the FEC public API"); the ≤$200 caveat moved to the map tooltip
 - [ ] On no-data cycles (e.g. /candidate/H6WA03309#2026): `#page-note` is hidden along with `#content` — empty-state takes over communication
-- [ ] `#data-note` (vestigial summary-tab slot) was removed 2026-06-01; `#raised-data-note` removed 2026-06-01 (conduit explanation moved to the Conduit column-header tooltip). Only per-section footer slot left is `#spent-data-note` (empty + hidden — vendor dedup note cut). The geography + amendment caveat lives in the choropleth tooltip; K4–K7 / C8.c / C10.d/K16.d were all cut (§5.j)
+- [ ] `#data-note` (vestigial summary-tab slot) was removed 2026-06-01; `#raised-data-note` removed 2026-06-01 (conduit explanation moved to the Conduit column-header tooltip). Only per-section footer slot left is `#spent-data-note` (empty + hidden — vendor dedup note cut). The geography + ≤$200 + amendment caveat (3 sentences as of 2026-06-11) lives in the choropleth tooltip; K4–K7 / C8.c / C10.d/K16.d were all cut (§5.j)
 
 ### Whole-view empty state (T-cycle-empty-state, 2026-05-28)
 Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle combination with no financial filings — H6WA03309's 2026 cycle is the canonical example).
@@ -468,7 +468,7 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 - [ ] Table headers dynamically reflect the cycle: "Top Individual Contributors · 2023–2024" / "Top Committee Contributors · 2023–2024" / "Top Conduit Sources · 2023–2024" — no "Most recent cycle" copy (post-T8)
 - [ ] Committee table shows name, type label, and amount columns
 - [ ] Individual table shows name, city/state location, and amount columns
-- [ ] Data note at bottom includes amendment processing caveat
+- [ ] Map tooltip popup = geography + ≤$200 + amendment caveat (3 sentences); itemized-share sub-note below the map reads "Itemized individual contributions make up XX.XX% of all individual contributions to this [candidate/committee] this cycle." (hidden when no individual contributions); map capped at 600px (left-aligned desktop, centered ≤860px)
 - [ ] Switching cycles resets and re-fetches raised data; donut and map re-render for new cycle
 - [ ] Navigating to Raised tab on a page where data is already fetched renders immediately (no re-fetch)
 - [ ] State tooltip value for WA should not exceed total raised shown in the stats grid for the same cycle selection

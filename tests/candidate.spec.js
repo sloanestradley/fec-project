@@ -720,7 +720,9 @@ test.describe('candidate.html — Raised tab sections', () => {
     const popup = page.locator('.tooltip-popup');
     await expect(popup).toBeVisible();
     await expect(popup).toContainText('Reflects itemized individual contributions by state.');
-    // 2b candidate-parity: the amendment caveat now appears on candidate too.
+    // ≤$200 caveat moved here from #page-note (2026-06-11).
+    await expect(popup).toContainText('Contributions of $200 or less are not required to be itemized.');
+    // 2b candidate-parity: the amendment caveat now appears on candidate too (kept).
     await expect(popup).toContainText('State totals may differ from summary figures due to FEC amendment processing.');
   });
 
@@ -3069,19 +3071,14 @@ test.describe('candidate.html — Phase 2 PAGE-NOTE', () => {
     await expect(pn).toBeVisible();
   });
 
-  test('#page-note carries Source line + Coverage stamp + ≤$200 caveat', async ({ page }) => {
+  test('#page-note carries the coverage stamp only (Source + ≤$200 retired 2026-06-11)', async ({ page }) => {
     const pn = page.locator('#page-note');
-    // Source-first ordering per design call.
-    await expect(pn).toContainText('Source: FEC.');
-    // Coverage stamp (mock fixture has 2024-12-31 covDate).
+    // Coverage stamp (mock fixture has 2024-12-31 covDate) — the only remaining clause.
     await expect(pn).toContainText('Coverage through');
-    // ≤$200 caveat (moved from raised-data-note to PAGE-NOTE in this commit).
-    await expect(pn).toContainText('Individual contributions of $200 or less are not itemized.');
-  });
-
-  test('#page-note FEC link → fec.gov (consumer site)', async ({ page }) => {
-    const link = page.locator('#page-note a[href="https://www.fec.gov/"]');
-    await expect(link).toHaveText('FEC');
+    // "Source: FEC." retired — the global banner credits "the FEC public API" instead.
+    await expect(pn).not.toContainText('Source: FEC');
+    // ≤$200 caveat moved to the Itemized Individual Contributions Map tooltip.
+    await expect(pn).not.toContainText('$200 or less are not itemized');
   });
 
   test('#page-note is the last child of #content (visible across the whole flow)', async ({ page }) => {
@@ -3107,6 +3104,26 @@ test.describe('candidate.html — Phase 2 PAGE-NOTE', () => {
     await expect(pn).not.toContainText('Source: FEC — Candidate ID');
     await expect(pn).not.toContainText('Raised-to-spent = total receipts');
     await expect(pn).not.toContainText('Data updated nightly by FEC');
+  });
+});
+
+// Itemized-share caption under the choropleth title + the map's 600px width cap (2026-06-11).
+test.describe('candidate.html — itemized-share sub-note + map width', () => {
+  test.beforeEach(async ({ page }) => {
+    await setup(page);
+    await page.waitForSelector('#content', { state: 'visible', timeout: 12000 });
+  });
+
+  test('#itemized-share-note reads the itemized share with "this candidate" wording', async ({ page }) => {
+    const note = page.locator('#itemized-share-note');
+    await expect(note).toBeVisible();
+    // Mock totals: itemized 2,000,000 / unitemized 500,000 → 80.00%.
+    await expect(note).toContainText('Itemized individual contributions make up 80.00% of all individual contributions to this candidate this cycle.');
+  });
+
+  test('choropleth map is capped at max-width 600px', async ({ page }) => {
+    const mw = await page.locator('#map-container').evaluate(el => getComputedStyle(el).maxWidth);
+    expect(mw).toBe('600px');
   });
 });
 

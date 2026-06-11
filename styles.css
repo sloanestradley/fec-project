@@ -252,7 +252,7 @@ a { color: var(--accent); }
    so layout stays stable during the eager-fetch wait window. */
 .tab-skeleton { display:block; width:100%; margin-bottom:var(--space-16); border-radius:4px; }
 .tab-skeleton.skeleton-donut { height:280px; }
-.tab-skeleton.skeleton-map   { height:360px; }
+.tab-skeleton.skeleton-map   { height:360px; max-width:600px; }
 .tab-skeleton.skeleton-table { height:240px; }
 .tab-skeleton.skeleton-bars  { height:240px; }
 /* Inline section-level state message — body type, centered, muted.
@@ -512,7 +512,14 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .modal-body .committee-row + .section-title { margin-top:var(--space-32); }
 
 /* ── J: Choropleth map ── */
-.map-svg-wrap { width:100%; line-height:0; }
+.map-svg-wrap { width:100%; max-width:600px; line-height:0; }
+/* Itemized-share caption below the choropleth map — label type (mirrors the
+   strategy/sankey-examples.html p.sub specimen) in --subtle. Uppercase. max-width:88ch
+   keeps the line measure readable (wraps the sentence rather than running map-wide). */
+.map-subnote { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; font-weight:400;
+  text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--subtle);
+  margin:var(--space-16) 0 0; max-width:88ch; }
+.map-subnote strong { font-weight:700; }   /* the itemized-share % is emphasized */
 .map-svg-wrap svg { width:100%; height:auto; display:block; }
 .map-svg-wrap path { cursor:default; }
 /* State outline = the --bg parchment grid lines (token, set in CSS rather than a
@@ -1336,6 +1343,10 @@ div.cycle-row {
 /* ── Responsive ── */
 @media (max-width:860px) {
   :root { --page-gutter: var(--space-16); }
+  /* Choropleth map + its skeleton + caption: left-aligned on desktop, centered on
+     mobile. Only the BLOCK centers (margin:auto on the 88ch box); the caption text
+     stays left-aligned inside it. */
+  .map-svg-wrap, .tab-skeleton.skeleton-map, .map-subnote { margin-left:auto; margin-right:auto; }
   .top-nav-links { display:none; }
   .top-nav-search { display:none; }
   .top-nav-mobile-controls { display:flex; }

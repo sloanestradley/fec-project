@@ -248,9 +248,10 @@
       <!-- Geographic | Purpose (paired compact row) -->
       <div class="raised-grid">
         <div class="raised-cell">
-          <div class="raised-cell-title raised-cell-title--has-info">Itemized Individual Contributions Map<span class="tooltip" aria-label="About the contribution geography map">Reflects itemized individual contributions by state. State totals may differ from summary figures due to FEC amendment processing.</span></div>
+          <div class="raised-cell-title raised-cell-title--has-info">Itemized Individual Contributions Map<span class="tooltip" aria-label="About the contribution geography map">Reflects itemized individual contributions by state. Contributions of $200 or less are not required to be itemized. State totals may differ from summary figures due to FEC amendment processing.</span></div>
           <div class="skeleton tab-skeleton skeleton-map" id="raised-fast-skeleton"></div>
           <div class="map-svg-wrap" id="map-container" style="display:none"></div>
+          <div class="map-subnote" id="itemized-share-note" style="display:none"></div>
           <div class="tab-error" id="raised-fast-error" style="display:none">
             <span class="tab-error-msg">⚠ Could not load contribution geography.</span>
             <button class="tab-retry-btn" data-retry="raised-fast">Retry</button>
@@ -273,12 +274,12 @@
         </div>
       </div>
 
-      <!-- Timeline: Reported Totals Over Cycle — Raised · Spent · Cash on Hand (full-width, directly below the
+      <!-- Timeline: Totals Reported Over Cycle — Raised · Spent · Cash on Hand (full-width, directly below the
            Geographic | Purpose row — closes the "where money came from / went" viz block
            before the dense contributor/vendor tables). Candidate-only. -->
       <div class="chart-card">
         <div class="chart-header">
-          <div class="chart-title" id="chart-title">Reported Totals Over Cycle</div>
+          <div class="chart-title" id="chart-title">Totals Reported Over Cycle</div>
           <div class="chart-legend" style="display:none">
             <div class="legend-item"><div class="legend-swatch" style="color:var(--navy-deep)"></div>Raised</div>
             <div class="legend-item"><div class="legend-swatch" style="color:var(--red-deep)"></div>Spent</div>
@@ -2011,13 +2012,16 @@ async function loadCycle(cycle) {
     if (sDebt) sDebt.style.display = 'none';
   })();
 
-  // #page-note (Phase 2, 2026-05-29): reset to empty at the start of every
-  // loadCycle; the data branch repopulates with the Source / Coverage / ≤$200
-  // page-level note; empty + catch branches leave it empty (chart-error overlay
-  // or #cycle-empty-state respectively carry the user-facing messaging).
-  // (The legacy #data-note slot inside #tab-summary was removed 2026-06-01 — an
-  // empty vestigial element post-Phase-2; its content had moved to #page-note.)
-  document.getElementById('page-note').innerHTML = '';
+  // #page-note: reset to empty + hidden at the start of every loadCycle; the data
+  // branch repopulates with the coverage-only note (or leaves it hidden when there's
+  // no coverage date); empty + catch branches leave it hidden (chart-error overlay or
+  // #cycle-empty-state carry the user-facing messaging). The itemized-share sub-note
+  // under the choropleth title resets the same way so stale text doesn't linger during
+  // a cycle-switch load window.
+  var pageNoteReset = document.getElementById('page-note');
+  pageNoteReset.innerHTML = '';
+  pageNoteReset.style.display = 'none';
+  document.getElementById('itemized-share-note').style.display = 'none';
 
   // T-cycle-empty-state — reset the whole-view empty-state element AND
   // restore content visibility. The empty branch (Step 3 else) swaps these —
@@ -2248,22 +2252,28 @@ async function loadCycle(cycle) {
       // rendered above via renderRaisedIfReady/renderSpentDonutNow under the same gate).
       if (!breakdownGated) renderMoneyFlow(totalsRec, principal);
 
-      // C4.a + C4.c + C4.d + C4.e all retired 2026-05-29 (Phase 2
-      // candidate+committee PAGE-NOTE ship). The #data-note slot inside
-      // #tab-summary is no longer populated:
-      //   C4.a (Candidate ID source line) → replaced by #page-note source line
-      //   C4.c (Coverage through {date}) → moves to #page-note
-      //   C4.d (Raised-to-spent = ÷ definition) → cut now per design call
-      //     (Option B logic, same as C12.b — returns when tooltip ships)
-      //   C4.e (Data updated nightly) → cadence framing retired; replaced
-      //     by #page-note source link
-      // (The #data-note slot was removed 2026-06-01 — vestigial empty element.)
-      // PAGE-NOTE assembly: Source-first ordering, FEC linked to consumer
-      // site (www.fec.gov), C8.f ≤$200 caveat included page-level.
-      document.getElementById('page-note').innerHTML =
-        'Source: <a href="https://www.fec.gov/">FEC</a>.'+
-        (covDate ? ' Coverage through '+fmtDate(covDate)+'.' : '')+
-        ' Individual contributions of $200 or less are not itemized.';
+      // Page note — coverage-only as of 2026-06-11. "Source: FEC." retired (the global
+      // banner already credits "the FEC public API"); the C8.f ≤$200 caveat moved to the
+      // Itemized Individual Contributions Map tooltip. Hidden when there's no coverage
+      // date — .data-note has a border-top + padding, so an empty one shows a stray bar.
+      var pageNoteEl = document.getElementById('page-note');
+      var pageNoteHtml = covDate ? 'Coverage through '+fmtDate(covDate)+'.' : '';
+      pageNoteEl.innerHTML = pageNoteHtml;
+      pageNoteEl.style.display = pageNoteHtml ? '' : 'none';
+
+      // Itemized-share caption under the choropleth title. % from this cycle's totals
+      // (itemized ÷ all individual); hidden when no individual contributions reported.
+      var itemizedShareEl = document.getElementById('itemized-share-note');
+      var itmShare  = (totalsRec.individual_itemized_contributions || 0);
+      var unitmShare = (totalsRec.individual_unitemized_contributions || 0);
+      if (itmShare + unitmShare > 0) {
+        itemizedShareEl.innerHTML = 'Itemized individual contributions make up <strong>'
+          + (itmShare / (itmShare + unitmShare) * 100).toFixed(2)
+          + '%</strong> of all individual contributions to this candidate this cycle.';
+        itemizedShareEl.style.display = '';
+      } else {
+        itemizedShareEl.style.display = 'none';
+      }
     } else {
       // T-load-3 — empty cycle (no filings). Resolve skeletons to dashes so
       // they don't pulse forever. FEC convention: absence of activity returns
