@@ -2974,6 +2974,15 @@ test.describe('candidate.html — future election cycle (loading fix + opex sub-
           operating_expenditures: 1500000 }],
         pagination: { count: 1, pages: 1, per_page: 20, page: 1 } }) });
     });
+    // Replicate the real FEC 404 on a future transaction period — /schedules/schedule_a/
+    // ?two_year_transaction_period=2028 → 404. The slow tier must NOT query it (validSubCycles
+    // caps at the filed period 2026); if it did, the Promise.all would reject → contributors error.
+    await page.route('**/schedules/schedule_a/**', (route) => {
+      if (/two_year_transaction_period=2028/.test(route.request().url())) {
+        route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({
+          message: 'two_year_transaction_period not found. Data exists for two_year_transaction_periods between 1976 and 2026.', status: 404 }) });
+      } else { route.fallback(); }
+    });
     await page.goto('/candidate.html?id=H2WA03217#2028');
     await page.waitForSelector('#content.visible', { timeout: 12000 });
   }
@@ -2996,6 +3005,18 @@ test.describe('candidate.html — future election cycle (loading fix + opex sub-
     await expect(page.locator('#vendors-head')).toHaveText('Top Vendors · 2025–2026');
     await page.locator('#spent-purpose-title .tooltip-trigger').click();
     await expect(page.locator('.tooltip-popup')).toContainText('(covers 2025–2026 only)');
+  });
+
+  test('Top Contributors slow tier does not error on the future-period 404 — the unfiled sub-cycle is skipped', async ({ page }) => {
+    await futureCycleSetup(page);
+    // validSubCycles caps at the filed period (2026), so schedule_a is never queried for the
+    // 404-ing 2028 period → the slow tier resolves and Top Committee Contributors renders,
+    // instead of "Could not load top contributors". (Pre-fix: the 2028 probe 404 rejected the
+    // whole Promise.all.)
+    await page.waitForFunction(() => {
+      const el = document.getElementById('donors-content'); return el && el.style.display === 'block';
+    }, { timeout: 12000 });
+    await expect(page.locator('#raised-donors-error')).toBeHidden();
   });
 });
 

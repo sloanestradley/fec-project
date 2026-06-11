@@ -2134,6 +2134,13 @@ async function loadCycle(cycle) {
       var covPeriod = (covY % 2 === 0) ? covY : covY + 1;   // even = the 2-yr period; odd = its even end-year
       if (subCycles.indexOf(covPeriod) !== -1) opexSubcycle = covPeriod;
     }
+    // Per-sub-cycle Schedule A/B + reports fetches must SKIP future (unfiled) sub-cycles:
+    // /schedules/schedule_a/?two_year_transaction_period={future} returns a 404 ("data exists
+    // between 1976 and {latest}"), which rejects the slow-tier Promise.all → "Could not load
+    // top contributors". Cap at opexSubcycle (the most-recent filed period). Equals subCycles
+    // for complete/current cycles (no change); for a future election it drops e.g. 2028.
+    var validSubCycles = subCycles.filter(function(y) { return y <= opexSubcycle; });
+    if (!validSubCycles.length) validSubCycles = subCycles;
     var totalsBreakdown = {
       individual_itemized_contributions:           totalsRec.individual_itemized_contributions || 0,
       individual_unitemized_contributions:         totalsRec.individual_unitemized_contributions || 0,
@@ -2166,7 +2173,7 @@ async function loadCycle(cycle) {
     var reports = [];
     if (principal) {
       try {
-        var rFetches = subCycles.map(function(sc) {
+        var rFetches = validSubCycles.map(function(sc) {
           return apiFetch('/committee/'+principal.committee_id+'/reports/', {
             cycle: sc, per_page: 20, sort: 'coverage_end_date'
           }).catch(function(){ return { results: [] }; });
@@ -2182,7 +2189,7 @@ async function loadCycle(cycle) {
     if (principal) {
       // Capture retry context — retry handlers re-fire the same fetch with these args
       currentPrincipalId             = principal.committee_id;
-      currentSubCycles               = subCycles;
+      currentSubCycles               = validSubCycles;
       currentOpexSubcycle            = opexSubcycle;
       currentTotalsBreakdown         = totalsBreakdown;
       currentTotalRaised             = raised;
