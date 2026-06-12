@@ -52,8 +52,9 @@
       /* COH hidden → 7 tracks (drop the coh track, not just the cell). */
       .feed-row { grid-template-columns:1fr 130px 56px 56px 56px 56px 24px; }
       .feed-row .feed-coh-col { display:none; }
-      .feed-controls { gap:var(--space-4); }
-      .feed-meta { margin-left:0; width:100%; justify-content:flex-end; }
+      /* Drop the base margin-left:auto so Refresh flows inline right after the
+         filters (no right-push, no own row). Keep the base .feed-controls gap. */
+      .feed-meta { margin-left:0; }
     }
     @media (max-width:600px) {
       /* Only committee · date · fec remain → 3 tracks. */
