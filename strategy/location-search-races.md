@@ -1,0 +1,334 @@
+# FECLedger — Location search for races.html (Address / City+State / ZIP → races)
+
+> **STATUS: INVESTIGATION / PROPOSAL — UNEXECUTED.** Prepared 2026-06-12 as a research handoff to bring to Claude Chat for open-item discussion. No code written. FEC behavior verified live against the deployed FEC proxy (`fecledgerapp.pages.dev/api/fec/*`); **geocod.io behavior verified live against the v1.9 API with a real key (2026-06-12)** — see "Verified response contract" below. Self-contained; no prior context needed.
+
+---
+
+## The reframe
+
+**Replace** races.html's current browse entirely. The old surface — show all races for a cycle, enrich each row's totals on scroll (IntersectionObserver + localStorage), filter by office/state — **is retired**. The new landing is a **location search + an election-year selector (defaulted to the current cycle)**: the user enters a ZIP, City+State (typeahead-picked), or full street address, and sees the federal races that touch that place for the selected year. (Address is the precision tier — see §3b; ZIP/City use pre-submit gates, address validates post-submit.) The question a strategist/voter actually asks is *"what federal races touch this place?"* — a search, not a browse-and-narrow.
+
+**What this retires:** the all-races enumeration via `/elections/search/?cycle=X`, the per-row IntersectionObserver enrichment, and the localStorage race cache all go away as the *primary* surface. The new flow resolves a location → `(state, district(s), cycle)` and then fetches only the **specific** resolved races via `/elections/` (House: state+district; Senate: state; President: national) — a handful of targeted calls instead of ~475 enumerated rows. (`/elections/search/` may still have a minor role — e.g. confirming a resolved House district actually fielded a contest that cycle — but it is no longer the landing's spine.)
+
+**Default / pre-search state** (no location entered yet): **bare for v1** (a simple search prompt, no populated default — resolved, open item #8). A "top races by spending this cycle" hero is a planned follow-up (Follow-on work), tying to the earlier same-session investigation.
+
+Sloane's locked calls for v1:
+- **Location search REPLACES the browse** — it is the landing, not an addition. Election-year selector defaults to the current cycle; a typeahead drives the location input.
+- **Cycle correctness is a hard requirement** (a 2018 search must return 2018's district lines, not today's).
+- **City+State or ZIP** as the inputs (overlapping representation across a ZIP/city is accepted).
+- **Route the geocoder through a Cloudflare Function** (server-side key + privacy).
+- **geocod.io** as the provider (key provisioned 2026-06-12; API verified live).
+- Dig deeper on **cost at scale**, **maintenance cadence (automate where possible)**, and the **Senate edge case**.
+
+---
+
+## The core insight that shrinks the problem
+
+A location maps to three offices, but only **one** of them needs a geocoder, and only that same one is geographically cycle-variant:
+
+| Office | What a location needs | Cycle-variant? | Source |
+|---|---|---|---|
+| **President** | nothing — national | no | n/a |
+| **Senate** | the **state(s)** | no — state lines never move | read from the same House geocode response (per-district `ocd_id`) — **not** a separate call |
+| **House** | the **congressional district(s)** | **yes** — district lines change between cycles (redistricting) | the geocoder |
+
+**Consequences:**
+1. The geocoder is only ever *called* for the **House district** — but the **state(s) for Senate come from that same response**, via each returned district's `ocd_id` (`ocd-division/country:us/state:XX/cd:N`). **Do NOT use a separate ZIP3→state table** (an earlier idea here): it returns a single state and silently misses **multi-state ZIPs** (see §4b), where it could even pick the minority state. President needs nothing (national).
+2. **Cycle correctness is a House-only concern.** Senate and President are cycle-invariant geographically, so the entire historical-Congress mechanism below applies to House district resolution only.
+
+This is the same scoping discipline as the rest of the project — minimize the third-party dependency surface to exactly the slice that needs it.
+
+---
+
+## Data source decision: geocod.io (with the alternatives that lost)
+
+| Source | ZIP | City | Multi-district | **Historical (per-cycle)** | Cost/scale | Privacy |
+|---|---|---|---|---|---|---|
+| **geocod.io** ✅ | ✅ | ✅ | ✅ all districts, ranked by overlap (API only) | ✅ **113th–120th Congress** | 2,500 lookups/day free; CD-append doubles → ~1,250 ZIP-with-district/day free; pay-as-you-go above | 3rd party (mitigated by proxy + cache) |
+| Census ZCTA→CD relationship file | ✅ (as ZCTA) | ✗ | ✅ | ✗ **current Congress only** | free static | fully private |
+| Census Geocoder API | weak | weak | partial | ✗ current only | free, rate-limited | gov 3rd party |
+| Community crosswalk (`us-zipcodes-congress`) | ✅ | ✗ | ✅ | ✗ current only | free static | private |
+
+**geocod.io wins on the hard requirement.** Cycle correctness eliminates every static/free option in one stroke — they're all current-Congress-only. geocod.io is the only source that returns **per-Congress historical districts** (verified: explicit `cd113`…`cd120` fields), which is exactly what the cycle requirement demands. It also uniquely handles City + ZIP + multi-district out of the box, and "independently tracks redistricting" (a maintenance advantage — see Maintenance).
+
+---
+
+## Architecture
+
+### 1. Cloudflare Function proxy (`functions/api/geo/[[path]].js`)
+
+Mirror the FEC proxy pattern exactly:
+- Client never sees the geocod.io API key (Cloudflare secret, e.g. `GEOCODIO_KEY`).
+- The user's location never travels client→3rd-party directly; it goes client→our Function→geocod.io. For a politically-charged tool (harassment/privacy is an explicit brief concern), "we don't hand your location to anyone" is a real trust property.
+- The Function is also where the **KV cache** (below) lives, so cost control and privacy are the same layer.
+
+### 2. Cycle → Congress mapping (House only)
+
+The district lines used in an election cycle are the lines that elect that cycle's incoming Congress:
+
+```
+Congress N = (cycleYear − 1786) / 2
+```
+
+| Cycle | Congress | geocod.io field |
+|---|---|---|
+| 2012 | 113th | `cd113` (floor) |
+| 2014 | 114th | `cd114` |
+| 2016 | 115th | `cd115` |
+| 2018 | 116th | `cd116` |
+| 2020 | 117th | `cd117` |
+| 2022 | 118th | `cd118` |
+| 2024 | 119th | `cd119` (current default) |
+| 2026 | 120th | `cd120` (labeled "preview" — verified usable + redraw-aware, see note below) |
+
+**Verified call pattern (live, 2026-06-12):** request **exactly one** congress field per call — `fields=cd{NNN}` for the cycle's Congress. **Combining multiple congress fields in one call silently returns only the first** (`fields=cd,cd118,cd116` → only current came back). The response key is always `congressional_districts[]`; each entry carries `district_number`, `congress_number` ("116th"), `congress_years` ("2019-2021"), and `proportion`. So: map cycle → Congress → single `fields=cd{NNN}`, then read the array. Historical congresses **work on the free tier** (verified `cd116` on a real ZIP). One geocode + one CD-append = 2 lookups per search (the append doubles the count).
+
+**Coverage floor — RESOLVED (2026-06-12): floor location search at cycle 2012.** geocod.io's earliest district data is the 113th Congress = cycle 2012, which **aligns cleanly with an existing architectural barrier** — FEC detail data for Senate and Presidential candidates already floors at 2012 (`ARCHIVE_MIN_YEAR` S:2012, P:2012). So the geocoder floor isn't a new limitation; it matches where the product already stops offering detail for two of the three offices. The election-year selector on the location-search landing offers **2012 → current** only. (House detail technically reaches back to 2008, but flooring the whole search at 2012 keeps one consistent boundary across offices rather than an office-dependent floor.) Pre-2012 is simply out of range for this surface.
+
+**Current-cycle `cd120` — RESOLVED (verified live 2026-06-12): use `cd120` for the 2026 cycle.** geocod.io labels 120th "preview," but it returns real, **redraw-aware** data — not a stale copy of 119th. Proof: the Texas 2025 mid-decade redraw shows divergence between `cd119` and `cd120` (Houston 77004: TX-18+TX-9 → TX-18; Dallas 75215: TX-30 → TX-30+TX-33; Austin 78702: TX-35 → TX-37). States that didn't redraw return identical 119th/120th (IL, GA sampled). So no `cd119` fallback is needed. Residual: "preview" boundaries may still be refined as states finalize — covered by the maintenance watch (Follow-on work), not a blocker.
+
+### 3. Input validation + typeahead
+
+**geocod.io does NOT do as-you-type autocomplete** (verified — it's forward/batch geocoding; the autocomplete market is Geocode Earth / Geoapify / ArcGIS, geocod.io is absent from it). So "only allow search if the input is valid" is something **we build**, not something geocod.io hands us. Two clean inputs, two gates:
+
+- **ZIP:** client-side format gate (`^\d{5}$`) before firing; geocode on submit; server-side backstop rejects if geocod.io returns no match / low confidence. (**Verified live:** results carry `accuracy` (1) + `accuracy_type` ("place" for a ZIP/city-centroid match) — directly usable as the reject threshold.)
+- **City+State:** constrain input with a **static local typeahead** sourced from the **Census Places gazetteer** (~19k incorporated places + CDPs, a small shippable file). The user can only *pick a real, disambiguated "City, ST"* — which both validates before submit AND resolves the "which Springfield?" ambiguity. Then geocode the chosen canonical string on submit.
+
+**Why a static typeahead, not a live autocomplete API:** firing a paid/3rd-party geocoder on every keystroke is the worst case for both cost and privacy. A static places list gives instant suggestions with zero per-keystroke calls, and limits paid geocod.io usage to **one lookup per submitted search**. (This mirrors the project's existing combo-dropdown pattern — local data, no per-keystroke network.)
+
+**Net validation model:** ZIP is format-gated; City is pick-from-known-list-gated; geocod.io's accuracy score is the server-side backstop. The search only fires on a structurally valid input.
+
+### 3b. Full-address input (precision tier) — small lift, big payoff
+
+Beyond ZIP and City,ST, a **full street address** is worth supporting — and counterintuitively it's the *easiest to resolve* and *most accurate* input, because address is geocod.io's **native** mode (ZIP/city are the degraded forms). **Verified live:** `6320 S Pulaski Rd, Chicago, IL 60629` → `accuracy_type: rooftop`, **exactly IL-4** — where the bare ZIP `60629` returned *four* districts. A rooftop point falls in **one district and one state**, so address **eliminates** the multi-district (§4) and multi-state (§4b) ambiguity rather than adding it.
+
+**Resolution side = free.** Same endpoint, same `fields=cd{NNN}`, same proxy, same 2-lookup cost, same result rendering — and it hits the clean single-district path, *fewer* branches than ZIP.
+
+**The lift sits in exactly two places:**
+1. **Input UX.** ZIP is regex-gated; City,ST is gazetteer-typeahead-gated. A free-text address is neither — not regex-validatable, not powered by a shippable static list (~150M addresses), and geocod.io has no as-you-type autocomplete. Two builds: **(a) plain address text field** — geocode on submit, validate via `accuracy_type` (require `rooftop`/`range`, reject `place`/error) → **small lift**, the only change is validation moves *post-submit*; **(b) address autocomplete** (Geoapify/Google) → **big lift + new dependency + per-keystroke cost + privacy regression — avoid.**
+2. **Caching/cost + privacy.** The cost model amortizes because ZIP/city universes are small and repeat. **Addresses are unbounded + unique → ~0 cache hit rate → one fresh paid lookup each**, uncoverable by the ZIP precompute. Address is also more sensitive PII → **don't cache raw addresses** (fine — hit rate is ~0 anyway). Geocode-and-discard. Negligible at portfolio traffic; self-limiting at scale (a user types their own address once).
+
+**Why include it:** address is the **escape hatch** for the two documented ambiguities — a border-ZIP or sprawling-city user who wants *their* exact race just types their address, and the multi-state + city-completeness problems vanish. The three inputs are one geocode endpoint with three affordances forming a precision ladder (ZIP = place, may be multi-district/multi-state, cacheable → City,ST = centroid, under-complete, cacheable → **Address = rooftop, one district/state, uncacheable**). **Recommendation: include address as a plain text field in v1 (small lift, best accuracy); never the autocomplete version.**
+
+### 4. Multi-district handling — and a City vs ZIP completeness asymmetry
+
+**ZIP — verified multi-district (live):** a bare ZIP returns *all* overlapping districts as a `congressional_districts[]` array ranked by `proportion`:
+- `77002` (Houston) → TX-18 (0.88) + TX-7 (0.12)
+- `60629` (Chicago) → IL-4 (0.77) + IL-7 (0.16) + IL-1 (0.06) + IL-6 (0.02) — four districts
+- single-district ZIPs return one entry at `proportion: 1`
+
+Use the **API path** (all districts, ranked) — *not* the spreadsheet/Lists path (returns most-likely only). UX: "60629 spans IL-4, IL-7, IL-1, IL-6 — here are races for all four," ordered by overlap.
+
+**City+State — a real completeness gap (verified live):** geocoding a city *name* resolves to the city **centroid → the single district at that point**, NOT every district the city spans. `Houston, TX` returned **only TX-18** (proportion 1) — even though Houston spans ~9 House districts. So **City search under-reports "races that touch this city."** This is the key asymmetry: **ZIP gives honest overlap; City gives one centroid point.**
+
+Implications / options (→ Open Items):
+- **ZIP is the precision + completeness path; City+State is a convenience path that's only centroid-accurate.** Reinforces ZIP-first.
+- v1 pragmatic option: City returns the centroid district with a caveat ("based on city center — search by ZIP for your exact district"), OR City is deferred to a fast-follow until completeness is solved.
+
+**What "solving City completeness" actually requires (analysis, 2026-06-12):** geocoding a city *name* yields one centroid point → one district; getting *every* district a city spans needs the city's extent, not a point. Two paths:
+
+- **Path A — city → ZIPs → union (pragmatic).** (1) Look up the set of ZIPs composing "Houston, TX" from a static **city→ZIP table**; (2) get each ZIP's district(s); (3) **union** them. The determining constraint: step (2) done live is ~150 geocode calls *per city search* — cost-prohibitive. So **City completeness is only viable on top of the ZIP→district precompute** (§5 endgame): once ZIP→district(cycle) is in KV, city→ZIPs is a static lookup and the union is local — zero extra geocoding. So "complete city search" is **a follow-on to the ZIP precompute**, not a separate large lift — it adds one dataset (city→ZIP) + union logic. Caveats: (a) USPS city ≠ municipal boundary, so the union skews *broad* (postal area incl. suburbs, not legal city limits); (b) ZIP overlap proportions don't compose across ZIPs, so you present the *set* of districts unweighted, not percentages.
+- **Path B — city polygon ∩ district shapefiles (accurate).** Intersect the Census TIGER/Line place boundary with congressional-district shapefiles for true "city limits ∩ districts." Legally precise but real GIS work (polygon overlap + a geo library) — only worth it if legal-city precision matters.
+
+**Net:** completeness ≈ "do the ZIP precompute, then add a city→ZIP table + union." Sequencing implication → **ship ZIP-first; City-complete rides in with the precompute.** (See Follow-on work.)
+
+### 4b. Multi-state ZIPs (the border-ZIP edge) — verified, not yet decided
+
+A small number of ZIPs straddle a **state** line, not just a district line. Because Senate is state-derived, a border ZIP can surface a **neighboring state's** Senate race — and since Senate races are sparse, an open/competitive one in the *unintended* state is salient and confusing (Sloane's catch). **Verified live (2026-06-12):**
+
+- **42223** (Fort Campbell): centroid `address_components.state = KY`, but the district array spans **TN-7 (0.551) + KY-1 (0.449)** — the centroid state (KY) is the **minority** share. Per-district state is in `ocd_id` (`…/state:tn/cd:7`, `…/state:ky/cd:1`).
+- **73949** (Texhoma): geocod.io returns **two results** (`state=OK` and `state=TX`), both carrying OK-3 (0.864) + TX-13 (0.136).
+
+**What this forces:**
+- **Detect multi-state** from the geocode response: unique set of `state:XX` across the districts' `ocd_ids`, and/or multiple results with differing `address_components.state`. (Wrinkle to confirm at build: `ocd_id` was **populated on these multi-state ZIPs but null on single-state ZIPs** in sampling — so single-state still relies on `address_components.state`; verify `ocd_id` is reliably present whenever multi-state.)
+- **Order by share, not centroid:** rank states by summed district proportion (Fort Campbell → TN primary, KY secondary), since the centroid can be the minority state.
+
+**Mitigation options (→ Open Items / decision):**
+1. **Honest multi-state grouping** (parallels multi-district): "42223 spans Kentucky and Tennessee — here are races for both," grouped by state, share-ordered. Surfaces the neighbor race but *labels why*, removing the confusion. (Recommended — consistent with the multi-district treatment.)
+2. **Disambiguation prompt:** on multi-state detection, ask "Did you mean KY or TN?" before rendering. Cleanest for confusion, adds a step.
+3. **Centroid-state only for Senate:** simplest, one state — but can be *wrong* (picks KY for a majority-TN ZIP) and is inconsistent with House showing cross-state districts. Not recommended.
+- **City+State input has no multi-state problem** (state is explicit) — another reason to steer border-ZIP users toward City+State, and a point in favor of ZIP-first-with-City.
+
+Rare (dozens of ZIPs nationally), but it's exactly the kind of non-ideal state the brief says to handle thoughtfully. v1 should at minimum **detect + label** (option 1), never silently show a neighbor-state race as if it were yours.
+
+### 5. Cost at scale — the arc
+
+The key property: **a (location, Congress) → district mapping is immutable for past Congresses and stable within the current one.** So you never need to geocode the same place for the same cycle twice.
+
+- **v1 — cache-on-miss in KV** (in the Cloudflare Function). Key: `geo:{normalizedLocation}:{congress}` → `{districts:[…]}`. First user to search a place-for-a-cycle pays the geocod.io lookup; everyone after hits KV. **Lifetime geocod.io calls ≈ number of distinct (location, congress) pairs ever searched — not number of searches.** At portfolio traffic this likely never leaves the free tier; at viral traffic the cost is bounded by the *distinct-locations* universe, not request volume. This is the same live→cache shape as the banked FEC proxy-cache item.
+- **Endgame (optional) — full precompute.** Batch-geocode the ZIP/ZCTA universe (~33k) per needed Congress once, store ZIP→districts per Congress in KV, and make **zero** runtime third-party calls. Budget: ~1,250 free ZIP-with-district lookups/day → ~27 days/Congress on free tier, or one trivial paid batch run. This is the election-night-proof, fully-private version. City typeahead still resolves to a ZIP/point, so the ZIP precompute covers it. **Cache-on-miss is almost certainly enough for v1; precompute is the lever if real traffic arrives.**
+
+**Cache TTL by immutability:** past-Congress entries are permanent (history never changes); **current-Congress entries get a TTL** (e.g. 30–90 days) as insurance against a mid-decade court-ordered redraw landing. Because the cache key includes `{congress}`, a new cycle automatically starts a fresh key space — no stale-data risk across cycles.
+
+### 6. Maintenance cadence (understood + automated)
+
+What can change, how often, and how it's handled:
+
+| Change | Frequency | Handling |
+|---|---|---|
+| **New Congress** (new `cd{NNN}` field + cycle→Congress row) | every 2 years (scheduled) | Biennial release-checklist item: add the new field name + mapping row; confirm geocod.io has promoted it from "preview" to current. Predictable, calendared. |
+| **Mid-decade redistricting** (court-ordered: recent real examples AL, LA, NY, NC, GA in 2023–24) | sporadic, current-Congress only | geocod.io tracks redistricting themselves, so the runtime/cache-on-miss path **inherits the fix automatically** once their data updates — this is geocod.io's edge over a static Census file you'd hand-refresh. The current-Congress cache TTL ensures we re-pull within the window. |
+| **New/retired USPS ZIPs** | rare, continuous | cache-on-miss handles transparently; a precompute would refresh on its next batch run. |
+
+**Automation:** the cycle→Congress map is deterministic (formula above) — no manual table to drift. A scheduled GitHub Actions check (quarterly, reusing the existing pipeline-cron muscle) can (a) assert geocod.io still returns the expected fields, and (b) optionally re-batch the current Congress to catch a redraw proactively rather than waiting on TTL expiry. The only genuinely manual, calendared task is the biennial new-Congress field bump.
+
+### 7. Response payload — extra data available (and what's worth using)
+
+The `fields=cd` response (current cycle) carries more than the district. Per result: `formatted_address`, `address_components` (city / **county** / state / zip), `location {lat,lng}`, `accuracy` / `accuracy_type`, `source`, and `congressional_districts[]`. For the **current** congress, each district additionally nests **`current_legislators[]`** — the sitting House rep + **both** senators. Historical congresses (e.g. `cd116`) omit `current_legislators`.
+
+**`current_legislators` is the standout — and it's free** (bundled in the `cd` append we already pay for; no extra lookup). Each entry carries `type` (representative/senator), `bio` (name, party, gender, **`photo_url`**), `contact` (official url, DC address, phone), `social` (twitter/facebook/youtube), and `references` (`bioguide_id`, `opensecrets_id`, `govtrack_id`, `ballotpedia_id`, `wikipedia_id`, …). **No FEC ID is included** — see linking note. (Verified live on 30303 → Rep. Nikema Williams + Sens. Ossoff & Warnock.)
+
+**Opportunities for races.html (ranked):**
+1. **"Your current representatives" context** beside the cycle's races (incumbent House member + 2 senators). Natural companion to "what races touch this place." **Current-cycle only** — it's today's members, not the selected cycle's roster, so it would mislead on a past-cycle view.
+2. **Incumbent photos** — `photo_url` (congress.gov official portraits) directly fills the gap the **project brief flags as "data not provided by FEC" (candidate profile images)**. Free, for sitting members. (Confirm image-use terms.)
+3. **Link incumbents → FECLedger profiles** — the payload has **no FEC ID**, but carries `bioguide_id`; the same source geocod cites (the @unitedstates project) publishes a `bioguide → FEC ID` crosswalk (static, free). One offline join links an incumbent to their FECLedger candidate page. *(Verify the @unitedstates legislators file's `id.fec` field at build.)*
+4. **`location {lat,lng}` → district map** (banked) — pin the searched location / future boundary viz. Bigger lift (shapefiles + map lib).
+5. **`formatted_address`** — clean result-header label ("Races for Atlanta, GA 30303").
+6. **ACS demographics** (`fields=acs-*`, **extra lookup cost**) — district population / median income for editorial "district profile" context. Optional; not v1.
+
+**Caveats:** legislators are **current**, not cycle-historical (current-cycle only); **no FEC ID** in-payload (needs the bioguide→FEC crosswalk); photo terms to confirm; ACS costs extra lookups.
+
+---
+
+## Senate edge case — fully characterized (it's a data-model gap, not a geo gap)
+
+**Finding (verified live):** When a state runs two Senate contests in one cycle (regular + special election to fill a vacancy), the FEC `/elections/` data model **collapses them into one**:
+
+- `/elections/search/?cycle=2020&office=senate&state=GA` → **a single result** `{office:'S', state:'GA', district:'00'}`. No special-election distinguisher field exists on the record.
+- `/elections/?cycle=2020&office=senate&state=GA` → **35 candidates from BOTH contests mashed into one list**: Ossoff ($151.8M) + Perdue ($90.4M) from the *regular* race, and Warnock ($102.6M) + Loeffler ($71.0M) + Collins ($7.3M) from the *special* — indistinguishable in the response.
+
+**Implication for location search:** location search does **not create** this problem, but it **makes it prominent.** It promises "*your* Senate race," and for a GA-2020 ZIP it inherits the collapse — surfacing one mashed-up "Georgia Senate" contest mixing two real elections. The Senate part of a location result is just "state → Senate contests," so the geo layer is honest; the defect lives entirely in the **race-listing/`/elections/` layer**, which is the same surface as the existing open "Senate term-class disambiguation" question (project-brief Open Questions; CLAUDE.md Senate-class heuristic note).
+
+**Mitigation paths (deferred — for Chat):**
+1. **v1 accept + caveat:** surface the single collapsed entry with a note ("Georgia held two U.S. Senate elections in 2020"), splitting deferred.
+2. **Detect + split:** special elections are rare and enumerable; a maintained list of (state, cycle) two-race cases could trigger a client-side split — but splitting the candidate list requires per-candidate special-vs-regular attribution that `/elections/` doesn't provide (would need `/election-dates/` SP/SG types or per-candidate `election_years` cross-referencing — real work).
+3. Tie this to the existing Senate term-class open question rather than solving it inside the location-search ticket.
+
+Recommend **(1)** for v1; this ticket should **document** the gap, not fix it.
+
+---
+
+## Other call-outs / residual risks
+
+- **ZIP ≠ ZCTA** matters only if you ever fall back to a static Census file — geocod.io geocodes to a point, so it covers PO-box/"point" ZIPs that ZCTA files drop. Not a concern on the geocod.io path; noted in case the static endgame is ever chosen for a subset.
+- **City is a fuzzier input than ZIP** — a city can span many districts (Houston ≈ 9) and the result set can feel like "a region's races," not "yours." ZIP is the precision input; City+State is the human-friendly one. Both are in scope per Sloane; just weight the UX toward ZIP as the crisp path.
+- **`accuracy`/`accuracy_type` fields** are confirmed present (live: `accuracy: 1`, `accuracy_type: "place"`) and usable as the server-side reject threshold — set the exact cutoff at build.
+- **Presidential cycle correctness is a non-issue** (national, no district) — included only to make the "House-only" scoping explicit.
+
+---
+
+## Open items for Claude Chat
+
+1. ~~**`cd120` preview readiness**~~ — **RESOLVED 2026-06-12:** use `cd120` for 2026. Verified live as redraw-aware (Texas 2025 mid-decade redraw diverges from `cd119`); no fallback needed. "Preview" boundary refinement is a maintenance watch, not a blocker.
+2. ~~**Pre-2012 House floor**~~ — **RESOLVED 2026-06-12:** floor location search at cycle 2012 (aligns with the existing S/P detail-data floor; geocod.io's 113th-Congress floor matches). Year selector offers 2012→current.
+3. **Cost arc commitment** — ship v1 on cache-on-miss only, or budget the one-time ZIP precompute now? (Recommendation: cache-on-miss; precompute as a banked lever.)
+4. **Senate two-race cycles** — accept-with-caveat for v1 (recommended) vs. attempt the split; and whether to fold it into the existing term-class open question.
+5. **City typeahead dataset** — confirm Census Places gazetteer as the static source (size/shape) and the disambiguation UX (how "City, ST" picks render).
+6. **Input scope + City completeness** — geocoding a City *name* returns only the **centroid's** district, not all districts the city spans (Houston → TX-18 only, verified). Per the §4 analysis, full completeness is gated on the ZIP precompute (city → ZIPs → union). Decision: ship **ZIP-first and defer complete City** to ride in with the precompute (recommended), or City-centroid-with-caveat at v1? *(Leaning ZIP-first; see Follow-on work.)*
+7. **Geocod.io account/billing** — pay-as-you-go ceiling + alerting (key owned by Sloane's Geocodio Self-Serve account, provisioned 2026-06-12; free tier 2,500/day, ~1,250 with district append).
+8. ~~**Pre-search / default landing state**~~ — **RESOLVED 2026-06-12:** go **bare** for v1 (a simple search prompt, no populated default). The **"top races by spending this cycle" hero** is a planned follow-up pending its own research (see Follow-on work + the same-session top-races-by-spending investigation).
+9. **Retirement scope** — confirm the IntersectionObserver enrichment + localStorage race cache + `/elections/search/` enumeration are fully removed (not just hidden), and whether any "browse all races" affordance survives as a secondary path at all.
+10. **Multi-state ZIP handling** (§4b) — a border ZIP can surface a neighbor state's (sparse, salient) Senate race. Pick the mitigation: honest multi-state grouping with a "spans X and Y" label *(recommended)*, a disambiguation prompt, or centroid-state-only *(not recommended — can pick the minority state)*. v1 minimum = detect + label, never silently show a neighbor-state race as if it were yours.
+11. **DC / delegate / territory handling** (surfaced by the test corpus) — DC geocodes to `district_number 98` (non-voting delegate), no voting House/Senate. Confirm DC → **President-only** for v1 (and whether the DC delegate race is shown at all); treat territories (PR/GU/VI/AS/MP, also `98`/delegate, no presidential vote) as out of scope with a graceful "no federal races on FECLedger for this location" state.
+12. **Full-address input in v1?** (§3b) — recommended **yes, as a plain text field** (small lift, native geocod.io input, rooftop accuracy → exactly one district/state, eliminates the multi-district + multi-state + city-completeness ambiguities; validation moves post-submit via `accuracy_type`; geocode-and-discard, no cache). The only thing to rule out is **address autocomplete** (new dependency + per-keystroke cost + privacy regression). Decide: ship all three inputs (ZIP / City,ST / Address) at v1, or stage address as a fast-follow?
+
+---
+
+## Follow-on work / backlog
+
+*Living list — capture backlog, cleanup, and tradeoffs uncovered as decisions resolve. Not v1 scope unless promoted.*
+
+### Deferred features (post-v1)
+- **Complete City search** — make City+State span-complete (all districts a city touches), not centroid-only. Gated on the ZIP precompute: city → ZIPs (static city→ZIP table) → union of cached districts. Adds one dataset + union logic; accepts USPS-postal-city breadth. (§4 analysis; resolves the City half of open item #6.)
+- **ZIP→district precompute → KV** — the cost-at-scale endgame (§5): batch-geocode the ZIP universe per Congress once → zero runtime third-party calls, fully private, election-night-proof. Also the prerequisite that unblocks Complete City search. Promote when real traffic / a launch warrants it; v1 ships on cache-on-miss.
+- **"Top races by spending this cycle" hero** — the planned non-bare default landing state (open item #8 went bare for v1). Needs its own research; ties directly to the same-session "top races by spending" investigation (candidate-totals grouping vs. weball bulk → KV). Could combine with location search: hottest-races default + search-to-narrow.
+- **Incumbent context block (from `current_legislators`)** — surface the searched location's current House rep + 2 senators (name, party, **official photo**, contact) beside the cycle's races; free in the `cd` payload (§7). Two unlocks: (a) **incumbent photos** fill the brief's "no candidate images from FEC" gap; (b) a static **bioguide→FEC crosswalk** (@unitedstates project) links each incumbent to their FECLedger profile. Current-cycle only (the data is today's members, not the cycle's roster). Good ZIP-precompute companion or a standalone enrichment.
+- **Senate two-race split** — when a state runs a regular + special Senate election in one cycle, `/elections/` collapses both into one mashed candidate list (GA-2020 verified). Splitting needs per-candidate special-vs-regular attribution the endpoint doesn't provide. Tie to the existing Senate term-class open question rather than solving inside this work. v1 documents + accepts.
+
+### Recurring maintenance (calendar/triggered)
+- **Biennial new-Congress field bump** — each cycle adds a `cd{NNN}` field + a cycle→Congress mapping row, and the new Congress must be promoted from geocod.io "preview" → current. Scheduled, predictable.
+- **`cd120` boundary-refinement watch** — `cd120` is confirmed usable for 2026 (redraw-aware, verified), but is still "preview," so finalized state maps may shift it slightly; the current-Congress cache TTL + quarterly re-batch absorb any late refinements.
+- **Mid-decade redraw insurance** — current-Congress cache TTL (30–90 days) + optional quarterly GitHub Actions re-batch so court-ordered redraws (AL/LA/NY/NC/GA-class) propagate without manual work. geocod.io tracks the redraws; we just need to re-pull.
+
+### Cleanup on build
+- **Retire the old browse internals** when location search ships: the `/elections/search/` all-races enumeration, the IntersectionObserver per-row enrichment, and the localStorage race cache (open item #9 — confirm full removal, not just hidden).
+- **geocod.io v1.9 → v2 migration** — v1.9 works but emits a deprecation `_warnings`; the key is scoped to `/v2/geocode`. Build on v2.
+- **Pre-2012 out-of-range messaging** — year selector floored at 2012; ensure any deep-linked/old `?year=` below 2012 degrades gracefully (clamp to 2012 or a friendly note).
+
+---
+
+## Verified response contract (live geocod.io v1.9, 2026-06-12)
+
+Real key exercised; key NOT stored in this doc or committed anywhere.
+
+- **Per-Congress, one-at-a-time:** `fields=cd{NNN}` returns `congressional_districts[]`, each `{district_number, name, congress_number, congress_years, proportion}`. Requesting multiple congress fields in one call silently returns only the first → **one congress per call.** Historical works on the **free tier** (`cd116` verified).
+- **Cycle correctness proven (past):** `27401` (Greensboro NC) for the **116th** → NC-13 (0.583) + NC-6 (0.417), the pre-redraw split — different from its current 119th district. Confirms per-cycle district resolution.
+- **Cycle correctness proven (current/120th, redraw-aware):** Texas 2025 mid-decade redraw diverges between `cd119` and `cd120` — Houston 77004 (TX-18+TX-9 → TX-18), Dallas 75215 (TX-30 → TX-30+TX-33), Austin 78702 (TX-35 → TX-37). Non-redrawn states (IL, GA) return identical 119th/120th. So `cd120` is live and usable for 2026, not a stale 119th copy.
+- **Multi-district ZIP shape:** `77002` → TX-18 (0.88) + TX-7 (0.12); `60629` → IL-4/7/1/6 (4 districts); single-district ZIPs → one entry at `proportion 1`. Ranked by overlap.
+- **City centroid limitation:** `Houston, TX` → centroid match, **TX-18 only** (not all ~9 Houston districts). City input is centroid-accurate, not span-complete. City queries also return multiple *candidate matches* (Houston, TX returned 6) — the typeahead-pick model resolves which one.
+- **Multi-state ZIPs:** `42223` → districts span TN-7 (0.551) + KY-1 (0.449); centroid state (KY) is the *minority*. `73949` → two results (OK + TX). Per-district state lives in `ocd_id` (`…/state:tn/cd:7`); `ocd_id` was populated on multi-state ZIPs but null on single-state ones in sampling. Senate state(s) must be read from this response, not a ZIP3 table. (§4b)
+- **Validation fields:** `accuracy` (1) + `accuracy_type` ("place") present on every result.
+- **API version:** v1.9 works but emits a `_warnings` deprecation nudge to **v2** (the key's permissions are scoped to `/v2/geocode`); use v2 in the implementation.
+
+## Other verified facts (FEC + docs)
+
+- **geocod.io per-Congress availability:** `cd113`–`cd120` (113th earliest, 119th current/default, 120th preview); free tier 2,500/day, CD-append doubles the count.
+- **geocod.io ≠ autocomplete:** confirmed absent from the as-you-type market (Geocode Earth/Geoapify/ArcGIS own it) → typeahead must be built locally.
+- **Senate collapse:** `/elections/search/` GA-2020-senate = 1 entry, no distinguisher; `/elections/` GA-2020-senate = 35 candidates from both contests in one list (Ossoff/Perdue regular + Warnock/Loeffler/Collins special).
+- **Sources:** [Geocodio congressional districts API](https://www.geocod.io/api-to-get-congressional-districts) · [Geocodio congressional data guide](https://www.geocod.io/guides/congressional-data) · [Geocodio pricing](https://www.geocod.io/pricing) · [Census ZCTA↔CD relationship files](https://www.census.gov/geographies/reference-files/time-series/geo/relationship-files.2020.html) · [Census Places gazetteer](https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html) · [us-zipcodes-congress](https://github.com/OpenSourceActivismTech/us-zipcodes-congress)
+
+---
+
+## Test corpus / golden cases (regression fixtures for the build)
+
+Curated edge-case inputs with **live-verified expected outputs** (geocod.io v1.9, 2026-06-12; cycle = 119th/2024 unless noted). Use these as regression fixtures for the location→races resolver and the geocod.io→FEC mapping. **✅** = geocode value verified live; **behavioral** = a UX expectation (no single geocode value to assert).
+
+### Geocod.io → FEC mapping rules surfaced by these cases (build-critical)
+- **At-large → district `0`:** single-seat states (WY/VT/DE/AK) return `district_number: 0` + `ocd_id …/cd:at-large`. FEC `/elections/` uses district **`"00"`** — so **map `0 → "00"`** before querying FEC.
+- **Non-voting delegate → district `98`:** DC returns `district_number: 98`, name `"Delegate District (at Large)"`. No voting House/Senate → DC resolves to **President-only** (decide whether to surface the delegate race at all). Territories (PR/GU/VI/AS/MP) follow the same `98`/delegate pattern and additionally cast no presidential vote — almost certainly out of scope; treat any `district_number ≥ 90` as "non-standard, no House race."
+- **Invalid location → `error` object:** geocod.io returns `{"error": "Could not geocode address. No matches found."}` (NOT empty `results`). The reject/validation path keys on `error` present (or `results` empty).
+- **`ocd_id` is the per-district state + at-large signal, but is `null` on older congresses** (MT 117th returned `ocd_id: null`; the only at-large signal there was the `name` string `"…(at Large)"`). Detection must fall back to `name` / `address_components.state` when `ocd_id` is absent.
+
+### ZIP cases
+
+| Input | Cycle / Congress | Expected (verified) | Status |
+|---|---|---|---|
+| `30303` | 2024 / 119th | GA-5 (single) | ✅ |
+| `75201` | 2024 / 119th | TX-30 (single) | ✅ |
+| `10001` | 2024 / 119th | NY-12 (single) | ✅ |
+| `77002` | 2024 / 119th | **multi-district** TX-18 (0.88) + TX-7 (0.12) | ✅ |
+| `60629` | 2024 / 119th | **multi-district ×4** IL-4 (0.77) + IL-7 (0.16) + IL-1 (0.06) + IL-6 (0.02) | ✅ |
+| `90011` | 2024 / 119th | CA-37 (0.99) + CA-42 (0.01) | ✅ |
+| `42223` | 2024 / 119th | **multi-STATE** TN-7 (0.551) + KY-1 (0.449); centroid state = KY (the *minority*) | ✅ |
+| `73949` | 2024 / 119th | **multi-STATE** OK-3 (0.864) + TX-13 (0.136); geocod returns **2 results** (OK, TX) | ✅ |
+| `82001` (WY) | 2024 / 119th | **at-large**, `district_number 0` → FEC `"00"` | ✅ |
+| `05601` (VT) | 2024 / 119th | at-large, `0` | ✅ |
+| `59101` (Billings MT) | **2020 / 117th** | **at-large** (`0`) — MT had 1 seat | ✅ |
+| `59101` (Billings MT) | **2024 / 119th** | **MT-2** — seat split after 2020 census (same ZIP, different seat across cycles) | ✅ |
+| `27401` (Greensboro) | **2018 / 116th** | NC-13 (0.583) + NC-6 (0.417) — pre-redraw split | ✅ |
+| `77004` (Houston) | 119th → 120th | TX-18 + TX-9 → **TX-18** (TX 2025 redraw) | ✅ |
+| `78702` (Austin) | 119th → 120th | TX-35 → **TX-37** (TX 2025 redraw) | ✅ |
+| `20001` (DC) | 2024 / 119th | `district_number 98` delegate → **President-only** | ✅ |
+| `00000`, `99999` | any | `error: "…No matches found."` → **reject** | ✅ |
+
+### City, ST cases
+
+| Input | Cycle | Expected | Status |
+|---|---|---|---|
+| `Atlanta, GA` | 2024 | centroid → **GA-6 only** (single) | ✅ |
+| `Houston, TX` | 2024 | centroid → **TX-18 only** (spans ~9 districts — completeness gap, §4) | ✅ |
+| `Springfield, IL` | 2024 | IL-13 | ✅ |
+| `Springfield, MO` | 2024 | MO-7 (same name, disambiguated by state) | ✅ |
+| `Springfield` (no state) | — | typeahead **requires a state pick** before submit | behavioral |
+| small CDP not in Places gazetteer | — | typeahead shows no suggestion → can't submit | behavioral |
+
+### Cycle / office cases
+
+| Input | Cycle | Expected | Status |
+|---|---|---|---|
+| any state, Senate | **2020 GA** | `/elections/` **collapses** regular + special into 1 entry (35 candidates mashed) — see Senate edge case | ✅ |
+| any | **2010** | below the 2012 floor → **out of range** message | behavioral |
+| `59101` MT | 2020 vs 2024 | at-large → MT-2 (cycle-correct **seat-count** change, not just line shift) | ✅ (see ZIP) |
+| any valid input | any | **President always present** in results | behavioral |
+
+*Add rows here as the build uncovers new edges. The ✅ rows carry exact verified values and should become literal assertions; behavioral rows become interaction tests.*
