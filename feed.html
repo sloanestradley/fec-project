@@ -16,8 +16,14 @@
     .feed-meta { margin-left:auto; display:flex; align-items:center; gap:var(--space-8); }
 
     /* ── Feed table ── */
+    /* 8 tracks: committee(1fr) · report · office · raised · spent · coh · date · fec.
+       Money/office/date/fec trimmed (compact $ values via fmt are ~40px, so 56px
+       is ample) to free width for the committee name under the 800px
+       .main-inner-narrow cap. Per-breakpoint templates below drop the matching
+       TRACK whenever a column is hidden — hiding a cell with display:none alone
+       leaves its track in place and shifts the remaining columns. */
     .feed-row { display:grid;
-      grid-template-columns:1fr 130px 70px 90px 90px 90px 60px 40px;
+      grid-template-columns:1fr 130px 56px 56px 56px 56px 56px 24px;
       gap:var(--space-8); align-items:center;
       padding:var(--space-8) 0; border-bottom:1px solid var(--border); }
     .feed-row-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
@@ -43,11 +49,15 @@
 
     /* ── Responsive ── */
     @media (max-width:860px) {
+      /* COH hidden → 7 tracks (drop the coh track, not just the cell). */
+      .feed-row { grid-template-columns:1fr 130px 56px 56px 56px 56px 24px; }
       .feed-row .feed-coh-col { display:none; }
       .feed-controls { gap:var(--space-4); }
       .feed-meta { margin-left:0; width:100%; justify-content:flex-end; }
     }
     @media (max-width:600px) {
+      /* Only committee · date · fec remain → 3 tracks. */
+      .feed-row { grid-template-columns:1fr 56px 24px; }
       .feed-row .feed-report-col,
       .feed-row .feed-office-col,
       .feed-row .feed-raised-col,
@@ -94,9 +104,9 @@
 
 <!-- Main -->
 <div class="main">
-<div class="main-inner">
+<div class="main-inner main-inner-narrow">
 
-  <div class="page-header">
+  <div class="page-header page-header--browse">
     <div class="page-title">Filing Feed</div>
   </div>
 
@@ -323,8 +333,11 @@
     var fecUrl = f.html_url || '';
 
     var nameAttr = name.replace(/'/g, "\\'");
+    // HTML-attribute-safe (double-quoted) escaping for the hover title — the
+    // .feed-name cell ellipsis-truncates long committee names at the 800px cap.
+    var nameTitle = name.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     return '<div class="' + cls + '">' +
-      '<span class="feed-name"><a href="/committee/' + cid + '"'
+      '<span class="feed-name"><a href="/committee/' + cid + '" title="' + nameTitle + '"'
         + ' onclick="amplitude&&amplitude.track(\'Feed Filing Clicked\',{committee_id:\'' + cid + '\',committee_name:\'' + nameAttr + '\',office:\'' + (f.office || '') + '\',report_type:\'' + (f.report_type || '') + '\'})"'
         + '>' + name + '</a></span>' +
       '<span class="feed-report-col"><span class="tag tag-neutral">' + report + '</span></span>' +

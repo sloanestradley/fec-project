@@ -704,6 +704,13 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 
 /* ── Page header — shared by candidate, committee, race profile pages ─────── */
 .page-header { padding:var(--space-40) var(--page-gutter) var(--space-32); }
+/* Browse-page variant (races.html, feed.html) — title sits above a
+   .filter-bar-wrap whose own top padding (40 desktop / gutter mobile) owns the
+   title→filters gap, so the page-header drops its bottom padding to 0. Scoped
+   (not a global .page-header change) because the base rule's 40/32 is the
+   full-mode value the profile mastheads animate to/from in the compact
+   transition — see the compact-header padding-transition block below. */
+.page-header--browse { padding:var(--space-40) var(--page-gutter) 0; }
 .page-header-reveal { opacity:0; transition:opacity 0.4s ease; }
 .page-header-reveal.visible { opacity:1; }
 /* flex-wrap:nowrap so the menu-btn never breaks onto its own line below a
@@ -1380,6 +1387,7 @@ div.cycle-row {
      the scrim. */
   .mobile-nav-overlay.open { display:block; }
   .page-header { padding:var(--space-24) var(--page-gutter); }
+  .page-header--browse { padding:var(--space-24) var(--page-gutter) 0; }
   .profile-content { padding:var(--space-24) var(--page-gutter); }
   .cycle-empty-state { padding-top:var(--space-32); }
   .global-banner-text { padding:0 var(--page-gutter); }

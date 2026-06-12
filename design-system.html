@@ -743,7 +743,7 @@
           <span class="ds-component-name">Page Header (Shared)</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.page-header · .page-title</div>
+        <div class="ds-component-classes">.page-header · .page-header--browse · .page-title</div>
         <div class="ds-component-demo">
           <div class="page-header" style="padding:2rem">
             <div class="page-title">Marie Gluesenkamp Perez</div>
@@ -754,7 +754,7 @@
           </div>
         </div>
         <div class="ds-component-notes">
-          Shared base for all profile page headers (candidate, committee, race). Add <code>.page-header</code> to the wrapper div and <code>.page-title</code> to the title element. No border-bottom. Page-specific elements (cycle switcher, year select) stay in local styles.
+          Shared base for all profile page headers (candidate, committee, race). Add <code>.page-header</code> to the wrapper div and <code>.page-title</code> to the title element. No border-bottom. Page-specific elements (cycle switcher, year select) stay in local styles. Base padding is <code>40 / gutter / 32</code> (desktop) — this is the full-mode value the profile mastheads animate to/from in the compact-scroll transition, so don't change it casually. <strong>Browse variant:</strong> <code>.page-header--browse</code> (on races.html + feed.html) drops the bottom padding to <code>0</code> (<code>40 / gutter / 0</code> desktop, <code>24 / gutter / 0</code> mobile) so the <code>.filter-bar-wrap</code> below owns the title→filters gap with its own top padding. Scoped modifier rather than a global change because these two browse pages aren't profile mastheads.
         </div>
       </div>
 
