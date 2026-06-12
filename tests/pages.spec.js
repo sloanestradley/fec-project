@@ -1714,6 +1714,14 @@ test.describe('feed.html', () => {
     await expect(options).toHaveCount(5);
   });
 
+  test('report type combo has trigger, listbox, and native fallback (parity with other browse pages)', async ({ page }) => {
+    await expect(page.locator('#f-report-type-trigger')).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect(page.locator('#report-type-dropdown')).toHaveAttribute('role', 'listbox');
+    await expect(page.locator('#f-report-type')).toBeAttached();
+    const rowValues = await page.locator('#report-type-dropdown .typeahead-row').evaluateAll(rows => rows.map(r => r.dataset.value));
+    expect(rowValues).toEqual(['all', 'quarterly', 'pre-election', 'post-election', 'termination']);
+  });
+
   test('refresh button is present', async ({ page }) => {
     await expect(page.locator('#feed-refresh-btn')).toBeVisible();
   });
@@ -1754,7 +1762,11 @@ test.describe('feed.html', () => {
   // ── Interaction: report type filter ──
 
   test('selecting Termination report type filters rows', async ({ page }) => {
-    await page.locator('#f-report-type').selectOption('termination');
+    // Report type is a custom combo-dropdown (parity with the other browse
+    // pages) — the native <select> is display:none on desktop, so drive the
+    // trigger + listbox row the way a user does.
+    await page.locator('#f-report-type-trigger').click();
+    await page.locator('#rt-opt-termination').click();
     // Mock has 1 TER filing
     const rows = page.locator('#feed-list .feed-row');
     await expect(rows).toHaveCount(1);

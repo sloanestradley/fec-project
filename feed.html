@@ -124,14 +124,25 @@
         </div>
       </div>
       <div class="form-field">
-        <label class="form-label">Report type</label>
-        <select class="form-select" id="f-report-type">
-          <option value="all">All types</option>
-          <option value="quarterly">Quarterly</option>
-          <option value="pre-election">Pre-election</option>
-          <option value="post-election">Post-election</option>
-          <option value="termination">Termination</option>
-        </select>
+        <label class="form-label" for="f-report-type-trigger">Report type</label>
+        <div class="combo-wrap" id="report-type-combo">
+          <button type="button" class="combo-trigger form-select" id="f-report-type-trigger"
+            aria-haspopup="listbox" aria-expanded="false" aria-controls="report-type-dropdown">All types</button>
+          <div class="typeahead-dropdown" id="report-type-dropdown" role="listbox" aria-label="Report type">
+            <div class="typeahead-row" id="rt-opt-all"           role="option" aria-selected="true"  data-value="all"           data-label="All types">All types</div>
+            <div class="typeahead-row" id="rt-opt-quarterly"     role="option" aria-selected="false" data-value="quarterly"     data-label="Quarterly">Quarterly</div>
+            <div class="typeahead-row" id="rt-opt-pre-election"  role="option" aria-selected="false" data-value="pre-election"  data-label="Pre-election">Pre-election</div>
+            <div class="typeahead-row" id="rt-opt-post-election" role="option" aria-selected="false" data-value="post-election" data-label="Post-election">Post-election</div>
+            <div class="typeahead-row" id="rt-opt-termination"   role="option" aria-selected="false" data-value="termination"   data-label="Termination">Termination</div>
+          </div>
+          <select class="form-select" id="f-report-type" aria-label="Report type">
+            <option value="all">All types</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="pre-election">Pre-election</option>
+            <option value="post-election">Post-election</option>
+            <option value="termination">Termination</option>
+          </select>
+        </div>
       </div>
       <div class="form-field">
         <label class="form-label">Time period</label>
@@ -406,7 +417,7 @@
       applyFilter('all');
     } else if (key === 'reportType') {
       activeReportType = 'all';
-      elReportType.value = 'all';
+      reportTypeCombo.setValue('all');
       renderAllRows();
       updateResultsHeader(); renderChips();
     } else if (key === 'window') {
@@ -420,7 +431,7 @@
     officeBtns.forEach(function(btn) {
       btn.classList.toggle('active', btn.getAttribute('data-office') === 'all');
     });
-    elReportType.value = 'all';
+    reportTypeCombo.setValue('all');
     applyWindow('24h');
   }
 
@@ -520,12 +531,22 @@
     });
   });
 
-  elReportType.addEventListener('change', function() {
-    activeReportType = elReportType.value;
-    renderAllRows();
-    updateResultsHeader(); renderChips();
-    if (window.amplitude) {
-      amplitude.track('feed_filter_report_type', { report_type: activeReportType });
+  // Report type uses the shared custom combo-dropdown (parity with the
+  // candidates/committees/races filter dropdowns) — the native <select> stays
+  // for mobile + value storage; initComboDropdown routes both the custom-row
+  // click and the native change through onSelect.
+  var reportTypeCombo = initComboDropdown({
+    trigger:  document.getElementById('f-report-type-trigger'),
+    dropdown: document.getElementById('report-type-dropdown'),
+    native:   elReportType,
+    getValue: function() { return activeReportType; },
+    onSelect: function(value) {
+      activeReportType = value;
+      renderAllRows();
+      updateResultsHeader(); renderChips();
+      if (window.amplitude) {
+        amplitude.track('feed_filter_report_type', { report_type: activeReportType });
+      }
     }
   });
 
