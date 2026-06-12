@@ -284,11 +284,21 @@ function renderRaceContent(results) {
     var cls = officeParam === 'S' ? getSenateClass(yearParam) : null;
     seatEl.textContent = cls ? 'Class ' + cls + ' seat' : '';
   }
+  // Order by money raised, descending — the FEC /elections/ response is unsorted,
+  // which interleaves financially-active candidates with no-activity ones. Sort by
+  // total_receipts (tiebreak total_disbursements) so the serious candidates lead
+  // and non-filers (0/0 — the live API returns 0.0, not null) sink to the bottom.
+  // Sort a copy so the caller's cached results array isn't mutated; modern Array
+  // .sort is stable, so 0/0 ties keep their original API order.
+  var ordered = results.slice().sort(function(a, b) {
+    var diff = (b.total_receipts || 0) - (a.total_receipts || 0);
+    return diff !== 0 ? diff : (b.total_disbursements || 0) - (a.total_disbursements || 0);
+  });
   // Inline empty state (.inline-status-msg) — defined, not a void, and not the
   // full-content #state-msg (which would break non-destructive rollback).
   var list = document.getElementById('race-list');
-  list.innerHTML = results.length
-    ? results.map(buildCandidateCard).join('')
+  list.innerHTML = ordered.length
+    ? ordered.map(buildCandidateCard).join('')
     : '<div class="inline-status-msg">No candidates found for this race in the FEC system.</div>';
 }
 function announceCycle(year, count) {

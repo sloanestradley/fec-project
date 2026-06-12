@@ -141,6 +141,31 @@ test.describe('race.html', () => {
     await expect(tag).toBeVisible();
   });
 
+  test('candidates sorted by money raised, non-filers last (regression: no interleaving)', async ({ page }) => {
+    // Override /elections/ (NOT /elections/search/) with an intentionally
+    // unsorted set incl. a non-filer (0/0) mid-list — the live FEC bug shape
+    // where a funded candidate sat between two no-activity ones. fallback()
+    // lets the cycle-list /elections/search/ call through to the base mock.
+    await page.route('**/elections/**', async (route) => {
+      if (route.request().url().includes('/elections/search')) return route.fallback();
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [
+          { candidate_id: 'HZERO001A', candidate_name: 'ZERO, ALPHA', party_full: 'DEMOCRATIC PARTY', total_receipts: 0, total_disbursements: 0, cash_on_hand_end_period: 0, incumbent_challenge: 'C', incumbent_challenge_full: 'Challenger' },
+          { candidate_id: 'HMID0002B', candidate_name: 'MARTINEZ, MID', party_full: 'DEMOCRATIC PARTY', total_receipts: 1200000, total_disbursements: 900000, cash_on_hand_end_period: 300000, incumbent_challenge: 'C', incumbent_challenge_full: 'Challenger' },
+          { candidate_id: 'HZERO003B', candidate_name: 'ZERO, BETA', party_full: 'REPUBLICAN PARTY', total_receipts: 0, total_disbursements: 0, cash_on_hand_end_period: 0, incumbent_challenge: 'C', incumbent_challenge_full: 'Challenger' },
+          { candidate_id: 'HTOP0004R', candidate_name: 'TOP, EARNER', party_full: 'REPUBLICAN PARTY', total_receipts: 5000000, total_disbursements: 4000000, cash_on_hand_end_period: 1000000, incumbent_challenge: 'I', incumbent_challenge_full: 'Incumbent' },
+        ],
+        pagination: { count: 4 },
+      }) });
+    });
+    await page.goto('/race.html?state=WA&district=03&year=2024&office=H');
+    await waitForRaceLoad(page);
+    const ids = await page.locator('#race-list a.candidate-card').evaluateAll(els =>
+      els.map(a => (a.getAttribute('href').match(/candidate\/([^?#]+)/) || [])[1]));
+    // Money-descending; the two 0/0 non-filers sink to the bottom in stable order.
+    expect(ids).toEqual(['HTOP0004R', 'HMID0002B', 'HZERO001A', 'HZERO003B']);
+  });
+
   test('candidate card links to candidate page with cycle hash', async ({ page }) => {
     const link = page.locator('a.candidate-card[href*="candidate"]').first();
     await expect(link).toBeAttached();
