@@ -6691,3 +6691,41 @@ You consistently scoped before acting, sized by intent rather than deferring to 
 - **Feed at 800px is genuinely tight** — the committee column lands ~214px at desktop and truncates most names (tooltip mitigates). If the Feed grows (more columns, or committee names need to breathe), reconsider whether it should get a wider cap than the search pages' 800px rather than sharing it. Worth a decision before the Feed gets more data-dense.
 - **Race candidate ordering vs. the "unserious candidate" question** — sorting by money now handles placement (non-filers last); the still-open design question is treatment (how a low/no-activity card should look — reduced hierarchy, a threshold for "serious"). Good one for John: where's the cutoff, and what does a strategist actually want to see for the long tail?
 - **The location-search-races planning doc** (your separate strategy commits this session) — ZIP/City/Address race search via geocod.io. Not touched by this session's code, but it's queued; worth deciding when it slots into the roadmap relative to the banked KV-caching work.
+
+---
+2026-07-08 — Location-search-for-races arc (research → Stage 1 + 2a shipped; paused before 2b)
+
+## Session summary + resume point
+
+Multi-turn session that (1) researched replacing races.html's browse with **location search** (ZIP/address → the federal races that touch that place), and (2) shipped the first two build stages. **All plan detail + decisions live in `strategy/location-search-races.md` — that doc is the source of truth; read it first to resume.**
+
+**Shipped to main (both DORMANT — nothing loads them until Stage 2c wires the UI):**
+- **Stage 1 — `functions/api/geo/[[path]].js`** (commit 49f179a): geocod.io **v2** resolver. `GET /api/geo/resolve?type=zip|address&q=&cycle=` → normalized `{input_type, cycle, congress, congress_number, offices, states, districts, flags, error?}`. Cache-on-miss for ZIP (`geo:zip:{zip}:{congress}`), address geocode-and-discard. Verified 14/14 corpus cases live (incl. PR territory, multi-state, at-large, historical, out-of-range). Key server-side; GEOCODIO_KEY in local `.dev.vars` only.
+- **Stage 2a — `races-resolver.js`** (commits b7b3e2a, e7f3b5a): headless FEC race layer. `planRaces(geo,cycle)` + `fetchRaceSummary(item,cycle)` + pure `raceSeatStatus`/`raceTotalReceipts` → summary-tile objects `{office,state,district?,seatStatus,total,href}`. President fetch `per_page=200` (exact total; funded field 115 in 2024). Verified on live /elections/ (WA-03 → "Incumbent: Gluesenkamp Perez"; GA-Sen-2020 → "Multiple incumbents" $491.3M; GA-Sen-2024 → null/not-up).
+
+**RESUME AT: Stage 2b** — the summary-tile render: subtract candidate rows from the existing `.race-card` (race identity + total already there), ADD a seat-status line (its own row, not the cramped right-meta), update the design-system entry. NOT a new component. Then 2c (races.html rewrite + browse retirement + geo/FEC wiring + progressive per-office render), 2d (edge states + caption-dark), 2e (tests/mocks/docs).
+
+## Key locked decisions (full detail in the strategy doc's "Build plan")
+- 3 stages: S1 geo resolver (done) / S2c is the browse RETIREMENT (clean replacement, one-file rewrite) / S3 edge hardening.
+- Input: single auto-detecting field (^\d{5}$ → ZIP, else address); `.search-field` styling; placeholder "Search federal races by address or zip code".
+- URL: `?zip=&year=` shareable; **address NEVER in URL/history** (privacy).
+- Race card = summary tile (race identity + seat status + total), links to race.html. **No candidate rows** (that's race.html's job — descoped).
+- Seat status: 0 cands → "No candidates reported"; 0 incumbents → "Open seat"; 1 → "Incumbent: Name"; 2+ distinct → "Multiple incumbents" (dedupe count by name).
+- DC → president-only (empty in midterms); territory → empty state.
+- Senate-collapse caption ships DARK; **enablement gated on the term-class dataset** (the /election-dates/ SG+G rule was verified + DISPROVEN — AZ-2020 special-only false-positives).
+
+## Pending Sloane ops (not code — timed)
+- **Prod `GEOCODIO_KEY` secret** (`wrangler pages secret put`) — before Stage-2 production verify/ship (the deployed /api/geo/ 403s without it; nothing calls it yet).
+- **`GEO_CACHE` KV namespace** (dashboard bind, like AGGREGATIONS) — before real traffic; S2 works without it (degrades to always-live).
+- **Term-class dataset** — gates the Senate-collapse caption enablement (not before).
+
+## Gotchas for a new session / new machine
+- **Cross-machine:** a different machine needs `GEOCODIO_KEY` added to ITS own gitignored `.dev.vars` to run Stage 1/2 locally (per-machine, never committed).
+- **Local wrangler:** the installed binary lagged "today," so `wrangler pages dev` needed `--compatibility-date=2026-04-17`. Use a free port if 8788 is taken by a parallel session.
+- **Test debt:** Stage 1 + 2a verified via curl/node harnesses, NOT committed as specs — owed in 2e (see strategy doc Cleanup-on-build).
+- **CLAUDE.md** not yet updated for the geo resolver / races-resolver (deferred to Stage-2 completion; strategy doc is interim truth).
+
+## What to bring to Claude Chat
+- 2b is a small render subtraction — but eyeball "Incumbent: Biden" on 2024 president (true-but-surprising; nominee was Harris — the tile can't nuance it, detail's on race.html).
+- Decide when to run the pending Sloane ops (prod secret timing vs. when 2c is testable in prod).
+- Term-class dataset is now on the critical path for TWO things (caption enablement + any future Senate two-race split) — worth scoping as its own item.
