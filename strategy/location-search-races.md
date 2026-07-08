@@ -1,6 +1,6 @@
 # FECLedger — Location search for races.html (Address / City+State / ZIP → races)
 
-> **STATUS: INVESTIGATION / PROPOSAL — UNEXECUTED.** Prepared 2026-06-12 as a research handoff to bring to Claude Chat for open-item discussion. No code written. FEC behavior verified live against the deployed FEC proxy (`fecledgerapp.pages.dev/api/fec/*`); **geocod.io behavior verified live against the v1.9 API with a real key (2026-06-12)** — see "Verified response contract" below. Self-contained; no prior context needed.
+> **STATUS: INVESTIGATION / PROPOSAL — UNEXECUTED.** Prepared 2026-06-12 as a research handoff to bring to Claude Chat for open-item discussion. No code written. FEC behavior verified live against the deployed FEC proxy (`fecledgerapp.pages.dev/api/fec/*`); **geocod.io behavior verified live with a real key (2026-06-12), and the golden cases re-verified against the v2 API — BUILD ON v2** (`https://api.geocod.io/v2/geocode`). See "Verified response contract" and "v2 contract deltas" below. Self-contained; no prior context needed.
 
 ---
 
@@ -140,7 +140,7 @@ A small number of ZIPs straddle a **state** line, not just a district line. Beca
 - **73949** (Texhoma): geocod.io returns **two results** (`state=OK` and `state=TX`), both carrying OK-3 (0.864) + TX-13 (0.136).
 
 **What this forces:**
-- **Detect multi-state** from the geocode response: unique set of `state:XX` across the districts' `ocd_ids`, and/or multiple results with differing `address_components.state`. (Wrinkle to confirm at build: `ocd_id` was **populated on these multi-state ZIPs but null on single-state ZIPs** in sampling — so single-state still relies on `address_components.state`; verify `ocd_id` is reliably present whenever multi-state.)
+- **Detect multi-state** from the geocode response: unique set of `state:XX` across the districts' `ocd_ids`, and/or multiple results with differing `address_components.state_province` (v2 field name; `…state` on v1.9). (Wrinkle: `ocd_id` is **populated on multi-state ZIPs and current-congress single-state ZIPs, but null on historical congresses** — so the `state_province` fallback covers the historical case; `ocd_id`-based detection covers current.)
 - **Order by share, not centroid:** rank states by summed district proportion (Fort Campbell → TN primary, KY secondary), since the centroid can be the minority state.
 
 **Mitigation options (→ Open Items / decision):**
@@ -252,7 +252,7 @@ Recommend **(1)** for v1; this ticket should **document** the gap, not fix it.
 
 ### Cleanup on build
 - **Retire the old browse internals** when location search ships: the `/elections/search/` all-races enumeration, the IntersectionObserver per-row enrichment, and the localStorage race cache (open item #9 — confirm full removal, not just hidden).
-- **geocod.io v1.9 → v2 migration** — v1.9 works but emits a deprecation `_warnings`; the key is scoped to `/v2/geocode`. Build on v2.
+- ~~**geocod.io v1.9 → v2 migration**~~ — **RESOLVED 2026-06-12:** golden cases re-verified on v2; build directly on `/v2/geocode`. Only build-affecting delta is the `address_components` rename (`state`→`state_province`, `zip`→`postal_code`) — see "v2 contract deltas." No verify-then-migrate needed.
 - **Pre-2012 out-of-range messaging** — year selector floored at 2012; ensure any deep-linked/old `?year=` below 2012 degrades gracefully (clamp to 2012 or a friendly note).
 
 ---
@@ -268,7 +268,22 @@ Real key exercised; key NOT stored in this doc or committed anywhere.
 - **City centroid limitation:** `Houston, TX` → centroid match, **TX-18 only** (not all ~9 Houston districts). City input is centroid-accurate, not span-complete. City queries also return multiple *candidate matches* (Houston, TX returned 6) — the typeahead-pick model resolves which one.
 - **Multi-state ZIPs:** `42223` → districts span TN-7 (0.551) + KY-1 (0.449); centroid state (KY) is the *minority*. `73949` → two results (OK + TX). Per-district state lives in `ocd_id` (`…/state:tn/cd:7`); `ocd_id` was populated on multi-state ZIPs but null on single-state ones in sampling. Senate state(s) must be read from this response, not a ZIP3 table. (§4b)
 - **Validation fields:** `accuracy` (1) + `accuracy_type` ("place") present on every result.
-- **API version:** v1.9 works but emits a `_warnings` deprecation nudge to **v2** (the key's permissions are scoped to `/v2/geocode`); use v2 in the implementation.
+- **API version:** the values above were captured on v1.9 and **re-verified on v2** (`/v2/geocode`, the build target — key is scoped to it). v2 deltas are listed in the next section; the only build-affecting one is the `address_components` field rename.
+
+## v2 contract deltas (build target — verified 2026-06-12)
+
+All golden cases above were re-run against `https://api.geocod.io/v2/geocode`. **Everything the build depends on is identical to v1.9** EXCEPT the items below. Build on v2.
+
+| Delta | Build impact | Action |
+|---|---|---|
+| `address_components.state` → **`state_province`**; `zip` → **`postal_code`** (values unchanged) | **Yes** — Senate-state derivation uses the centroid state as a fallback when `ocd_id` is null (historical congresses), and the multi-state centroid read uses it | **Read `address_components.state_province`** anywhere this doc says `address_components.state`. `ocd_id`-based per-district state detection is unaffected (`ocd_id` format unchanged). |
+| Top-level `input` echo + `_warnings` removed | No (build reads `results`) | none — and no deprecation warning on v2 |
+| Ungeocodable input returns `{error, reference}` (added `reference`) | No — gate keys on `error` present | `error` string is byte-identical (`"Could not geocode address. No matches found."`) |
+| Combining `cd{NNN}` fields returns a *different* single congress than v1.9 (last vs. first) | No — one-congress-per-call is mandatory regardless | single-field requests return the correct congress (verified `cd116`→116th, `cd119`→119th); **never combine** |
+
+**Identical on v2 (re-verified):** `congressional_districts[]` entry shape (`district_number` / `congress_number` / `congress_years` / `proportion` / `name` / `ocd_id` / `current_legislators`); `ocd_id` format incl. `.../cd:at-large` and the null-on-historical wrinkle; at-large `district_number: 0`; multi-district proportions (60629→IL-4/7/1/6); multi-state two-result + per-district `ocd_id` state (42223, 73949); `current_legislators` presence + structure (still no `fec_id`); `accuracy`/`accuracy_type`; rooftop address → single district; the error string.
+
+> **NB for the build:** wherever this doc (esp. §4b and the mapping rules) names `address_components.state`, the v2 field is **`address_components.state_province`**.
 
 ## Other verified facts (FEC + docs)
 
@@ -284,10 +299,10 @@ Real key exercised; key NOT stored in this doc or committed anywhere.
 Curated edge-case inputs with **live-verified expected outputs** (geocod.io v1.9, 2026-06-12; cycle = 119th/2024 unless noted). Use these as regression fixtures for the location→races resolver and the geocod.io→FEC mapping. **✅** = geocode value verified live; **behavioral** = a UX expectation (no single geocode value to assert).
 
 ### Geocod.io → FEC mapping rules surfaced by these cases (build-critical)
-- **At-large → district `0`:** single-seat states (WY/VT/DE/AK) return `district_number: 0` + `ocd_id …/cd:at-large`. FEC `/elections/` uses district **`"00"`** — so **map `0 → "00"`** before querying FEC.
+- **At-large → district `0`, normalize to `"00"`:** single-seat states (WY/VT/DE/AK) return `district_number: 0` + `ocd_id …/cd:at-large`. FEC `/elections/` accepts **both** `district=0` and `district=00` (verified live 2026-06-12 — identical results), so this isn't a correctness gate. Normalize `0 → "00"` to match the app's existing cache convention, which already keys at-large House (and Senate/President) as `00` — e.g. `lf:race:2026:H:AK:00`, `lf:race:2024:S:ME:00`.
 - **Non-voting delegate → district `98`:** DC returns `district_number: 98`, name `"Delegate District (at Large)"`. No voting House/Senate → DC resolves to **President-only** (decide whether to surface the delegate race at all). Territories (PR/GU/VI/AS/MP) follow the same `98`/delegate pattern and additionally cast no presidential vote — almost certainly out of scope; treat any `district_number ≥ 90` as "non-standard, no House race."
 - **Invalid location → `error` object:** geocod.io returns `{"error": "Could not geocode address. No matches found."}` (NOT empty `results`). The reject/validation path keys on `error` present (or `results` empty).
-- **`ocd_id` is the per-district state + at-large signal, but is `null` on older congresses** (MT 117th returned `ocd_id: null`; the only at-large signal there was the `name` string `"…(at Large)"`). Detection must fall back to `name` / `address_components.state` when `ocd_id` is absent.
+- **`ocd_id` is the per-district state + at-large signal, but is `null` on older congresses** (MT 117th returned `ocd_id: null`; the only at-large signal there was the `name` string `"…(at Large)"`). Detection must fall back to `name` / `address_components.state_province` (v2; `…state` on v1.9) when `ocd_id` is absent.
 
 ### ZIP cases
 
