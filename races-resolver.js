@@ -1,5 +1,6 @@
 /**
- * races-resolver.js — FEC race layer for the /races location-search surface (Stage 2a).
+ * races-resolver.js — FEC race layer + summary-tile render for the /races
+ * location-search surface (Stages 2a–2b).
  *
  * Turns a geo-resolver result (from /api/geo/resolve) + an election cycle into
  * the set of federal races that touch a location, each as a SUMMARY TILE object
@@ -136,4 +137,53 @@ async function resolveRaces(geo, cycle) {
     plan.map((item) => fetchRaceSummary(item, cycle).catch(() => null))
   );
   return settled.filter((r) => r !== null);
+}
+
+// --- Presentation: summary tile (Stage 2b) ---
+
+// Renders ONE /races summary tile — the sole render for the location-search
+// surface (it replaces the browse row once 2c retires it). It is today's browse
+// .race-card ESSENTIALLY UNCHANGED: race name on the left, the .race-row-meta
+// slot on the right — with the candidate COUNT replaced by the SEAT STATUS
+// (total stays beside it, same muted-mono styling). No new CSS; the .race-tile-
+// seat class on the seat span is a bare JS/test hook (no style of its own — it
+// inherits .race-row-meta), used by 2c's progressive swap.
+//
+// STATE-DRIVEN, mirroring the browse card's candidateCount===null skeleton:
+// seatStatus == null → loading (race name paints immediately; the meta shows
+// skeletons until that office's /elections/ call lands); non-null → resolved.
+//
+// race: { office, state, district?, seatStatus?, total?, href?, cycle? }
+//   - resolved objects (from fetchRaceSummary) carry href.
+//   - a loading placeholder may instead carry cycle so the tile is still a live
+//     link to race.html while its data loads.
+//   - seatStatus is already fully formatted by raceSeatStatus() (incl. the
+//     formatCandidateName pass) — rendered verbatim; the tile has no name logic.
+//   - total is OMITTED entirely when 0 (a "No candidates reported" race — "$0"
+//     would imply a measured zero rather than nothing filed; seat status stands
+//     alone in the meta, matching the browse card's falsy-total suppression).
+function raceTileHTML(race) {
+  const label = formatRaceName(race.office, race.state, race.district);
+  const href = race.href || raceHref(race.office, race.state, race.district, race.cycle);
+  const key = race.office + '|' + race.state + '|' + (race.district || '');
+  const loading = race.seatStatus == null;
+
+  let metaHtml;
+  if (loading) {
+    metaHtml = '<div class="race-row-meta">'
+      + '<span class="skeleton" style="width:110px;height:12px;display:inline-block"></span>'
+      + '<span class="skeleton" style="width:100px;height:12px;display:inline-block"></span>'
+      + '</div>';
+  } else {
+    const total = race.total > 0 ? '<span>Total raised: ' + fmt(race.total) + '</span>' : '';
+    metaHtml = '<div class="race-row-meta">'
+      + '<span class="race-tile-seat">' + race.seatStatus + '</span>'
+      + total
+      + '</div>';
+  }
+
+  return '<a class="race-card" href="' + href + '" data-race-key="' + key + '">'
+    + '<div class="race-card-name">' + label + '</div>'
+    + metaHtml
+    + '</a>';
 }

@@ -1296,7 +1296,7 @@
           <span class="ds-component-name">race-card</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.race-card · .race-card-name — races.html browse row. Shares visual treatment with .candidate-card (comma-grouped in styles.css: same grid, padding, border, hover) but is structurally a race row, not a candidate card. Paired with .race-row-meta (races.html-local, inline rule) for the count + total-raised line. Use .race-card for race-level browse surfaces; use .candidate-card for candidate-level surfaces.</div>
+        <div class="ds-component-classes">.race-card · .race-card-name — races.html race row. Shares visual treatment with .candidate-card (comma-grouped in styles.css: same grid, padding, border, hover) but is structurally a race row, not a candidate card. Paired with .race-row-meta (races.html-local, inline rule) for the right-hand meta line. Use .race-card for race-level surfaces; use .candidate-card for candidate-level surfaces. <strong>Two renders on this same card:</strong> (1) the <em>browse</em> render (live today) — meta = candidate count + total raised; (2) the <em>location-search summary tile</em> (Stage 2b, via <code>raceTileHTML(race)</code> in races-resolver.js; dormant until 2c wires it) — layout unchanged, but the meta's candidate count is replaced by the <strong>seat status</strong> (<code>.race-tile-seat</code> span — a bare hook, inherits the meta's muted-mono caption), with the total beside it. seatStatus comes fully formatted from raceSeatStatus() ("No candidates reported" / "Open seat" / "Incumbent: {name}" / "Multiple incumbents"); the total is omitted entirely when 0. State-driven skeleton mirrors the browse card (seatStatus == null → meta skeletons). When 2c retires the browse render, this card documents the tile alone.</div>
         <div class="ds-component-demo">
           <a class="race-card" href="#">
             <div class="race-card-name">House · WA-03</div>
@@ -1310,6 +1310,20 @@
             <div style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
               <span>2 candidates</span>
               <span>Total raised: $14.2M</span>
+            </div>
+          </a>
+          <!-- location-search summary tile (Stage 2b): count → seat status in the meta -->
+          <a class="race-card" href="#">
+            <div class="race-card-name">House · WA-03</div>
+            <div style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
+              <span>Incumbent: Marie Gluesenkamp Perez</span>
+              <span>Total raised: $15.4M</span>
+            </div>
+          </a>
+          <a class="race-card" href="#">
+            <div class="race-card-name">House · NE-02</div>
+            <div style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
+              <span>No candidates reported</span>
             </div>
           </a>
         </div>
