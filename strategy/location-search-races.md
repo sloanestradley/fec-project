@@ -1,6 +1,6 @@
 # FECLedger — Location search for races.html (Address / City+State / ZIP → races)
 
-> **STATUS: INVESTIGATION / PROPOSAL — UNEXECUTED.** Prepared 2026-06-12 as a research handoff to bring to Claude Chat for open-item discussion. No code written. FEC behavior verified live against the deployed FEC proxy (`fecledgerapp.pages.dev/api/fec/*`); **geocod.io behavior verified live with a real key (2026-06-12), and the golden cases re-verified against the v2 API — BUILD ON v2** (`https://api.geocod.io/v2/geocode`). See "Verified response contract" and "v2 contract deltas" below. Self-contained; no prior context needed.
+> **STATUS: INVESTIGATION / PROPOSAL — UNEXECUTED.** Prepared 2026-06-12 as a research handoff to bring to Claude Chat for open-item discussion. No code written. FEC behavior verified live against the deployed FEC proxy (`fecledgerapp.pages.dev/api/fec/*`); **geocod.io behavior verified live with a real key (2026-06-12), and the golden cases re-verified against the v2 API — BUILD ON v2** (`https://api.geocod.io/v2/geocode`). See "Verified response contract" and "v2 contract deltas" below. Self-contained; no prior context needed. **BUILD PLAN APPROVED 2026-07-08 — see the "Build plan" section (it supersedes the Open items where noted); Stage 1 (geo resolver) is next, pending the resolver-plan review gate.**
 
 ---
 
@@ -19,6 +19,107 @@ Sloane's locked calls for v1:
 - **Route the geocoder through a Cloudflare Function** (server-side key + privacy).
 - **geocod.io** as the provider (key provisioned 2026-06-12; API verified live).
 - Dig deeper on **cost at scale**, **maintenance cadence (automate where possible)**, and the **Senate edge case**.
+
+---
+
+## Build plan (APPROVED 2026-07-08 — supersedes Open items where noted)
+
+> Locked in review 2026-07-08 and authoritative where it conflicts with the "Open items" section below. The investigation sections (core insight, architecture §1–7, §4/§4b, test corpus, v2 deltas) remain the reference detail this plan draws on. **No code yet** — the Stage-1 resolver approach is posted here for review; gate before implementing.
+
+### Locked decisions (post-review)
+
+- **v1 inputs = ZIP + full address only.** City DEFERRED to ride in with the ZIP→district precompute (the only point it's completeness-honest). *(supersedes #6, #12)*
+- **Address** = plain-text field; validate **post-submit** on `accuracy_type` (require `rooftop`/`range`; reject `place`/error); geocode-and-discard; **no** caching of raw addresses; **no** autocomplete. *(supersedes #12)*
+- **`accuracy_type` is input-type-dependent (correctness):** **ZIP accepts `place`** (the correct accuracy for a ZIP — a uniform rooftop/range gate would reject *every* ZIP search); **address requires `rooftop`/`range`**.
+- **Cost = cache-on-miss for v1**; precompute banked as a lever, not built now. *(supersedes #3)*
+- **Multi-state ZIP = detect + label, share-ordered**; never show a neighbor state's race as the user's. Label is **cycle-aware per state** for Senate — a state whose seats aren't up renders no Senate card (true + silent by construction; S3 adds the explanation). *(supersedes #10)*
+- **DC → President-only** (surfacing the non-voting delegate optional); **territories (`district ≥ 90`) → graceful "no federal races" empty state.** *(supersedes #11)*
+- **Retirement = CLEAN replacement, folded into Stage 2.** No surviving browse affordance.
+- **Race-card contract (net-new):** each resolved race **leads with seat status** — "Open seat" or "Incumbent: [Name]." Rule: any candidate row `incumbent_challenge_full === 'Incumbent'` → incumbent (show the name); zero Incumbent rows → open seat. (Field ∈ {Incumbent, Challenger, Open seat}; don't require all rows to agree — a stray "Challenger" row is fine.) Show **race total = Σ candidate `total_receipts`.**
+- **No editorializing the candidate set:** no receipts-threshold filter, no name-match dedupe. $0 filers and duplicate candidate records (same person, two `candidate_id`s) are surfaced as FEC reports them. *(Accepted consequence: the race total can double-count a duplicated candidate.)*
+- **Single-candidate races render as-is** (safe seats, e.g. GA-05) — honest, not an error state.
+- **Senate two-race collapse = detect + caption, no split.** Caption pulled into **Stage 2** (see caption note). Same combined candidate list; no per-contest split/totals/filter.
+
+### Corrected S1 resolver contract
+
+The `/api/geo/` resolver returns **geographic normalization only.** `senate_up` is **NOT** here — it's derived in the FEC race layer from `/elections/?office=senate&state=X&cycle=Y` non-empty (concern A). Normalized output:
+
+```
+{
+  input_type: 'zip' | 'address',
+  cycle, congress,                 // congress = (cycle − 1786)/2 → single fields=cd{congress}
+  offices: ['H', ...],             // cycle-aware: 'P' only in presidential cycles (cycle % 4 == 0);
+                                   //   'S'/'H' are geographic — Senate-up is decided in the FEC layer
+  states:    ['KY','TN'],          // union across results[] AND each result's district ocd_id states
+  districts: [ {state:'TN', number:'07'}, {state:'KY', number:'01'} ],   // at-large → '00'
+  flags:  { multi_state, multi_district, dc, territory },
+  error?: 'not_found' | 'low_accuracy' | 'geocoder_unavailable' | 'no_federal_races'
+}
+```
+
+Normalization rules live in the mapping-rules block + §4/§4b: at-large `0 → "00"` (+ historical `name`-based detection when `ocd_id` is null); DC (`district 98`, ocd_id `…/district:dc/…`) + territory (`district ≥ 90`) classified **before** the state-union (concern E — DC's ocd_id is not `state:XX`); multi-state union across **both** `results[]` and per-result districts (concern from §4b).
+
+### Three stages
+
+**Stage 1 — Geo resolver proxy (`functions/api/geo/[[path]].js`). Additive, no UI. → ships to main independently.**
+Location → the normalized object above. Cache-on-miss for ZIP; address geocode-and-discard. Stop = every golden case in the test corpus resolves correctly via curl against `wrangler pages dev`. Detailed approach + setup timing in "Stage-1 resolver — approach" below (review gate before implement).
+
+**Stage 2 — The replacement (input UI + FEC race layer + render). This IS the retirement.**
+- **FEC race layer:** resolved districts/states/offices → parallel `/elections/` calls (office conversion + district `'00'` per race.html conventions) → race objects with seat-status + total. `senate_up` = non-empty senate result. **Cycle-aware office presence** (concern C): President only in presidential cycles; Senate only where up — absence is a first-class "No [office] race in [ST] this cycle" line, not an error.
+- **Year selector:** floor **2012** (cd113); ceiling per-office reusing race.html (House=current, Senate+4, Pres+2) (concern F). **Year-change = full re-resolve** — district is cycle-variant via redraw (concern D).
+- **Race-result card:** net-new component (seat-status header + race total + nested `candidateCardHTML` rows) → needs a design-system entry + tests.
+- **Multi-district built real** (all N House cards — ~20% of ZIPs, not an edge) (concern B). **Input cue** "races for your exact address" vs "all races in ZIP X" (concern H).
+- **Deletes the entire browse surface:** IntersectionObserver/`enrichRace`, `lf:race` read+write, `/elections/search/` enumeration, `fetchAllRaces`/`fetchGeneration`, filters/`applyFilters`, chips, filter URL-sync/`updateURL`, `populateCycles`, the three filter combos. **Keep** shared utils (`formatRaceName`, `initComboDropdown`, `apiFetch`, `fmt`, `.race-card` CSS — used elsewhere). Update `shared.spec.js` races.html structural assertions + add a **geocod.io mock** mirroring `tests/helpers/api-mock.js` (concern G).
+- Degradation states per the approved table below (Group 1 real; Group 2 = multi-state state-grouped, Senate-collapse captioned).
+Stop = the browse is gone; ZIP + address + year selector render seat-status race cards across single/multi-district, single/multi-state, office-absent, DC, territory, and all error states.
+
+**Stage 3 — Edge hardening on the live surface.**
+Multi-state **cycle-aware Senate explanation** (make the silent omission explicit); Senate-collapse caption **detection enabled** (post-verification — see caption note); Amplitude events for the new surface; card polish. The caption *markup* ships in S2.
+
+### Degradation states (approved 2026-07-08)
+
+**Group 1 — built *real* in S2 (not degradation; listed because they were named):**
+
+| Edge | Frequency | S2 renders | Honest? |
+|---|---|---|---|
+| Multi-district | ~20% of ZIPs | All N House races, each a full seat-status card | ✅ Real, not degraded (concern B) |
+| Office absent (Senate not up / midterm President) | every search | Section omitted; quiet "No [office] race in [ST] this cycle" | ✅ True omission, never a false card (concern C) |
+| DC | rare | President-only (delegate optional); House/Senate omitted | ✅ It *is* president-only |
+| Territory (`district ≥ 90`, non-DC) | rare | "No federal races on FECLedger for this location" | ✅ Honest empty state |
+| not-found (ungeocodable) | input error | S1 `error:'not_found'` → "We couldn't find that location" | ✅ Designed error |
+| geocoder-unavailable (geocod 5xx/quota) | infra | S1 `error:'geocoder_unavailable'` → "Location lookup temporarily unavailable" | ✅ Designed error |
+| low-accuracy address | address input | S1 `error:'low_accuracy'` → "Enter a more specific address" | ✅ Designed error (the address gate) |
+
+**Group 2 — genuinely degraded in S2, hardened in S3:**
+
+| Edge | Frequency | S2 renders | Clears "honest-or-not-at-all"? | S3 hardening |
+|---|---|---|---|---|
+| Multi-state ZIP | dozens of ZIPs | Races **grouped under each state header** ("Kentucky races" / "Tennessee races"); each state's Senate card appears only if up (via concern C). No false "your Senate race"; omission is silent. | ✅ State-scoped grouping is true; never a neighbor's race *as theirs*. Lacks only the explanatory callout. | Cycle-aware caption ("KY has a Senate race this cycle; TN's seats aren't up") — makes the silent omission explicit. |
+| Senate two-race collapse | rare + **past cycles only** | Collapsed single card + combined candidate list, **plus the static caption** (pulled forward — see note) | ✅ Now genuinely-honest (not merely-not-false): the caption states two contests are shown together. | Nothing structural — caption's *detection* is enabled post-`/election-dates/` verification. |
+
+### Senate-collapse caption — build in S2, detection-dark until verified
+
+Caption ships in **Stage 2** (rare + past-cycles-only → cheap, and it pulls the whole S2 window up into the genuinely-honest tier). It is **one static explanatory line** — same combined candidate list, **no** split, no per-contest totals, no filtering. Copy (illustrative): *"[State] held two U.S. Senate elections in [year] — a regular and a special; candidates for both are shown together."* The split stays deferred to the Senate term-class work.
+
+**Trigger is gated on verification (the risk is the enum, not the text):** detection rule = **both a general `G` AND a special `SG`/`SP`** present for the state/cycle in `/election-dates/` → two contests. Must **NOT** fire on a special-only cycle (AZ 2020 = one contest) nor any normal single-race state. The exact `election_type_id` values are **not yet verified live** (Chat runs it; Chrome was down). So: **the caption's detection must be confirmed against real `/election-dates/` data before it goes live** — don't wire a shipped caption to an unverified enum. **Ordering (Sloane's to sequence):** S2 may ship with detection **dark** (caption markup present, trigger disabled), enabled the moment the enum is confirmed.
+
+### Concerns ledger (resolved in this plan)
+
+A senate_up → FEC layer (not geo) · B multi-district is common → built real · C office-presence cycle-dependent → absence is first-class · D year-change = full re-resolve · E classify DC/territory before the state-union · F per-office year ceiling from race.html · G geocod mock + shared.spec updates in-scope · H address-vs-ZIP count cue.
+
+### Stage-1 resolver — approach (review gate before implement)
+
+- **File/deploy:** `functions/api/geo/[[path]].js`; `onRequest(context)` + a `jsonResponse()` helper matching the FEC + aggregations Functions. Ships via `cp -R functions` in `stage-site.sh` — **no allowlist edit required** (add to the `critical_paths` sanity sample as hygiene).
+- **Route:** `GET /api/geo/resolve?type=zip&q=98604&cycle=2026` (or `type=address&q=…`). `400` on malformed (aggregations convention).
+- **Server responsibilities:** validate by type → `cycle → congress → cd{congress}` (single field; out-of-range → clamp to [2012, per-office ceiling] or typed reject) → cache check (ZIP only) → geocod `/v2/geocode` with `GEOCODIO_KEY` injected server-side, `fields=cd{congress}` → normalize (at-large; DC/territory **first**; multi-state union; v2 `state_province`/`postal_code`) → `accuracy_type` gate **by input type** → cache write (ZIP only, never address) → return normalized object.
+- **Cache:** key `geo:zip:{zip}:{congress}` (congress, not cycle — it's what varies the answer); TTL past-congress long/permanent, current-congress 30–90d (redraw-refinement insurance); address bypasses the cache and is never written or logged (privacy invariant).
+- **Error types (200 body unless noted):** `400` malformed; `{error:'not_found'}` geocod error object; `{error:'low_accuracy'}` address below rooftop/range; `{error:'no_federal_races'}` territory; `{error:'geocoder_unavailable'}` geocod 5xx/429/402 (no retry, matching the FEC proxy).
+- **Rate-limit/quota:** address is the quota consumer (uncacheable); ZIP repeats hit cache. Pass through geocod quota headers for observability (as the FEC proxy does with `x-ratelimit-*`).
+- **Stop line:** every test-corpus golden case resolves correctly via curl against `wrangler pages dev` (KV empty → live path). No UI.
+
+**Sloane-side setup — prerequisites-with-timing (run when reached, not up front):**
+1. **`GEOCODIO_KEY` secret** — `npx wrangler pages secret put GEOCODIO_KEY --project-name fecledgerapp`, plus a `GEOCODIO_KEY=…` line in local `.dev.vars`. **Required before:** the first live (cache-miss) resolve — i.e. before Stage-1 curl verification. Without it the Function loads but geocod 403s.
+2. **`GEO_CACHE` KV namespace** — create the namespace + bind it as `GEO_CACHE` (Production) in Cloudflare dashboard → Pages → fecledgerapp → Settings → Functions → KV bindings. Pages KV bindings **can't be set via wrangler** — same manual step as `AGGREGATIONS`. **Required before:** cache-on-miss works *in production*. **NOT required for local dev or Stage-1 correctness** — `wrangler pages dev` simulates KV empty → every resolve takes the live path (mirrors AGGREGATIONS locally), so Stage-1 verification runs without it. Bind before relying on production cache (Stage-2 traffic).
 
 ---
 
@@ -218,6 +319,8 @@ Recommend **(1)** for v1; this ticket should **document** the gap, not fix it.
 ---
 
 ## Open items for Claude Chat
+
+> **Partially superseded by the Build plan (2026-07-08 review).** #3, #6, #10, #11, #12 are now decided — see "Locked decisions (post-review)." Retained here for lineage. #4 (Senate split) is deferred to the term-class work; #5 (City typeahead) rides with the deferred City input; #7 (billing) and #9 (retirement survey — folded into Stage 2) are operational.
 
 1. ~~**`cd120` preview readiness**~~ — **RESOLVED 2026-06-12:** use `cd120` for 2026. Verified live as redraw-aware (Texas 2025 mid-decade redraw diverges from `cd119`); no fallback needed. "Preview" boundary refinement is a maintenance watch, not a blocker.
 2. ~~**Pre-2012 House floor**~~ — **RESOLVED 2026-06-12:** floor location search at cycle 2012 (aligns with the existing S/P detail-data floor; geocod.io's 113th-Congress floor matches). Year selector offers 2012→current.
