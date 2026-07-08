@@ -95,16 +95,18 @@ function planRaces(geo, cycle) {
 // card ("No candidates reported"), never null.
 async function fetchRaceSummary(item, cycle) {
   // House/Senate candidate lists are well under 100 (fully captured). President
-  // can exceed it (869 filers in 2024, 9 pages), so sort by receipts desc: the
-  // top 100 captures every incumbent (incumbents are always top fundraisers, so
-  // seatStatus stays exact) and ~100% of the dollars (the truncated tail is $0
-  // filers). No pagination — a 9-page president walk isn't worth a sub-0.01%
-  // total correction. The only lossy field is the president total, negligibly.
+  // can exceed it (869 filers in 2024) — but only ~115 have any money (receipts
+  // hit $0 at rank 116). per_page=200 (one call — /elections/ honors it) sorted
+  // by receipts desc covers the ENTIRE funded field with wide margin, so the
+  // total is EXACT (top-200 − top-100 was $6,397; 200→300 is $0) and every
+  // incumbent is present (incumbents are top fundraisers). The ~669 skipped rows
+  // are provably $0. Revisit only if a cycle pushes funded presidential filers
+  // past ~200.
   const params = {
     state: item.state,
     cycle: String(cycle),
     office: officeApiWord(item.office),
-    per_page: 100,
+    per_page: 200,
     sort: '-total_receipts',
   };
   if (item.office === 'H' && item.district) params.district = item.district;

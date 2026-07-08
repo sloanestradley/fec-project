@@ -79,7 +79,7 @@ Location → the normalized object above. Cache-on-miss for ZIP; address geocode
 Stop = the browse is gone; ZIP + address + year selector render seat-status race cards across single/multi-district, single/multi-state, office-absent, DC, territory, and all error states.
 
 **Stage 3 — Edge hardening on the live surface.**
-Multi-state **cycle-aware Senate explanation** (make the silent omission explicit); Senate-collapse caption **detection enabled** (post-verification — see caption note); Amplitude events for the new surface; card polish. The caption *markup* ships in S2.
+Multi-state **cycle-aware Senate explanation** (make the silent omission explicit); Amplitude events for the new surface; card polish. The caption *markup* ships in S2; its **detection enablement is gated on the term-class dataset** (the `SG`+`G` rule was disproven 2026-07-08 — see caption note), so it does NOT enable in Stage 3 unless that dataset lands.
 
 ### Stage-2 build decisions (locked 2026-07-08 review)
 
@@ -99,7 +99,7 @@ Refine the Stage-2 bullet above where they differ.
   - **Collapsed-Senate:** the combined card's `total` sums BOTH contests and seatStatus reads "Multiple incumbents" — both honest under the caption.
 - **Progressive load:** per-office/per-card reveal **reusing the existing race-card skeleton** — race name paints immediately; each card's data points (seat status, total) skeleton until that office's `/elections/` call returns. Two nominal levels (within-card data points; across-office cards), but **a card's data points land together from its single `/elections/` call**, so the real staggering axis is per-card/office. No new tri-state machinery; same total call count, revealed as it lands rather than gated on the slowest call.
 - **DC:** president-only for v1 (delegate not surfaced — revisit trigger in Follow-on).
-- **Senate-collapse caption:** shipped in S2 with the trigger **DARK** (markup + detection built, disabled until `/election-dates/` SG/SP/G values are verified live — then a one-line enable).
+- **Senate-collapse caption:** shipped in S2 with the trigger **DARK**. **Enablement is gated on the term-class dataset, NOT an `/election-dates/` check** — the `SG`+`G` rule was verified 2026-07-08 and **disproven** (it false-positives on AZ-2020-class special-only cycles; see the caption note). In the interim a genuine collapse (GA-2020 type) ships UNCAPTIONED (the accepted Group-2 "confusing-but-not-false" state).
 - **2a fetch note (implemented):** each race = one `/elections/` call, `per_page=100&sort=-total_receipts`. House/Senate lists are <100 (complete). **President exceeds it** (869 filers in 2024, 9 pages) — the money-sort keeps `seatStatus` exact (incumbents are always top fundraisers, so they're in the fetched page) and the `total` ~complete (the truncated tail is $0 filers); **no pagination** (a sub-0.01% president-total undercount isn't worth a 9-page walk). `officeApiWord` (H→house) is defined **locally in races-resolver.js** — the same H/S/P→word map is inlined in race.html + races.html; lifting all three to utils.js is a **banked cleanup** (out of 2a scope). 2a lives in a standalone `races-resolver.js` (sankey.js precedent); it's wired into races.html + staged in 2c.
 
 ### Degradation states (approved 2026-07-08)
@@ -121,13 +121,20 @@ Refine the Stage-2 bullet above where they differ.
 | Edge | Frequency | S2 renders | Clears "honest-or-not-at-all"? | S3 hardening |
 |---|---|---|---|---|
 | Multi-state ZIP | dozens of ZIPs | Races **grouped under each state header** ("Kentucky races" / "Tennessee races"); each state's Senate card appears only if up (via concern C). No false "your Senate race"; omission is silent. | ✅ State-scoped grouping is true; never a neighbor's race *as theirs*. Lacks only the explanatory callout. | Cycle-aware caption ("KY has a Senate race this cycle; TN's seats aren't up") — makes the silent omission explicit. |
-| Senate two-race collapse | rare + **past cycles only** | Collapsed single card + combined candidate list, **plus the static caption** (pulled forward — see note) | ✅ Now genuinely-honest (not merely-not-false): the caption states two contests are shown together. | Nothing structural — caption's *detection* is enabled post-`/election-dates/` verification. |
+| Senate two-race collapse | rare + **past cycles only** | Collapsed single card + combined candidate list, **uncaptioned in v1** (caption markup ships dark; the `SG`+`G` trigger was disproven 2026-07-08) | ✅ "Confusing-but-not-false" (Group-2 accepted): the card never claims to be two contests. | Caption's *detection* is gated on the **term-class dataset**, not an `/election-dates/` check — enables when that lands (see caption note). |
 
-### Senate-collapse caption — build in S2, detection-dark until verified
+### Senate-collapse caption — build in S2, detection-dark until the term-class dataset lands
 
 Caption ships in **Stage 2** (rare + past-cycles-only → cheap, and it pulls the whole S2 window up into the genuinely-honest tier). It is **one static explanatory line** — same combined candidate list, **no** split, no per-contest totals, no filtering. Copy (illustrative): *"[State] held two U.S. Senate elections in [year] — a regular and a special; candidates for both are shown together."* The split stays deferred to the Senate term-class work.
 
-**Trigger is gated on verification (the risk is the enum, not the text):** detection rule = **both a general `G` AND a special `SG`/`SP`** present for the state/cycle in `/election-dates/` → two contests. Must **NOT** fire on a special-only cycle (AZ 2020 = one contest) nor any normal single-race state. The exact `election_type_id` values are **not yet verified live** (Chat runs it; Chrome was down). So: **the caption's detection must be confirmed against real `/election-dates/` data before it goes live** — don't wire a shipped caption to an unverified enum. **Ordering (Sloane's to sequence):** S2 may ship with detection **dark** (caption markup present, trigger disabled), enabled the moment the enum is confirmed.
+**Trigger — VERIFIED 2026-07-08, and the simple rule is DISPROVEN.** The proposed rule (both a general `G` AND a special `SG`/`SP` present in `/election-dates/` → two contests) false-positives and cannot be used. Live check of three 2020 Senate cases:
+- **GA** (genuine two contests): `/election-dates/` = `SG` ("Isakson's Seat") + `G`; `/elections/` = 35 candidates, 2 incumbents on DIFFERENT seats (Perdue Class II regular + Loeffler Class III special). Total $491.3M.
+- **AZ** (ONE contest — special only): `/election-dates/` = `SG` + `G` — the SAME signature as GA; `/elections/` = 12 candidates, 2 incumbents on the SAME seat (McSally appointed + Kelly, who won and was seated early). FEC double-records a special-held-on-general-day as both `SG` and `G`, so the `G` is not a second contest.
+- **TX** (one contest — regular only): `SG` absent, `G` present; 25 candidates (a normal single race can be large — count is no signal either).
+
+Every proxy signal — `SG`+`G` presence, the two-incumbents heuristic, and candidate count — false-positives on AZ. The true discriminator is whether the state has a REGULAR Senate seat of the class up that cycle (2020 = Class II; GA has one, AZ does not) IN ADDITION TO a special — which requires the static Senate seat-class data, i.e. the deferred term-class work.
+
+**Re-pointed enablement (2026-07-08):** the caption's detection is NOT a quick `/election-dates/` check — it is gated on the **term-class dataset**. The caption ships DARK in v1 and enables when the term-class work lands, not on an election-dates verification. In the interim a GA-2020-type collapse ships **UNCAPTIONED** — the already-accepted "confusing-but-not-false" S2-window state (Group 2 table). Do NOT enable on `SG`+`G`; it would falsely caption AZ-2020-class special-only cycles.
 
 ### Concerns ledger (resolved in this plan)
 
@@ -330,7 +337,7 @@ The `fields=cd` response (current cycle) carries more than the district. Per res
 
 **Mitigation paths (deferred — for Chat):**
 1. **v1 accept + caveat:** surface the single collapsed entry with a note ("Georgia held two U.S. Senate elections in 2020"), splitting deferred.
-2. **Detect + split:** special elections are rare and enumerable; a maintained list of (state, cycle) two-race cases could trigger a client-side split — but splitting the candidate list requires per-candidate special-vs-regular attribution that `/elections/` doesn't provide (would need `/election-dates/` SP/SG types or per-candidate `election_years` cross-referencing — real work).
+2. **Detect + split:** special elections are rare and enumerable; a maintained list of (state, cycle) two-race cases could trigger a client-side split — but splitting the candidate list requires per-candidate special-vs-regular attribution that `/elections/` doesn't provide (would need per-candidate `election_years` cross-referencing — real work). **Detection note (2026-07-08):** the `/election-dates/` `SG`+`G` shortcut for *detecting* a two-contest state was verified and **disproven** (it false-positives on special-only cycles like AZ-2020, which carries the same `SG`+`G` signature); reliable detection needs the **term-class dataset** (does the state have a regular seat of the cycle's class up *in addition to* a special). See the Senate-collapse caption note.
 3. Tie this to the existing Senate term-class open question rather than solving it inside the location-search ticket.
 
 Recommend **(1)** for v1; this ticket should **document** the gap, not fix it.
@@ -387,6 +394,7 @@ Recommend **(1)** for v1; this ticket should **document** the gap, not fix it.
 
 ### Cleanup on build
 - **Retire the old browse internals** when location search ships: the `/elections/search/` all-races enumeration, the IntersectionObserver per-row enrichment, and the localStorage race cache (open item #9 — confirm full removal, not just hidden).
+- **Lift `officeApiWord`/`officeApiParam` to utils.js** — the H/S/P→word map (`{H:'house',S:'senate',P:'president'}`) is now inlined in **three** places: race.html, races.html, and races-resolver.js (Stage 2a defined its own to stay self-contained). Consolidate to one utils.js export once 2c touches races.html (don't touch race.html mid-stage). Tracked so the third copy doesn't become permanent drift.
 - ~~**geocod.io v1.9 → v2 migration**~~ — **RESOLVED 2026-06-12:** golden cases re-verified on v2; build directly on `/v2/geocode`. Only build-affecting delta is the `address_components` rename (`state`→`state_province`, `zip`→`postal_code`) — see "v2 contract deltas." No verify-then-migrate needed.
 - **Pre-2012 out-of-range messaging** — year selector floored at 2012; ensure any deep-linked/old `?year=` below 2012 degrades gracefully (clamp to 2012 or a friendly note).
 
