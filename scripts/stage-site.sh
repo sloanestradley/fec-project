@@ -74,6 +74,7 @@ critical_paths=(
   "_redirects"
   "functions/api/fec/[[path]].js"
   "functions/api/aggregations/[[path]].js"
+  "functions/api/geo/[[path]].js"
   "functions/candidate/[[catchall]].js"
   "functions/committee/[[catchall]].js"
 )
