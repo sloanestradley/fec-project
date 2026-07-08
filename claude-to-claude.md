@@ -6729,3 +6729,77 @@ Multi-turn session that (1) researched replacing races.html's browse with **loca
 - 2b is a small render subtraction — but eyeball "Incumbent: Biden" on 2024 president (true-but-surprising; nominee was Harris — the tile can't nuance it, detail's on race.html).
 - Decide when to run the pending Sloane ops (prod secret timing vs. when 2c is testable in prod).
 - Term-class dataset is now on the critical path for TWO things (caption enablement + any future Senate two-race split) — worth scoping as its own item.
+
+---
+2026-07-08 (session-close ritual blocks — companion to the resume handoff above)
+
+## Process log draft
+
+**Title:** Two layers deep, and nothing to show for it (yet)
+
+I set out to replace the races browse with something a real person would use —
+"what races touch where I live?" — and spent the session building the two layers
+underneath that question without a single pixel of UI. It was all pipes: the
+geocoder that turns an address into a congressional district, and the layer that
+turns a district into the races that touch it. Invisible so far, but proven.
+
+Changelog:
+- Chose geocod.io for ZIP/address → congressional district — the only source with
+  per-cycle *historical* districts (a 2018 search must use 2018's lines). Verified
+  the whole response contract live (v1.9 then v2).
+- Shipped Stage 1: the geo resolver Cloudflare Function (location → districts/
+  states/offices). Key server-side; addresses geocoded and discarded, never
+  cached/logged.
+- Shipped Stage 2a: the FEC race layer — a location → the races that touch it, each
+  a summary tile (seat status + total). No candidate lists (that's race.html's job).
+- Locked the plan: one auto-detecting field, ZIP shareable / address never in URL,
+  clean browse replacement, the seat-status contract, the Senate-collapse caption.
+- Retired a plausible-but-wrong idea: my proposed two-Senate-race detector
+  false-positived once checked live (AZ-2020 = one contest, same signature as GA).
+
+Field notes: every "obvious" rule got tested against live data and several broke.
+The Senate two-race detector looked airtight until Arizona 2020 carried the same
+SG+G signature for one contest (a special held on election day, double-recorded).
+The president total looked "close enough" at the top 100 until a check proved it
+exact at 200 and retired the caveat. Building plumbing with no faucet takes
+discipline; the payoff is the parts easy to get subtly wrong are already nailed
+down before the UI exists.
+
+Stack tags: geocod.io v2 (congressional districts API); Cloudflare Pages Function
++ KV cache; FEC /elections/ race aggregation.
+
+## How Sloane steered the work
+
+- "Search by city or zip, not browse-and-filter" — the founding reframe (filter UI
+  → resolver problem).
+- "Descope the card to a summary tile" — reversed my nested-candidate-rows
+  direction; /races feeds race.html rather than cannibalizing it (the link is
+  load-bearing).
+- "Cycle correctness is a hard requirement" — eliminated every free source and
+  forced geocod.io (only one with historical districts).
+- "Make the president total exact, not approximate" — top-100 → top-200; verified
+  the funded field ends at rank 115, retiring the caveat.
+- "The SG+G rule is disproven — repoint to the term-class dataset" — ran the live
+  verification I'd deferred, caught the AZ false-positive, fixed the doc before it
+  misled a future session.
+- "Pause — what needs documenting to continue cleanly?" — process over momentum;
+  banked a clean handoff and caught a stale doc line I'd missed.
+
+Through-line: every decision runs through "is this true and verifiable?", each
+stage gates behind explicit review, and the strategy doc is the durable contract —
+decisions made once, not relitigated.
+
+## What to bring to Claude Chat
+
+- 2b render eyeball: "Incumbent: Biden" on 2024 president is true-but-surprising
+  (Harris was nominee; the tile can't nuance it — detail's on race.html).
+- Amplitude ZIP-value logging: privacy-vs-product-signal decision (log the searched
+  zip for "which areas" insight, or keep the analytics surface location-value-free?).
+  Address is never logged regardless.
+- Term-class dataset is now on the critical path for TWO things (caption enablement
+  + any future two-race split) — worth scoping as its own item.
+- Timing of pending Sloane ops (prod GEOCODIO_KEY secret + GEO_CACHE binding) —
+  now vs. when 2c is first testable in production.
+- Pre-existing (NOT this session): candidate.spec.js:711 choropleth-tooltip test
+  fails on main (fails in isolation; last candidate change was 09fd068, pre-session)
+  — flag for a separate look.
