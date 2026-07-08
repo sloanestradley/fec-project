@@ -905,6 +905,7 @@ Expected failures — not bugs to fix now. Remove a row when the issue is resolv
 | Issue | Page | Added |
 |-------|------|-------|
 | Ad hoc race comparison mode not yet built | race.html | 2026-03-10 |
+| Track 1 failure: `candidate.spec.js:711` "choropleth section title mounts the geography tooltip (with candidate-parity amendment caveat)" — fails consistently in isolation (not a flake). Pre-existing on main (last candidate change `09fd068`, predates the 2026-07-08 location-search session that surfaced it; not introduced by that session). Needs diagnosis — likely a tooltip-copy/DOM assertion drift on candidate.html, unrelated to the location-search work. | candidate.html | 2026-07-08 |
 
 ---
 
