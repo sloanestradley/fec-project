@@ -81,6 +81,27 @@ Stop = the browse is gone; ZIP + address + year selector render seat-status race
 **Stage 3 — Edge hardening on the live surface.**
 Multi-state **cycle-aware Senate explanation** (make the silent omission explicit); Senate-collapse caption **detection enabled** (post-verification — see caption note); Amplitude events for the new surface; card polish. The caption *markup* ships in S2.
 
+### Stage-2 build decisions (locked 2026-07-08 review)
+
+Refine the Stage-2 bullet above where they differ.
+
+- **Input model:** single **auto-detecting** field — `^\d{5}$` → ZIP (format-gated pre-submit), else → address (validated post-submit on `accuracy_type`). Field styled to match the **/search** field (reuse the `.search-field` icon-leading treatment), NOT a races-specific hero. Placeholder is the **sole** guidance (no separate instruction copy): **"Search federal races by address or zip code"**. Broader landing/layout alignment is a post-first-pass Sloane review.
+- **URL + privacy fork:** the ZIP path syncs `?zip=&year=` (shareable + back/forward). **The address path writes NO URL and NO history entry** — the geocode-and-discard invariant extends to the URL surface; address results are non-shareable. An address search after a `?zip=` load replaces the URL to drop the now-stale zip.
+- **Race card = summary tile (DESCOPED from nested candidate rows):** reuse today's `/races` `.race-card` (race identity + total already present); **remove** the candidate count; **add** a seat-status line. Final card = **race identity + seat status + total**, still **linking to race.html** (the handoff for "who's in the race"). This is a **subtraction from the existing card + one line, not a new component** — update the design-system entry for the added seat-status line. Rationale: /races answers "what races touch this place + how big," then hands to race.html; listing candidates on /races cannibalizes the detail page it feeds. **2a is UNCHANGED** — total + seat status both derive from the `/elections/` payload (still fetched per office; the candidate array is fetched but not rendered on /races; only the render shrinks). Layout note: a 2+-incumbent seat-status string won't fit the card's compact right-meta slot — it likely wants its own row (2b call).
+- **Seat-status contract (2a output) — FINAL (2026-07-08):**
+  - **0 candidates** in a contested office → **"No candidates reported"**. (Only reaches House — always up — + the rare empty presidential; Senate/President "not up" is dropped earlier by senate_up / cycle-gating, never rendered as a card.)
+  - **≥1 candidate, 0 incumbents** → **"Open seat"**.
+  - **exactly 1 distinct incumbent** → **"Incumbent: {name}"** (`formatCandidateName`, site-standard "Last, First" title case).
+  - **2+ distinct incumbents** (member-vs-member post-redistricting; the collapsed-Senate case — GA 2020 Perdue + Loeffler) → **"Multiple incumbents"** (no names on the tile; who-holds-the-seat detail is on race.html, consistent with the descope).
+  - Incumbent test = `incumbent_challenge_full === 'Incumbent' || incumbent_challenge === 'I'` (dual-field, per race.html).
+  - **Distinct-incumbent count dedupes by normalized name** — a duplicated incumbent record (same person, two `candidate_id`s in the un-deduped payload) must read "Incumbent: X", NOT "Multiple incumbents". Dedupe applies ONLY to the 1-vs-2+ count; the **`total` sums all rows un-deduped** (surface what FEC reports).
+  - **Race object shape:** `{office, state, district?, seatStatus, total, href}` — the candidate array is used to derive seatStatus + total, then **dropped** (not retained/handed to race.html, which re-fetches independently). `href` → race.html (the load-bearing handoff; the descope only works because the detail path survives).
+  - **Collapsed-Senate:** the combined card's `total` sums BOTH contests and seatStatus reads "Multiple incumbents" — both honest under the caption.
+- **Progressive load:** per-office/per-card reveal **reusing the existing race-card skeleton** — race name paints immediately; each card's data points (seat status, total) skeleton until that office's `/elections/` call returns. Two nominal levels (within-card data points; across-office cards), but **a card's data points land together from its single `/elections/` call**, so the real staggering axis is per-card/office. No new tri-state machinery; same total call count, revealed as it lands rather than gated on the slowest call.
+- **DC:** president-only for v1 (delegate not surfaced — revisit trigger in Follow-on).
+- **Senate-collapse caption:** shipped in S2 with the trigger **DARK** (markup + detection built, disabled until `/election-dates/` SG/SP/G values are verified live — then a one-line enable).
+- **2a fetch note (implemented):** each race = one `/elections/` call, `per_page=100&sort=-total_receipts`. House/Senate lists are <100 (complete). **President exceeds it** (869 filers in 2024, 9 pages) — the money-sort keeps `seatStatus` exact (incumbents are always top fundraisers, so they're in the fetched page) and the `total` ~complete (the truncated tail is $0 filers); **no pagination** (a sub-0.01% president-total undercount isn't worth a 9-page walk). `officeApiWord` (H→house) is defined **locally in races-resolver.js** — the same H/S/P→word map is inlined in race.html + races.html; lifting all three to utils.js is a **banked cleanup** (out of 2a scope). 2a lives in a standalone `races-resolver.js` (sankey.js precedent); it's wired into races.html + staged in 2c.
+
 ### Degradation states (approved 2026-07-08)
 
 **Group 1 — built *real* in S2 (not degradation; listed because they were named):**
@@ -347,6 +368,10 @@ Recommend **(1)** for v1; this ticket should **document** the gap, not fix it.
 ## Follow-on work / backlog
 
 *Living list — capture backlog, cleanup, and tradeoffs uncovered as decisions resolve. Not v1 scope unless promoted.*
+
+### Deliberate v1 cuts (decided, not gaps)
+- **Per-candidate rows on the location-search race card** — cut for v1. The card shows **race identity + seat status + total**; candidate detail lives on race.html (the tile hands off to it). Listing candidates on /races would cannibalize the detail page it feeds. (Locked 2026-07-08.)
+- **DC delegate** — deferred to president-only for v1. **Revisit trigger:** if DC results test as too thin (president-only feels empty), surface the non-voting delegate race.
 
 ### Deferred features (post-v1)
 - **Complete City search** — make City+State span-complete (all districts a city touches), not centroid-only. Gated on the ZIP precompute: city → ZIPs (static city→ZIP table) → union of cached districts. Adds one dataset + union logic; accepts USPS-postal-city breadth. (§4 analysis; resolves the City half of open item #6.)
