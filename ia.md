@@ -105,7 +105,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 | `races.html` | `/races` | — | `cycle`, `office`, `state` | URL sync on all three filters — `pushState` on every filter change, params restored on init. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). |
 | `candidates.html` | `/candidates` | — | `state`, `office`, `party`, `cycle`, `q` | All params are unified — filter bar always visible, results auto-load on page visit. `?q=` populates the inline search field and pre-fires search. All result cards link to `/candidate/{id}`. Filter chips + URL sync on every change. |
 | `committees.html` | `/committees` | — | `state`, `type`, `q` | Same unified control surface as candidates. Filter bar always visible; `?q=` populates search field. All rows link to `/committee/{id}`. Treasurer always shown. |
-| `feed.html` | `/feed` | — | — | No URL sync yet. Client-side filters: office (button group), report type (select), time window (button group). Default: All offices, All types, 24h. |
+| `feed.html` | `/feed` | — | — | No URL sync yet. Client-side filters: office (button group), report type (custom combo-dropdown — migrated from a native `<select>` 2026-06-12 for parity with the other browse pages), time window (button group). Default: All offices, All types, 24h. |
 | `search.html` | `/search` | — | `q` | If `q` present, auto-fires search on load |
 
 **FEC candidate_id format:** `H2WA03217` — office (H/S/P) + cycle digits + state + district + sequence

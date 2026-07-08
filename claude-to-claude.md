@@ -6640,3 +6640,54 @@ You consistently chose the version that's right over the version that's quick, a
 - The positioned-element z-index band (195 sub-header → 400 viz-tt) is now documented in CLAUDE.md — a reference so future overlay/modal/tooltip layers slot in deliberately.
 - Mobile-nav close-on-scroll is now load-bearing for the banner-uncovered invariant — flag it if any future change makes the nav sticky/fixed or adds an in-nav scroll region.
 - **Server-side KV caching for the API proxy** remains the banked Phase-4 lift that would make cold-load + future-cycle pages snappy under real traffic (also the fix for race.html cold-load). Still unscheduled.
+
+---
+2026-06-12 — session close (races/feed narrow column + feed combo + race sort)
+
+## Process log draft
+
+### Title
+Narrowing the frame, and the small bugs that hide at the edges
+
+### Summary (Sloane's voice)
+A tidy-up session that kept turning up things worth fixing. I narrowed the Races and Feed pages to the same 800px column the search pages use, which forced a real decision on the Filing Feed's crowded 8-column table — and along the way surfaced a latent column-shift bug, a native dropdown that never matched the rest of the site, and a race page quietly listing a funded candidate between two who'd filed nothing.
+
+### Changelog
+- Races + Feed now use the narrow 800px content column (matching the search pages), with a scoped `.page-header--browse` padding variant so the profile-page mastheads — which animate that same padding on scroll — stay untouched.
+- Retuned the Feed's filing table for the tighter width: trimmed the over-wide money/date columns to give the committee name room, and fixed a pre-existing bug where hiding a column left an empty gap and shifted the rest.
+- Committee names in the Feed now truncate cleanly with a hover-to-see-full-name tooltip.
+- Feed's "Report type" dropdown converted from a raw browser-native select to the same custom combo-dropdown every other browse page uses — the last holdout.
+- Fixed the Refresh button dropping to its own row on tablet widths.
+- Race pages now sort candidates by money raised, so serious campaigns lead and non-filers sink to the bottom (fixes the interleaving I caught on CA-13).
+
+### Field notes
+The theme was "narrowing the frame changes what you can fit." Capping the width was one line per page — but it immediately made the Feed's 8-column table the real work, and that's where the value was: a table that had quietly been over-provisioning 90px money columns for values that render at 40px, and a column-hiding rule that left phantom gaps nobody had noticed. The narrow column didn't create those problems, it just stopped letting me ignore them. Same story with the Report-type dropdown — it had always been the odd one out, but nothing forced the comparison until we were already in feed.html looking at controls. And the race sort was a reminder that "the API returns a list" is not the same as "the list is ordered" — FEC hands back candidates in roughly ID order, which reads as random to a user scanning for who's actually raising money.
+
+### Stack tags
+None new (existing patterns: `.main-inner-narrow`, `initComboDropdown`, CSS grid per-breakpoint templates).
+
+## How Sloane steered the work
+
+### "Investigate and flag concerns... no code yet" — scoping before building
+You opened the session by asking for a full investigation with risks and gaps before any code — which surfaced that the `.page-header` padding you wanted to change is shared by the three profile mastheads and animated in their scroll transition. That framing turned a one-line change into a deliberate scoped-modifier decision instead of a silent regression.
+
+### Choosing the safe scope, and giving exact column values
+When I laid out the page-header options you picked the scoped modifier (not the global change), and for the Feed grid you didn't just accept my proposed widths — you handed back your own (`130px` Report, trimmed money columns), sizing the table by your own eye. You owned the numbers.
+
+### "Feels off after second thought" — iterating on the Refresh button in the open
+You shipped the feed-meta fix, then reconsidered twice: first "maybe just remove the whole override," then "actually add back `margin-left:0` and lose the tighter gap." You were tuning a small interaction by feel, in real time, rather than settling for the first version that technically worked.
+
+### Noticing the odd-one-out dropdown yourself
+You asked why the Feed's Report-type dropdown looked different from every other browse page — a consistency gap most people never register. That's the portfolio-designer instinct: the site should feel like one system, and the native select broke that.
+
+### Catching the CA-13 race bug live
+You spotted a funded candidate (Martinez) wedged between two "No financial activity reported" cards on a real race URL — a data-ordering bug invisible in the mock (which happened to be pre-sorted) and only findable by looking at live data with a critical eye.
+
+### The through-line
+You consistently scoped before acting, sized by intent rather than deferring to defaults, and treated every "looks done" as a cue to check the live edge — the shared-padding risk, the phantom column gap, the odd dropdown, the mis-ordered race. The bugs this session weren't in what we built; they were things already there that only surfaced because you kept looking.
+
+## What to bring to Claude Chat
+
+- **Feed at 800px is genuinely tight** — the committee column lands ~214px at desktop and truncates most names (tooltip mitigates). If the Feed grows (more columns, or committee names need to breathe), reconsider whether it should get a wider cap than the search pages' 800px rather than sharing it. Worth a decision before the Feed gets more data-dense.
+- **Race candidate ordering vs. the "unserious candidate" question** — sorting by money now handles placement (non-filers last); the still-open design question is treatment (how a low/no-activity card should look — reduced hierarchy, a threshold for "serious"). Good one for John: where's the cutoff, and what does a strategist actually want to see for the long tail?
+- **The location-search-races planning doc** (your separate strategy commits this session) — ZIP/City/Address race search via geocod.io. Not touched by this session's code, but it's queued; worth deciding when it slots into the roadmap relative to the banked KV-caching work.
