@@ -2743,10 +2743,8 @@ async function init() {
     if (!ALL_CYCLES.length) throw new Error('No election years found for this candidate');
 
     // Display name: "PEREZ, MARIE GLUESENKAMP" → "Marie Gluesenkamp Perez"
-    var parts = cand.name.split(',');
-    var displayName = (parts.length > 1
-      ? parts.slice(1).join(' ').trim()+' '+parts[0].trim()
-      : cand.name).toLowerCase().replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+    // (formatCandidateName owns comma-reorder + honorific/suffix normalization)
+    var displayName = formatCandidateName(cand.name);
     document.getElementById('candidate-name').textContent = displayName;
     document.title = displayName + ' — FECLedger';
 

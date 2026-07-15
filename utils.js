@@ -124,13 +124,43 @@ function fmtDate(s) {
 
 // ── Name utilities ───────────────────────────────────────────────────────────
 
-// FEC names are "LAST, FIRST MIDDLE" — convert to "First Last"
+// FEC names are "LAST, FIRST MIDDLE [HONORIFIC] [SUFFIX]" — convert to
+// "First Middle Last Suffix". Heuristic grounded in a 578-name live sample:
+//   • Honorifics (MR/MRS/MS/DR/…) appear embedded in the given-name zone,
+//     sometimes leading ("AVANT, MRS C P"), sometimes before a suffix
+//     ("BARRETT, ROBERT PAUL MR JR.") — strip them wherever they sit.
+//   • Suffixes (JR/SR + MULTI-CHAR roman II/III/IV/VI) relocate to the end.
+//     Single "I"/"V" are DELIBERATELY excluded — a trailing single letter is
+//     almost always a middle initial ("BIDEN, JOE R"), so protecting every
+//     R/Q/V initial is worth mis-rendering the rare true 5th-gen suffix.
+//   • A third comma segment is a suffix ("WILLIAMS, ARCHIE A., III") — folding
+//     parts[1..] together before tokenizing captures it.
+var NAME_HONORIFICS = { MR:1, MRS:1, MS:1, MISS:1, MISTER:1, DR:1, HON:1, REV:1 };
+var NAME_SUFFIXES   = { JR:'Jr', SR:'Sr', II:'II', III:'III', IV:'IV', VI:'VI' };
+function _titleWord(s) {
+  return s.toLowerCase().replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+}
 function toTitleCase(name) {
   if (!name) return '';
   var parts = name.split(',');
-  var last  = (parts[0] || '').trim().toLowerCase().replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-  var first = (parts[1] || '').trim().toLowerCase().replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-  return first ? first + ' ' + last : last;
+  var last  = _titleWord((parts[0] || '').trim());
+  var tokens = parts.slice(1).join(' ').trim().split(/\s+/).filter(Boolean);
+  // 1) strip honorifics anywhere in the given-name zone
+  tokens = tokens.filter(function(t) {
+    return !NAME_HONORIFICS[t.replace(/\.$/, '').toUpperCase()];
+  });
+  // 2) relocate a trailing suffix token to the end
+  var suffix = '';
+  if (tokens.length) {
+    var tailKey = tokens[tokens.length - 1].replace(/\.$/, '').toUpperCase();
+    if (NAME_SUFFIXES[tailKey]) {
+      suffix = NAME_SUFFIXES[tailKey];
+      tokens.pop();
+    }
+  }
+  var first = tokens.map(_titleWord).join(' ');
+  var out = first ? first + ' ' + last : last;
+  return suffix ? out + ' ' + suffix : out;
 }
 
 // Semantic alias for rendering candidate names at call sites

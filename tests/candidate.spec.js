@@ -2381,6 +2381,31 @@ test.describe('candidate.html — T-load-1 skeleton header', () => {
     await expect(page.locator('#meta-row .fec-id-tag')).toBeVisible();
   });
 
+  // Regression lock: the page title + document.title route through
+  // formatCandidateName, NOT an inline comma-reorder that skips honorific/suffix
+  // normalization (the inline copy drifted and mangled "Joseph R Jr Biden" until
+  // 2026-07-15). Override the metadata name with a suffix name; the base fixture
+  // (House WA-03) supplies cycles via fallback so the render line is reached.
+  test('candidate-name + document.title normalize honorific/suffix via formatCandidateName', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/candidate/H2WA03217/**', (route) => {
+      const url = route.request().url();
+      if (/\/candidate\/H2WA03217\/(?:\?|$)/.test(url)) {
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          results: [{ candidate_id: 'H2WA03217', name: 'BIDEN, JOSEPH R JR', party: 'DEM',
+            party_full: 'DEMOCRATIC PARTY', office: 'H', office_full: 'House', state: 'WA',
+            district: '03', election_years: [2024], incumbent_challenge: 'I',
+            first_file_date: '2021-01-01' }],
+          pagination: { count: 1, pages: 1, per_page: 20, page: 1 } }) });
+      } else { route.fallback(); }
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await expect(page.locator('#candidate-name')).toHaveText('Joseph R Biden Jr');
+    await expect(page).toHaveTitle('Joseph R Biden Jr — FECLedger');
+  });
+
   test('state-msg stays hidden on successful load — 10s/30s timers cleared on entity resolve', async ({ page }) => {
     await setup(page);
     // No "still loading" / retry message under the header during a normal load
