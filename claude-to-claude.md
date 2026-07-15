@@ -6818,7 +6818,7 @@ decisions made once, not relitigated.
 - New location search: ZIP or full address + year → the House/Senate/President races touching that place. Address stays private (never written to the URL or analytics).
 - Districts list in plain numerical order; multi-state ZIPs group alphabetically by state, President up top.
 - A live caption explains a missing Senate race only where it's confusing (border ZIPs), worded to describe the filing data — not to claim a seat "isn't up."
-- Documented everything, updated all the project docs, and banked the follow-ons (a phantom-race edge, a name-formatting bug the new surface exposed).
+- Documented everything — CLAUDE.md, ia.md, test-cases, TESTING, project-brief, and the strategy doc all brought fully current (incl. the search-bar-wrap-global + officeApiWord helper-list nits) — and banked the follow-ons (a phantom-race edge, a name-formatting bug the new surface exposed).
 
 **Field notes:** The recurring theme was refusing to say more than the data supports. Twice the "obvious" shortcut was an unsafe inference — deriving "the seat isn't up" from an empty filing list is the same mistake as guessing a two-race Senate collapse from an election-date signature; both got the humbler, honest wording. And the FEC's two race endpoints disagree with each other (one lists a phantom OK Senate candidate the other's calendar doesn't have) — a good reminder that "the API said so" isn't the same as "it's true."
 
