@@ -94,6 +94,17 @@ test.describe('races.html', () => {
     });
     expect(headers).toEqual(['Kentucky', 'Tennessee']);
   });
+
+  // Senate caption locks (2d) — copy + dark-gate; the render wiring rides the 2e flow spec.
+  test('Caption A: senateOmissionNote is descriptive (filing signal, not a seat-class claim)', async ({ page }) => {
+    const html = await page.evaluate(() => window.senateOmissionNote('KY'));
+    expect(html).toContain('No Senate race in Kentucky this cycle');
+    expect(html).not.toMatch(/(aren.t|isn.t|not) up/i);   // must NOT assert the seat isn't up
+  });
+
+  test('Caption B: senateCollapseNote ships dark (renders nothing until term-class data)', async ({ page }) => {
+    expect(await page.evaluate(() => window.senateCollapseNote({ state: 'GA' }))).toBe('');
+  });
 });
 
 // ── race.html ─────────────────────────────────────────────────────────────────

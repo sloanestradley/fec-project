@@ -41,6 +41,9 @@
     .race-state-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
       letter-spacing:var(--ls-expanded); text-transform:uppercase; color:var(--subtle);
       padding-bottom:var(--space-8); border-bottom:1px solid var(--border); margin-bottom:var(--space-8); }
+    /* Caption A (live omission note) / Caption B (dark collapse note) within a group */
+    .race-omit-note, .race-collapse-note { font-family:'IBM Plex Sans',sans-serif;
+      font-size:0.75rem; color:var(--muted); padding:var(--space-8); }
 
     /* Message states (errors + empty) */
     .race-state-msg { padding:var(--space-64) var(--space-16); text-align:center; color:var(--muted); }
@@ -175,6 +178,7 @@ function showMessage(title, body, retryFn) {
 }
 
 function showResolveError(errorType) {
+  amplitude.track('Location Search Error', { error_type: errorType || 'unknown' });
   switch (errorType) {
     case 'not_found':
       return showMessage('Location not found',
@@ -222,6 +226,7 @@ function resolveLocation() {
     if (token !== resolveToken) return;                 // superseded — drop
     if (!geo || geo.error) return showResolveError(geo && geo.error);
     if (geo.flags && geo.flags.territory) {
+      fireLocationSearch(geo, 0);
       return showMessage('No federal races here',
         'FECLedger covers U.S. House, Senate, and presidential races. This location doesn’t have any.');
     }
@@ -278,9 +283,42 @@ function buildGroupedSkeleton(geo, plan, year) {
   return html;
 }
 
+// ── Senate captions (2d) ──────────────────────────────────────────────────────
+// Caption A (LIVE): in a multi-state grouped result, a state whose Senate isn't
+// listed this cycle gets an explicit note. Describes the filing signal ("no race
+// listed"), never a seat-class claim (empty /elections/ ≠ "seat isn't up"). Multi-
+// state only — single-state absent offices stay silently dropped (decision #3).
+function senateOmissionNote(state) {
+  return '<div class="race-omit-note">No Senate race in ' + (STATE_NAMES[state] || state) + ' this cycle</div>';
+}
+
+// Caption B (DARK): a state running a regular + special Senate election in one
+// cycle (GA-2020) — /elections/ mashes both into one result. Detecting a genuine
+// collapse needs the term-class dataset (the SG+G shortcut false-positives on
+// special-only cycles like AZ-2020), so this ships dormant behind the flag and
+// renders nothing until that data lands. Copy is fixed so enabling is one flip.
+var SENATE_COLLAPSE_ENABLED = false;
+function senateCollapseNote(race) {
+  if (!SENATE_COLLAPSE_ENABLED) return '';   // DARK — gated on the term-class dataset
+  return '<div class="race-collapse-note">' + (STATE_NAMES[race.state] || race.state)
+    + ' held two U.S. Senate elections this cycle — a regular and a special; candidates for both are shown together.</div>';
+}
+
+// Amplitude: one Location Search per successful resolve. PRIVACY (D4) — logs
+// input_type + result shape only, NEVER the ZIP/address value. result_count is the
+// honest rendered-race count.
+function fireLocationSearch(geo, count) {
+  amplitude.track('Location Search', {
+    input_type: currentInput.type, cycle: yearParam, result_count: count,
+    multi_state: !!(geo.flags && geo.flags.multi_state),
+    multi_district: !!(geo.flags && geo.flags.multi_district),
+  });
+}
+
 function renderRaces(geo, year, token) {
   var plan = planRaces(geo, year);
   if (!plan.length) {                                   // e.g. DC in a non-presidential year
+    fireLocationSearch(geo, 0);
     return showMessage('No federal races',
       'No federal races for this location in ' + year + '.');
   }
@@ -309,8 +347,22 @@ function renderRaces(geo, year, token) {
       if (token !== resolveToken) return;
       var el = list.querySelector('[data-race-key="' + keyOf(item) + '"]');
       if (!el) return;
-      if (race === null) { el.remove(); }
-      else { el.outerHTML = raceTileHTML(race); rendered++; }
+      if (race === null) {
+        // Senate not listed this cycle: in a multi-state result, replace with the
+        // explicit omission note at the end of its state group (Caption A); else
+        // drop silently (single-state, House, President — decision #3).
+        if (item.office === 'S' && multiState) {
+          var group = el.closest('.race-state-group');
+          el.remove();
+          if (group) group.insertAdjacentHTML('beforeend', senateOmissionNote(item.state));
+        } else {
+          el.remove();
+        }
+      } else {
+        // Caption B (dark) rides after a resolved Senate card — '' until enabled.
+        el.outerHTML = raceTileHTML(race) + (item.office === 'S' ? senateCollapseNote(race) : '');
+        rendered++;
+      }
     }).catch(function() {
       if (token !== resolveToken) return;
       var el = list.querySelector('[data-race-key="' + keyOf(item) + '"]');
@@ -318,8 +370,9 @@ function renderRaces(geo, year, token) {
     }).then(function() {
       if (token !== resolveToken) return;
       settled++;
-      if (settled === plan.length && rendered === 0) {
-        showMessage('No federal races', 'No federal races for ' + where + ' in ' + year + '.');
+      if (settled === plan.length) {
+        if (rendered === 0) showMessage('No federal races', 'No federal races for ' + where + ' in ' + year + '.');
+        fireLocationSearch(geo, rendered);   // one Location Search per resolve
       }
     });
   });
@@ -411,6 +464,20 @@ function validYear(y) {
 
   document.getElementById('search-form').addEventListener('submit', submitSearch);
   window.addEventListener('popstate', onPopState);
+
+  // Race Tile Clicked — delegated; fires before the tile's <a> navigation (the
+  // Amplitude beacon survives unload). Logs the RACE's public identity + seat
+  // status, never the user's searched location.
+  document.getElementById('results-list').addEventListener('click', function(e) {
+    var card = e.target.closest('.race-card');
+    if (!card) return;
+    var key = (card.getAttribute('data-race-key') || '').split('|');
+    var seat = card.querySelector('.race-tile-seat');
+    amplitude.track('Race Tile Clicked', {
+      office: key[0] || null, state: key[1] || null, district: key[2] || null,
+      cycle: yearParam, seat_status: seat ? seat.textContent : null,
+    });
+  });
 })();
 </script>
 

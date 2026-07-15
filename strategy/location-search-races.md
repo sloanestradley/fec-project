@@ -79,7 +79,11 @@ Location → the normalized object above. Cache-on-miss for ZIP; address geocode
 Stop = the browse is gone; ZIP + address + year selector render seat-status race cards across single/multi-district, single/multi-state, office-absent, DC, territory, and all error states.
 
 **Stage 3 — Edge hardening on the live surface.**
-Multi-state **cycle-aware Senate explanation** (make the silent omission explicit); Amplitude events for the new surface; card polish. The caption *markup* ships in S2; its **detection enablement is gated on the term-class dataset** (the `SG`+`G` rule was disproven 2026-07-08 — see caption note), so it does NOT enable in Stage 3 unless that dataset lands.
+Two DISTINCT Senate captions with opposite readiness (per the degradation table — the earlier prose here conflated them; corrected 2c/2d):
+- **(A) Multi-state cycle-aware caption — ships LIVE.** In a multi-state grouped result, a state group whose Senate `/elections/` returned empty renders **"No Senate race in {State} this cycle."** It's **derivable now** (read the filing signal the FEC layer already produces — no term-class data needed), and its whole purpose is to make the silent omission explicit, so shipping it dark would defeat it. **Wording describes the data, never asserts seat class:** empty `/elections/` means no race is *listed*, not that the seat isn't *up* — deriving "seat isn't up" from a filing signal is the same unsafe inference shape as `SG`+`G`→two-contests (and the true wording also catches specials that class data would miss). This is the copy decision #3 removed from the single-state path, reintroduced multi-state-only.
+- **(B) Senate two-race collapse caption — markup ships DARK.** One state running a regular + special in one cycle (GA-2020: `/elections/` mashes both into one senate result). Its **detection** is gated on the **term-class dataset** (the `SG`+`G` rule was disproven 2026-07-08 — false-positives on special-only cycles like AZ-2020; see caption note), so the render hook + copy ship dormant behind a disabled flag and enable when that dataset lands.
+
+Plus Amplitude events for the new surface + card polish.
 
 ### Stage-2 build decisions (locked 2026-07-08 review)
 
@@ -406,6 +410,8 @@ Recommend **(1)** for v1; this ticket should **document** the gap, not fix it.
 
 - **`toTitleCase` / `formatCandidateName` mangles honorifics + suffixes — and 2c widened its blast radius (reprioritize, not just log).** The helper (utils.js) splits a FEC `"LAST, FIRST"` name on the comma and reorders to `"First Last"`, but does nothing with the honorific/suffix tokens the FEC embeds in those fields. Live examples now on `/races`: **"Marsha Mrs. Blackburn"**, **"Mark Dr. Green"**, **"Danny K. Mr. Davis"**, **"T. Jonathan Ossoff"**, **"Joseph R Jr Biden"**. It renders on the **seat-status line of any single-incumbent tile** whose incumbent's FEC name carries such a token (common in FEC data; open-seat and "Multiple incumbents" tiles show no name, so it's specifically the one-incumbent case). **Why this is more than cosmetic now:** the *old* /races browse row showed only a candidate count + total — **no names at all**. 2c introduced candidate names to /races (the `Incumbent: {name}` line), so a defect that was previously confined to the candidate / committee / race **detail** pages now renders on the primary **discovery** surface, across a large share of cards. That expansion is the reason to pick it up, not shelve it. **This also closes the banked "Incumbent: Biden on 2024 President" watch item:** the 2024 presidential tile reads **"Incumbent: Joseph R Jr Biden"** — *both* the surprising-incumbent quirk (Biden was the cycle's incumbent-of-record even though Harris became the nominee; race.html carries the who-actually-ran detail) *and* the mangling above, in one string. **Fix scope is site-wide, not races-only:** teach `toTitleCase` to strip/normalize honorifics (MR/MRS/DR/…) and handle suffixes (JR/SR/II/III) — it touches every candidate-name render, so validate against the detail pages in the same change.
 
+- **Phantom-race cards — `/elections/` and `/elections/search/` disagree (needs a contest-existence gate; BANKED 2d).** The 2c/2d office-omission logic treats an **empty `/elections/?cycle=Y`** list as "office not up" → Caption A (multi-state) or silent drop (single-state). But `/elections/?cycle=Y` returns candidates by their filed `candidate_election_year`, which can include **lone mis-filers for a contest that doesn't exist that cycle.** Verified case: **73949 (OK) @ 2024** — `/elections/?senate&OK&cycle=2024` returns one candidate (**Jessica Luttrell**, $0, Challenger, `election_year:2024`), so a thin **"Senate • OK — Open seat"** card renders instead of Caption A; but `/elections/search/?senate&OK` **does not list 2024** at all (it jumps 2022 → 2026). The tile links to `year=2024` (correct per `raceHref`), yet race.html — which builds its cycle picker from `/elections/search/` — finds no 2024 OK-Senate cycle and snaps to **2026**, so a "2024" tile lands the user on the 2026 race. **Fix (the doc's anticipated `/elections/search/` role): a contest-existence gate** — render a race card only if `/elections/search/` lists that `(office, state, cycle)`; otherwise treat it as no-race (→ Caption A / silent drop). **NOT the editorializing we ruled out** — it's a structural "does this contest exist this cycle" gate, not a receipts/seriousness filter on candidates in a *real* race (Luttrell's $0 is fine *if the contest exists*). **Design surface (why it's banked, not crammed into 2d):** (a) adds an `/elections/search/` call per office/state (~doubles the resolve's API calls — mitigate by fetching once per `(office,state)` since the endpoint returns all cycles in one call, then membership-testing the year); (b) must be **office-aware** — safe for Senate/President, but for **House** it collides with redistricting: a district legitimately absent from `/elections/search/` in a cycle it didn't exist could be wrongly suppressed, so the gate should apply to Senate (+ President) first, House only with redistricting-aware care; (c) makes `/elections/search/` the trusted contest authority, so a lag there could suppress a real race. Frequency: office-omission is the norm (~⅔ of states have no Senate race any given cycle), and any such state with a stray mis-filer produces a phantom card — a handful per cycle, not rampant, but user-visible on the discovery surface.
+
 ---
 
 ## Verified response contract (live geocod.io v1.9, 2026-06-12)
@@ -498,3 +504,46 @@ Curated edge-case inputs with **live-verified expected outputs** (geocod.io v1.9
 | any valid input | any | **President always present** in results | behavioral |
 
 *Add rows here as the build uncovers new edges. The ✅ rows carry exact verified values and should become literal assertions; behavioral rows become interaction tests.*
+
+### Race-layer / render golden cases (2c/2d — the location-search surface)
+
+A distinct layer from the geocode-value corpus above: those assert *which districts/states* geocod returns; these assert *what the /races surface renders* once the FEC race layer runs (Caption A, ordering, seat status, degrade, empty/error states). All ✅ verified live 2026-07-15 against `wrangler pages dev` + the live FEC proxy unless noted. These become the **2e mocked-flow assertions** (geocod.io mock + `races.spec.js`); listed here as the fixtures + expected render for that spec.
+
+**Caption A + office omission (Senate-not-up handling).** Why it matters: the border-ZIP "why does my neighbor state get a Senate race and I don't" confusion is the whole reason Caption A exists; the single-state contrast confirms decision #3 (silent drop, no caption).
+
+| Input | Expected render | Tests | Status |
+|---|---|---|---|
+| `42223` @ 2024 | multi-state KY+TN; **Kentucky** group ends with **"No Senate race in Kentucky this cycle"** (Caption A); **Tennessee** shows a real `Senate • TN` card | Caption A fires on a *truly-empty* Senate list; multi-state grouping; President ungrouped on top | ✅ |
+| `30303` @ 2024 | single-state GA; `House • GA-05` + President; **GA Senate silently dropped, NO caption** | single-state office omission is silent (decision #3) — the contrast to Caption A | ✅ |
+| `60629` @ 2024 | IL Senate silently dropped; President + 4 House cards, no note | single-state omission alongside multi-district | ✅ |
+
+**Ordering (2c decisions).** Why: both were tuned this session away from geocod's proportion order to voter-predictable order; unguarded logic could silently revert.
+
+| Input | Expected render | Tests | Status |
+|---|---|---|---|
+| `60629` @ 2024 | House cards **IL-01 → IL-04 → IL-06 → IL-07** | district order is **numerical**, not overlap-proportion | ✅ |
+| `42223` @ 2024 | state groups **Kentucky → Tennessee** | state groups **alphabetical by name**, not majority-share | ✅ |
+
+**Seat-status contract (drives the card's right side).** Why: this is the copy users read on every tile; the collapse case is also Caption B's (dark) target.
+
+| Input | Expected render | Tests | Status |
+|---|---|---|---|
+| `30303` @ 2024 | `House • GA-05` → **"Incumbent: {name}"** | single-incumbent seat status | ✅ |
+| `30303` @ 2020 | `Senate • GA` → **"Multiple incumbents"** (Perdue + Loeffler collapse); President "Donald J. Trump"; House "John R Lewis" | 2+ distinct incumbents → "Multiple incumbents" (Caption B target, ships dark) | ✅ |
+| *(open-seat example — TBD verified)* | → **"Open seat"** | ≥1 candidate, 0 incumbents | behavioral |
+
+**Future degrade + edge/empty/error states.** Why: the future degrade is the exact Function upper-bound behavior changed in 2c; the empty/error states are the Group-1 designed degradations.
+
+| Input | Expected render | Tests | Status |
+|---|---|---|---|
+| `30303` @ 2028 | President + `Senate • GA` (Warnock), **no House card** | future-cycle **state-only degrade** (Function upper bound; House omitted, no wholesale reject) | ✅ |
+| `20001` @ 2024 | **President only** | DC → president-only | ✅ |
+| `00901` @ 2024 | **"No federal races here"** empty state | territory graceful empty | ✅ |
+| `00000` @ 2024 | **not_found** error state | ungeocodable input → designed error | ✅ |
+| address `6320 S Pulaski Rd, Chicago, IL 60629` | single district (IL-4), **URL stays `/races`, no query string** | rooftop address → 1 district; privacy fork (address never in URL) | ✅ |
+
+**Known-edge / bug cases (do NOT assert as pass — these document a defect).** Why: keeps a future reader from "fixing" a case that's intentionally banked, and gives the phantom-race gate a concrete fixture.
+
+| Input | Current (buggy) render | Issue / fix | Status |
+|---|---|---|---|
+| `73949` (OK) @ 2024 | phantom **"Senate • OK — Open seat"** (Jessica Luttrell, $0, `election_year:2024`) *instead of* Caption A; tile links to 2024 but race.html snaps to **2026** | `/elections/` (has Luttrell) vs `/elections/search/` (no 2024 OK-Senate cycle) disagree → needs the **contest-existence gate** (banked — see Known defects) | ⚠ banked |
