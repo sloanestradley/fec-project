@@ -535,50 +535,41 @@ Load `localhost:8788/candidate/H6WA03309#2026#summary` (or any candidate-cycle c
 ### Amplitude events
 - [ ] `Page Viewed` fires with `page: 'races'` ✅
 
-### Page header
-- [ ] Page eyebrow reads "Races" ✅
-- [ ] Page title reads "Browse Races" ✅
-- [ ] No `.page-desc` paragraph
-- [ ] Content column capped at 800px (`.main-inner main-inner-narrow`), centered on wide viewports
-- [ ] Page header uses `.page-header page-header--browse` (40 top / 0 bottom desktop; 24 / 0 mobile) — gap to filter bar comes from `.filter-bar-wrap`'s own top padding only, not a doubled-up 72px band
+**Location search (2c/2d, 2026-07-15 — replaced the office/state/year browse).** Run the resolve cases with `npx wrangler pages dev dist --compatibility-date=2026-04-17 --port 8788` + a local `GEOCODIO_KEY` in `.dev.vars`. Full golden-case corpus: `strategy/location-search-races.md`.
 
-### Filter bar
-- [ ] Year combo trigger visible, clicking opens listbox populated with cycles from API, default to current cycle ✅
-- [ ] Office combo trigger visible with "All offices", clicking opens listbox with House/Senate/President options ✅
-- [ ] State combo with text filter input and listbox dropdown ✅
-- [ ] At ≤860px: combo triggers hidden, native `<select>` elements appear in their place (Year, Office)
-- [ ] State dropdown not clipped when open (overflow:visible on .main)
-- [ ] Filter chips area present and hidden by default ✅
+### Page header + search bar
+- [ ] Page title reads "Races"
+- [ ] Single search field, icon-leading, placeholder "Search by address or zip code"
+- [ ] Year `.cycle-select` beside it — borderless, Oswald, vertically centered against the input; options even years floored at 2012
+- [ ] Content column capped at 800px (`.main-inner main-inner-narrow`); `.search-bar-wrap` band with bottom border
 
-### Data fetching & rendering
-- [ ] Default load shows races grouped by office (President → Senate → House) with correct header count
-- [ ] Race rows show race name (e.g. "House • WA-03") linking to /race?... with correct params
-- [ ] Race rows show skeleton placeholders for candidate count and total raised on initial load
-- [ ] Skeletons replace with "N candidates" and "Total raised: $X" as races scroll into viewport (IntersectionObserver — only visible rows fire enrichment calls on load)
-- [ ] Scrolling down progressively enriches new rows as they enter the viewport
-- [ ] Candidate counts and total raised match the /elections/ endpoint (gold standard, not /candidates/totals/)
-- [ ] Second visit within 24h: no /elections/ network calls fire for previously-seen races (verify in DevTools Network tab — served from localStorage cache)
-- [ ] localStorage keys prefixed `lf:race:{cycle}:{office}:{state}:{district}` visible in DevTools → Application → localStorage
-- [ ] At-large House seats (WY, AK, MT) display without district suffix (e.g. "House • WY" not "House • WY-00")
-- [ ] Changing office or state filter updates results instantly with no API call; observer re-fires for newly visible rows
-- [ ] Changing cycle triggers new API fetch, full re-render with skeletons, and observer re-wires
-- [ ] Filter chips appear for active office and state filters (not cycle)
-- [ ] Clearing a chip resets that filter and re-renders
-- [ ] "Clear all" button appears when 2+ chips active
-- [ ] No-results state shown when filters match zero races
-- [ ] Error state shown on API failure; retry button re-fetches
-- [ ] Races sorted by state then district within each office group
+### Resolve + render
+- [ ] `?zip=30303&year=2024` → House • GA-05 (incumbent) + President; GA Senate silently absent (no note)
+- [ ] `?zip=60629&year=2024` → 4 House cards, numerical order IL-01 → IL-04 → IL-06 → IL-07
+- [ ] `?zip=42223&year=2024` (multi-state) → groups **Kentucky → Tennessee** (alphabetical), President ungrouped on top; Kentucky group ends with **"No Senate race in Kentucky this cycle"** (Caption A); Tennessee shows its real Senate card
+- [ ] `?zip=30303&year=2028` (future) → President + Senate, **no House card**, no error
+- [ ] Tiles paint skeletons immediately, resolve progressively; a not-up Senate skeleton drops (single-state) or becomes the Caption A note (multi-state)
+- [ ] Caption B (collapse) never renders — `?zip=30303&year=2020` shows Senate GA "Multiple incumbents" with NO collapse note
 
-### URL sync
-- [ ] Applying Office or State filter updates the URL (e.g. `/races?cycle=2026&office=H&state=WA`)
-- [ ] Changing cycle updates URL with new cycle value
-- [ ] Loading `/races?cycle=2024&office=S` restores those filters on page load (cycle dropdown set, office select set, results filtered)
-- [ ] Loading `/races?state=WA` restores state filter (state combo input + listbox value set)
-- [ ] Clearing all filters resets URL to `/races?cycle=XXXX` (cycle always present)
+### Input types + URL / privacy
+- [ ] ZIP search syncs `?zip=&year=` (shareable, back/forward works)
+- [ ] Full address (`6320 S Pulaski Rd, Chicago, IL 60629`) → single district; **URL stays `/races`, no query string** (address never in the URL)
+- [ ] Year change re-resolves the active search
+- [ ] Bare `/races` (no `?zip=`) → empty bare state, no cards, no API call
 
-### Results area
-- [ ] `#state-results`, `#state-loading`, `#state-no-results`, `#state-error` all present ✅
-- [ ] Retry button present in error state ✅
+### Edge / empty / error states
+- [ ] `?zip=20001&year=2024` (DC) → President only
+- [ ] `?zip=00901&year=2024` (PR territory) → "No federal races here"
+- [ ] `?zip=00000&year=2024` → "Location not found"
+- [ ] Vague address → "Address too vague"
+
+### Amplitude (privacy — no location value logged)
+- [ ] `Location Search` fires on a successful resolve with `{input_type, cycle, result_count, multi_state, multi_district}` — NO zip/address value
+- [ ] `Race Tile Clicked` on tile click with the race's office/state/district/cycle/seat_status
+- [ ] `Location Search Error` on not_found / low_accuracy
+
+### Known-edge (do NOT flag as bug — banked)
+- [ ] `?zip=73949&year=2024` shows a phantom "Senate • OK — Open seat" (Jessica Luttrell, $0) instead of Caption A, tile → 2026 — the `/elections/search/` contest-existence gate is banked (strategy doc)
 
 ---
 

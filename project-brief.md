@@ -202,7 +202,7 @@ Note: the brief is currently written with the active cycle mid-stage as the prim
 - ~~**Committee page**~~ ✅ live — Summary/Raised/Spent sections (de-tabbed into a single flowing detail view in T-remove-profile-tabs, 2026-06-03); contributor breakdown, choropleth, vendor table, contributions-to-candidates section
 - ~~**Committees browse page**~~ ✅ live — unified browse+search; typeahead, filter chips (type/state), URL sync, treasurer always shown, error state with retry
 - ~~**Race page**~~ ✅ live — single contest view; all declared candidates auto-populated from `/elections/` with financial cards and cycle switcher
-- ~~**Races browse page**~~ ✅ live — filter bar (year/office/state), progressive enrichment via IntersectionObserver, localStorage cache (24h TTL), stale-response guard
+- ~~**Races browse page**~~ ✅ built, then **RETIRED** — replaced by **location search** (ZIP/address + year → the federal races that touch that place; 2c/2d, 2026-07-15). The filter-bar / IntersectionObserver / localStorage browse is gone.
 - ~~**Associated committees**~~ ✅ live — committee links in modal and contributions section point to `/committee/{id}`
 - ~~**Filing feed**~~ ✅ live — monitoring page showing recent candidate committee filings (F3/F3P); load-all-upfront architecture with client-side office/report-type/time-window filters; refresh with dedup; scoped to candidate committees only (H/S/P office field); future scope may expand to all committee types
 

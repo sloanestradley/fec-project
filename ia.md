@@ -14,7 +14,7 @@
 | `candidate.html` | Single candidate profile with career index landing state | `/candidate/{fec_candidate_id}` (index) or `/candidate/{fec_candidate_id}#{cycle}` (detail — single flowing view, T-remove-profile-tabs) | Live | 1 |
 | `committees.html` | Browse committees by type/state, or search by name via `?q=` | `/committees?state=WA&type=P` or `/committees?q={query}` | Scaffold + search | 3 |
 | `committee.html` | Single committee profile — in-place index↔detail transitions (T10) | `/committee/{fec_committee_id}` (index) or `/committee/{fec_committee_id}#{cycle}` (detail — single flowing view, T-remove-profile-tabs) | Live | 3 |
-| `races.html` | Browse races by year, office, state | `/races` | Live | 3 |
+| `races.html` | Location search — ZIP/address + year → the federal races that touch that place (2c/2d; replaced the office/state/year browse) | `/races?zip=98604&year=2024` (ZIP; address writes no URL) | Live | 3 |
 | `race.html` | Single race view — all candidates in a contest | `/race?state=WA&district=03&year=2026&office=H` | Scaffold | 3 |
 | `feed.html` | Live filing feed — recent candidate committee filings | `/feed` | Live | 3 |
 | `process-log.html` | Living case study / dev diary | `/process-log.html` | Live | 1 |
@@ -36,7 +36,7 @@ FECLedger (logo → /)        [top-nav-logo, far left]
 Desktop top-right cluster — order [Search][Races][Feed], right-aligned
 ├── Search button → #nav-search-btn → opens the full-page search overlay
 │                   (on /search: aria-current="page", muted, no-op)
-├── Races         → /races   (browse landing)
+├── Races         → /races   (location search landing)
 └── Feed          → /feed    (filing feed)
 
 Mobile controls (hidden at desktop)
@@ -79,7 +79,7 @@ Top-level nav exposes only the curated/contextual experiences (Races + Feed). **
 ### Race flow
 
 ```
-races.html  →  (race row click)       →  race.html?state=WA&district=03&year=2026&office=H
+races.html  →  (race tile click)      →  race.html?state=WA&district=03&year=2024&office=H
 race.html   →  (candidate card click) →  candidate.html?id=H2WA03217#2026
 race.html   →  (back link)            →  races.html
 ```
@@ -102,7 +102,7 @@ Clean URLs (Netlify-deployed) are canonical. Use `.html` equivalents on localhos
 | `candidate.html` | `/candidate/{id}#cycles` | `id` (path segment) | — | Alias for index view — `parseInt('cycles')` = NaN → ALL_CYCLES.indexOf(NaN) = -1 → index view. Same landing state as bare URL. |
 | `committee.html` | `/committee/{id}` | `id` (path segment) | hash: `#{cycle}` | No ID → error state. **Detail view is a single flowing column** (summary → raised → spent), no tabs (T-remove-profile-tabs, 2026-06-03). **Bare URL (no hash) → index view** (CareerStrip + cycle index table). Hash with valid cycle year → detail view. `#cycles` or any non-year hash → also index view. **Back-compat:** legacy `#{cycle}#{tab}` and old `#all#{tab}` bookmarks resolve via cycle-only parsing (canonicalize to `#{cycle}`; `#all`→index via NaN routing, post-T8). |
 | `race.html` | `/race` | `state`, `year`, `office` | `district` (required for House) | No params → error state. **No URL hash** (T-remove-profile-tabs, 2026-06-04 — the Candidates/Insights tabs were retired; the candidate list is the single flowing page, Insights deferred to Phase 4). **Cycle switching is in-place (T-race-inplace-cycle, 2026-06-03):** changing the year re-renders without a reload and `pushState`s the new `?year=` (shareable + back/forward); a bare load canonicalizes `?year=` to the resolved cycle via `replaceState`. |
-| `races.html` | `/races` | — | `cycle`, `office`, `state` | URL sync on all three filters — `pushState` on every filter change, params restored on init. Cycle dropdown populated from `/elections/search/`; race rows progressively enriched via `/elections/` as they scroll into view (IntersectionObserver). |
+| `races.html` | `/races` | — | `zip`, `year` | **Location search (2c/2d).** ZIP path syncs `?zip=&year=` (shareable, `pushState`); the **address path writes NO URL / history** (geocode-and-discard privacy). A ZIP resolves via `/api/geo/resolve` → the federal races that touch it (per-office `/elections/`). No office/state filters. An out-of-range `?year=` clamps to the default, leaving the URL stale until the next interaction (banked). |
 | `candidates.html` | `/candidates` | — | `state`, `office`, `party`, `cycle`, `q` | All params are unified — filter bar always visible, results auto-load on page visit. `?q=` populates the inline search field and pre-fires search. All result cards link to `/candidate/{id}`. Filter chips + URL sync on every change. |
 | `committees.html` | `/committees` | — | `state`, `type`, `q` | Same unified control surface as candidates. Filter bar always visible; `?q=` populates search field. All rows link to `/committee/{id}`. Treasurer always shown. |
 | `feed.html` | `/feed` | — | — | No URL sync yet. Client-side filters: office (button group), report type (custom combo-dropdown — migrated from a native `<select>` 2026-06-12 for parity with the other browse pages), time window (button group). Default: All offices, All types, 24h. |
@@ -132,7 +132,7 @@ Phase assignments follow `project-brief.md`. Pages listed here by first-built ph
 ### Phase 3 — Committee and race pages
 - `committee.html` — committee profile with financials
 - `committees.html` — browse committees
-- `races.html` — browse races by year/office/state with progressive enrichment
+- `races.html` — location search: ZIP/address + year → the federal races touching that place (2c/2d retirement of the browse)
 - `race.html` — single race view with candidate financial cards
 
 ### Phase 4 — Early signal data, AI insights
