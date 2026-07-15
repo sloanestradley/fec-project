@@ -17,6 +17,10 @@ import { mockFecApi } from './helpers/api-mock.js';
 
 // ── races.html ────────────────────────────────────────────────────────────────
 
+// races.html is the location-search surface (2c retirement of the old browse).
+// Bare load (no ?zip) fires NO API call — these are structural, mock-free checks.
+// The full mocked resolve→render flow (geocod.io mock + progressive tiles +
+// multi-state grouping + degrade states) lands with the 2e suite.
 test.describe('races.html', () => {
   test.beforeEach(async ({ page }) => {
     await mockAmplitude(page);
@@ -29,53 +33,66 @@ test.describe('races.html', () => {
     expect(event.args[1]).toMatchObject({ page: 'races' });
   });
 
-  test('page header renders with title "Browse Races"', async ({ page }) => {
+  test('page header renders with title "Races"', async ({ page }) => {
     const title = page.locator('.page-title');
-    await expect(title).toHaveText('Browse Races');
+    await expect(title).toHaveText('Races');
   });
 
-  test('filter bar has Year, Office, and State fields', async ({ page }) => {
-    await expect(page.locator('#f-cycle')).toBeAttached();
-    await expect(page.locator('#f-office')).toBeAttached();
-    await expect(page.locator('#f-state-filter')).toBeAttached();
-    await expect(page.locator('#state-dropdown')).toBeAttached();
+  test('location search field uses the icon-leading pattern with placeholder', async ({ page }) => {
+    const field = page.locator('.race-search-form .search-field');
+    await expect(field.locator('.search-field-icon')).toBeAttached();
+    await expect(page.locator('#loc-input')).toHaveAttribute(
+      'placeholder', 'Search by address or zip code');
+    // sr-only submit lives INSIDE .search-field (visual-pattern rule)
+    await expect(field.locator('button.form-search-btn.sr-only')).toBeAttached();
   });
 
-  test('state combo has ARIA combobox/listbox semantics and native fallback', async ({ page }) => {
-    await expect(page.locator('#f-state-filter')).toHaveAttribute('role', 'combobox');
-    await expect(page.locator('#state-dropdown')).toHaveAttribute('role', 'listbox');
-    await expect(page.locator('#f-state-native')).toBeAttached();
+  test('year selector is a borderless cycle-select, floored at 2012 (even years)', async ({ page }) => {
+    const sel = page.locator('#year-select');
+    await expect(sel).toBeAttached();
+    await expect(sel).toHaveClass(/cycle-select/);     // reuses race.html's borderless select
+    const years = await sel.locator('option').evaluateAll(
+      opts => opts.map(o => parseInt(o.value, 10)));
+    expect(years.length).toBeGreaterThan(0);
+    expect(Math.min(...years)).toBe(2012);            // floor
+    expect(years.every(y => y % 2 === 0)).toBe(true);  // even election years only
   });
 
-  test('office combo has trigger, listbox, and native fallback', async ({ page }) => {
-    await expect(page.locator('#f-office-trigger')).toHaveAttribute('aria-haspopup', 'listbox');
-    await expect(page.locator('#office-dropdown')).toHaveAttribute('role', 'listbox');
-    await expect(page.locator('#f-office')).toBeAttached();
-    const values = await page.locator('#f-office option').evaluateAll(opts => opts.map(o => o.value));
-    expect(values).toEqual(['', 'H', 'S', 'P']);
-  });
-
-  test('cycle combo has trigger, listbox, and native fallback', async ({ page }) => {
-    await expect(page.locator('#f-cycle-trigger')).toHaveAttribute('aria-haspopup', 'listbox');
-    await expect(page.locator('#cycle-dropdown')).toHaveAttribute('role', 'listbox');
-    await expect(page.locator('#f-cycle')).toBeAttached();
-  });
-
-  test('office select has All offices, House, Senate, President', async ({ page }) => {
-    const options = page.locator('#f-office option');
-    await expect(options).toHaveCount(4);
-    await expect(options.nth(0)).toHaveText('All offices');
-  });
-
-  test('state combo filter input is present', async ({ page }) => {
-    await expect(page.locator('#f-state-filter')).toBeAttached();
-  });
-
-  test('results area and state containers exist', async ({ page }) => {
-    await expect(page.locator('#state-results')).toBeAttached();
+  test('state containers exist and bare state shows on load (no cards)', async ({ page }) => {
+    await expect(page.locator('#state-bare')).toBeAttached();
     await expect(page.locator('#state-loading')).toBeAttached();
-    await expect(page.locator('#state-no-results')).toBeAttached();
-    await expect(page.locator('#state-error')).toBeAttached();
+    await expect(page.locator('#state-results')).toBeAttached();
+    await expect(page.locator('#state-message')).toBeAttached();
+    // Bare load: results hidden, no tiles rendered
+    await expect(page.locator('#state-results')).toBeHidden();
+    await expect(page.locator('.race-card')).toHaveCount(0);
+  });
+
+  // Ordering locks (2c decisions) — the render helpers are page globals; call them
+  // with fixtures via page.evaluate. No geocod/FEC mock; the full mocked resolve→
+  // render flow lands with the 2e suite.
+  test('orderPlan: President → Senate → House, House ascending by district number', async ({ page }) => {
+    const order = await page.evaluate(() => window.orderPlan([
+      { office: 'H', state: 'IL', district: '07' },
+      { office: 'H', state: 'IL', district: '01' },
+      { office: 'S', state: 'IL', district: null },
+      { office: 'P', state: 'US', district: null },
+      { office: 'H', state: 'IL', district: '04' },
+    ]).map(i => i.office + (i.district || '')));
+    expect(order).toEqual(['P', 'S', 'H01', 'H04', 'H07']);   // NOT proportion order
+  });
+
+  test('buildGroupedSkeleton: state groups alphabetical by name (not proportion)', async ({ page }) => {
+    const headers = await page.evaluate(() => {
+      // districts in geocod proportion order (TN first) + centroid-first states (KY);
+      // grouping must override both to alphabetical: Kentucky before Tennessee.
+      const geo = { flags: { multi_state: true }, states: ['KY', 'TN'],
+        districts: [{ state: 'TN', number: '07' }, { state: 'KY', number: '01' }] };
+      const div = document.createElement('div');
+      div.innerHTML = window.buildGroupedSkeleton(geo, window.planRaces(geo, 2024), 2024);
+      return [...div.querySelectorAll('.race-state-header')].map(h => h.textContent);
+    });
+    expect(headers).toEqual(['Kentucky', 'Tennessee']);
   });
 });
 

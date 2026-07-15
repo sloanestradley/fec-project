@@ -25,7 +25,7 @@ const PAGES = [
   { name: 'candidate.html', url: '/candidate.html?id=H2WA03217', needsApiMock: true },
   { name: 'committees.html', url: '/committees.html', needsApiMock: true },
   { name: 'committee.html', url: '/committee.html?id=C00775668', needsApiMock: true },
-  { name: 'races.html', url: '/races.html', needsApiMock: true },
+  { name: 'races.html', url: '/races.html', needsApiMock: false },
   { name: 'race.html', url: '/race.html?state=WA&district=03&year=2024&office=H', needsApiMock: true },
   { name: 'feed.html', url: '/feed.html', needsApiMock: true },
   { name: 'process-log.html', url: '/process-log.html', needsApiMock: false },

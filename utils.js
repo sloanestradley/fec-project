@@ -284,6 +284,14 @@ function formatRaceLabelLong(office, state, district) {
   return 'US House: ' + stateName + '\u2019s ' + toOrdinal(district) + ' District';
 }
 
+// Office code \u2192 /elections/ word param. The /elections/ + /elections/search/
+// endpoints require the lowercase full word (house/senate/president), NOT the
+// H/S/P code (which 422s). Lifted here in 2c as the single source for
+// races.html + races-resolver.js; race.html keeps its own inline copy for now.
+function officeApiWord(o) {
+  return { H: 'house', S: 'senate', P: 'president' }[o] || String(o).toLowerCase();
+}
+
 // Build a /race URL. Two cases that the prior inline construction
 // (candidate.html ~1824) got wrong are encoded here:
 //   - Presidential: state must be 'US' (race.html otherwise reports

@@ -11,8 +11,7 @@
   <!-- Amplitude Analytics -->
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
-    /* Search bar — always visible at top */
-    .search-bar-wrap { padding:var(--space-40) var(--page-gutter) var(--space-24); border-bottom:1px solid var(--border); }
+    /* Search bar — always visible at top (.search-bar-wrap is global in styles.css) */
     .search-bar { display:flex; gap:0; }
     .search-bar .search-field { flex:1; }
 
@@ -23,7 +22,6 @@
       margin-bottom:var(--space-8); }
 
     @media (max-width:860px) {
-      .search-bar-wrap { padding:var(--page-gutter); }
       .no-results { padding:var(--space-32) var(--page-gutter); }
     }
   </style>

@@ -49,6 +49,10 @@ cp main.js utils.js styles.css "$TARGET/"
 # pinned at 5.5.1; loaded only by candidate.html + committee.html.
 cp sankey.js echarts.min.js "$TARGET/"
 
+# Races location-search resolver module — standalone (sankey.js precedent),
+# loaded only by races.html. See strategy/location-search-races.md.
+cp races-resolver.js "$TARGET/"
+
 # Redirect rules (Netlify-format; Cloudflare honors for paths not overridden
 # by Pages Functions in functions/candidate/ and functions/committee/)
 cp _redirects "$TARGET/"
@@ -71,6 +75,7 @@ critical_paths=(
   "utils.js"
   "sankey.js"
   "echarts.min.js"
+  "races-resolver.js"
   "_redirects"
   "functions/api/fec/[[path]].js"
   "functions/api/aggregations/[[path]].js"

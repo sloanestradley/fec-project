@@ -17,17 +17,10 @@
  * convenience for tests / non-progressive callers.
  *
  * Standalone module (sankey.js precedent). Loaded by races.html AFTER utils.js —
- * references its globals: apiFetch, formatCandidateName, raceHref. The office
- * word map is defined locally to keep the module self-contained (it is also
- * inlined in race.html + races.html today — lifting the three copies to utils.js
- * is a banked follow-on cleanup, out of 2a scope).
+ * references its globals: apiFetch, formatCandidateName, formatRaceName, fmt,
+ * raceHref, and officeApiWord (the H/S/P→word map was lifted from here to
+ * utils.js in 2c; race.html keeps its own inline copy for now).
  */
-
-// Office code → /elections/ word param. /elections/ requires the lowercase full
-// word (house/senate/president), NOT the H/S/P code (which 422s). See CLAUDE.md.
-function officeApiWord(o) {
-  return { H: 'house', S: 'senate', P: 'president' }[o] || String(o).toLowerCase();
-}
 
 // --- Pure derivation (unit-testable: candidate array in, card fields out) ---
 

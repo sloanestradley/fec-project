@@ -12,9 +12,41 @@
   <script async src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.6.22-min.js.gz"></script>
   <style>
     .main { overflow:visible; min-width:0; }
-    .filter-bar-wrap { position:relative; z-index:10; } /* stacking context for filter bar dropdown */
+
+    /* Location search bar: hero search field + a borderless year select that
+       reuses race.html's .cycle-select (Oswald, transparent). No box → it reads
+       as text vertically centered against the hero input, not a mismatched chip;
+       inline at every width (it's narrow), so no wrap. .race-search-bar adds the
+       stacking context so the native select's dropdown layers above the results. */
+    .race-search-bar { position:relative; z-index:10; }
+    .race-search-form { display:flex; align-items:center; gap:var(--space-16); }
+    .race-search-form .search-field { flex:1; min-width:0; }
+    .race-search-form .form-input { flex:1; min-width:0; }   /* fill the .search-field */
+    /* base .cycle-select is align-self:stretch (for race.html's tall header),
+       which top-aligns a fixed-height item in this row — center it as race.html
+       itself does in .race-header-controls; drop its header-only margin-left:auto. */
+    .race-search-form .cycle-select { align-self:center; flex-shrink:0; margin-left:0; }
+
+    /* Result cue — first child of .results-area, whose gutter padding aligns it */
+    .race-cue { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
+      letter-spacing:var(--ls-expanded); text-transform:uppercase; color:var(--muted);
+      margin:0 0 var(--space-16); }
+    #results-list { display:flex; flex-direction:column; }
     .race-row-meta { display:flex; gap:var(--space-16); font-family:'IBM Plex Mono',monospace;
       font-size:0.625rem; color:var(--muted); margin-top:var(--space-4); }
+
+    /* STATES PASS seam: per-state group header (Mono label style, hairline divider).
+       Rendered only when geo.flags.multi_state. President stays ungrouped above. */
+    .race-state-group + .race-state-group { margin-top:var(--space-32); }
+    .race-state-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
+      letter-spacing:var(--ls-expanded); text-transform:uppercase; color:var(--subtle);
+      padding-bottom:var(--space-8); border-bottom:1px solid var(--border); margin-bottom:var(--space-8); }
+
+    /* Message states (errors + empty) */
+    .race-state-msg { padding:var(--space-64) var(--space-16); text-align:center; color:var(--muted); }
+    .race-state-msg .race-state-title { font-family:'Oswald',sans-serif; font-size:1.25rem;
+      text-transform:uppercase; color:var(--navy-deep); margin-bottom:var(--space-8); }
+    .race-state-msg .retry-btn { margin-top:var(--space-16); }
   </style>
 </head>
 <body>
@@ -57,197 +89,44 @@
   <div class="main-inner main-inner-narrow">
 
     <div class="page-header page-header--browse">
-      <div class="page-title">Browse Races</div>
+      <div class="page-title">Races</div>
     </div>
 
-    <!-- Filter bar -->
-    <div class="filter-bar-wrap">
-      <form class="filter-bar" id="filter-form" onsubmit="return false">
-
-        <!-- Year -->
-        <div class="form-field">
-          <label class="form-label" for="f-cycle-trigger">Year</label>
-          <div class="combo-wrap" id="cycle-combo">
-            <button type="button" class="combo-trigger form-select" id="f-cycle-trigger"
-              aria-haspopup="listbox" aria-expanded="false" aria-controls="cycle-dropdown"></button>
-            <div class="typeahead-dropdown" id="cycle-dropdown" role="listbox" aria-label="Year">
-              <!-- rows populated dynamically by populateCycles() -->
-            </div>
-            <select id="f-cycle" class="form-select" aria-label="Year">
-              <!-- options populated dynamically by populateCycles() -->
-            </select>
-          </div>
+    <!-- Location search + year -->
+    <div class="search-bar-wrap race-search-bar">
+      <form class="race-search-form" id="search-form" onsubmit="return false">
+        <div class="search-field">
+          <svg class="search-field-icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="form-input" id="loc-input" autocomplete="off" spellcheck="false"
+            placeholder="Search by address or zip code"
+            aria-label="Search by address or ZIP code"/>
+          <button type="submit" class="form-search-btn sr-only" aria-label="Search"></button>
         </div>
-
-        <!-- Office -->
-        <div class="form-field">
-          <label class="form-label" for="f-office-trigger">Office</label>
-          <div class="combo-wrap" id="office-combo">
-            <button type="button" class="combo-trigger form-select" id="f-office-trigger"
-              aria-haspopup="listbox" aria-expanded="false" aria-controls="office-dropdown">All offices</button>
-            <div class="typeahead-dropdown" id="office-dropdown" role="listbox" aria-label="Office">
-              <div class="typeahead-row" id="office-opt-all" role="option" aria-selected="true"  data-value="" data-label="All offices">All offices</div>
-              <div class="typeahead-row" id="office-opt-H"   role="option" aria-selected="false" data-value="H" data-label="House">House</div>
-              <div class="typeahead-row" id="office-opt-S"   role="option" aria-selected="false" data-value="S" data-label="Senate">Senate</div>
-              <div class="typeahead-row" id="office-opt-P"   role="option" aria-selected="false" data-value="P" data-label="President">President</div>
-            </div>
-            <select id="f-office" class="form-select" aria-label="Office">
-              <option value="">All offices</option>
-              <option value="H">House</option>
-              <option value="S">Senate</option>
-              <option value="P">President</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- State combo -->
-        <div class="form-field">
-          <label class="form-label" for="f-state-filter">State</label>
-          <div class="state-combo combo-wrap" id="state-combo">
-            <input class="form-input" type="text" id="f-state-filter" placeholder="All states" autocomplete="off"
-              role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="state-dropdown" aria-autocomplete="list"/>
-            <div class="typeahead-dropdown" id="state-dropdown" role="listbox" aria-label="States">
-              <div class="typeahead-row" id="state-opt-all" role="option" aria-selected="false" data-value="" data-label="All states">All states</div>
-              <div class="typeahead-row" id="state-opt-AK" role="option" aria-selected="false" data-value="AK" data-label="AK — Alaska">AK — Alaska</div>
-              <div class="typeahead-row" id="state-opt-AL" role="option" aria-selected="false" data-value="AL" data-label="AL — Alabama">AL — Alabama</div>
-              <div class="typeahead-row" id="state-opt-AR" role="option" aria-selected="false" data-value="AR" data-label="AR — Arkansas">AR — Arkansas</div>
-              <div class="typeahead-row" id="state-opt-AZ" role="option" aria-selected="false" data-value="AZ" data-label="AZ — Arizona">AZ — Arizona</div>
-              <div class="typeahead-row" id="state-opt-CA" role="option" aria-selected="false" data-value="CA" data-label="CA — California">CA — California</div>
-              <div class="typeahead-row" id="state-opt-CO" role="option" aria-selected="false" data-value="CO" data-label="CO — Colorado">CO — Colorado</div>
-              <div class="typeahead-row" id="state-opt-CT" role="option" aria-selected="false" data-value="CT" data-label="CT — Connecticut">CT — Connecticut</div>
-              <div class="typeahead-row" id="state-opt-DC" role="option" aria-selected="false" data-value="DC" data-label="DC — D.C.">DC — D.C.</div>
-              <div class="typeahead-row" id="state-opt-DE" role="option" aria-selected="false" data-value="DE" data-label="DE — Delaware">DE — Delaware</div>
-              <div class="typeahead-row" id="state-opt-FL" role="option" aria-selected="false" data-value="FL" data-label="FL — Florida">FL — Florida</div>
-              <div class="typeahead-row" id="state-opt-GA" role="option" aria-selected="false" data-value="GA" data-label="GA — Georgia">GA — Georgia</div>
-              <div class="typeahead-row" id="state-opt-HI" role="option" aria-selected="false" data-value="HI" data-label="HI — Hawaii">HI — Hawaii</div>
-              <div class="typeahead-row" id="state-opt-IA" role="option" aria-selected="false" data-value="IA" data-label="IA — Iowa">IA — Iowa</div>
-              <div class="typeahead-row" id="state-opt-ID" role="option" aria-selected="false" data-value="ID" data-label="ID — Idaho">ID — Idaho</div>
-              <div class="typeahead-row" id="state-opt-IL" role="option" aria-selected="false" data-value="IL" data-label="IL — Illinois">IL — Illinois</div>
-              <div class="typeahead-row" id="state-opt-IN" role="option" aria-selected="false" data-value="IN" data-label="IN — Indiana">IN — Indiana</div>
-              <div class="typeahead-row" id="state-opt-KS" role="option" aria-selected="false" data-value="KS" data-label="KS — Kansas">KS — Kansas</div>
-              <div class="typeahead-row" id="state-opt-KY" role="option" aria-selected="false" data-value="KY" data-label="KY — Kentucky">KY — Kentucky</div>
-              <div class="typeahead-row" id="state-opt-LA" role="option" aria-selected="false" data-value="LA" data-label="LA — Louisiana">LA — Louisiana</div>
-              <div class="typeahead-row" id="state-opt-MA" role="option" aria-selected="false" data-value="MA" data-label="MA — Massachusetts">MA — Massachusetts</div>
-              <div class="typeahead-row" id="state-opt-MD" role="option" aria-selected="false" data-value="MD" data-label="MD — Maryland">MD — Maryland</div>
-              <div class="typeahead-row" id="state-opt-ME" role="option" aria-selected="false" data-value="ME" data-label="ME — Maine">ME — Maine</div>
-              <div class="typeahead-row" id="state-opt-MI" role="option" aria-selected="false" data-value="MI" data-label="MI — Michigan">MI — Michigan</div>
-              <div class="typeahead-row" id="state-opt-MN" role="option" aria-selected="false" data-value="MN" data-label="MN — Minnesota">MN — Minnesota</div>
-              <div class="typeahead-row" id="state-opt-MO" role="option" aria-selected="false" data-value="MO" data-label="MO — Missouri">MO — Missouri</div>
-              <div class="typeahead-row" id="state-opt-MS" role="option" aria-selected="false" data-value="MS" data-label="MS — Mississippi">MS — Mississippi</div>
-              <div class="typeahead-row" id="state-opt-MT" role="option" aria-selected="false" data-value="MT" data-label="MT — Montana">MT — Montana</div>
-              <div class="typeahead-row" id="state-opt-NC" role="option" aria-selected="false" data-value="NC" data-label="NC — North Carolina">NC — North Carolina</div>
-              <div class="typeahead-row" id="state-opt-ND" role="option" aria-selected="false" data-value="ND" data-label="ND — North Dakota">ND — North Dakota</div>
-              <div class="typeahead-row" id="state-opt-NE" role="option" aria-selected="false" data-value="NE" data-label="NE — Nebraska">NE — Nebraska</div>
-              <div class="typeahead-row" id="state-opt-NH" role="option" aria-selected="false" data-value="NH" data-label="NH — New Hampshire">NH — New Hampshire</div>
-              <div class="typeahead-row" id="state-opt-NJ" role="option" aria-selected="false" data-value="NJ" data-label="NJ — New Jersey">NJ — New Jersey</div>
-              <div class="typeahead-row" id="state-opt-NM" role="option" aria-selected="false" data-value="NM" data-label="NM — New Mexico">NM — New Mexico</div>
-              <div class="typeahead-row" id="state-opt-NV" role="option" aria-selected="false" data-value="NV" data-label="NV — Nevada">NV — Nevada</div>
-              <div class="typeahead-row" id="state-opt-NY" role="option" aria-selected="false" data-value="NY" data-label="NY — New York">NY — New York</div>
-              <div class="typeahead-row" id="state-opt-OH" role="option" aria-selected="false" data-value="OH" data-label="OH — Ohio">OH — Ohio</div>
-              <div class="typeahead-row" id="state-opt-OK" role="option" aria-selected="false" data-value="OK" data-label="OK — Oklahoma">OK — Oklahoma</div>
-              <div class="typeahead-row" id="state-opt-OR" role="option" aria-selected="false" data-value="OR" data-label="OR — Oregon">OR — Oregon</div>
-              <div class="typeahead-row" id="state-opt-PA" role="option" aria-selected="false" data-value="PA" data-label="PA — Pennsylvania">PA — Pennsylvania</div>
-              <div class="typeahead-row" id="state-opt-RI" role="option" aria-selected="false" data-value="RI" data-label="RI — Rhode Island">RI — Rhode Island</div>
-              <div class="typeahead-row" id="state-opt-SC" role="option" aria-selected="false" data-value="SC" data-label="SC — South Carolina">SC — South Carolina</div>
-              <div class="typeahead-row" id="state-opt-SD" role="option" aria-selected="false" data-value="SD" data-label="SD — South Dakota">SD — South Dakota</div>
-              <div class="typeahead-row" id="state-opt-TN" role="option" aria-selected="false" data-value="TN" data-label="TN — Tennessee">TN — Tennessee</div>
-              <div class="typeahead-row" id="state-opt-TX" role="option" aria-selected="false" data-value="TX" data-label="TX — Texas">TX — Texas</div>
-              <div class="typeahead-row" id="state-opt-UT" role="option" aria-selected="false" data-value="UT" data-label="UT — Utah">UT — Utah</div>
-              <div class="typeahead-row" id="state-opt-VA" role="option" aria-selected="false" data-value="VA" data-label="VA — Virginia">VA — Virginia</div>
-              <div class="typeahead-row" id="state-opt-VT" role="option" aria-selected="false" data-value="VT" data-label="VT — Vermont">VT — Vermont</div>
-              <div class="typeahead-row" id="state-opt-WA" role="option" aria-selected="false" data-value="WA" data-label="WA — Washington">WA — Washington</div>
-              <div class="typeahead-row" id="state-opt-WI" role="option" aria-selected="false" data-value="WI" data-label="WI — Wisconsin">WI — Wisconsin</div>
-              <div class="typeahead-row" id="state-opt-WV" role="option" aria-selected="false" data-value="WV" data-label="WV — West Virginia">WV — West Virginia</div>
-              <div class="typeahead-row" id="state-opt-WY" role="option" aria-selected="false" data-value="WY" data-label="WY — Wyoming">WY — Wyoming</div>
-            </div>
-            <select id="f-state-native" class="form-select" aria-label="State">
-              <option value="">All states</option>
-              <option value="AK">AK — Alaska</option>
-              <option value="AL">AL — Alabama</option>
-              <option value="AR">AR — Arkansas</option>
-              <option value="AZ">AZ — Arizona</option>
-              <option value="CA">CA — California</option>
-              <option value="CO">CO — Colorado</option>
-              <option value="CT">CT — Connecticut</option>
-              <option value="DC">DC — D.C.</option>
-              <option value="DE">DE — Delaware</option>
-              <option value="FL">FL — Florida</option>
-              <option value="GA">GA — Georgia</option>
-              <option value="HI">HI — Hawaii</option>
-              <option value="IA">IA — Iowa</option>
-              <option value="ID">ID — Idaho</option>
-              <option value="IL">IL — Illinois</option>
-              <option value="IN">IN — Indiana</option>
-              <option value="KS">KS — Kansas</option>
-              <option value="KY">KY — Kentucky</option>
-              <option value="LA">LA — Louisiana</option>
-              <option value="MA">MA — Massachusetts</option>
-              <option value="MD">MD — Maryland</option>
-              <option value="ME">ME — Maine</option>
-              <option value="MI">MI — Michigan</option>
-              <option value="MN">MN — Minnesota</option>
-              <option value="MO">MO — Missouri</option>
-              <option value="MS">MS — Mississippi</option>
-              <option value="MT">MT — Montana</option>
-              <option value="NC">NC — North Carolina</option>
-              <option value="ND">ND — North Dakota</option>
-              <option value="NE">NE — Nebraska</option>
-              <option value="NH">NH — New Hampshire</option>
-              <option value="NJ">NJ — New Jersey</option>
-              <option value="NM">NM — New Mexico</option>
-              <option value="NV">NV — Nevada</option>
-              <option value="NY">NY — New York</option>
-              <option value="OH">OH — Ohio</option>
-              <option value="OK">OK — Oklahoma</option>
-              <option value="OR">OR — Oregon</option>
-              <option value="PA">PA — Pennsylvania</option>
-              <option value="RI">RI — Rhode Island</option>
-              <option value="SC">SC — South Carolina</option>
-              <option value="SD">SD — South Dakota</option>
-              <option value="TN">TN — Tennessee</option>
-              <option value="TX">TX — Texas</option>
-              <option value="UT">UT — Utah</option>
-              <option value="VA">VA — Virginia</option>
-              <option value="VT">VT — Vermont</option>
-              <option value="WA">WA — Washington</option>
-              <option value="WI">WI — Wisconsin</option>
-              <option value="WV">WV — West Virginia</option>
-              <option value="WY">WY — Wyoming</option>
-            </select>
-          </div>
-        </div>
-
+        <!-- Borderless year select — reuses race.html's .cycle-select so the two
+             surfaces rhyme; sits as vertically-centered text beside the hero input. -->
+        <select id="year-select" class="form-select cycle-select" aria-label="Election cycle year"></select>
       </form>
     </div>
 
-    <!-- Filter chips -->
-    <div id="filter-chips" class="filter-chips-wrap" style="display:none"></div>
+    <!-- State: bare (initial — the placeholder is the whole prompt) -->
+    <div id="state-bare"></div>
 
     <!-- State: loading -->
     <div id="state-loading" style="display:none">
-      <div class="state-msg"><div class="loader"></div><span>Fetching races from FEC…</span></div>
+      <div class="state-msg"><div class="loader"></div><span>Finding races…</span></div>
     </div>
 
-    <!-- State: results -->
+    <!-- State: results (cue + tiles share the .results-area gutter padding) -->
     <div id="state-results" style="display:none">
       <div class="results-area">
-        <div class="results-header" id="results-header"></div>
+        <div class="race-cue" id="race-cue"></div>
         <div id="results-list"></div>
       </div>
     </div>
 
-    <!-- State: no results -->
-    <div id="state-no-results" style="display:none">
-      <div class="no-results">No races found matching those filters.</div>
-    </div>
-
-    <!-- State: error -->
-    <div id="state-error" style="display:none">
-      <div class="error-prompt">
-        <strong>Couldn't load races</strong>
-        There was a problem fetching data from the FEC API.
-        <div><button class="retry-btn">Retry</button></div>
-      </div>
+    <!-- State: message (errors + empty) -->
+    <div id="state-message" style="display:none">
+      <div class="race-state-msg" id="state-message-inner"></div>
     </div>
 
   </div><!-- /.main-inner -->
@@ -256,361 +135,282 @@
 
 <script src="main.js"></script>
 <script src="utils.js"></script>
+<script src="races-resolver.js"></script>
 <script>
 amplitude.track('Page Viewed', { page: 'races' });
 
+// ── Year range ────────────────────────────────────────────────────────────────
+// Floor 2012 (geocod.io cd113 floor + FEC Senate/President detail floor). Ceiling
+// = the widest per-office cap (Senate + 4). Single dropdown offers even years
+// floor→ceiling, default = current cycle. Picking a future year (> currentCycle)
+// resolves server-side to a state-only degrade (House omitted — its district
+// lines aren't published yet); Senate/President still render.
 var now = new Date().getFullYear();
 var currentCycle = (now % 2 === 0) ? now : now + 1;
-var maxCycle = currentCycle + 4;
+var FLOOR_YEAR = 2012;
+var CEILING_YEAR = currentCycle + 4;
 
-var activeFilters = { cycle: String(currentCycle), office: '', state: '' };
-var allRaces = [];
-var raceLookup = {};
-var pendingRender = false;
+var ZIP_RE = /^\d{5}$/;
 
-var RACE_CACHE_PREFIX = 'lf:race:';
-var RACE_CACHE_TTL = 24 * 60 * 60 * 1000; // 24h — aggregate stats, safe to cache longer
+var yearParam = currentCycle;   // active election year
+var currentInput = null;        // { type:'zip'|'address', q } or null (bare)
+var resolveToken = 0;           // stale-response guard (rapid year switches / searches)
 
-var OFFICE_LABELS = { H: 'House', S: 'Senate', P: 'President' };
-
-// ── Combo dropdowns ───────────────────────────────────────────────────────────
-
-var cycleCombo = initComboDropdown({
-  trigger:  document.getElementById('f-cycle-trigger'),
-  dropdown: document.getElementById('cycle-dropdown'),
-  native:   document.getElementById('f-cycle'),
-  getValue: function() { return activeFilters.cycle; },
-  onSelect: function(value) { activeFilters.cycle = value; fetchAllRaces(value); }
-});
-
-var officeCombo = initComboDropdown({
-  trigger:  document.getElementById('f-office-trigger'),
-  dropdown: document.getElementById('office-dropdown'),
-  native:   document.getElementById('f-office'),
-  getValue: function() { return activeFilters.office; },
-  onSelect: function(value) { activeFilters.office = value; applyFilters(); }
-});
-
-var stateCombo = initComboDropdown({
-  trigger:    document.getElementById('f-state-filter'),
-  dropdown:   document.getElementById('state-dropdown'),
-  native:     document.getElementById('f-state-native'),
-  filterable: true,
-  getValue:   function() { return activeFilters.state; },
-  onSelect:   function(value) { activeFilters.state = value; applyFilters(); }
-});
+// ── State wrappers ────────────────────────────────────────────────────────────
 
 function showState(name) {
-  document.getElementById('state-loading').style.display    = name === 'loading'    ? 'block' : 'none';
-  document.getElementById('state-results').style.display    = name === 'results'    ? 'block' : 'none';
-  document.getElementById('state-no-results').style.display = name === 'no-results' ? 'block' : 'none';
-  document.getElementById('state-error').style.display      = name === 'error'      ? 'block' : 'none';
-}
-
-// ── Cycle dropdown ────────────────────────────────────────────────────────────
-
-async function populateCycles(preferredCycle) {
-  var data = await apiFetch('/elections/search/', { per_page: 100 });
-  var results = data.results || [];
-  var seen = {};
-  var cycles = [];
-  results.forEach(function(r) {
-    if (!seen[r.cycle] && r.cycle <= maxCycle) {
-      seen[r.cycle] = true;
-      cycles.push(r.cycle);
-    }
-  });
-  cycles.sort(function(a, b) { return b - a; });
-
-  var targetCycle = (preferredCycle && cycles.indexOf(parseInt(preferredCycle)) !== -1)
-    ? parseInt(preferredCycle) : currentCycle;
-  activeFilters.cycle = String(targetCycle);
-
-  // Populate custom dropdown rows
-  var dd = document.getElementById('cycle-dropdown');
-  dd.innerHTML = cycles.map(function(c) {
-    return '<div class="typeahead-row" id="cycle-opt-' + c + '" role="option" aria-selected="false"'
-      + ' data-value="' + c + '" data-label="' + c + '">' + c + '</div>';
-  }).join('');
-
-  // Populate native select options
-  var sel = document.getElementById('f-cycle');
-  sel.innerHTML = cycles.map(function(c) {
-    return '<option value="' + c + '">' + c + '</option>';
-  }).join('');
-
-  // Sync combo button label and aria-selected
-  cycleCombo.setValue(String(targetCycle));
-}
-
-// ── Enrichment ────────────────────────────────────────────────────────────────
-
-function scheduleRender() {
-  if (pendingRender) return;
-  pendingRender = true;
-  requestAnimationFrame(function() { pendingRender = false; applyFilters(); });
-}
-
-function enrichRace(race) {
-  if (race.candidateCount !== null || race._enriching) return;
-  race._enriching = true;
-  var gen = fetchGeneration;
-  var cycle = activeFilters.cycle;
-
-  // Check localStorage cache first
-  var cacheKey = RACE_CACHE_PREFIX + cycle + ':' + race.office + ':' + race.state + ':' + race.district;
-  try {
-    var cached = JSON.parse(localStorage.getItem(cacheKey));
-    if (cached && cached.expires > Date.now()) {
-      race.candidateCount = cached.data.candidateCount;
-      race.totalRaised    = cached.data.totalRaised;
-      race._enriching     = false;
-      scheduleRender();
-      return;
-    }
-  } catch(e) {}
-
-  var params = { cycle: cycle, office: officeApiParam(race.office), state: race.state, per_page: 100 };
-  if (race.office === 'H') params.district = race.district;
-
-  apiFetch('/elections/', params).then(function(data) {
-    if (gen !== fetchGeneration) return;
-    var candidates = data.results || [];
-    race.candidateCount = candidates.length;
-    race.totalRaised    = candidates.reduce(function(sum, c) { return sum + (c.total_receipts || 0); }, 0);
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify({
-        data:    { candidateCount: race.candidateCount, totalRaised: race.totalRaised },
-        expires: Date.now() + RACE_CACHE_TTL,
-      }));
-    } catch(e) {}
-    scheduleRender();
-  }).catch(function(err) {
-    race._enriching = false; // allow retry on scroll
-    console.warn('enrich failed for', race.office, race.state, race.district, err);
+  ['bare', 'loading', 'results', 'message'].forEach(function(s) {
+    document.getElementById('state-' + s).style.display = (s === name) ? 'block' : 'none';
   });
 }
 
-var raceObserver = new IntersectionObserver(function(entries) {
-  entries.forEach(function(entry) {
-    if (!entry.isIntersecting) return;
-    var race = raceLookup[entry.target.dataset.raceKey];
-    if (race) enrichRace(race);
-    raceObserver.unobserve(entry.target);
-  });
-}, { rootMargin: '100px' }); // start fetching 100px before row enters viewport
-
-// ── Data fetching ─────────────────────────────────────────────────────────────
-
-// /elections/ requires office as lowercase word
-function officeApiParam(o) {
-  return { H:'house', S:'senate', P:'president' }[o] || o.toLowerCase();
+// Message state (errors + empty). retryFn optional → renders a Retry button.
+function showMessage(title, body, retryFn) {
+  var el = document.getElementById('state-message-inner');
+  el.innerHTML = '<div class="race-state-title">' + title + '</div>'
+    + '<div>' + body + '</div>'
+    + (retryFn ? '<div><button class="retry-btn" id="msg-retry">Retry</button></div>' : '');
+  if (retryFn) document.getElementById('msg-retry').addEventListener('click', retryFn);
+  showState('message');
 }
 
-// Fetch all pages from a paginated FEC endpoint
-async function fetchAllPages(endpoint, params) {
-  var first = await apiFetch(endpoint, Object.assign({}, params, { per_page: 100 }));
-  var results = first.results || [];
-  var totalPages = (first.pagination && first.pagination.pages) || 1;
-  if (totalPages > 1) {
-    var pages = [];
-    for (var p = 2; p <= totalPages; p++) pages.push(p);
-    var rest = await Promise.all(pages.map(function(p) {
-      return apiFetch(endpoint, Object.assign({}, params, { per_page: 100, page: p }));
-    }));
-    rest.forEach(function(d) { results = results.concat(d.results || []); });
+function showResolveError(errorType) {
+  switch (errorType) {
+    case 'not_found':
+      return showMessage('Location not found',
+        'We couldn’t find that location. Check the spelling, or try a ZIP code.');
+    case 'low_accuracy':
+      return showMessage('Address too vague',
+        'That address wasn’t specific enough. Add a street number, or search by ZIP code.');
+    case 'cycle_out_of_range':
+      return showMessage('Year not covered',
+        'FECLedger covers federal elections from 2012 onward.');
+    case 'geocoder_unavailable':
+      return showMessage('Lookup unavailable',
+        'Location lookup is temporarily unavailable. Please try again in a moment.',
+        resolveLocation);
+    default:
+      return showMessage('Something went wrong',
+        'We couldn’t resolve that location. Please try again.', resolveLocation);
   }
-  return results;
 }
 
-// Track the current fetch generation so stale enrichment calls don't write to a new cycle's data
-var fetchGeneration = 0;
+// ── Year dropdown ─────────────────────────────────────────────────────────────
 
-async function fetchAllRaces(cycle) {
-  var gen = ++fetchGeneration;
+function populateYears() {
+  var years = [];
+  for (var y = CEILING_YEAR; y >= FLOOR_YEAR; y -= 2) years.push(y);
+  document.getElementById('year-select').innerHTML = years.map(function(y) {
+    return '<option value="' + y + '">' + y + '</option>';
+  }).join('');
+}
+
+// ── Resolve + render ──────────────────────────────────────────────────────────
+
+function keyOf(item) { return item.office + '|' + item.state + '|' + (item.district || ''); }
+
+function resolveLocation() {
+  if (!currentInput) { showState('bare'); return; }
+  var token = ++resolveToken;
   showState('loading');
-  try {
-    // Step 1: race list from /elections/search/ — render immediately with skeletons
-    var raceResults = await fetchAllPages('/elections/search/', { cycle: cycle });
-    if (gen !== fetchGeneration) return;
-    allRaces = raceResults.map(function(r) {
-      return { office: r.office, state: r.state, district: r.district || '',
-               candidateCount: null, totalRaised: null };
-    });
-    // Rebuild lookup so enrichRace and the observer can find races by key
-    raceLookup = {};
-    allRaces.forEach(function(r) {
-      raceLookup[r.office + '|' + r.state + '|' + r.district] = r;
-    });
-    applyFilters();
-    // Step 2 (enrichment) now happens via IntersectionObserver in renderResults —
-    // only races that scroll into the viewport get enriched.
-  } catch(err) {
-    if (gen !== fetchGeneration) return;
-    showState('error');
-    console.error('races fetch error:', err);
-  }
-}
 
-// ── Filtering & rendering ─────────────────────────────────────────────────────
+  var url = '/api/geo/resolve?type=' + currentInput.type
+    + '&q=' + encodeURIComponent(currentInput.q)
+    + '&cycle=' + yearParam;
 
-function updateURL() {
-  var u = new URL(window.location.href);
-  u.search = '';
-  u.searchParams.set('cycle', activeFilters.cycle);
-  if (activeFilters.office) u.searchParams.set('office', activeFilters.office);
-  if (activeFilters.state)  u.searchParams.set('state',  activeFilters.state);
-  window.history.pushState({}, '', u.toString());
-}
-
-function applyFilters() {
-  var filtered = allRaces.filter(function(r) {
-    if (activeFilters.office && r.office !== activeFilters.office) return false;
-    if (activeFilters.state  && r.state  !== activeFilters.state)  return false;
-    return true;
-  });
-  renderResults(filtered);
-  renderChips();
-  updateURL();
-}
-
-function renderResults(races) {
-  if (!races.length) { showState('no-results'); return; }
-  var groups = { P: [], S: [], H: [] };
-  races.forEach(function(r) {
-    if (groups[r.office]) groups[r.office].push(r);
-  });
-  // Sort each group by state then district
-  ['P', 'S', 'H'].forEach(function(office) {
-    groups[office].sort(function(a, b) {
-      var s = (a.state || '').localeCompare(b.state || '');
-      if (s !== 0) return s;
-      return (a.district || '').localeCompare(b.district || '');
-    });
-  });
-  var html = '';
-  ['P', 'S', 'H'].forEach(function(office) {
-    if (!groups[office].length) return;
-    html += '<div class="results-list">';
-    html += groups[office].map(buildRaceRow).join('');
-    html += '</div>';
-  });
-  document.getElementById('results-list').innerHTML = html;
-
-  // Re-observe unenriched rows — disconnect first to clear any stale observations
-  raceObserver.disconnect();
-  document.querySelectorAll('#results-list [data-race-key]').forEach(function(el) {
-    var race = raceLookup[el.dataset.raceKey];
-    if (race && race.candidateCount === null && !race._enriching) {
-      raceObserver.observe(el);
+  fetch(url).then(function(r) { return r.json(); }).then(function(geo) {
+    if (token !== resolveToken) return;                 // superseded — drop
+    if (!geo || geo.error) return showResolveError(geo && geo.error);
+    if (geo.flags && geo.flags.territory) {
+      return showMessage('No federal races here',
+        'FECLedger covers U.S. House, Senate, and presidential races. This location doesn’t have any.');
     }
+    renderRaces(geo, yearParam, token);
+  }).catch(function() {
+    if (token !== resolveToken) return;
+    showResolveError('geocoder_unavailable');
+  });
+}
+
+function skeletonTile(item, year) {
+  return raceTileHTML({ office: item.office, state: item.state, district: item.district,
+    seatStatus: null, cycle: year });
+}
+
+// Order: President → Senate → House (decision #2 — same in every layout).
+// House is sorted by district NUMBER ascending (predictable for a voter). We
+// deliberately do NOT use geocod's overlap-proportion order — for a ZIP crossing
+// several districts you live in exactly one; the others just clip the ZIP, so
+// there's no meaningful "primary" district and proportion order reads as arbitrary.
+function orderPlan(plan) {
+  var byOffice = { P: [], S: [], H: [] };
+  plan.forEach(function(i) { (byOffice[i.office] || byOffice.H).push(i); });
+  byOffice.H.sort(function(a, b) { return parseInt(a.district, 10) - parseInt(b.district, 10); });
+  return byOffice.P.concat(byOffice.S, byOffice.H);
+}
+
+// Multi-state ZIP layout (§4b): President ungrouped at the top (national — belongs
+// to no state), then one group per state. State groups are ordered ALPHABETICALLY
+// by displayed name (predictable, same rationale as the numerical district order —
+// proportion "majority-first" reads as arbitrary to a voter). Peer groups, no
+// dominant styling; a per-state 2d caption slots under each header later. A spanned
+// state always has >=1 House district, so a group is never empty (we still guard).
+function buildGroupedSkeleton(geo, plan, year) {
+  var html = plan.filter(function(i) { return i.office === 'P'; })
+    .map(function(i) { return skeletonTile(i, year); }).join('');
+
+  // Unique states (districts + any districtless state), excluding DC, A→Z by name.
+  var stateSet = {};
+  (geo.districts || []).forEach(function(d) { stateSet[d.state] = true; });
+  (geo.states || []).forEach(function(s) { if (s !== 'DC') stateSet[s] = true; });
+  var stateOrder = Object.keys(stateSet).sort(function(a, b) {
+    return (STATE_NAMES[a] || a).localeCompare(STATE_NAMES[b] || b);
   });
 
-  updateResultsHeader(races);
+  stateOrder.forEach(function(st) {
+    var items = orderPlan(plan.filter(function(i) { return i.office !== 'P' && i.state === st; }));
+    if (!items.length) return;                          // never render a bare header
+    html += '<div class="race-state-group">'
+      + '<div class="race-state-header">' + (STATE_NAMES[st] || st) + '</div>'
+      + items.map(function(i) { return skeletonTile(i, year); }).join('')
+      + '</div>';
+  });
+  return html;
+}
+
+function renderRaces(geo, year, token) {
+  var plan = planRaces(geo, year);
+  if (!plan.length) {                                   // e.g. DC in a non-presidential year
+    return showMessage('No federal races',
+      'No federal races for this location in ' + year + '.');
+  }
+
+  var where = currentInput.type === 'zip' ? ('ZIP ' + currentInput.q) : 'your address';
+  document.getElementById('race-cue').textContent = 'Races for ' + where + ' · ' + year;
+
+  // Skeleton tiles paint immediately (race name shows; meta skeletons until each
+  // office's /elections/ call lands). Multi-state ZIP → per-state groups; else flat.
+  var list = document.getElementById('results-list');
+  var multiState = !!(geo.flags && geo.flags.multi_state);
+  list.innerHTML = multiState
+    ? buildGroupedSkeleton(geo, plan, year)
+    : orderPlan(plan).map(function(i) { return skeletonTile(i, year); }).join('');
   showState('results');
+
+  // Progressive per-card resolve (grouping-agnostic — querySelector finds each
+  // tile by data-race-key wherever it sits). Each card is one /elections/ call:
+  //  - non-null  → swap skeleton for the resolved tile
+  //  - null      → office not up this cycle → drop the card (decision #3)
+  //  - error     → MVP: drop the card too (a transient FEC error is currently
+  //                indistinguishable from office-absent; a per-card error tile is banked)
+  var settled = 0, rendered = 0;
+  plan.forEach(function(item) {
+    fetchRaceSummary(item, year).then(function(race) {
+      if (token !== resolveToken) return;
+      var el = list.querySelector('[data-race-key="' + keyOf(item) + '"]');
+      if (!el) return;
+      if (race === null) { el.remove(); }
+      else { el.outerHTML = raceTileHTML(race); rendered++; }
+    }).catch(function() {
+      if (token !== resolveToken) return;
+      var el = list.querySelector('[data-race-key="' + keyOf(item) + '"]');
+      if (el) el.remove();
+    }).then(function() {
+      if (token !== resolveToken) return;
+      settled++;
+      if (settled === plan.length && rendered === 0) {
+        showMessage('No federal races', 'No federal races for ' + where + ' in ' + year + '.');
+      }
+    });
+  });
 }
 
-function buildRaceRow(r) {
-  var label = formatRaceName(r.office, r.state, r.district);
-  var url = '/race?office=' + r.office
-          + '&state=' + r.state
-          + '&cycle=' + activeFilters.cycle
-          + (r.office === 'H' ? '&district=' + r.district : '');
-  var raceKey = r.office + '|' + r.state + '|' + r.district;
-  var metaHtml;
-  if (r.candidateCount === null) {
-    // Still loading — show skeleton placeholders
-    metaHtml = '<div class="race-row-meta">'
-      + '<span class="skeleton" style="width:70px;height:12px;display:inline-block"></span>'
-      + '<span class="skeleton" style="width:100px;height:12px;display:inline-block"></span>'
-      + '</div>';
+// ── Input + URL ───────────────────────────────────────────────────────────────
+
+function submitSearch(e) {
+  if (e) e.preventDefault();
+  var raw = document.getElementById('loc-input').value.trim();
+  if (!raw) return;
+  if (ZIP_RE.test(raw)) {
+    currentInput = { type: 'zip', q: raw };
+    syncUrl();                    // ZIP is shareable → pushState ?zip&year
   } else {
-    var meta = r.candidateCount + ' candidate' + (r.candidateCount !== 1 ? 's' : '');
-    var raised = r.totalRaised ? 'Total raised: ' + fmt(r.totalRaised) : '';
-    metaHtml = '<div class="race-row-meta">'
-      + '<span>' + meta + '</span>'
-      + (raised ? '<span>' + raised + '</span>' : '')
-      + '</div>';
+    currentInput = { type: 'address', q: raw };
+    dropUrl();                    // address is private → no URL; strip any stale ?zip
   }
-  return '<a class="race-card" href="' + url + '" data-race-key="' + raceKey + '">'
-    + '<div class="race-card-name">' + label + '</div>'
-    + metaHtml
-    + '</a>';
+  resolveLocation();
 }
 
-function updateResultsHeader(races) {
-  var n = races.length;
-  var officeNames = { H: 'House', S: 'Senate', P: 'Presidential' };
-  var txt = n + ' race' + (n !== 1 ? 's' : '');
-  if (activeFilters.office && officeNames[activeFilters.office]) {
-    txt = n + ' ' + officeNames[activeFilters.office] + ' race' + (n !== 1 ? 's' : '');
+// ZIP path only: push a shareable ?zip=&year= entry.
+function syncUrl() {
+  if (!currentInput || currentInput.type !== 'zip') return;
+  var u = new URL(location.href);
+  u.search = '';
+  u.searchParams.set('zip', currentInput.q);
+  u.searchParams.set('year', yearParam);
+  history.pushState(null, '', u.toString());
+}
+
+// Address path: geocode-and-discard extends to the URL — drop any params so the
+// address is never in a shareable/back-navigable URL.
+function dropUrl() {
+  if (location.search) history.replaceState(null, '', location.pathname);
+}
+
+function onPopState() {
+  var p = new URLSearchParams(location.search);
+  var urlZip = p.get('zip');
+  var urlYearRaw = parseInt(p.get('year'), 10);
+  var desiredYear = validYear(urlYearRaw) ? urlYearRaw : currentCycle;
+  var desiredZip = (urlZip && ZIP_RE.test(urlZip)) ? urlZip : null;
+
+  // No-op when nothing changed (e.g. the global search overlay's same-URL popstate).
+  var curZip = (currentInput && currentInput.type === 'zip') ? currentInput.q : null;
+  if (desiredZip === curZip && desiredYear === yearParam) return;
+
+  yearParam = desiredYear;
+  document.getElementById('year-select').value = String(yearParam);
+  if (desiredZip) {
+    document.getElementById('loc-input').value = desiredZip;
+    currentInput = { type: 'zip', q: desiredZip };
+    resolveLocation();
+  } else {
+    currentInput = null;
+    document.getElementById('loc-input').value = '';
+    showState('bare');
   }
-  if (activeFilters.state) txt += ' in ' + activeFilters.state;
-  document.getElementById('results-header').textContent = txt;
 }
 
-// ── Filter chips ──────────────────────────────────────────────────────────────
-
-function renderChips() {
-  var chips = [];
-  if (activeFilters.office) chips.push({ key: 'office', label: OFFICE_LABELS[activeFilters.office] || activeFilters.office });
-  if (activeFilters.state)  chips.push({ key: 'state',  label: 'State: ' + activeFilters.state });
-
-  var wrap = document.getElementById('filter-chips');
-  if (!chips.length) { wrap.style.display = 'none'; return; }
-
-  var html = chips.map(function(chip) {
-    return '<span class="filter-chip">' + chip.label
-      + '<button class="chip-x" onclick="clearFilter(\'' + chip.key + '\')" aria-label="Remove filter">\u00d7</button>'
-      + '</span>';
-  }).join('');
-  if (chips.length >= 2) {
-    html += '<button class="chip-clear-all" onclick="clearAllFilters()">Clear all</button>';
-  }
-  wrap.innerHTML = html;
-  wrap.style.display = 'flex';
+function validYear(y) {
+  return y && y >= FLOOR_YEAR && y <= CEILING_YEAR && y % 2 === 0;
 }
-
-function clearFilter(key) {
-  activeFilters[key] = '';
-  if (key === 'office') officeCombo.setValue('');
-  if (key === 'state')  stateCombo.setValue('');
-  applyFilters();
-}
-
-function clearAllFilters() {
-  activeFilters.office = '';
-  activeFilters.state = '';
-  officeCombo.setValue('');
-  stateCombo.setValue('');
-  applyFilters();
-}
-
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 (function init() {
-  var p = new URLSearchParams(window.location.search);
-  var urlCycle  = p.get('cycle');
-  var urlOffice = p.get('office');
-  var urlState  = p.get('state');
-
-  if (urlOffice && OFFICE_LABELS[urlOffice]) {
-    activeFilters.office = urlOffice;
-    officeCombo.setValue(urlOffice);
-  }
-  if (urlState) {
-    activeFilters.state = urlState;
-    stateCombo.setValue(urlState);
-  }
-
-  populateCycles(urlCycle).then(function() {
-    fetchAllRaces(activeFilters.cycle);
+  populateYears();
+  var yearSelect = document.getElementById('year-select');
+  yearSelect.addEventListener('change', function() {
+    yearParam = parseInt(yearSelect.value, 10);
+    if (currentInput) { syncUrl(); resolveLocation(); }   // re-resolve the active search
   });
 
-  document.querySelector('.retry-btn').addEventListener('click', function() {
-    fetchAllRaces(activeFilters.cycle);
-  });
+  var p = new URLSearchParams(location.search);
+  var urlYearRaw = parseInt(p.get('year'), 10);
+  if (validYear(urlYearRaw)) yearParam = urlYearRaw;
+  yearSelect.value = String(yearParam);
+
+  var urlZip = p.get('zip');
+  if (urlZip && ZIP_RE.test(urlZip)) {
+    document.getElementById('loc-input').value = urlZip;
+    currentInput = { type: 'zip', q: urlZip };
+    resolveLocation();
+  } else {
+    showState('bare');
+  }
+
+  document.getElementById('search-form').addEventListener('submit', submitSearch);
+  window.addEventListener('popstate', onPopState);
 })();
 </script>
 

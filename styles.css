@@ -1296,6 +1296,12 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
     trigger fits the line box exactly (no vertical-align:middle overflow that
     would make the Conduits header 1px taller than the text-only headers). */ }
 
+/* Search/filter top band — the always-visible bar on the search-driven surfaces
+   (/search page mode, /races location search). Padding + a divider from the
+   results below. Lifted from search.html inline in 2c so both share one source;
+   /races adds a scoped stacking context (.race-search-bar) for its year dropdown. */
+.search-bar-wrap { padding:var(--space-40) var(--page-gutter) var(--space-24);
+  border-bottom:1px solid var(--border); }
 .results-area { padding:var(--space-32) var(--page-gutter); }
 .results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
   text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--muted); padding-bottom:var(--space-8); }
@@ -1452,6 +1458,7 @@ div.cycle-row {
   .combo-wrap .typeahead-dropdown { display:none !important; }
   .combo-wrap select.form-select { display:block; }
   .filter-bar-wrap { padding:var(--page-gutter); }
+  .search-bar-wrap { padding:var(--page-gutter); }
   .results-area { padding:var(--space-24) var(--page-gutter); }
   .no-results, .error-prompt { padding:var(--space-32) var(--page-gutter); }
   .state-msg { padding:var(--space-32) var(--page-gutter); }

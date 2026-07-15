@@ -61,19 +61,33 @@ export async function onRequest(context) {
   const cycle = parseInt(cycleRaw, 10);
   const congress = (cycle - 1786) / 2;
 
-  // Out-of-range → typed reject, never clamp (clamping would silently return a
-  // year the user didn't ask for). Lower bound = geocod.io's cd113 floor.
-  // Upper bound: Stage 1 rejects future cycles too; Stage 2 replaces the
-  // upper-bound reject with a state-only resolve (House n/a; Senate/President
-  // need no district) — see the Build plan's Year-selector contract note.
-  if (!Number.isInteger(congress) || congress < MIN_CONGRESS || congress > MAX_CONGRESS) {
+  // BELOW the geocod.io floor (pre-2012) or a non-integer congress → HARD reject,
+  // never clamp (clamping would silently return a year the user didn't ask for).
+  // This is genuinely no-data + no supported-cycle intent — not degrade-able.
+  if (!Number.isInteger(congress) || congress < MIN_CONGRESS) {
     return json({ error: 'cycle_out_of_range', cycle }, 200);
   }
 
-  const cdField = 'cd' + congress;
+  // ABOVE the highest available congress (a future cycle whose district lines
+  // aren't published yet) → DEGRADE, don't reject (Stage 2). Districts are
+  // House-only + cycle-variant; states / Senate / President are cycle-invariant
+  // geographically, so we still resolve everything that doesn't need a district.
+  // Implementation: a state-only geocode (NO cd append) fed to the SAME normalize
+  // — it already yields districts:[] + offices without 'H' when no
+  // congressional_districts come back, so the in-range path is untouched. The
+  // future resolve is deliberately NOT cached (a cached districts:[] shape would
+  // go stale the moment this congress's district data lands and MAX_CONGRESS is
+  // bumped; future searches are rare, so geocode-fresh-don't-persist). No
+  // absurd-year ceiling here — the per-office year-selector cap is races.html's
+  // job; a hand-typed far-future year self-corrects downstream (FEC returns
+  // empty → empty state). NB: a future multi-state border ZIP resolves to the
+  // centroid state only (the neighbor-state signal lives in district ocd_ids,
+  // which we don't fetch without cd) — accepted edge-of-an-edge.
+  const futureCycle = congress > MAX_CONGRESS;
+  const cdField = futureCycle ? null : 'cd' + congress;
 
-  // --- cache check (ZIP only) ---
-  const cacheKey = type === 'zip' ? `geo:zip:${q}:${congress}` : null;
+  // --- cache check (ZIP only; never for the future-cycle degrade — see above) ---
+  const cacheKey = type === 'zip' && !futureCycle ? `geo:zip:${q}:${congress}` : null;
   if (cacheKey && env.GEO_CACHE) {
     const hit = await env.GEO_CACHE.get(cacheKey, { type: 'json' });
     if (hit) return json(hit, 200);
@@ -84,7 +98,7 @@ export async function onRequest(context) {
   try {
     const gUrl = new URL(GEOCODIO_BASE);
     gUrl.searchParams.set('q', q);
-    gUrl.searchParams.set('fields', cdField);
+    if (cdField) gUrl.searchParams.set('fields', cdField); // omitted on future-cycle state-only resolve
     gUrl.searchParams.set('api_key', env.GEOCODIO_KEY);
     const resp = await fetch(gUrl.toString(), { headers: { 'User-Agent': 'FECLedger/1.0' } });
     // 402 = over quota, 429 = rate limited, 5xx = geocod down → typed, no retry.
