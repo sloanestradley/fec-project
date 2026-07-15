@@ -95,6 +95,36 @@ test.describe('races.html', () => {
     expect(headers).toEqual(['Kentucky', 'Tennessee']);
   });
 
+  // Spacing lock: in a presidential multi-state result the ungrouped President card
+  // sits directly above the first state group; without the `.race-card + .race-state-group`
+  // rule they collide (bug fixed 2026-07-15). Contrast a non-presidential multi-state
+  // result where the first group leads the list and must NOT gain a stray top gap.
+  // Injected into the live races.html document so the inline <style> applies.
+  test('President card is spaced from the first state group (presidential); no stray gap otherwise', async ({ page }) => {
+    const margins = await page.evaluate(() => {
+      const geo = { flags: { multi_state: true }, states: ['KY', 'TN'],
+        districts: [{ state: 'KY', number: '01' }, { state: 'TN', number: '07' }] };
+      function firstGroupMarginTop(year) {
+        const host = document.createElement('div');
+        host.id = 'results-list';                 // match the selector context if any
+        host.innerHTML = window.buildGroupedSkeleton(geo, window.planRaces(geo, year), year);
+        document.body.appendChild(host);
+        const cards = host.querySelectorAll(':scope > .race-card'); // President tile(s)
+        const grp = host.querySelector('.race-state-group');
+        const mt = getComputedStyle(grp).marginTop;
+        document.body.removeChild(host);
+        return { presidentCards: cards.length, marginTop: mt };
+      }
+      return { pres: firstGroupMarginTop(2024), nonPres: firstGroupMarginTop(2022) };
+    });
+    // 2024 presidential → a President card precedes the first group → 32px gap
+    expect(margins.pres.presidentCards).toBe(1);
+    expect(margins.pres.marginTop).toBe('32px');
+    // 2022 non-presidential → first group leads the list → no top gap
+    expect(margins.nonPres.presidentCards).toBe(0);
+    expect(margins.nonPres.marginTop).toBe('0px');
+  });
+
   // Senate caption locks (2d) — copy + dark-gate; the render wiring rides the 2e flow spec.
   test('Caption A: senateOmissionNote is descriptive (filing signal, not a seat-class claim)', async ({ page }) => {
     const html = await page.evaluate(() => window.senateOmissionNote('KY'));

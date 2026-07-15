@@ -38,6 +38,12 @@
     /* STATES PASS seam: per-state group header (Mono label style, hairline divider).
        Rendered only when geo.flags.multi_state. President stays ungrouped above. */
     .race-state-group + .race-state-group { margin-top:var(--space-32); }
+    /* Presidential multi-state: the ungrouped President card sits directly above the
+       first state group — space them like adjacent groups. Adjacency-scoped so it
+       fires ONLY when a President .race-card precedes the group (multi-state
+       presidential); a group that leads the list (multi-state non-presidential, or
+       after President is dropped on error) has no preceding card → no stray top gap. */
+    .race-card + .race-state-group { margin-top:var(--space-32); }
     .race-state-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
       letter-spacing:var(--ls-expanded); text-transform:uppercase; color:var(--subtle);
       padding-bottom:var(--space-8); border-bottom:1px solid var(--border); margin-bottom:var(--space-8); }
