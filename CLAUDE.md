@@ -27,7 +27,7 @@ This is also a portfolio piece for a staff-level product designer (Sloane). It n
 **Analytics:** Amplitude
 - Integrated on the original FRED proof-of-concept index page; may not be present on all current pages — audit before assuming
 - Pageview tracking is the baseline expectation on every page
-- Meaningful interactions worth tracking: cycle switches on the candidate/committee pages (`Page Viewed { view:'detail', cycle }` — replaced the retired `Tab Switched` event after T-remove-profile-tabs), committee modal opens, build log / reflections toggle on process log, search queries and result clicks (once search is built)
+- Meaningful interactions worth tracking: cycle switches on the candidate/committee pages (`Page Viewed { view:'detail', cycle }` — replaced the retired `Tab Switched` event after T-remove-profile-tabs), committee modal opens, build log / reflections toggle on process log, search queries and result clicks (once search is built), the /races location search (`Location Search { input_type, cycle, result_count, multi_state, multi_district }` / `Race Tile Clicked { office, state, district, cycle, seat_status }` / `Location Search Error { error_type }` — 2d, 2026-07-15; **privacy: never logs the ZIP/address value**, only input_type + result shape)
 - Do not add a second Amplitude instance to pages that already have it — check first
 
 ---

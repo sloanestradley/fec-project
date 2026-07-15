@@ -6803,3 +6803,47 @@ decisions made once, not relitigated.
 - Pre-existing (NOT this session): candidate.spec.js:711 choropleth-tooltip test
   fails on main (fails in isolation; last candidate change was 09fd068, pre-session)
   — flag for a separate look.
+
+---
+2026-07-15 21:32
+
+## Process log draft
+
+**Title:** From "browse all races" to "races near you"
+
+**Summary (Sloane's voice):** We ripped out the old races browse — the office/state/year filters, the scroll-to-enrich rows — and replaced it with one question: type your ZIP or address, pick a year, see the federal races that actually touch where you live. It shipped live in two stages, and most of the session was me pushing on the honest, voter-legible version of every edge — which order the districts appear in, what we say when a Senate seat isn't up, and what we quietly refuse to claim.
+
+**Changelog:**
+- Retired the races browse (filters, IntersectionObserver enrichment, localStorage cache) — gone, not hidden.
+- New location search: ZIP or full address + year → the House/Senate/President races touching that place. Address stays private (never written to the URL or analytics).
+- Districts list in plain numerical order; multi-state ZIPs group alphabetically by state, President up top.
+- A live caption explains a missing Senate race only where it's confusing (border ZIPs), worded to describe the filing data — not to claim a seat "isn't up."
+- Documented everything, updated all the project docs, and banked the follow-ons (a phantom-race edge, a name-formatting bug the new surface exposed).
+
+**Field notes:** The recurring theme was refusing to say more than the data supports. Twice the "obvious" shortcut was an unsafe inference — deriving "the seat isn't up" from an empty filing list is the same mistake as guessing a two-race Senate collapse from an election-date signature; both got the humbler, honest wording. And the FEC's two race endpoints disagree with each other (one lists a phantom OK Senate candidate the other's calendar doesn't have) — a good reminder that "the API said so" isn't the same as "it's true."
+
+**Stack tags:** geocod.io v2 geocoding · Cloudflare Pages Function (geo resolver) + GEO_CACHE KV · races-resolver.js standalone module.
+
+## How Sloane steered the work
+
+**Option A over the clever workaround.** On the future-cycle degrade, I offered a byte-safe workaround (B) alongside the doc-literal design (A). You picked A without hesitation: protecting verified code isn't worth corrupting the design with a "why is a 2028 search fetching 2026 geo?" trick. Clean architecture over clever preservation.
+
+**The borderless year picker — you overruled my concern.** I flagged a height mismatch between the hero search field and the small year dropdown. As a designer you corrected me: borderless removes the box, so there's nothing to mismatch — it's just text centered against the input. You were right; I was measuring boxes that weren't there.
+
+**Caption A live, Caption B dark — and the wording constraint.** When I caught that the plan conflated two Senate captions, you confirmed the split instantly and sharpened the rule: word the caption to describe the data ("no race listed"), never to assert seat class ("isn't up") — the same unsafe inference we'd already rejected. You extended the principle, not just approved the fix.
+
+**Numerical, because a voter doesn't know proportions.** You rejected district ordering by ZIP-overlap share as arbitrary — a voter lives in one district and doesn't know what fraction of their ZIP falls where. Numerical + alphabetical is predictable. Legibility over technical fidelity.
+
+**You found the phantom senator.** Testing locally, you caught OK showing a Senate card that clicked through to the wrong cycle — surfacing a real FEC-endpoint disagreement and a whole banked fix. You verify by using the thing, not trusting green tests.
+
+**Do the high-context doc work now.** You chose to spend this session's context on the docs (which degrade most when deferred) and bank the mechanical test net for a fresh session.
+
+**Through-line:** You're relentlessly optimizing for a surface honest to a voter *and* honest to the data — refusing claims the data can't support, ordering things the way a person expects, and verifying by actually using it. The design instinct and the epistemic instinct are the same one.
+
+## What to bring to Claude Chat
+
+- **2e test net timing** — geocod.io mock + `races.spec.js` flow + geo-`normalize` spec is the clean next chunk (self-contained; spec'd in the strategy doc's "2e — remaining work (RESUME HERE)"). When to slot it.
+- **The `/elections/search/` contest-existence gate** — fixes phantom races (OK/Luttrell) but has real design surface (extra API calls, House-vs-redistricting care). Wants a design decision before building.
+- **`toTitleCase` mangling is now a discovery-surface bug** — 2c put candidate names on /races, so "Marsha Mrs. Blackburn" / "Joseph R Jr Biden" render on the primary surface. Site-wide fix (every candidate-name render). Worth prioritizing.
+- **Caption A → "both"** — you want the single-state caption too; scheduled after 2e. Quick scope confirm.
+- **Bare landing vs. a "top races by spending" hero** — v1 shipped bare; the hero is a deferred feature tied to earlier research. When is it worth building?
