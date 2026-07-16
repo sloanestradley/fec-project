@@ -12,48 +12,88 @@ test.describe('races-resolver — pure functions', () => {
     await page.addScriptTag({ path: 'races-resolver.js' });
   });
 
-  // ── raceSeatStatus — the seat-status contract (2c-final) ──
-  test('seat status: no candidates → "No candidates reported"', async ({ page }) => {
-    expect(await page.evaluate(() => window.raceSeatStatus([]))).toBe('No candidates reported');
+  // ── raceSeatStatus — the seat-status contract (STRUCTURED as of 2026-07-16;
+  // returns { kind, name? }, not a display string — see races-resolver.js) ──
+  test('seat status: no candidates → kind "none"', async ({ page }) => {
+    expect(await page.evaluate(() => window.raceSeatStatus([]))).toEqual({ kind: 'none' });
   });
 
-  test('seat status: candidates, zero incumbents → "Open seat"', async ({ page }) => {
+  test('seat status: candidates, zero incumbents → kind "open"', async ({ page }) => {
     const s = await page.evaluate(() => window.raceSeatStatus([
       { candidate_name: 'DOE, JANE', incumbent_challenge_full: 'Challenger' },
       { candidate_name: 'ROE, JOHN', incumbent_challenge: 'C' },
     ]));
-    expect(s).toBe('Open seat');
+    expect(s).toEqual({ kind: 'open' });
   });
 
-  test('seat status: one incumbent → "Incumbent: First Last" (reordered + title-cased)', async ({ page }) => {
+  test('seat status: one incumbent → kind "incumbent" + formatted name (kept for future render)', async ({ page }) => {
     const s = await page.evaluate(() => window.raceSeatStatus([
       { candidate_name: 'WILLIAMS, NIKEMA', incumbent_challenge_full: 'Incumbent' },
       { candidate_name: 'DOE, JANE', incumbent_challenge_full: 'Challenger' },
     ]));
-    expect(s).toBe('Incumbent: Nikema Williams');
+    expect(s).toEqual({ kind: 'incumbent', name: 'Nikema Williams' });
   });
 
   test('seat status: dual-field incumbent detection (short code I)', async ({ page }) => {
     const s = await page.evaluate(() => window.raceSeatStatus([
       { candidate_name: 'PEREZ, MARIE', incumbent_challenge: 'I' },
     ]));
-    expect(s).toBe('Incumbent: Marie Perez');
+    expect(s).toEqual({ kind: 'incumbent', name: 'Marie Perez' });
   });
 
-  test('seat status: same person, two candidate_ids → "Incumbent: X", not "Multiple"', async ({ page }) => {
+  test('seat status: same person, two candidate_ids → "incumbent", not "multiple"', async ({ page }) => {
     const s = await page.evaluate(() => window.raceSeatStatus([
       { candidate_name: 'SMITH, PAT', incumbent_challenge_full: 'Incumbent' },
       { candidate_name: 'Smith, Pat', incumbent_challenge_full: 'Incumbent' },  // dupe, different case
     ]));
-    expect(s).toBe('Incumbent: Pat Smith');
+    expect(s).toEqual({ kind: 'incumbent', name: 'Pat Smith' });
   });
 
-  test('seat status: two distinct incumbents → "Multiple incumbents" (no names)', async ({ page }) => {
+  test('seat status: two distinct incumbents → kind "multiple" (no names)', async ({ page }) => {
     const s = await page.evaluate(() => window.raceSeatStatus([
       { candidate_name: 'PERDUE, DAVID', incumbent_challenge_full: 'Incumbent' },
       { candidate_name: 'LOEFFLER, KELLY', incumbent_challenge_full: 'Incumbent' },
     ]));
-    expect(s).toBe('Multiple incumbents');
+    expect(s).toEqual({ kind: 'multiple' });
+  });
+
+  // ── raceTileHTML — mark-the-exception render (2026-07-16) ──
+  const tile = (kind, total) => ({ office: 'S', state: 'WA', district: null,
+    seatStatus: { kind, name: 'Marie Gluesenkamp Perez' }, total, cycle: 2026 });
+
+  test('tile: incumbent renders NO seat span — the total stands alone', async ({ page }) => {
+    const html = await page.evaluate((t) => window.raceTileHTML(t), tile('incumbent', 15400000));
+    expect(html).not.toContain('race-tile-seat');
+    expect(html).not.toContain('Marie');          // the name never reaches the card
+    expect(html).toContain('$15.4M raised');
+    expect(html).toContain('data-seat-kind="incumbent"');
+  });
+
+  test('tile: open seat renders a .tag-neutral chip', async ({ page }) => {
+    const html = await page.evaluate((t) => window.raceTileHTML(t), tile('open', 14200000));
+    expect(html).toContain('<span class="tag tag-neutral race-tile-seat">Open seat</span>');
+    expect(html).toContain('data-seat-kind="open"');
+  });
+
+  test('tile: multiple incumbents renders a .tag-neutral chip', async ({ page }) => {
+    const html = await page.evaluate((t) => window.raceTileHTML(t), tile('multiple', 9000000));
+    expect(html).toContain('<span class="tag tag-neutral race-tile-seat">Multiple incumbents</span>');
+    expect(html).toContain('data-seat-kind="multiple"');
+  });
+
+  test('tile: no filings renders plain text (NOT a tag) and omits the $0 total', async ({ page }) => {
+    const html = await page.evaluate((t) => window.raceTileHTML(t), tile('none', 0));
+    expect(html).toContain('<span class="race-tile-seat">No candidate filings</span>');
+    expect(html).not.toContain('tag-neutral');    // absence of data ≠ a race attribute
+    expect(html).not.toContain('raised');         // $0 suppressed
+  });
+
+  test('tile: loading (seatStatus null) renders skeletons and NO data-seat-kind', async ({ page }) => {
+    const html = await page.evaluate(() => window.raceTileHTML(
+      { office: 'S', state: 'TN', district: null, seatStatus: null, cycle: 2026 }));
+    expect(html).toContain('skeleton');
+    expect(html).not.toContain('data-seat-kind');  // → click logs seat_status null
+    expect(html).not.toContain('race-tile-seat');
   });
 
   // ── raceTotalReceipts — un-deduped sum, $0 + null tolerant ──

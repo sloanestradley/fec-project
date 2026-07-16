@@ -1296,34 +1296,42 @@
           <span class="ds-component-name">race-card</span>
           <span class="ds-status stable">stable</span>
         </div>
-        <div class="ds-component-classes">.race-card · .race-card-name — races.html race row. Shares visual treatment with .candidate-card (comma-grouped in styles.css: same grid, padding, border, hover) but is structurally a race row, not a candidate card. Paired with .race-row-meta (races.html-local, inline rule) for the right-hand meta line. Use .race-card for race-level surfaces; use .candidate-card for candidate-level surfaces. <strong>Two renders on this same card:</strong> (1) the <em>browse</em> render (live today) — meta = candidate count + total raised; (2) the <em>location-search summary tile</em> (Stage 2b, via <code>raceTileHTML(race)</code> in races-resolver.js; dormant until 2c wires it) — layout unchanged, but the meta's candidate count is replaced by the <strong>seat status</strong> (<code>.race-tile-seat</code> span — a bare hook, inherits the meta's muted-mono caption), with the total beside it. seatStatus comes fully formatted from raceSeatStatus() ("No candidates reported" / "Open seat" / "Incumbent: {name}" / "Multiple incumbents"); the total is omitted entirely when 0. State-driven skeleton mirrors the browse card (seatStatus == null → meta skeletons). When 2c retires the browse render, this card documents the tile alone.</div>
+        <div class="ds-component-classes">.race-card · .race-card-name · .race-tile-seat — the <strong>/races location-search summary tile</strong>: one row per federal race that touches the searched location, rendered by <code>raceTileHTML(race)</code> in races-resolver.js. Shares visual treatment with .candidate-card (comma-grouped in styles.css: same grid, padding, border, hover) but is structurally a race row, not a candidate card. Use .race-card for race-level surfaces; use .candidate-card for candidate-level surfaces. <strong>Meta line</strong> = seat status + total raised, wrapped in <code>.race-row-meta</code> — NB that rule lives in <em>races.html's inline &lt;style&gt;</em>, not styles.css, so the demos below inline-replicate it to render here. <br><br><strong>Seat status is MARK-THE-EXCEPTION (2026-07-16):</strong> only a notable seat state shows — <em>open</em> and <em>multiple incumbents</em> render as <code>.tag.tag-neutral</code> chips; <em>no filings</em> renders as plain meta text (an absence of data, not a race attribute — deliberately not a tag); and an <strong>incumbent race renders nothing at all</strong>, so its total stands alone. The incumbent NAME was removed because two identically-styled spans ("Incumbent: X" beside the total) read as a subject-predicate pair, implying the total was that candidate's — but the total is the race-wide un-deduped sum of <em>every</em> candidate's receipts. Absence of a chip is now the only incumbency signal, by design. <strong>Known trade:</strong> <code>.tag-neutral</code>'s background is <code>--surface-2</code>, identical to <code>.race-card:hover</code>, so the chip flattens into the row on hover (accepted — same as .candidate-card's tags).<br><br><code>.race-tile-seat</code> has <strong>no CSS rule of its own</strong> (inherits the meta's muted-mono caption) and is a <strong>test/QA hook only</strong> — the Race Tile Clicked event reads the <code>data-seat-kind</code> attribute on the card, NOT this span's text, so display copy and the analytics enum move independently. Kind comes from <code>raceSeatStatus()</code>, which returns a structured <code>{ kind, name? }</code> (<code>'none' | 'open' | 'multiple' | 'incumbent'</code>); <code>name</code> is carried but not rendered, so adding it back is a render-only change. The <strong>total is omitted entirely when 0</strong> ("$0" would imply a measured zero rather than nothing filed). <strong>State-driven:</strong> seatStatus == null → meta skeletons and NO data-seat-kind, so the race name paints immediately while that office's /elections/ call lands. <em>The prior browse render (meta = candidate count + total) was retired with the browse itself in 2c, 2026-07-15; this card documents the tile alone.</em></div>
         <div class="ds-component-demo">
-          <a class="race-card" href="#">
-            <div class="race-card-name">House · WA-03</div>
-            <div style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
-              <span>3 candidates</span>
-              <span>Total raised: $7.6M</span>
+          <!-- incumbent race: NO seat signal at all — the total stands alone -->
+          <a class="race-card" href="#" data-seat-kind="incumbent">
+            <div class="race-card-name">House • WA-03</div>
+            <div class="race-row-meta" style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
+              <span>$15.4M raised</span>
             </div>
           </a>
-          <a class="race-card" href="#">
-            <div class="race-card-name">Senate · WA</div>
-            <div style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
-              <span>2 candidates</span>
-              <span>Total raised: $14.2M</span>
+          <a class="race-card" href="#" data-seat-kind="open">
+            <div class="race-card-name">Senate • WA</div>
+            <div class="race-row-meta" style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
+              <span class="tag tag-neutral race-tile-seat">Open seat</span>
+              <span>$14.2M raised</span>
             </div>
           </a>
-          <!-- location-search summary tile (Stage 2b): count → seat status in the meta -->
-          <a class="race-card" href="#">
-            <div class="race-card-name">House · WA-03</div>
-            <div style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
-              <span>Incumbent: Marie Gluesenkamp Perez</span>
-              <span>Total raised: $15.4M</span>
+          <a class="race-card" href="#" data-seat-kind="multiple">
+            <div class="race-card-name">Senate • GA</div>
+            <div class="race-row-meta" style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
+              <span class="tag tag-neutral race-tile-seat">Multiple incumbents</span>
+              <span>$9M raised</span>
             </div>
           </a>
+          <!-- no filings: plain text, NOT a tag; total omitted entirely when 0 -->
+          <a class="race-card" href="#" data-seat-kind="none">
+            <div class="race-card-name">House • NE-02</div>
+            <div class="race-row-meta" style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
+              <span class="race-tile-seat">No candidate filings</span>
+            </div>
+          </a>
+          <!-- loading: seatStatus == null → meta skeletons, no data-seat-kind yet -->
           <a class="race-card" href="#">
-            <div class="race-card-name">House · NE-02</div>
-            <div style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
-              <span>No candidates reported</span>
+            <div class="race-card-name">Senate • TN</div>
+            <div class="race-row-meta" style="display:flex;gap:var(--space-16);font-family:'IBM Plex Mono',monospace;font-size:0.625rem;color:var(--muted)">
+              <span class="skeleton" style="width:110px;height:12px;display:inline-block"></span>
+              <span class="skeleton" style="width:100px;height:12px;display:inline-block"></span>
             </div>
           </a>
         </div>

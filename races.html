@@ -48,8 +48,10 @@
       letter-spacing:var(--ls-expanded); text-transform:uppercase; color:var(--subtle);
       padding-bottom:var(--space-8); border-bottom:1px solid var(--border); margin-bottom:var(--space-8); }
     /* Caption A (live omission note) / Caption B (dark collapse note) within a group */
+    /* Horizontal --space-8 matches .race-card's own horizontal padding, so the note's
+       text aligns with the card text above it; --space-16 vertical gives it room. */
     .race-omit-note, .race-collapse-note { font-family:'IBM Plex Sans',sans-serif;
-      font-size:0.75rem; color:var(--muted); padding:var(--space-8); }
+      font-size:0.75rem; color:var(--muted); padding:var(--space-16) var(--space-8); }
 
     /* Message states (errors + empty) */
     .race-state-msg { padding:var(--space-64) var(--space-16); text-align:center; color:var(--muted); }
@@ -336,8 +338,8 @@ function renderRaces(geo, year, token) {
       'No federal races for this location in ' + year + '.');
   }
 
-  var where = currentInput.type === 'zip' ? ('ZIP ' + currentInput.q) : 'your address';
-  document.getElementById('race-cue').textContent = 'Races for ' + where + ' · ' + year;
+  var where = currentInput.type === 'zip' ? ('ZIP ' + currentInput.q) : 'searched address';
+  document.getElementById('race-cue').textContent = 'Races for ' + where + ' in ' + year;
 
   // Skeleton tiles paint immediately (race name shows; meta skeletons until each
   // office's /elections/ call lands). Multi-state ZIP → per-state groups; else flat.
@@ -481,14 +483,19 @@ function validYear(y) {
   // Race Tile Clicked — delegated; fires before the tile's <a> navigation (the
   // Amplitude beacon survives unload). Logs the RACE's public identity + seat
   // status, never the user's searched location.
+  // seat_status reads the data-seat-kind ATTRIBUTE, not the rendered text (which
+  // it did until 2026-07-16): the kind is a stable low-cardinality enum
+  // ('incumbent'|'open'|'multiple'|'none'), so display copy and the analytics enum
+  // move independently, and a name never enters the payload. A loading tile has no
+  // attribute yet → null, which now unambiguously means "clicked before resolve"
+  // (an incumbent race used to log null too, since it rendered no seat text).
   document.getElementById('results-list').addEventListener('click', function(e) {
     var card = e.target.closest('.race-card');
     if (!card) return;
     var key = (card.getAttribute('data-race-key') || '').split('|');
-    var seat = card.querySelector('.race-tile-seat');
     amplitude.track('Race Tile Clicked', {
       office: key[0] || null, state: key[1] || null, district: key[2] || null,
-      cycle: yearParam, seat_status: seat ? seat.textContent : null,
+      cycle: yearParam, seat_status: card.getAttribute('data-seat-kind') || null,
     });
   });
 })();

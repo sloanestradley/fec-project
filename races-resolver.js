@@ -4,7 +4,8 @@
  *
  * Turns a geo-resolver result (from /api/geo/resolve) + an election cycle into
  * the set of federal races that touch a location, each as a SUMMARY TILE object
- * for the /races card: { office, state, district?, seatStatus, total, href }.
+ * for the /races card: { office, state, district?, seatStatus, total, href } —
+ * where seatStatus is raceSeatStatus()'s { kind, name? } object, not a string.
  *
  * The card is a summary (race identity + seat status + total) that links to
  * race.html for candidate detail — so the candidate array is used to DERIVE
@@ -13,8 +14,9 @@
  * "Stage-2 build decisions" + "Seat-status contract".
  *
  * Progressive render (2c) uses planRaces() + fetchRaceSummary() so each office
- * paints as its own /elections/ call lands; resolveRaces() is a Promise.all
- * convenience for tests / non-progressive callers.
+ * paints as its own /elections/ call lands. (A resolveRaces() Promise.all
+ * convenience existed for "tests / non-progressive callers" and was deleted
+ * 2026-07-16 — it never acquired a single consumer.)
  *
  * Standalone module (sankey.js precedent). Loaded by races.html AFTER utils.js —
  * references its globals: apiFetch, formatCandidateName, formatRaceName, fmt,
@@ -37,26 +39,38 @@ function isIncumbentRow(c) {
   return !!c && (c.incumbent_challenge_full === 'Incumbent' || c.incumbent_challenge === 'I');
 }
 
-// Seat status for the summary tile (FINAL contract, 2026-07-08):
-//   0 candidates            → "No candidates reported"  (contested office, no filers)
-//   >=1 candidate, 0 incs   → "Open seat"
-//   exactly 1 distinct inc  → "Incumbent: {name}"
-//   2+ distinct incumbents  → "Multiple incumbents"     (names live on race.html)
+// Seat status for the summary tile — STRUCTURED (2026-07-16; was a display string
+// under the 2026-07-08 contract). Returns { kind, name? }:
+//   { kind:'none' }                  0 candidates (contested office, no filers)
+//   { kind:'open' }                  >=1 candidate, 0 incumbents
+//   { kind:'multiple' }              2+ distinct incumbents
+//   { kind:'incumbent', name }       exactly 1 distinct incumbent (name may be '')
 // Distinct count dedupes by normalized name so a duplicated incumbent record
-// (same person, two candidate_ids) reads "Incumbent: X", not "Multiple".
+// (same person, two candidate_ids) is 'incumbent', not 'multiple'.
+//
+// WHY STRUCTURED: `kind` is the stable, low-cardinality fact. Display copy and the
+// Amplitude `seat_status` value both derive from it independently, so renaming a
+// label can't silently rewrite the analytics enum (it did — the click event used to
+// read the rendered DOM text), and re-adding incumbent names to the tile later is a
+// render-only change with `name` already flowing.
 function raceSeatStatus(candidates) {
   const arr = candidates || [];
-  if (arr.length === 0) return 'No candidates reported';
+  if (arr.length === 0) return { kind: 'none' };
   const incumbents = arr.filter(isIncumbentRow);
-  if (incumbents.length === 0) return 'Open seat';
+  if (incumbents.length === 0) return { kind: 'open' };
   const names = new Set(
     incumbents
       .map((c) => (c.candidate_name || c.name || '').trim().toUpperCase())
       .filter(Boolean)
   );
-  if (names.size > 1) return 'Multiple incumbents';
-  const nm = formatCandidateName(incumbents[0].candidate_name || incumbents[0].name || '');
-  return nm ? 'Incumbent: ' + nm : 'Incumbent';
+  if (names.size > 1) return { kind: 'multiple' };
+  // `name` is display-ready but deliberately NOT rendered on the tile today — the
+  // card shows no incumbent (a name beside the race-wide total read as though the
+  // total were the incumbent's). Kept so adding it back is a render change only.
+  return {
+    kind: 'incumbent',
+    name: formatCandidateName(incumbents[0].candidate_name || incumbents[0].name || ''),
+  };
 }
 
 // --- Fetch plan (pure: geo + cycle → the list of /elections/ calls to make) ---
@@ -86,7 +100,7 @@ function planRaces(geo, cycle) {
 // Returns the summary tile object, or null for an "office-absent" result — an
 // empty Senate/President call means that seat isn't up this cycle, so no card.
 // House is always contested (biennial), so an empty House call still returns a
-// card ("No candidates reported"), never null.
+// card (kind 'none' → "No candidate filings"), never null.
 async function fetchRaceSummary(item, cycle) {
   // House/Senate candidate lists are well under 100 (fully captured). President
   // can exceed it (869 filers in 2024) — but only ~115 have any money (receipts
@@ -120,41 +134,40 @@ async function fetchRaceSummary(item, cycle) {
   };
 }
 
-// Convenience: resolve every race at once. 2c uses planRaces + fetchRaceSummary
-// directly for progressive per-office reveal; this Promise.all form is for tests
-// and non-progressive callers. Office-absent (null) and failed calls are dropped
-// — per-office error UX is 2c's job on the progressive path.
-async function resolveRaces(geo, cycle) {
-  const plan = planRaces(geo, cycle);
-  const settled = await Promise.all(
-    plan.map((item) => fetchRaceSummary(item, cycle).catch(() => null))
-  );
-  return settled.filter((r) => r !== null);
-}
-
 // --- Presentation: summary tile (Stage 2b) ---
 
 // Renders ONE /races summary tile — the sole render for the location-search
-// surface (it replaces the browse row once 2c retires it). It is today's browse
-// .race-card ESSENTIALLY UNCHANGED: race name on the left, the .race-row-meta
-// slot on the right — with the candidate COUNT replaced by the SEAT STATUS
-// (total stays beside it, same muted-mono styling). No new CSS; the .race-tile-
-// seat class on the seat span is a bare JS/test hook (no style of its own — it
-// inherits .race-row-meta), used by 2c's progressive swap.
+// surface. Race name on the left, the .race-row-meta slot on the right (seat
+// status + total, muted-mono).
 //
-// STATE-DRIVEN, mirroring the browse card's candidateCount===null skeleton:
-// seatStatus == null → loading (race name paints immediately; the meta shows
-// skeletons until that office's /elections/ call lands); non-null → resolved.
+// SEAT STATUS IS MARK-THE-EXCEPTION (2026-07-16): only a notable seat state shows.
+//   incumbent → NOTHING (total stands alone)
+//   open      → "Open seat"           as a .tag.tag-neutral chip
+//   multiple  → "Multiple incumbents" as a .tag.tag-neutral chip
+//   none      → "No candidate filings" as plain meta text (an absence of data, not
+//               a race attribute — so deliberately not a tag)
+// The incumbent NAME was removed: two identically-styled spans ("Incumbent: X" next
+// to the total) read as a subject-predicate pair, implying the total was that
+// candidate's — but `total` is the race-wide un-deduped sum of EVERY candidate's
+// receipts. Absence of a chip is now the only incumbency signal, by design.
+// The chip's background matches .race-card:hover (both --surface-2), so it flattens
+// into the row on hover — a known, accepted trade (same as .candidate-card's tags).
+//
+// .race-tile-seat is a TEST/QA hook only (no CSS of its own — it inherits
+// .race-row-meta). The Amplitude click event no longer reads it: it reads the
+// data-seat-kind attribute below, so display copy and the analytics enum are
+// independent.
+//
+// STATE-DRIVEN: seatStatus == null → loading (race name paints immediately; the
+// meta shows skeletons until that office's /elections/ call lands).
 //
 // race: { office, state, district?, seatStatus?, total?, href?, cycle? }
+//   - seatStatus is raceSeatStatus()'s { kind, name? } object (NOT a string).
 //   - resolved objects (from fetchRaceSummary) carry href.
 //   - a loading placeholder may instead carry cycle so the tile is still a live
 //     link to race.html while its data loads.
-//   - seatStatus is already fully formatted by raceSeatStatus() (incl. the
-//     formatCandidateName pass) — rendered verbatim; the tile has no name logic.
-//   - total is OMITTED entirely when 0 (a "No candidates reported" race — "$0"
-//     would imply a measured zero rather than nothing filed; seat status stands
-//     alone in the meta, matching the browse card's falsy-total suppression).
+//   - total is OMITTED entirely when 0 (a no-filings race — "$0" would imply a
+//     measured zero rather than nothing filed; the seat status stands alone).
 function raceTileHTML(race) {
   const label = formatRaceName(race.office, race.state, race.district);
   const href = race.href || raceHref(race.office, race.state, race.district, race.cycle);
@@ -162,21 +175,38 @@ function raceTileHTML(race) {
   const loading = race.seatStatus == null;
 
   let metaHtml;
+  let kindAttr = '';
   if (loading) {
     metaHtml = '<div class="race-row-meta">'
       + '<span class="skeleton" style="width:110px;height:12px;display:inline-block"></span>'
       + '<span class="skeleton" style="width:100px;height:12px;display:inline-block"></span>'
       + '</div>';
   } else {
-    const total = race.total > 0 ? '<span>Total raised: ' + fmt(race.total) + '</span>' : '';
-    metaHtml = '<div class="race-row-meta">'
-      + '<span class="race-tile-seat">' + race.seatStatus + '</span>'
-      + total
-      + '</div>';
+    const kind = race.seatStatus.kind;
+    const total = race.total > 0 ? '<span>' + fmt(race.total) + ' raised</span>' : '';
+    metaHtml = '<div class="race-row-meta">' + seatHTML(kind) + total + '</div>';
+    kindAttr = ' data-seat-kind="' + kind + '"';   // omitted while loading → click logs null
   }
 
-  return '<a class="race-card" href="' + href + '" data-race-key="' + key + '">'
+  return '<a class="race-card" href="' + href + '" data-race-key="' + key + '"' + kindAttr + '>'
     + '<div class="race-card-name">' + label + '</div>'
     + metaHtml
     + '</a>';
+}
+
+// Seat-status markup for one kind. '' for 'incumbent' (mark-the-exception — see
+// raceTileHTML). Copy lives here alone; `kind` is the stable contract, so changing
+// a label can't move the analytics enum.
+function seatHTML(kind) {
+  if (kind === 'open') {
+    return '<span class="tag tag-neutral race-tile-seat">Open seat</span>';
+  }
+  if (kind === 'multiple') {
+    return '<span class="tag tag-neutral race-tile-seat">Multiple incumbents</span>';
+  }
+  if (kind === 'none') {
+    // plain text, not a tag — an absence of data rather than a race attribute
+    return '<span class="race-tile-seat">No candidate filings</span>';
+  }
+  return '';   // 'incumbent' — no seat signal on the card
 }

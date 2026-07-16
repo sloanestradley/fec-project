@@ -75,11 +75,17 @@ test.describe('races.html — location search flow (2e)', () => {
     await expect(page.locator('.race-state-group')).toHaveCount(0);           // flat
     await expect(page.locator('.race-card')).toHaveCount(2);                  // H WA-03 + S WA
     await expect(page.locator('.race-card[data-race-key="P|US|"]')).toHaveCount(0);
-    // WA-03 House exercises the incumbent seat-status → name normalization end-to-end
-    await expect(page.locator('.race-card[data-race-key="H|WA|03"] .race-tile-seat'))
-      .toHaveText('Incumbent: Marie Gluesenkamp Perez');
+    // Mark-the-exception (2026-07-16): the incumbent House race shows NO seat signal —
+    // just its total — so the race-wide total can't read as the incumbent's.
+    const house = page.locator('.race-card[data-race-key="H|WA|03"]');
+    await expect(house.locator('.race-tile-seat')).toHaveCount(0);
+    await expect(house).not.toContainText('Marie');
+    await expect(house).toHaveAttribute('data-seat-kind', 'incumbent');
+    // The open Senate seat DOES show — as a tag chip.
     await expect(page.locator('.race-card[data-race-key="S|WA|"] .race-tile-seat'))
       .toHaveText('Open seat');
+    await expect(page.locator('.race-card[data-race-key="S|WA|"] .race-tile-seat'))
+      .toHaveClass(/tag-neutral/);
   });
 
   test('multi-state presidential: President ungrouped on top, states alphabetical, Caption A for an absent Senate', async ({ page }) => {
@@ -233,7 +239,7 @@ test.describe('races.html — location search flow (2e)', () => {
     const ev = await findTrackEvent(page, 'Race Tile Clicked');
     expect(ev.args[1]).toMatchObject({
       office: 'H', state: 'WA', district: '03', cycle: 2026,
-      seat_status: 'Incumbent: Marie Gluesenkamp Perez',
+      seat_status: 'incumbent',   // the stable kind enum, not the rendered text
     });
     const queue = await getAmplitudeQueue(page);
     expect(JSON.stringify(queue)).not.toContain('98604');
@@ -255,12 +261,40 @@ test.describe('races.html — location search flow (2e)', () => {
     });
 
     await page.goto('/races.html?zip=98604&year=2026');
-    // Skeleton tiles present (race name painted, meta still loading) before resolve
+    // Skeleton tiles present (race name painted, meta still loading) before resolve.
+    // data-seat-kind is absent while loading — that's what makes a click log null.
     await expect(page.locator('#results-list .skeleton').first()).toBeVisible();
     await expect(page.locator('.race-card').first()).toBeVisible();
+    await expect(page.locator('.race-card[data-seat-kind]')).toHaveCount(0);
     release();
     await waitForResolve(page);
     await expect(page.locator('#results-list .skeleton')).toHaveCount(0);
-    await expect(page.locator('.race-tile-seat').first()).toBeVisible();
+    // Resolved: every tile carries its kind (the universal resolved marker — an
+    // incumbent tile has no .race-tile-seat, so don't key on that here).
+    await expect(page.locator('.race-card[data-seat-kind]').first()).toBeVisible();
+  });
+
+  test('clicking a still-loading tile logs seat_status null (no data-seat-kind yet)', async ({ page }) => {
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await mockGeoResolve(page);
+    await page.route('**/api/fec/elections/**', async (route) => {
+      const { pathname } = new URL(route.request().url());
+      if (pathname.includes('/elections/search/')) return route.fallback();
+      await gate;
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ results: [mkCand('DOE, JANE', false, 500000)], pagination: { count: 1 } }) });
+    });
+
+    await page.goto('/races.html?zip=98604&year=2026');
+    const card = page.locator('.race-card').first();
+    await expect(card).toBeVisible();
+    await card.evaluate(el => el.addEventListener('click', e => e.preventDefault()));
+    await card.click();
+    const ev = await findTrackEvent(page, 'Race Tile Clicked');
+    expect(ev.args[1].seat_status).toBeNull();
+    release();
   });
 });
