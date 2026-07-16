@@ -141,8 +141,12 @@ export async function onRequest(context) {
 /**
  * Build the normalized resolve object from a geocod.io response.
  * Geographic only — no Senate-up, no race data.
+ *
+ * Exported for unit testing (tests/geo-normalize.spec.js). Cloudflare Pages only
+ * treats onRequest* as handlers, so the extra named export is inert in production;
+ * `normalize` is pure (no fetch/Response/env), safe to import in a Node spec.
  */
-function normalize(geo, cycle, congress, inputType) {
+export function normalize(geo, cycle, congress, inputType) {
   const results = geo.results;
 
   // geocod echoes the Congress it resolved against in each district

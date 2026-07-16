@@ -372,13 +372,34 @@ scripts/
                                       (giver_id != receiver) kept as belt-and-suspenders. Critical: cm.txt read uses quote='' in read_csv
                                       because CMTE_NM contains literal " chars in some rows (e.g. CONSTANCE "CONNIE" JOHNSON).
   package.json                  — @aws-sdk/client-s3 + @aws-sdk/lib-storage + @duckdb/node-api dependencies
-tests/
+tests/                 — per-file coverage detail lives in TESTING.md; this is the index
   helpers/amp-mock.js  — Amplitude mock (blocks CDN, stubs sessionReplay, reads _q queue)
   helpers/api-mock.js  — FEC API mock (route intercept + fixture data for all endpoints)
+  helpers/geo-mock.js  — geocod.io geo-resolver mock (2e) — intercepts /api/geo/resolve, returns the
+                         NORMALIZED object keyed by input, computed cycle-faithfully (President in
+                         presidential cycles; future cycle > 2026 → state-only degrade, House dropped)
+                         + typed {error} (not_found / low_accuracy / cycle_out_of_range)
   shared.spec.js       — 16 structural tests × all 10 pages (nav, CSS, Amplitude, background)
-  candidate.spec.js    — candidate.html tests (stats, modal, chart, tabs, Amplitude events)
+  candidate.spec.js    — candidate.html tests (stats, modal, chart, Amplitude events, name normalization lock)
+  committee.spec.js    — committee.html tests (index/detail views, Raised/Spent, in-place transitions)
   search.spec.js       — search.html tests (states, interaction, Amplitude events)
-  pages.spec.js        — all other pages + mobile layout + feed.html (16 feed-specific tests)
+  pages.spec.js        — races/race/candidates/committees/feed/process-log/design-system + mobile layout
+  races.spec.js        — /races location-search resolve→render flow (2e) — geo-mock + a races-local
+                         office/state/cycle-aware /elections/ override + amp-mock: flat vs grouped,
+                         Caption A, degrade, territory/DC/error states, URL sync, progressive render,
+                         and the privacy invariant (searched ZIP in NO event) (13 tests)
+  races-resolver.spec.js — races-resolver pure fns (seat-status contract, planRaces); addScriptTag, no mock
+  geo-normalize.spec.js  — geo Function normalize() branches (2e) — imported directly (ESM; the Function
+                         exports normalize for test, inert in prod since Pages only treats onRequest* as
+                         handlers), fed RAW geocod.io v2 shapes: multi-state union, at-large (current +
+                         historical), DC, territory, future-degrade, ≥90 delegate skip (10 tests)
+  name-format.spec.js  — toTitleCase honorific/suffix formatting (20 cases, 578-name-sample-grounded)
+  overlay.spec.js      — global search overlay (structure, open/close, focus trap, state-only history)
+  tooltip.spec.js      — tooltip component (hover/click/keyboard, placement, singleton) (20 tests)
+  party-helpers.spec.js  — partyClass + partyLabel dual-field design (38 tests)
+  candidate-card.spec.js — candidateCardHTML variants (meta/inline layouts, opts surface)
+  committee-helpers.spec.js / race-helpers.spec.js / spend-helpers.spec.js — per-surface pure-fn units
+  chart-tooltip.spec.js  — externalChartTooltip HTML tooltip rendering
   sankey.spec.js       — buildSankeyModel pure adapter (conservation, no-double-count, form-agnostic coalesce, both gates, sankeyHeight); injects sankey.js standalone via addScriptTag, no ECharts/DOM (8 tests)
   smoke.spec.js        — 5 live-API smoke tests (@smoke tagged)
 ```
