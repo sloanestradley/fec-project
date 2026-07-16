@@ -289,13 +289,20 @@ function buildGroupedSkeleton(geo, plan, year) {
   return html;
 }
 
-// ── Senate captions (2d) ──────────────────────────────────────────────────────
-// Caption A (LIVE): in a multi-state grouped result, a state whose Senate isn't
-// listed this cycle gets an explicit note. Describes the filing signal ("no race
-// listed"), never a seat-class claim (empty /elections/ ≠ "seat isn't up"). Multi-
-// state only — single-state absent offices stay silently dropped (decision #3).
-function senateOmissionNote(state) {
-  return '<div class="race-omit-note">No Senate race in ' + (STATE_NAMES[state] || state) + ' this cycle</div>';
+// ── Senate captions ───────────────────────────────────────────────────────────
+// Caption A (LIVE): a Senate that isn't listed for the cycle gets an explicit note
+// instead of vanishing. Describes the filing signal ("no race listed"), never a
+// seat-class claim (empty /elections/ ≠ "seat isn't up").
+// Renders in BOTH layouts as of 2026-07-16 — this reverses decision #3 for the
+// Senate only (it shipped multi-state-only in 2d, where the neighbour-state
+// contrast made a correct absence look like a bug; consistency won out). House
+// never returns null, and a null President in a presidential cycle is a data
+// anomaly rather than "not up" — both stay silent drops.
+// The year is explicit (not "this cycle") because the note now has to carry alone
+// on a flat result, without the group header / neighbour-state contrast.
+function senateOmissionNote(state, year) {
+  return '<div class="race-omit-note">No ' + (STATE_NAMES[state] || state)
+    + ' Senate race in ' + year + '</div>';
 }
 
 // Caption B (DARK): a state running a regular + special Senate election in one
@@ -344,7 +351,8 @@ function renderRaces(geo, year, token) {
   // Progressive per-card resolve (grouping-agnostic — querySelector finds each
   // tile by data-race-key wherever it sits). Each card is one /elections/ call:
   //  - non-null  → swap skeleton for the resolved tile
-  //  - null      → office not up this cycle → drop the card (decision #3)
+  //  - null      → office not listed this cycle → drop the card; a Senate also
+  //                leaves the Caption A note behind (both layouts)
   //  - error     → MVP: drop the card too (a transient FEC error is currently
   //                indistinguishable from office-absent; a per-card error tile is banked)
   var settled = 0, rendered = 0;
@@ -354,15 +362,14 @@ function renderRaces(geo, year, token) {
       var el = list.querySelector('[data-race-key="' + keyOf(item) + '"]');
       if (!el) return;
       if (race === null) {
-        // Senate not listed this cycle: in a multi-state result, replace with the
-        // explicit omission note at the end of its state group (Caption A); else
-        // drop silently (single-state, House, President — decision #3).
-        if (item.office === 'S' && multiState) {
-          var group = el.closest('.race-state-group');
-          el.remove();
-          if (group) group.insertAdjacentHTML('beforeend', senateOmissionNote(item.state));
-        } else {
-          el.remove();
+        // Senate not listed this cycle → Caption A in BOTH layouts: at the end of
+        // its state group (multi-state) or the end of the list (flat, which is
+        // single-state by definition) — the same "after this state's races"
+        // placement either way. House/President drop silently (see senateOmissionNote).
+        var group = el.closest('.race-state-group');   // read BEFORE remove — el detaches
+        el.remove();
+        if (item.office === 'S') {
+          (group || list).insertAdjacentHTML('beforeend', senateOmissionNote(item.state, year));
         }
       } else {
         // Caption B (dark) rides after a resolved Senate card — '' until enabled.

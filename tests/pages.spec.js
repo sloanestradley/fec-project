@@ -127,8 +127,8 @@ test.describe('races.html', () => {
 
   // Senate caption locks (2d) — copy + dark-gate; the render wiring rides the 2e flow spec.
   test('Caption A: senateOmissionNote is descriptive (filing signal, not a seat-class claim)', async ({ page }) => {
-    const html = await page.evaluate(() => window.senateOmissionNote('KY'));
-    expect(html).toContain('No Senate race in Kentucky this cycle');
+    const html = await page.evaluate(() => window.senateOmissionNote('KY', 2026));
+    expect(html).toContain('No Kentucky Senate race in 2026');   // year explicit, state name resolved
     expect(html).not.toMatch(/(aren.t|isn.t|not) up/i);   // must NOT assert the seat isn't up
   });
 

@@ -3,7 +3,7 @@
 // geo-mock (/api/geo/resolve) + a races-local /elections/ override (office/state/
 // cycle-aware, layered over mockFecApi) + amp-mock drive races.html end to end:
 // flat vs grouped layout, President-ungrouped-top, alphabetical states, numerical
-// districts, Caption A, single-state silent drop, future degrade, territory/DC/
+// districts, Caption A (both layouts + Senate-only), future degrade, territory/DC/
 // error states, URL sync (zip pushes / address writes nothing), and the Amplitude
 // events INCLUDING the privacy invariant — no searched location value in any event.
 //
@@ -97,7 +97,7 @@ test.describe('races.html — location search flow (2e)', () => {
 
     // KY group: Senate absent → Caption A note, no Senate card; House KY-01 present
     const ky = page.locator('.race-state-group').filter({ hasText: 'Kentucky' });
-    await expect(ky.locator('.race-omit-note')).toHaveText('No Senate race in Kentucky this cycle');
+    await expect(ky.locator('.race-omit-note')).toHaveText('No Kentucky Senate race in 2024');
     await expect(ky.locator('.race-card[data-race-key="S|KY|"]')).toHaveCount(0);
     await expect(ky.locator('.race-card[data-race-key="H|KY|01"]')).toHaveCount(1);
 
@@ -117,14 +117,24 @@ test.describe('races.html — location search flow (2e)', () => {
     expect(houseKeys).toEqual(['H|IL|01', 'H|IL|04', 'H|IL|06', 'H|IL|07']);
   });
 
-  test('single-state: an absent Senate is silently dropped (no Caption A off the grouped path)', async ({ page }) => {
+  test('single-state: an absent Senate renders Caption A at the END of the flat list', async ({ page }) => {
     await setup(page, { emptySenate: ['WA'] });
     await page.goto('/races.html?zip=98604&year=2026');
     await waitForResolve(page);
 
     await expect(page.locator('.race-card[data-race-key="H|WA|03"]')).toHaveCount(1);
     await expect(page.locator('.race-card[data-race-key="S|WA|"]')).toHaveCount(0);
-    await expect(page.locator('.race-omit-note')).toHaveCount(0);   // silent, not Caption A
+    // Caption A renders in BOTH layouts (2026-07-16 — reverses decision #3 for Senate)
+    await expect(page.locator('.race-omit-note')).toHaveText('No Washington Senate race in 2026');
+    // ...at the end of the list, mirroring the grouped `beforeend` placement
+    await expect(page.locator('#results-list > *').last()).toHaveClass(/race-omit-note/);
+  });
+
+  test('House and President still drop silently — Caption A is Senate-only', async ({ page }) => {
+    await setup(page);   // no empty Senate; President resolves; House never nulls
+    await page.goto('/races.html?zip=98604&year=2026');
+    await waitForResolve(page);
+    await expect(page.locator('.race-omit-note')).toHaveCount(0);
   });
 
   test('future cycle degrades to state-only: Senate + President, no House card', async ({ page }) => {
