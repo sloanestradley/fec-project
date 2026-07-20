@@ -15,8 +15,9 @@
  * address resolves are geocode-and-discard — never cached, never logged.
  *
  * Secret:   npx wrangler pages secret put GEOCODIO_KEY --project-name fecledgerapp
- * KV bind:  GEO_CACHE (manual dashboard step, like AGGREGATIONS) — optional for
- *           local dev / correctness; required only for production cache.
+ * KV bind:  GEO_CACHE → namespace `fecledger-geo-cache`, bound in the dashboard
+ *           (Production) 2026-07-16, like AGGREGATIONS. Optional for local dev /
+ *           correctness (the Function fails open when unbound); live in prod now.
  */
 
 const GEOCODIO_BASE = 'https://api.geocod.io/v2/geocode';
