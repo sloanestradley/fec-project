@@ -208,6 +208,58 @@ test.describe('races.html — location search flow (2e)', () => {
     expect(new URL(page.url()).search).toBe('');
   });
 
+  // ── ?year= clamp + URL canonicalization (deep-link paths) ──
+  // The invariant is "the URL matches what's displayed" — assert the URL's year
+  // equals the year-select value rather than a hardcoded cycle, so the tests don't
+  // rot as the current cycle advances (same reason the URL-sync test above only
+  // checks the year is truthy).
+  test('deep-link: an out-of-range ?year= is clamped and the URL is canonicalized to match', async ({ page }) => {
+    await setup(page);
+    await page.goto('/races.html?zip=98604&year=2050');   // 2050 > ceiling → clamps to current cycle
+    await waitForResolve(page);
+    const shownYear = await page.locator('#year-select').inputValue();
+    expect(shownYear).not.toBe('2050');
+    expect(new URL(page.url()).searchParams.get('year')).toBe(shownYear);   // URL == display
+    expect(new URL(page.url()).searchParams.get('zip')).toBe('98604');
+  });
+
+  test('deep-link: an odd ?year= is clamped and canonicalized', async ({ page }) => {
+    await setup(page);
+    await page.goto('/races.html?zip=98604&year=2023');   // odd → invalid
+    await waitForResolve(page);
+    const shownYear = await page.locator('#year-select').inputValue();
+    expect(Number(shownYear) % 2).toBe(0);
+    expect(new URL(page.url()).searchParams.get('year')).toBe(shownYear);
+  });
+
+  test('deep-link: a yearless ?zip= is pinned to the resolved cycle in the URL', async ({ page }) => {
+    await setup(page);
+    await page.goto('/races.html?zip=98604');             // no year → resolves current cycle
+    await waitForResolve(page);
+    const shownYear = await page.locator('#year-select').inputValue();
+    expect(new URL(page.url()).searchParams.get('year')).toBe(shownYear);   // year now present
+  });
+
+  test('deep-link: a valid ?year= is left exactly as-is (no spurious rewrite)', async ({ page }) => {
+    await setup(page);
+    await page.goto('/races.html?zip=98604&year=2024');   // 2024 stays in range forever
+    await waitForResolve(page);
+    const u = new URL(page.url());
+    expect(u.searchParams.get('year')).toBe('2024');
+    expect(u.searchParams.get('zip')).toBe('98604');
+  });
+
+  test('deep-link: an invalid ?zip= strips params and shows no results', async ({ page }) => {
+    await setup(page);
+    await page.goto('/races.html?zip=ABCDE&year=2024');   // fails ZIP_RE → no resolve
+    // #state-bare is an empty (zero-size) container, so assert the observable
+    // outcome: nothing resolved + no results shown + the stray params cleared.
+    await expect(page.locator('#state-bare')).toBeAttached();
+    await expect(page.locator('#state-results')).toBeHidden();
+    await expect(page.locator('.race-card')).toHaveCount(0);
+    expect(new URL(page.url()).search).toBe('');          // stray params cleared
+  });
+
   test('Amplitude + PRIVACY: Location Search fires with result shape and NO searched location value', async ({ page }) => {
     await setup(page, { emptySenate: ['KY'] });
     await page.goto('/races.html?zip=42223&year=2024');

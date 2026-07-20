@@ -409,14 +409,35 @@ function submitSearch(e) {
   resolveLocation();
 }
 
-// ZIP path only: push a shareable ?zip=&year= entry.
-function syncUrl() {
-  if (!currentInput || currentInput.type !== 'zip') return;
+// The canonical ?zip=&year= URL string for the current ZIP state.
+function zipUrl() {
   var u = new URL(location.href);
   u.search = '';
   u.searchParams.set('zip', currentInput.q);
   u.searchParams.set('year', yearParam);
-  history.pushState(null, '', u.toString());
+  return u.toString();
+}
+
+// ZIP path only: push a shareable ?zip=&year= entry (a live interaction).
+function syncUrl() {
+  if (!currentInput || currentInput.type !== 'zip') return;
+  history.pushState(null, '', zipUrl());
+}
+
+// Canonicalize the address bar to the RESOLVED state WITHOUT adding a history
+// entry (replaceState) — for the init + popstate deep-link paths only. Reconciles
+// the URL with what actually rendered so a ?year= that was clamped (out-of-range /
+// odd / below the 2012 floor / absent → default cycle) and a stray/invalid ?zip=
+// can't linger inconsistent with the displayed state. A resolved ZIP → the
+// canonical ?zip&year (which pins a yearless deep link to the resolved cycle); no
+// valid ZIP → strip params entirely (the bare view carries none). Interaction
+// paths keep using syncUrl (push) / dropUrl.
+function canonicalizeUrl() {
+  if (currentInput && currentInput.type === 'zip') {
+    if (location.href !== zipUrl()) history.replaceState(null, '', zipUrl());
+  } else if (location.search) {
+    history.replaceState(null, '', location.pathname);
+  }
 }
 
 // Address path: geocode-and-discard extends to the URL — drop any params so the
@@ -447,6 +468,10 @@ function onPopState() {
     document.getElementById('loc-input').value = '';
     showState('bare');
   }
+  // Same reconciliation as init: a back/forward landing on a clamped ?year= or a
+  // stray ?zip= gets rewritten to match. Sits AFTER the no-op guard above, so the
+  // search overlay's same-URL popstate never reaches here.
+  canonicalizeUrl();
 }
 
 function validYear(y) {
@@ -476,6 +501,7 @@ function validYear(y) {
   } else {
     showState('bare');
   }
+  canonicalizeUrl();   // reconcile a clamped ?year= / stray ?zip= with what rendered
 
   document.getElementById('search-form').addEventListener('submit', submitSearch);
   window.addEventListener('popstate', onPopState);
