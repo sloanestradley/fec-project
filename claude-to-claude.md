@@ -6847,3 +6847,43 @@ decisions made once, not relitigated.
 - **`toTitleCase` mangling is now a discovery-surface bug** — 2c put candidate names on /races, so "Marsha Mrs. Blackburn" / "Joseph R Jr Biden" render on the primary surface. Site-wide fix (every candidate-name render). Worth prioritizing.
 - **Caption A → "both"** — you want the single-state caption too; scheduled after 2e. Quick scope confirm.
 - **Bare landing vs. a "top races by spending" hero** — v1 shipped bare; the hero is a deferred feature tied to earlier research. When is it worth building?
+
+---
+2026-07-17 (session close — location-search backlog cleared + candidate-count accuracy)
+
+## Process log draft
+**Title:** Say the true thing, and mark the exception
+
+Over two days I closed out every loose end the location-search feature had left dangling, then caught a data-honesty bug hiding in plain sight. The through-line kept being the same instinct: show people the accurate number, phrase it so it can't mislead, and let the absence of a mark carry the meaning instead of piling on labels.
+
+What changed:
+- FEC candidate names finally render cleanly ("Marsha Blackburn," "Joseph R Biden Jr") instead of the mangled "Marsha Mrs. Blackburn" the old formatter produced; fixed site-wide, grounded in a 578-name real sample.
+- The /races page got its full test net (the mocked-flow suite I'd deferred).
+- The "No Senate race" note now appears on single-state results too, with the year spelled out ("No Kentucky Senate race in 2024") so it can carry alone.
+- Race cards stopped shouting about incumbents: an incumbent race just shows its total, open/multiple-incumbent races get a small chip, everything else stays quiet. The old design implied the race-wide total belonged to the incumbent — it doesn't.
+- Deep-linked out-of-range years now self-correct in the URL instead of lying about what's shown.
+- Turned on the geo cache in production.
+- The count bug: race pages and the candidate race-context line capped candidate counts at the API page size (50 and 20) — so a 22-candidate race read "20," President read "50" of its real 869. Now they read the true count, for zero extra API calls, and the race label became a proper caption instead of a borrowed heading.
+
+Field notes: The honest number was already sitting in the response we were throwing away (pagination.count); the hard part was never the data, it was deciding how loud to be about it. "868 challengers" is accurate but jarring; a chip that vanishes on hover; a heading that's really a caption. Almost every decision was about register, not logic. Also: distrust a "one-line fix" in a banked note — the Caption A "drop the gate" note and the ?year= "clamp to nearest" note were both subtly wrong once I opened the code.
+
+Stack tags: none new.
+
+## How Sloane steered the work
+"The total looks like it belongs to the incumbent" — your diagnosis, not mine. I'd flagged the incumbent name as an emphasis problem; you saw the real bug: two equally-styled spans read as a subject-predicate pair, implying the race-wide total was one candidate's money. That reframing turned a styling tweak into a data-honesty fix and drove the mark-the-exception redesign.
+
+Keep the count raw — but you wanted to see it first. You asked to see the copy in every scenario before deciding, specifically to judge "868 challengers" in prose. Then you kept it raw anyway, deliberately, having looked at the striking case.
+
+"Align the statements" on the race count label. You unified the phrasing ("Showing all N" / "Showing top 50 of N") so the two states read as one idea, then caught that dropping "candidates" made it ambiguous and added it back. Copy as a system.
+
+The restyle you drove. You proposed moving the count label off .raised-cell-title to something like .results-header — correctly seeing it had become a results-count caption, not a section title — then QA'd it live and set the 16px gap.
+
+"Nothing freezes?" — you caught my overstatement. When I claimed URL canonicalization would pin a yearless link to 2026 forever, your follow-up forced me to correct it: the live cycle recomputes every load; only a copied link carries its year.
+
+The through-line: you steer by register and honesty — how loud, how it reads, what a thing implies vs. states — and you consistently catch where my logic is right but my framing is off (or my claim is overconfident). The data was rarely the hard part; you made the calls about what it should say.
+
+## What to bring to Claude Chat
+- The one remaining banked item: the /elections/search/ phantom-race gate. Real design surface (office-aware; House collides with redistricting) — scope deliberately. It got louder this session: a phantom now renders a prominent "OPEN SEAT" chip + a wrong-cycle thin card.
+- Raw-vs-funded count, revisited. You kept the raw count ("868 challengers"). If it reads badly in the wild, the "funded candidates" alternative needs a definition decision (receipts > $0? a threshold?) — a product call.
+- Restyle debt on the race count caption — functional but provisional register.
+- The persistent tooltip-reveal test flakes (Spending-by-Purpose / choropleth family) flake under load; always pass isolated. Might warrant a reveal-timing stability pass.
