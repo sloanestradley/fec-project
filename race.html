@@ -108,7 +108,7 @@
       <div id="race-results-region">
         <!-- T-race-page-UI: borrows .raised-cell-title (Oswald 1.25rem + margin-bottom)
              per Sloane's call — coupled to that Raised-tab-purposed class by choice. -->
-        <div class="raised-cell-title" id="race-candidates-label"></div>
+        <div class="race-count-header" id="race-candidates-label"></div>
         <div class="race-list" id="race-list"></div>
       </div>
     </div>
@@ -274,9 +274,19 @@ function pageViewedPayload(year, trigger) {
 // Shared render primitive — count + seat-class + list. Called by init() (first paint,
 // keeping init's parallel cold-load) and by loadRace() (each switch). Reads the
 // module yearParam, so callers MUST set yearParam before calling this.
-function renderRaceContent(results) {
+function renderRaceContent(results, totalCount) {
+  // Count is the TRUE total from /elections/ pagination.count — results.length is
+  // capped by per_page (50), so a >50-candidate field (President: 869) would
+  // otherwise under-report. The list shows the fetched top-N (sorted by money,
+  // server sort=-total_receipts + the client sort below); the label states how
+  // much of the field that is. Copy is provisional — restyle pass pending.
+  var shown = results.length;
+  var count = (typeof totalCount === 'number') ? totalCount : shown;
   document.getElementById('race-candidates-label').textContent =
-    'Candidates (' + results.length + ')';
+    count === 0 ? ''
+    : count <= shown
+      ? 'Showing all ' + count + (count === 1 ? ' candidate' : ' candidates') + ' by total raised'
+      : 'Showing top ' + shown + ' of ' + count + ' candidates by total raised';
   // Always-assign so a Senate→Senate switch updates the class (and non-Senate clears it;
   // .race-seat-class:empty then drops the empty span from flow — no stray gap).
   var seatEl = document.getElementById('race-seat-class');
@@ -299,7 +309,7 @@ function renderRaceContent(results) {
   var list = document.getElementById('race-list');
   list.innerHTML = ordered.length
     ? ordered.map(buildCandidateCard).join('')
-    : '<div class="inline-status-msg">No candidates found for this race in the FEC system.</div>';
+    : '<div class="inline-status-msg">No candidates found for this race.</div>';
 }
 function announceCycle(year, count) {
   var live = document.getElementById('race-live');
@@ -339,7 +349,7 @@ async function loadRace(requestedYear, opts) {
   hideSwitchError();
 
   var queryParams = { state: stateParam, cycle: String(resolved),
-                      office: officeApiParam(officeParam), per_page: 50 };
+                      office: officeApiParam(officeParam), per_page: 50, sort: '-total_receipts' };
   if (districtParam) queryParams.district = districtParam;
 
   try {
@@ -347,13 +357,14 @@ async function loadRace(requestedYear, opts) {
     if (myToken !== switchToken) return;        // superseded by a newer switch → drop
     yearParam = String(resolved);               // COMMIT (only on success)
     activeYear = resolved;
-    renderRaceContent(data.results || []);      // reads the just-set yearParam
+    var total = (data.pagination || {}).count;  // true field size (pagination.count)
+    renderRaceContent(data.results || [], total); // reads the just-set yearParam
     region.style.visibility = '';
     loader.style.display = 'none';
     sel.value = String(resolved);               // sync dropdown (snap/popstate cases)
     if (doPush) history.pushState({ year: resolved }, '', urlWithYear(resolved));
     amplitude.track('Page Viewed', pageViewedPayload(resolved, 'cycle-switch'));
-    announceCycle(resolved, (data.results || []).length);
+    announceCycle(resolved, total);
     if (opts.focusSelect !== false) sel.focus();
   } catch (err) {
     if (myToken !== switchToken) return;        // superseded → drop (latest owns the UI)
@@ -386,11 +397,11 @@ async function init() {
   }
 
   try {
-    var cycles, results;
+    var cycles, results, totalCount;   // totalCount = /elections/ pagination.count (true field size)
 
     if (hasExplicitYear) {
       // Parallel: fetch cycles and candidates simultaneously
-      var queryParams = { state: stateParam, cycle: yearParam, office: officeApiParam(officeParam), per_page: 50 };
+      var queryParams = { state: stateParam, cycle: yearParam, office: officeApiParam(officeParam), per_page: 50, sort: '-total_receipts' };
       if (districtParam) queryParams.district = districtParam;
 
       var settled = await Promise.all([
@@ -400,6 +411,7 @@ async function init() {
 
       cycles = (settled[0] && settled[0].length > 0) ? settled[0] : fallbackCycles;
       results = (settled[1].results || []);
+      totalCount = (settled[1].pagination || {}).count;
 
       // If requested year isn't in available cycles, snap to nearest and re-fetch
       if (cycles.indexOf(Number(yearParam)) === -1) {
@@ -411,6 +423,7 @@ async function init() {
         queryParams.cycle = yearParam;
         var data = await apiFetch('/elections/', queryParams);
         results = data.results || [];
+        totalCount = (data.pagination || {}).count;
       }
     } else {
       // Sequential: need cycles first to determine default year
@@ -431,10 +444,11 @@ async function init() {
       defaultCycle = cycles.filter(function(c) { return c >= curCycle; }).pop() || cycles[0];
       yearParam = String(defaultCycle);
 
-      var queryParams = { state: stateParam, cycle: yearParam, office: officeApiParam(officeParam), per_page: 50 };
+      var queryParams = { state: stateParam, cycle: yearParam, office: officeApiParam(officeParam), per_page: 50, sort: '-total_receipts' };
       if (districtParam) queryParams.district = districtParam;
       var data = await apiFetch('/elections/', queryParams);
       results = data.results || [];
+      totalCount = (data.pagination || {}).count;
     }
 
     cyclesList = cycles;
@@ -445,7 +459,7 @@ async function init() {
     document.getElementById('race-title').textContent = raceName;
     document.title = raceName + ' — FECLedger';   // year-independent — set once
 
-    renderRaceContent(results);                    // count + seat-class + list (reads yearParam)
+    renderRaceContent(results, totalCount);        // count + seat-class + list (reads yearParam)
 
     // Canonicalize the URL to the resolved cycle (replaceState — no new history entry)
     // so every history entry carries ?year= and popstate always resolves a cycle.

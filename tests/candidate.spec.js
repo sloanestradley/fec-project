@@ -197,6 +197,28 @@ test.describe('candidate.html — profile header', () => {
     expect(href).toBe('/race?state=US&office=P&year=2024');
   });
 
+  // Count accuracy (2026-07-17): the race-context sentence reads pagination.count
+  // (the true field size), NOT results.length, which per_page caps at 20. Override
+  // the race-context /elections/ call so the fetched sample (3) is smaller than the
+  // true count (22), open seat → the sentence must report 22, not 3.
+  test('race-context sentence uses pagination.count, not the capped sample', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/elections/**', (route) => {
+      if (route.request().url().includes('/elections/search/')) return route.fallback();
+      const mk = (i) => ({ candidate_name: 'DOE, CAND ' + i, party_full: 'DEMOCRATIC PARTY',
+        total_receipts: 900000 - i * 1000, total_disbursements: 400000,
+        incumbent_challenge_full: 'Challenger' });   // no incumbent → open seat
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [mk(1), mk(2), mk(3)], pagination: { count: 22 } }) });   // 3 fetched, 22 true
+    });
+    await page.goto(CANDIDATE_URL);
+    await page.waitForSelector('#profile-header.visible', { timeout: 12000 });
+    await page.waitForSelector('#race-context .race-context-line-text', { timeout: 12000 });
+    await expect(page.locator('#race-context .race-context-line-text'))
+      .toHaveText('Open seat with 22 candidates.');
+  });
+
   test('race-context "View race →" href is correct for an at-large House candidate (district=00)', async ({ page }) => {
     await mockAmplitude(page);
     await mockFecApi(page);

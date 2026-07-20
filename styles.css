@@ -1303,8 +1303,18 @@ td.table-cell-sm { font-family:'IBM Plex Mono',monospace; font-size:0.625rem; co
 .search-bar-wrap { padding:var(--space-40) var(--page-gutter) var(--space-24);
   border-bottom:1px solid var(--border); }
 .results-area { padding:var(--space-32) var(--page-gutter); }
-.results-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
+/* .race-count-header — the /race candidate-count caption (#race-candidates-label).
+   Shares the results-count treatment: it IS a results-count line ("Showing all N
+   candidates by total raised"), not a section heading. Comma-grouped so the two
+   stay one rule but keep distinct identities (per the .candidate-card/.race-card
+   pattern). Moved off .raised-cell-title 2026-07-17 — that Oswald heading was a
+   documented compromise; this severs the coupling to the Raised-tab titles. */
+.results-header, .race-count-header { font-family:'IBM Plex Mono',monospace; font-size:0.625rem;
   text-transform:uppercase; letter-spacing:var(--ls-expanded); color:var(--muted); padding-bottom:var(--space-8); }
+/* Race's count caption wants more breathing room above its candidate list than the
+   browse pages' count line does inside .results-area — scoped override on the one
+   divergent property; the shared type treatment stays grouped above. */
+.race-count-header { padding-bottom:var(--space-16); }
 .end-of-results { display:none; padding:var(--space-16) var(--page-gutter);
   font-family:'IBM Plex Mono',monospace; font-size:0.625rem; color:var(--muted);
   text-transform:uppercase; letter-spacing:var(--ls-expanded); text-align:center; }

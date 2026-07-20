@@ -2222,11 +2222,16 @@ async function loadCycle(cycle) {
       var officeApiParam = function(o) {
         return { H: 'house', S: 'senate', P: 'president' }[o] || o.toLowerCase();
       };
-      var eParams = { cycle: cycle, office: officeApiParam(CAND_OFFICE), per_page: 20 };
+      // sort=-total_receipts so the fetched sample is the top-by-money field —
+      // surfaces the incumbent in-window in all realistic cases. The COUNT below
+      // comes from pagination.count (the true total), NOT results.length, which
+      // per_page caps at 20 (a >20-filer race would otherwise under-report).
+      var eParams = { cycle: cycle, office: officeApiParam(CAND_OFFICE), per_page: 20, sort: '-total_receipts' };
       if (CAND_OFFICE !== 'P') eParams.state = CAND_STATE;
       if (CAND_OFFICE === 'H') eParams.district = CAND_DIST;
       var eJson = await apiFetch('/elections/', eParams);
       electionsData = eJson.results || [];
+      var electionsTotal = (eJson.pagination && eJson.pagination.count) || electionsData.length;
     } catch(e) { electionsData = []; console.warn('Elections fetch failed:', e.message); }
     if (!view.isCurrentToken(myFetchId)) return; // discard: a newer cycle was requested
 
@@ -2249,7 +2254,7 @@ async function loadCycle(cycle) {
       }
 
       var tense = isCycleActive(cycle) ? 'is' : 'was';
-      var total = electionsData.length;
+      var total = electionsTotal;   // true field size (pagination.count), not the capped sample
       var incumbentRecord = electionsData.find(function(c) {
         return c.incumbent_challenge_full === 'Incumbent';
       });

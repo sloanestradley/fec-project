@@ -393,8 +393,8 @@ test.describe('race.html', () => {
   });
 
   // ── T-race-page-UI — candidate-card refinements (race.html only) ──────────
-  test('#race-candidates-label uses .raised-cell-title', async ({ page }) => {
-    await expect(page.locator('#race-candidates-label')).toHaveClass(/raised-cell-title/);
+  test('#race-candidates-label uses .race-count-header (results-count caption, not a section title)', async ({ page }) => {
+    await expect(page.locator('#race-candidates-label')).toHaveClass(/race-count-header/);
   });
 
   test('race card stats are a 3-column grid, side-by-side with the name (desktop)', async ({ page }) => {
@@ -461,7 +461,7 @@ test.describe('T-race-inplace-cycle', () => {
     expect(await page.evaluate(() => window.__sentinel)).toBe('alive');        // no reload
     await expect(page.locator('#race-list')).toContainText('B Challenger');    // 2022 fixture (title-cased)
     expect(await page.locator('#year-select').inputValue()).toBe('2022');
-    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (8)');
+    await expect(page.locator('#race-candidates-label')).toHaveText('Showing all 8 candidates by total raised');
   });
 
   test('switch fires Page Viewed { year, trigger:cycle-switch }; load is trigger:load', async ({ page }) => {
@@ -490,9 +490,34 @@ test.describe('T-race-inplace-cycle', () => {
     await load(page);
     await page.locator('#year-select').selectOption('2020');
     await page.waitForFunction(() => location.search.includes('year=2020'));
-    await expect(page.locator('#race-list .inline-status-msg')).toBeVisible();
+    await expect(page.locator('#race-list .inline-status-msg')).toHaveText('No candidates found for this race.');
     await expect(page.locator('#race-list .candidate-card')).toHaveCount(0);
-    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (0)');
+    await expect(page.locator('#race-candidates-label')).toHaveText('');   // empty-cycle → no count label
+  });
+
+  // Count accuracy (2026-07-17): the label reads pagination.count (the true field
+  // size), not results.length (per_page-capped at 50). A >50-candidate race shows
+  // the top-N fetched + a "top N of {count}" label. Override /elections/ so the
+  // fetched sample (3 here — real per_page is 50) is smaller than pagination.count.
+  test('count label reads pagination.count and marks truncation on a >50-candidate field', async ({ page }) => {
+    await mockAmplitude(page);
+    await mockFecApi(page);
+    await page.route('**/api/fec/elections/**', (route) => {   // registered after mockFecApi → wins
+      if (route.request().url().includes('/elections/search/')) return route.fallback();
+      const mk = (i) => ({ candidate_id: 'P' + i, candidate_name: 'DOE, CAND ' + i,
+        party_full: 'DEMOCRATIC PARTY', total_receipts: 1000000 - i * 1000,
+        total_disbursements: 500000, incumbent_challenge_full: 'Challenger' });
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        results: [mk(1), mk(2), mk(3)], pagination: { count: 869 } }) });   // 3 fetched, 869 true
+    });
+    await page.goto('/race.html?state=WA&district=03&year=2024&office=H');
+    await page.waitForFunction(() => {
+      const h = document.getElementById('race-header');
+      return h && h.style.display !== 'none';
+    }, { timeout: 12000 });
+    await expect(page.locator('#race-candidates-label'))
+      .toHaveText('Showing top 3 of 869 candidates by total raised');
+    await expect(page.locator('#race-list .candidate-card')).toHaveCount(3);
   });
 
   test('scroll + compact preserved on a same/longer switch', async ({ page }) => {
@@ -531,7 +556,7 @@ test.describe('T-race-inplace-cycle', () => {
     await expect(page.locator('#race-switch-error')).toBeVisible();
     // prior cycle (2024) still rendered + usable (names render title-cased)
     await expect(page.locator('#race-list')).toContainText('Gluesenkamp Perez');
-    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (12)');
+    await expect(page.locator('#race-candidates-label')).toHaveText('Showing all 12 candidates by total raised');
     // dropdown snapped back, URL unchanged
     expect(await page.locator('#year-select').inputValue()).toBe('2024');
     expect(await page.evaluate(() => location.search.includes('year=2024'))).toBe(true);
@@ -556,7 +581,7 @@ test.describe('T-race-inplace-cycle', () => {
     await page.waitForFunction(() => location.search.includes('year=2024'));
     expect(await page.evaluate(() => window.__sentinel)).toBe('alive');        // still no reload
     expect(await page.locator('#year-select').inputValue()).toBe('2024');
-    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (12)');
+    await expect(page.locator('#race-candidates-label')).toHaveText('Showing all 12 candidates by total raised');
   });
 
   test('bare-URL load canonicalizes ?year= via replaceState (no new history entry)', async ({ page }) => {
@@ -575,7 +600,7 @@ test.describe('T-race-inplace-cycle', () => {
   test('non-cycle ?year= canonicalizes to the snapped cycle', async ({ page }) => {
     await load(page, '/race.html?state=WA&office=H&district=03&year=2026');  // 2026 not in cycles
     expect(await page.evaluate(() => new URLSearchParams(location.search).get('year'))).toBe('2024');
-    await expect(page.locator('#race-candidates-label')).toHaveText('Candidates (12)');
+    await expect(page.locator('#race-candidates-label')).toHaveText('Showing all 12 candidates by total raised');
   });
 });
 
