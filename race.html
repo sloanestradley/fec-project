@@ -106,9 +106,13 @@
       </div>
       <!-- Count + list are held/hidden/rolled-back atomically during a switch. -->
       <div id="race-results-region">
-        <!-- Results-count caption (.race-count-header, comma-grouped with
-             .results-header — Mono 0.625rem muted). Was .raised-cell-title until
-             2026-07-17, when the copy became a count line, not a section title. -->
+        <!-- Section heading (static) + results-count caption below it. The heading
+             names the section (.raised-cell-title, the site's section-title style);
+             the caption (.race-count-header — Mono 0.625rem muted, comma-grouped
+             with .results-header) states how much of the field is shown. The label
+             was .raised-cell-title until 2026-07-17, when its copy became a count
+             line; the heading was re-added 2026-07-21 to keep the section named. -->
+        <div class="raised-cell-title" id="race-candidates-heading">Candidates</div>
         <div class="race-count-header" id="race-candidates-label"></div>
         <div class="race-list" id="race-list"></div>
       </div>

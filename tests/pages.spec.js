@@ -397,6 +397,19 @@ test.describe('race.html', () => {
     await expect(page.locator('#race-candidates-label')).toHaveClass(/race-count-header/);
   });
 
+  test('a static "Candidates" section heading sits above the count caption', async ({ page }) => {
+    const heading = page.locator('#race-candidates-heading');
+    await expect(heading).toHaveText('Candidates');
+    await expect(heading).toHaveClass(/raised-cell-title/);
+    // heading precedes the count caption in DOM order (title above subtitle)
+    const order = await page.evaluate(() => {
+      const h = document.getElementById('race-candidates-heading');
+      const l = document.getElementById('race-candidates-label');
+      return h.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING ? 'heading-first' : 'label-first';
+    });
+    expect(order).toBe('heading-first');
+  });
+
   test('race card stats are a 3-column grid, side-by-side with the name (desktop)', async ({ page }) => {
     const info = await page.evaluate(() => {
       const card = document.querySelector('#race-list .candidate-card');
